@@ -1,0 +1,1146 @@
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { GoogleGenAI } from "@google/genai";
+import { GeminiService } from './services/geminiService';
+import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter } from './types';
+
+// 특징(태그) 한국어 번역 맵 (확장됨)
+const TAG_MAP: Record<string, string> = {
+  'male': '남성', 'female': '여성', 'young': '어린', 'middle aged': '중년',
+  'old': '중후한', 'calm': '차분한', 'deep': '깊은', 'energetic': '활기찬',
+  'professional': '전문적인', 'friendly': '친근한', 'soft': '부드러운',
+  'warm': '따뜻한', 'relaxed': '편안한', 'resonant': '울림있는',
+  'casual': '캐주얼', 'narrative': '내레이션', 'news': '뉴스',
+  'gentle': '다정한', 'authoritative': '권위있는', 'confident': '신뢰감있는',
+  'bright': '밝은', 'dark': '어두운', 'clear': '선명한', 'raspy': '허스키한'
+};
+
+const App: React.FC = () => {
+  const [step, setStep] = useState<AppStep>('dashboard');
+  const [projects, setProjects] = useState<StoryProject[]>(() => {
+    try {
+      const stored = localStorage.getItem('user_projects_v1');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+
+  const project = useMemo(() => {
+    return projects.find(p => p.id === currentProjectId) || null;
+  }, [projects, currentProjectId]);
+
+  const [script, setScript] = useState('');
+  const [style, setStyle] = useState<VisualStyle>('2d-animation');
+  const [refImages, setRefImages] = useState<string[]>([]);
+
+  const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('준비 중...');
+  const [targetProgress, setTargetProgress] = useState(0);
+  const [displayProgress, setDisplayProgress] = useState(0);
+
+  const [bgTask, setBgTask] = useState<{ type: 'style' | 'video' | 'analysis' | 'storyboard', message: string } | null>(null);
+  const [bgProgress, setBgProgress] = useState(0);
+
+  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [hasVisitedSetup, setHasVisitedSetup] = useState(false);
+
+  const [savedStyles, setSavedStyles] = useState<SavedStyle[]>(() => {
+    try {
+      const stored = localStorage.getItem('user_saved_styles');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [newStyleName, setNewStyleName] = useState('');
+  const [newStyleImages, setNewStyleImages] = useState<string[]>([]);
+  const styleLibraryInputRef = useRef<HTMLInputElement>(null);
+
+  const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>(() => {
+    try {
+      const stored = localStorage.getItem('user_saved_characters_v2');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [newCharLibName, setNewCharLibName] = useState('');
+  const [newCharLibImages, setNewCharLibImages] = useState<string[]>([]);
+  const [charLibSaveProgress, setCharLibSaveProgress] = useState<number | null>(null);
+  const charLibInputRef = useRef<HTMLInputElement>(null);
+  const [isLoadCharModalOpen, setIsLoadCharModalOpen] = useState(false);
+
+  const [isManualCharAdding, setIsManualCharAdding] = useState(false);
+
+  const [expandedSetting, setExpandedSetting] = useState<string | null>(null);
+  const [geminiModel, setGeminiModel] = useState(localStorage.getItem('gemini_model') || 'gemini-3-flash-preview');
+  const [geminiImageModel, setGeminiImageModel] = useState(localStorage.getItem('gemini_image_model') || 'gemini-2.5-flash-image');
+  const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+  const [isGeminiValid, setIsGeminiValid] = useState(false);
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [showElKey, setShowElKey] = useState(false);
+  const [showChirpKey, setShowChirpKey] = useState(false);
+
+  const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
+    (localStorage.getItem('audio_provider') as any) || 'google'
+  );
+  const [chirpApiKey, setChirpApiKey] = useState(localStorage.getItem('chirp_api_key') || '');
+  const [chirpVoice, setChirpVoice] = useState(localStorage.getItem('chirp_voice') || 'Kore');
+
+  const [isCharModalOpen, setIsCharModalOpen] = useState(false);
+  const [newCharData, setNewCharData] = useState({ name: '', gender: '여성', age: '성인', traits: '' });
+
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
+  const [promptEditType, setPromptEditType] = useState<'character' | 'scene'>('scene');
+  const [promptEditId, setPromptEditId] = useState<string | null>(null);
+  const [promptEditInput, setPromptEditInput] = useState('');
+
+  const [isMyPageOpen, setIsMyPageOpen] = useState(false);
+  const [elSettings, setElSettings] = useState<ElevenLabsSettings>({
+    apiKey: localStorage.getItem('el_api_key') || '',
+    voiceId: '21m00Tcm4llvDq8ikWAM',
+    speed: parseFloat(localStorage.getItem('el_speed') || '1.0')
+  });
+  const [voices, setVoices] = useState<any[]>([]);
+  const [isElConnected, setIsElConnected] = useState(false);
+  const [isAssetMenuOpen, setIsAssetMenuOpen] = useState(false);
+  const [isVoiceTesting, setIsVoiceTesting] = useState(false);
+
+  const sceneImageUploadRef = useRef<HTMLInputElement>(null);
+  const sceneAudioUploadRef = useRef<HTMLInputElement>(null);
+  const styleRefImageInputRef = useRef<HTMLInputElement>(null);
+  const charPortraitUploadRef = useRef<HTMLInputElement>(null);
+  const activeCharId = useRef<string | null>(null);
+  const activeSceneId = useRef<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('user_projects_v1', JSON.stringify(projects));
+    } catch (e) { console.error("Project Save Error", e); }
+  }, [projects]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('user_saved_styles', JSON.stringify(savedStyles));
+    } catch (e) { console.error("Style Save Error", e); }
+  }, [savedStyles]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('user_saved_characters_v2', JSON.stringify(savedCharacters));
+    } catch (e) { console.error("Character Save Error", e); }
+  }, [savedCharacters]);
+
+  useEffect(() => {
+    localStorage.setItem('gemini_model', geminiModel);
+  }, [geminiModel]);
+
+  useEffect(() => {
+    localStorage.setItem('gemini_image_model', geminiImageModel);
+  }, [geminiImageModel]);
+
+  useEffect(() => {
+    localStorage.setItem('gemini_api_key', geminiApiKey);
+    if (geminiApiKey.length > 20) {
+      checkGeminiKey(geminiApiKey);
+    } else {
+      setIsGeminiValid(false);
+    }
+  }, [geminiApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('audio_provider', audioProvider);
+    localStorage.setItem('chirp_api_key', chirpApiKey);
+    localStorage.setItem('chirp_voice', chirpVoice);
+  }, [audioProvider, chirpApiKey, chirpVoice]);
+
+  useEffect(() => {
+    localStorage.setItem('el_speed', elSettings.speed.toString());
+  }, [elSettings.speed]);
+
+  useEffect(() => {
+    if (elSettings.apiKey.length > 10) {
+      checkElevenLabs();
+    } else {
+      setIsElConnected(false);
+    }
+  }, [elSettings.apiKey]);
+
+  useEffect(() => {
+    let frame: number;
+    const animate = () => {
+      setDisplayProgress(prev => {
+        if (prev < targetProgress) {
+          const diff = targetProgress - prev;
+          const move = Math.max(0.1, diff * 0.05);
+          return Math.min(prev + move, targetProgress);
+        }
+        return prev;
+      });
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [targetProgress]);
+
+  const gemini = useMemo(() => new GeminiService(), []);
+
+  const checkGeminiKey = async (key: string) => {
+    try {
+      const ai = new GoogleGenAI({ apiKey: key });
+      await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: 'ping',
+        config: { maxOutputTokens: 1, thinkingConfig: { thinkingBudget: 0 } }
+      });
+      setIsGeminiValid(true);
+    } catch {
+      setIsGeminiValid(false);
+    }
+  };
+
+  const updateCurrentProject = useCallback((updates: Partial<StoryProject>) => {
+    if (!currentProjectId) return;
+    setProjects(prev => {
+      const updated = prev.map(p =>
+        p.id === currentProjectId
+          ? { ...p, ...updates, updatedAt: Date.now() }
+          : p
+      );
+      return updated;
+    });
+  }, [currentProjectId]);
+
+  const checkElevenLabs = async () => {
+    if (!elSettings.apiKey) {
+      setIsElConnected(false);
+      return;
+    }
+    try {
+      const resp = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': elSettings.apiKey }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setVoices(data.voices);
+        setIsElConnected(true);
+        localStorage.setItem('el_api_key', elSettings.apiKey);
+      } else {
+        setIsElConnected(false);
+      }
+    } catch {
+      setIsElConnected(false);
+    }
+  };
+
+  const checkAndOpenAudioSettings = () => {
+    if (audioProvider === 'elevenlabs' && !elSettings.apiKey) {
+      alert('일레븐랩스 API키를 입력해주세요.');
+      setIsMyPageOpen(true);
+      setExpandedSetting('audio');
+      return false;
+    }
+    return true;
+  };
+
+  const handleVoiceTest = async () => {
+    setIsVoiceTesting(true);
+    try {
+      if (audioProvider === 'elevenlabs') {
+        if (!elSettings.apiKey) throw new Error("API Key required");
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elSettings.voiceId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'xi-api-key': elSettings.apiKey },
+          body: JSON.stringify({
+            text: "안녕하세요, 테스트 목소리입니다.",
+            model_id: "eleven_multilingual_v2",
+            voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: elSettings.speed }
+          })
+        });
+        if (!response.ok) throw new Error();
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        new Audio(url).play();
+      } else {
+        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", chirpVoice, chirpApiKey);
+        new Audio(audioUrl).play();
+      }
+    } catch (e) {
+      alert("목소리 테스트 실패. 설정을 확인해주세요.");
+    } finally {
+      setIsVoiceTesting(false);
+    }
+  };
+
+  const handleSceneImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeSceneId.current || !project) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const url = reader.result as string;
+      updateCurrentProject({
+        scenes: project.scenes.map(s => s.id === activeSceneId.current ? { ...s, imageUrl: url, status: 'done' } : s)
+      });
+      activeSceneId.current = null;
+      if (e.target) e.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSceneAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeSceneId.current || !project) return;
+    const url = URL.createObjectURL(file);
+    updateCurrentProject({
+      scenes: project.scenes.map(s => s.id === activeSceneId.current ? { ...s, audioUrl: url, audioStatus: 'done' } : s)
+    });
+    activeSceneId.current = null;
+    if (e.target) e.target.value = '';
+  };
+
+  const handleCharPortraitUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeCharId.current || !project) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const url = reader.result as string;
+      updateCurrentProject({
+        characters: project.characters.map(c => c.id === activeCharId.current ? { ...c, portraitUrl: url, status: 'done' } : c)
+      });
+      activeCharId.current = null;
+      if (e.target) e.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleStyleLibraryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (newStyleImages.length + files.length > 10) {
+      alert("자주 쓰는 화풍 레퍼런스는 최대 10장까지 가능합니다.");
+      return;
+    }
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewStyleImages(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleCharLibraryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (newCharLibImages.length + files.length > 10) {
+      alert("인물 레퍼런스는 최대 10장까지 가능합니다.");
+      return;
+    }
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewCharLibImages(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleStyleRefImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (refImages.length + files.length > 7) {
+      alert("맞춤형 스타일 레퍼런스는 최대 7장까지 가능합니다.");
+      return;
+    }
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setRefImages(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeStyleRefImage = (index: number) => {
+    setRefImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addNewStyle = async () => {
+    if (!newStyleName.trim()) { alert('화풍 이름을 입력해주세요.'); return; }
+    if (newStyleImages.length === 0) { alert('이미지를 최소 1장 이상 등록해주세요.'); return; }
+    if (savedStyles.length >= 10) { alert('자주 쓰는 화풍은 최대 10개까지 저장 가능합니다.'); return; }
+
+    setBgTask({ type: 'style', message: '참고 이미지를 바탕으로 화풍을 학습중입니다' });
+    setBgProgress(0);
+
+    const progressTimer = setInterval(() => {
+       setBgProgress(prev => Math.min(prev + 2, 90));
+    }, 200);
+
+    try {
+      const description = await gemini.analyzeStyle(newStyleImages);
+      clearInterval(progressTimer);
+      setBgProgress(100);
+
+      const newStyle: SavedStyle = {
+        id: crypto.randomUUID(),
+        name: newStyleName,
+        refImages: newStyleImages,
+        description
+      };
+      setSavedStyles(prev => [...prev, newStyle]);
+      setNewStyleName('');
+      setNewStyleImages([]);
+
+      setTimeout(() => {
+         setBgTask(null);
+         setBgProgress(0);
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      clearInterval(progressTimer);
+      alert('화풍 학습에 실패했습니다.');
+      setBgTask(null);
+    }
+  };
+
+  const addNewCharToLib = async () => {
+    if (!newCharLibName.trim()) { alert('인물 이름을 입력해주세요.'); return; }
+    if (newCharLibImages.length === 0) { alert('이미지를 최소 1장 이상 등록해주세요.'); return; }
+    if (savedCharacters.length >= 10) { alert('자주 사용하는 인물은 최대 10명까지 저장 가능합니다.'); return; }
+
+    setCharLibSaveProgress(10);
+    try {
+      const description = await gemini.analyzeStyle(newCharLibImages);
+      setCharLibSaveProgress(80);
+      const newChar: SavedCharacter = {
+        id: crypto.randomUUID(),
+        name: newCharLibName,
+        refImages: newCharLibImages,
+        description,
+        portraitUrl: newCharLibImages[0]
+      };
+      setSavedCharacters(prev => [...prev, newChar]);
+      setNewCharLibName('');
+      setNewCharLibImages([]);
+      setCharLibSaveProgress(100);
+      setTimeout(() => setCharLibSaveProgress(null), 1000);
+      return newChar;
+    } catch (err) {
+      console.error(err);
+      alert('인물 학습에 실패했습니다.');
+      setCharLibSaveProgress(null);
+      return null;
+    }
+  };
+
+  const addNewCharToLibFromSidebar = async () => {
+    const newChar = await addNewCharToLib();
+    if (newChar) {
+      alert(`${newChar.name} 인물이 저장소에 추가되었습니다.`);
+    }
+  };
+
+  const startAnalysis = async () => {
+    if (!script.trim() || !project) return;
+
+    if (project.characters.length > 0 && project.script === script) {
+      setStep('character_setup');
+      setHasVisitedSetup(true);
+      return;
+    }
+
+    setBgTask({ type: 'analysis', message: '시나리오 분석 및 캐릭터 일관성 학습 중...' });
+    setBgProgress(10);
+
+    try {
+      let customStyleDesc = undefined;
+      const saved = savedStyles.find(s => s.id === style);
+      if (saved) {
+        customStyleDesc = saved.description;
+      } else if (style === 'custom') {
+        setBgProgress(20);
+        if (refImages.length > 0) {
+          customStyleDesc = await gemini.analyzeStyle(refImages);
+        } else {
+          customStyleDesc = "Modern clean digital art style";
+        }
+      }
+
+      setBgProgress(40);
+      const data = await gemini.extractCharacters(script, style === 'custom' || saved ? 'custom' : style as VisualStyle, customStyleDesc);
+
+      const updatedProject: StoryProject = {
+        ...project,
+        title: data.title,
+        script,
+        style,
+        customStyleDescription: customStyleDesc,
+        characters: data.characters
+      };
+
+      updateCurrentProject(updatedProject);
+      setStep('character_setup');
+      setHasVisitedSetup(true);
+
+      setBgProgress(60);
+      setBgTask({ type: 'analysis', message: '모든 캐릭터의 고유 외형 동시 생성 중...' });
+
+      await Promise.all(data.characters.map(char => generatePortrait(char.id, updatedProject)));
+
+      setBgProgress(100);
+      setTimeout(() => {
+        setBgTask(null);
+        setBgProgress(0);
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      alert("GEMINI API 연결에 실패했습니다. 대본을 조금 더 구체적으로 입력하거나 다시 시도해주세요.");
+      setBgTask(null);
+      setBgProgress(0);
+    }
+  };
+
+  const generatePortrait = async (charId: string, specificProject?: StoryProject) => {
+    const activeProject = specificProject || project;
+    if (!activeProject || !currentProjectId) return;
+
+    setProjects(prev => prev.map(p => p.id === activeProject.id ? {
+      ...p, characters: p.characters.map(c => c.id === charId ? { ...c, status: 'loading', portraitUrl: null } : c)
+    } : p));
+
+    try {
+      const char = activeProject.characters.find(c => c.id === charId);
+      if (!char) return;
+      const url = await gemini.generateImage(char.visualDescription, true, geminiImageModel);
+      setProjects(prev => prev.map(p => p.id === activeProject.id ? {
+        ...p, characters: p.characters.map(c => c.id === charId ? { ...c, portraitUrl: url, status: 'done' } : c)
+      } : p));
+    } catch {
+      setProjects(prev => prev.map(p => p.id === activeProject.id ? {
+        ...p, characters: p.characters.map(c => c.id === charId ? { ...c, status: 'error' } : c)
+      } : p));
+    }
+  };
+
+  const proceedToStoryboard = async (isRegen: boolean = true) => {
+    if (!project) return;
+    if (!isRegen && project.scenes?.length > 0) { setStep('storyboard'); return; }
+
+    setBgTask({ type: 'storyboard', message: '장면별 스토리보드 구성 중...' });
+    setBgProgress(10);
+
+    try {
+      setBgProgress(30);
+      const scenes = await gemini.createStoryboard(project);
+      updateCurrentProject({ scenes });
+      setBgProgress(100);
+      setTimeout(() => {
+        setStep('storyboard');
+        setBgTask(null);
+        setBgProgress(0);
+      }, 500);
+    } catch (err) {
+      console.error(err);
+      setBgTask(null);
+      setBgProgress(0);
+      alert("스토리보드 생성 중 오류가 발생했습니다.");
+    }
+  };
+
+  const generateSceneImage = async (sceneId: string) => {
+    if (!currentProjectId) return;
+
+    setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+      ...p,
+      scenes: p.scenes.map(s => s.id === sceneId ? { ...s, status: 'loading', imageUrl: null } : s)
+    } : p));
+
+    try {
+      const activeProject = projects.find(p => p.id === currentProjectId);
+      const scene = activeProject?.scenes.find(s => s.id === sceneId);
+      if (!scene) return;
+
+      const url = await gemini.generateImage(scene.imagePrompt, false, geminiImageModel);
+
+      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        ...p,
+        scenes: p.scenes.map(s => s.id === sceneId ? { ...s, imageUrl: url, status: 'done' } : s)
+      } : p));
+    } catch {
+      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        ...p,
+        scenes: p.scenes.map(s => s.id === sceneId ? { ...s, status: 'error' } : s)
+      } : p));
+    }
+  };
+
+  const handleRegeneratePrompt = async () => {
+    if (!project || !promptEditId || !promptEditInput.trim() || !currentProjectId) return;
+
+    if (promptEditType === 'character') {
+      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        ...p, characters: p.characters.map(c => c.id === promptEditId ? { ...c, status: 'loading', portraitUrl: null } : c)
+      } : p));
+    } else {
+      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        ...p, scenes: p.scenes.map(s => s.id === promptEditId ? { ...s, status: 'loading', imageUrl: null } : s)
+      } : p));
+    }
+
+    setIsPromptModalOpen(false);
+
+    try {
+      let currentPrompt = '';
+      if (promptEditType === 'character') {
+        currentPrompt = project.characters.find(c => c.id === promptEditId)?.visualDescription || '';
+      } else {
+        currentPrompt = project.scenes.find(s => s.id === promptEditId)?.imagePrompt || '';
+      }
+
+      const newPrompt = await gemini.regeneratePrompt(currentPrompt, promptEditInput, project);
+
+      const isPortrait = promptEditType === 'character';
+      const newImageUrl = await gemini.generateImage(newPrompt, isPortrait, geminiImageModel);
+
+      if (promptEditType === 'character') {
+        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+          ...p, characters: p.characters.map(c => c.id === promptEditId ? {
+            ...c,
+            visualDescription: newPrompt,
+            portraitUrl: newImageUrl,
+            status: 'done'
+          } : c)
+        } : p));
+      } else {
+        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+          ...p, scenes: p.scenes.map(s => s.id === promptEditId ? {
+            ...s,
+            imagePrompt: newPrompt,
+            imageUrl: newImageUrl,
+            status: 'done'
+          } : s)
+        } : p));
+      }
+      setPromptEditInput('');
+    } catch (err) {
+      console.error(err);
+      alert("재생성에 실패했습니다.");
+      if (promptEditType === 'character') {
+        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+          ...p, characters: p.characters.map(c => c.id === promptEditId ? { ...c, status: 'error' } : c)
+        } : p));
+      } else {
+        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+          ...p, scenes: p.scenes.map(s => s.id === promptEditId ? { ...s, status: 'error' } : s)
+        } : p));
+      }
+    }
+  };
+
+  const generateAudio = async (sceneId: string) => {
+    if (!checkAndOpenAudioSettings()) return;
+    if (!project) return;
+
+    updateCurrentProject({
+      scenes: project.scenes.map(s => s.id === sceneId ? { ...s, audioStatus: 'loading' } : s)
+    });
+    try {
+      const scene = project.scenes.find(s => s.id === sceneId);
+      if (!scene) return;
+
+      let audioUrl = '';
+      if (audioProvider === 'elevenlabs') {
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elSettings.voiceId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'xi-api-key': elSettings.apiKey },
+          body: JSON.stringify({
+            text: scene.scriptSegment,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: elSettings.speed }
+          })
+        });
+        if (!response.ok) throw new Error();
+        const blob = await response.blob();
+        audioUrl = URL.createObjectURL(blob);
+      } else {
+        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, chirpVoice, chirpApiKey);
+      }
+
+      updateCurrentProject({
+        scenes: project.scenes.map(s => s.id === sceneId ? { ...s, audioUrl: audioUrl, audioStatus: 'done' } : s)
+      });
+    } catch {
+      updateCurrentProject({
+        scenes: project.scenes.map(s => s.id === sceneId ? { ...s, audioStatus: 'error' } : s)
+      });
+    }
+  };
+
+  const generateAllImages = async () => {
+    if (!project) return;
+    const scenesToGenerate = project.scenes.filter(s => !s.imageUrl);
+    try {
+      await Promise.all(scenesToGenerate.map(scene => generateSceneImage(scene.id)));
+    } catch (err) {
+      console.error("Batch image generation failed:", err);
+      alert("이미지 일괄 생성 중 오류가 발생했습니다.");
+    }
+  };
+
+  const generateBatchAudio = async () => {
+    if (!checkAndOpenAudioSettings()) return;
+    if (!project) return;
+
+    setIsBatchGenerating(true);
+    setLoadingText('오디오 일괄 생성 중...');
+    setTargetProgress(0);
+    try {
+      for (let i = 0; i < project.scenes.length; i++) {
+        const scene = project.scenes[i];
+        if (!scene.audioUrl) {
+          setTargetProgress(Math.round((i / project.scenes.length) * 100));
+          await generateAudio(scene.id);
+        }
+      }
+      setTargetProgress(100);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsBatchGenerating(false);
+    }
+  };
+
+  const deleteAudio = (sceneId: string) => {
+    if (!project) return;
+    updateCurrentProject({
+      scenes: project.scenes.map(s => s.id === sceneId ? { ...s, audioUrl: null, audioStatus: 'idle' } : s)
+    });
+  };
+
+  const downloadAsset = (url: string, filename: string) => {
+    const link = document.createElement('a'); link.href = url; link.download = filename;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  };
+
+  const splitSubtitles = (text: string): string[] => {
+    const parts = text.split(/([.?!,])\s*/).filter(p => p && p.trim().length > 0);
+    const result: string[] = [];
+
+    for (let i = 0; i < parts.length; i += 2) {
+      let segment = parts[i] + (parts[i+1] || "");
+      segment = segment.trim();
+
+      if (segment.length > 25) {
+        const words = segment.split(' ');
+        let currentChunk = '';
+        words.forEach(word => {
+            if ((currentChunk + word).length > 25) {
+                result.push(currentChunk.trim());
+                currentChunk = word + ' ';
+            } else {
+                currentChunk += word + ' ';
+            }
+        });
+        if (currentChunk.trim()) result.push(currentChunk.trim());
+      } else if (segment) {
+        result.push(segment);
+      }
+    }
+    return result.length > 0 ? result : [text];
+  };
+
+  const exportVideo = async () => {
+    if (!project) return;
+    const missingAssets = project.scenes.some(s => !s.imageUrl || !s.audioUrl);
+    if (missingAssets) { alert("모든 장면의 이미지와 오디오가 생성되어야 합니다."); return; }
+
+    setBgTask({ type: 'video', message: '동영상 렌더링 중' });
+    setBgProgress(0);
+
+    const canvas = document.createElement('canvas'); canvas.width = 1920; canvas.height = 1080;
+    const ctx = canvas.getContext('2d')!;
+    const stream = canvas.captureStream(60);
+
+    const audioCtx = new AudioContext();
+    const dest = audioCtx.createMediaStreamDestination();
+    const recorder = new MediaRecorder(new MediaStream([...stream.getVideoTracks(), ...dest.stream.getAudioTracks()]), {
+      mimeType: 'video/webm',
+      videoBitsPerSecond: 20000000
+    });
+
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.start();
+
+    const drawMultiLineText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
+       const words = text.split(' ');
+       let line = '';
+       const lines: string[] = [];
+
+       for(let n = 0; n < words.length; n++) {
+         const testLine = line + words[n] + ' ';
+         const metrics = ctx.measureText(testLine);
+         const testWidth = metrics.width;
+         if (testWidth > maxWidth && n > 0) {
+           lines.push(line);
+           line = words[n] + ' ';
+         } else {
+           line = testLine;
+         }
+       }
+       lines.push(line);
+
+       const boxPadding = 40;
+       const totalHeight = lines.length * lineHeight + boxPadding * 2;
+       const boxWidth = Math.min(maxWidth + 100, canvas.width - 100);
+       const boxY = canvas.height - 100 - totalHeight;
+
+       ctx.fillStyle = "black";
+       ctx.fillRect(canvas.width/2 - boxWidth/2, boxY, boxWidth, totalHeight);
+
+       ctx.fillStyle = "white";
+       ctx.textAlign = "center";
+       ctx.textBaseline = "middle";
+
+       lines.forEach((l, i) => {
+         ctx.fillText(l, x, boxY + boxPadding + (i * lineHeight) + lineHeight/2);
+       });
+    };
+
+    for (let i = 0; i < project.scenes.length; i++) {
+      const scene = project.scenes[i];
+      const img = new Image(); img.crossOrigin = "anonymous"; img.src = scene.imageUrl!;
+      await new Promise(r => img.onload = r);
+      const audio = new Audio(scene.audioUrl!);
+      await new Promise(r => audio.oncanplaythrough = r);
+      const duration = audio.duration;
+      const startTime = audioCtx.currentTime;
+      const source = audioCtx.createMediaElementSource(audio);
+      source.connect(dest);
+      audio.play();
+      const isZoomIn = i % 2 === 0;
+      const subtitleParts = splitSubtitles(scene.scriptSegment);
+      await new Promise<void>(resolve => {
+        const renderFrame = () => {
+          const elapsed = audioCtx.currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          let scale = isZoomIn ? 1.0 + (progress * 0.15) : 1.15 - (progress * 0.15);
+          const w = canvas.width * scale;
+          const h = canvas.height * scale;
+          const x = (canvas.width - w) / 2;
+          const y = (canvas.height - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+          const partIndex = Math.min(Math.floor(progress * subtitleParts.length), subtitleParts.length - 1);
+          const currentText = subtitleParts[partIndex];
+          if (currentText) {
+            ctx.font = "bold 60px Pretendard";
+            drawMultiLineText(ctx, currentText, canvas.width/2, 0, 1400, 80);
+          }
+          if (progress < 1) requestAnimationFrame(renderFrame);
+          else resolve();
+        };
+        requestAnimationFrame(renderFrame);
+      });
+      setBgProgress(Math.round(((i + 1) / project.scenes.length) * 100));
+    }
+    recorder.stop();
+    await new Promise(r => recorder.onstop = r);
+    const videoBlob = new Blob(chunks, { type: 'video/mp4' });
+    const url = URL.createObjectURL(videoBlob);
+    downloadAsset(url, `${project.title}.mp4`);
+    setBgTask(null);
+    setBgProgress(0);
+    alert("동영상 저장이 완료되었습니다.");
+  };
+
+  const addCharacterManually = async () => {
+    if (!project || !newCharData.name.trim() || !newCharData.traits.trim()) return;
+    setLoading(true);
+    setLoadingText(`${newCharData.name} 생성 중...`);
+    try {
+      const fullPrompt = `${newCharData.gender}, ${newCharData.age}, ${newCharData.traits}`;
+      const portraitUrl = await gemini.generateImage(fullPrompt, true, geminiImageModel);
+      const newChar: CharacterProfile = {
+        id: crypto.randomUUID(),
+        name: newCharData.name,
+        role: '추가 인물',
+        visualDescription: fullPrompt,
+        portraitUrl,
+        status: 'done'
+      };
+      updateCurrentProject({ characters: [...project.characters, newChar] });
+      setIsCharModalOpen(false);
+      setNewCharData({ name: '', gender: '여성', age: '성인', traits: '' });
+    } catch (err) {
+      console.error(err);
+      alert("캐릭터 생성에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveCharacterToLibrary = async (char: CharacterProfile) => {
+    try {
+      if (savedCharacters.some(c => c.id === char.id)) {
+        alert("이미 저장된 인물입니다.");
+        return;
+      }
+      const newSaved: SavedCharacter = {
+        id: char.id,
+        name: char.name,
+        refImages: char.portraitUrl ? [char.portraitUrl] : [],
+        description: char.visualDescription,
+        portraitUrl: char.portraitUrl
+      };
+      setSavedCharacters(prev => [...prev, newSaved]);
+      alert(`${char.name} 인물이 저장되었습니다.`);
+    } catch (e) {
+      console.error(e);
+      alert("인물 저장 중 오류가 발생했습니다.");
+    }
+  };
+
+  const deleteCharacter = (id: string) => {
+    if (!project) return;
+    updateCurrentProject({ characters: project.characters.filter(c => c.id !== id) });
+  };
+
+  const addSceneManually = () => {
+    if (!project) return;
+    const newScene: Scene = {
+      id: crypto.randomUUID(),
+      scriptSegment: '새로운 장면 내용',
+      imagePrompt: 'new scene prompt',
+      imageUrl: null,
+      audioUrl: null,
+      status: 'idle',
+      audioStatus: 'idle'
+    };
+    updateCurrentProject({ scenes: [...project.scenes, newScene] });
+  };
+
+  const deleteScene = (id: string) => {
+    if (!project) return;
+    updateCurrentProject({ scenes: project.scenes.filter(s => s.id !== id) });
+  };
+
+  const addNewProject = () => {
+    const newId = crypto.randomUUID();
+    const newProject: StoryProject = {
+      id: newId,
+      title: '새로운 이야기 ' + (projects.length + 1),
+      script: '',
+      style: '2d-animation',
+      characters: [],
+      scenes: [],
+      updatedAt: Date.now()
+    };
+    setProjects(prev => [newProject, ...prev]);
+    setCurrentProjectId(newId);
+    setScript('');
+    setStyle('2d-animation');
+    setRefImages([]);
+    setStep('input');
+    setHasVisitedSetup(false);
+  };
+
+  const deleteProject = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (window.confirm("정말로 이 프로젝트를 삭제하시겠습니까?")) {
+      setProjects(prevProjects => {
+        const updatedProjects = prevProjects.filter(p => p.id !== id);
+        try {
+          localStorage.setItem('user_projects_v1', JSON.stringify(updatedProjects));
+        } catch (err) {
+          console.error("Storage sync failed during delete", err);
+        }
+        return updatedProjects;
+      });
+
+      if (currentProjectId === id) {
+        setCurrentProjectId(null);
+        setStep('dashboard');
+      }
+    }
+  };
+
+  const handleBack = () => {
+    if (step === 'storyboard') setStep('character_setup');
+    else if (step === 'character_setup') setStep('input');
+    else if (step === 'input') setStep('dashboard');
+    else setStep('dashboard');
+  };
+
+  const currentSavedStyle = savedStyles.find(s => s.id === style);
+
+  const getStyleDisplayName = (styleValue: string) => {
+    if (styleValue === '2d-animation') return '2D 애니메이션';
+    if (styleValue === 'realistic') return '실사화';
+    if (styleValue === 'animation') return '3D 애니메이션';
+    if (styleValue === 'custom') return '맞춤형';
+    const saved = savedStyles.find(s => s.id === styleValue);
+    if (saved) return saved.name;
+    return styleValue;
+  };
+
+  const formatVoiceOption = (v: any) => {
+    const name = v.name.toUpperCase();
+    if (!v.labels) return name;
+
+    const translatedFeatures = Object.values(v.labels)
+      .map((tag: any) => TAG_MAP[tag.toLowerCase()] || tag)
+      .slice(0, 2)
+      .join(', ');
+
+    const finalDesc = translatedFeatures.includes('남성') ? `${translatedFeatures.replace('남성', '')} 남자 목소리` :
+                      translatedFeatures.includes('여성') ? `${translatedFeatures.replace('여성', '')} 여자 목소리` :
+                      `${translatedFeatures} 목소리`;
+
+    return finalDesc ? `${name}(${finalDesc.trim()})` : name;
+  };
+
+  return (
+    <div className={`min-h-screen bg-[#FDFDFD] text-slate-800 font-sans selection:bg-indigo-100 pb-20 transition-colors duration-500`}>
+      <input type="file" className="hidden" ref={sceneImageUploadRef} accept="image/*" onChange={handleSceneImageUpload} />
+      <input type="file" className="hidden" ref={sceneAudioUploadRef} accept="audio/*" onChange={handleSceneAudioUpload} />
+      <input type="file" className="hidden" ref={styleRefImageInputRef} accept="image/*" multiple onChange={handleStyleRefImageUpload} />
+      <input type="file" className="hidden" ref={styleLibraryInputRef} accept="image/*" multiple onChange={handleStyleLibraryImageUpload} />
+      <input type="file" className="hidden" ref={charLibInputRef} accept="image/*" multiple onChange={handleCharLibraryImageUpload} />
+      <input type="file" className="hidden" ref={charPortraitUploadRef} accept="image/*" onChange={handleCharPortraitUpload} />
+
+      <div className="fixed top-4 right-4 sm:top-8 sm:right-8 z-[205]">
+        <button onClick={() => setIsMyPageOpen(true)} className="w-12 h-12 sm:w-14 sm:h-14 bg-white shadow-xl rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:scale-105 transition-all group relative border border-slate-100">
+          <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+          <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-black rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">내 페이지</div>
+        </button>
+      </div>
+
+      {step !== 'dashboard' && (
+        <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[205]">
+          <button onClick={handleBack} className="w-12 h-12 sm:w-14 sm:h-14 bg-white shadow-xl rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all border border-slate-100 group relative">
+            <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
+            <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-black rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">이전으로 돌아가기</div>
+          </button>
+        </div>
+      )}
+
+      {step === 'dashboard' && (
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-10 py-10 sm:py-20 animate-in fade-in">
+          <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 sm:mb-16 gap-6">
+            <div className="space-y-2 sm:space-y-4">
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900">내 프로젝트</h1>
+              <p className="text-slate-400 font-medium text-sm sm:text-base">진행 중인 이야기들을 관리하세요</p>
+            </div>
+            <button onClick={addNewProject} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 transition-all active:scale-95">
+              <span className="text-xl">+</span> 새 프로젝트 추가
+            </button>
+          </header>
+
+          {projects.length === 0 ? (
+            <div className="bg-white border border-slate-100 rounded-[32px] sm:rounded-[40px] py-20 sm:py-40 flex flex-col items-center justify-center space-y-8 shadow-sm">
+               <button onClick={addNewProject} className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-50 rounded-full flex items-center justify-center text-4xl sm:text-5xl text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 border-2 border-dashed border-slate-200 transition-all active:scale-90">+</button>
+               <p className="text-slate-400 font-black text-lg sm:text-xl px-6 text-center">첫 번째 프로젝트를 만들어보세요</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
+               {projects.map(p => (
+                 <div key={p.id} onClick={() => { setCurrentProjectId(p.id); setScript(p.script); setStyle(p.style as VisualStyle); setStep(p.scenes.length > 0 ? 'storyboard' : 'input'); }} className="bg-white border border-slate-100 p-6 sm:p-10 rounded-[36px] sm:rounded-[48px] group hover:border-indigo-400 hover:shadow-2xl transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[300px] sm:min-h-[350px] shadow-sm">
+                    <button onClick={(e) => deleteProject(p.id, e)} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/10 hover:bg-red-500 text-white rounded-full sm:opacity-0 sm:group-hover:opacity-100 transition-all backdrop-blur-sm">
+                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                    <div className="space-y-3">
+                       <div className="flex justify-between items-start">
+                         <h3 className="text-xl sm:text-2xl font-black text-slate-900 line-clamp-1 flex-1 pr-8">{p.title}</h3>
+                       </div>
+                       <p className="text-slate-400 text-xs sm:text-sm font-medium">최종 수정: {new Date(p.updatedAt).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex -space-x-3 sm:-space-x-4 mb-4 sm:mb-6">
+                       {p.characters.slice(0, 5).map((c, idx) => (
+                         <div key={idx} className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-white bg-slate-100 overflow-hidden shadow-md">
+                           {c.portraitUrl && <img src={c.portraitUrl} className="w-full h-full object-cover" />}
+                         </div>
+                       ))}
+                       {p.characters.length > 5 && (
+                         <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-white bg-indigo-50 flex items-center justify-center text-[10px] sm:text-xs font-black text-indigo-600 shadow-md">
+                           +{p.characters.length - 5}
+                         </div>
+                       )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 gap-3">
+                       <span className="px-3 py-1 sm:px-4 sm:py-2 bg-slate-50 border border-slate-100 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black uppercase text-slate-500">장면 {p.scenes.length}개</span>
+                       <span className="px-3 py-1 sm:px-4 sm:py-2 bg-indigo-50 border border-indigo-100 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black uppercase text-indigo-600">{getStyleDisplayName(p.style)}</span>
+                    </div>
+                 </div>
+               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {step !== 'dashboard' && (
+        <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
+          {step === 'input' && (
+            <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12 pt-10 sm:pt-10">
+               <div className="text-center space-y-2 sm:space-y-4">
+                  <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight">당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
+                  <p className="text-slate-400 font-medium text-base sm:text-lg">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
+               </div>
+               <div className="flex flex-wrap justify-center gap-3 sm:gap-6">
+                  {['realistic', '2d-animation', 'custom'].map(s => (
+                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-black text-sm sm:text-lg ${style === s ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{s === '2d-animation' ? '2D 애니메이션' : s === 'realistic' ? '실사화' : '맞춤형'}</button>
+                  ))}
+                  {savedStyles.map(s => (
+                    <button key={s.id} onClick={() => { setStyle(s.id as VisualStyle); updateCurrentProject({ style: s.id }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-black text-sm sm:text-lg ${style === s.id ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{s.name}</button>
+                  ))}
+               </div>
+               {currentSavedStyle && (
+                 <div className="animate-in fade-in slide-in-bottom bg-slate-50 border p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-4">
+                   <h4 className="text-lg sm:text-xl font-black text-slate-900">{currentSavedStyle.name} 상세 정보</h4>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="space-y-2">
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">학습된 스타일 묘사</p>
+                         <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium h-24 overflow-y-auto custom-scrollbar">{currentSavedStyle.description}</p>
+                      </div>
+                      <div className="flex gap-2 items-center overflow-x-auto">
+                         {currentSavedStyle.refImages.map((img, i) => <img key={i} src={img} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl object-cover border-2 border-white shadow-sm shrink-0" />)}
+                      </div>
+                   </div>
+                 </div>
+               )}
+               {style === 'custom' && (
+                 <div className="animate-in fade-in slide-in-bottom bg-indigo-50/50 border border-indigo-100 p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-6">
+                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <h4 className="text-lg sm:text-xl font-black text-slate-900">맞춤형 스타일 학습</h4>
+                        <p className="text-xs sm:text-sm text-slate-500 mt-1">학습 레퍼런스 이미지 업로드 (최대 7장)</p>
+                      </div>
+                      <button onClick={() => styleRefImageInputRef.current?.click()} className="w-full sm:w-auto px-6 py-3 bg-white border border-indigo-200 rounded-2xl text-xs font-black text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
+                   </div>
+                   <div className="flex gap-3 flex-wrap">
+                      {refImages.map((img, idx) => (
+                        <div key={idx} className="relative w-20 h-20 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-white shadow-md group">
+                          <img src={img} className="w-full h-full object-cover" />
+                          <button onClick={() => removeStyleRefImage(idx)} className="absolute inset-0 bg-black/60 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">삭제</button>
+                        </div>
+                      ))}
+                   </div>
+                 </div>
+               )}
+               <div className="bg-white p-2 sm:p-3 rounded-[32px] sm:rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-200 relative">
+                 <textarea className="w-full h-64 sm:h-80 bg-slate-50/50 border-none rounded-[24px] sm:rounded-[36px] p-6 sm:p-10 text-base sm:text-xl focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
+               </div>
+               <div className="flex flex-col sm:flex-row gap-4">
+                 <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-6 sm:py-8 bg-indigo-600 text-white rounded-[24px] sm:rounded-[32px] font-black text-lg sm:text-2xl shadow-2xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
+                 {project && project.characters.length > 0 && (
+                   <button onClick={() => setStep('character_setup')} className="px-8 py-6 sm:py-8 bg-white border border-slate-200 text-slate-600 rounded-[24px] sm:rounded-[32px] font-black text-base sm:text-xl hover:bg-slate-50 hover:text-indigo-600 transition-all shadow-lg">
+                     다음 단계로 이동 &gt;
+                   </button>
+                 )}
+               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {selectedImage && <div className="fixed inset-0 bg-slate-900/95 z-[250] flex items-center justify-center p-2 sm:p-4 cursor-zoom-out animate-in fade-in" onClick={() => setSelectedImage(null)}><img src={selectedImage} className="max-w-full max-h-[90vh] object-contain rounded-2xl sm:rounded-[40px] shadow-2xl border-4 sm:border-8 border-white/10" /></div>}
+    </div>
+  );
+};
+
+export default App;
