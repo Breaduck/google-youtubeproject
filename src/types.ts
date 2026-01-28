@@ -11,6 +11,16 @@ export interface CharacterProfile {
   status: 'idle' | 'loading' | 'done' | 'error';
 }
 
+export interface SceneEffect {
+  effect_type: '3d_parallax' | 'zoom_in_slow' | 'zoom_in_fast' | 'zoom_out_slow' | 'pan_left' | 'pan_right' | 'static_subtle';
+  intensity: number; // 1-10
+  motion_params: {
+    scale: number; // 1.1 ~ 1.3
+    direction: 'center' | 'left' | 'right';
+    speed: 'slow' | 'medium' | 'fast';
+  };
+}
+
 export interface Scene {
   id: string;
   scriptSegment: string;
@@ -19,6 +29,7 @@ export interface Scene {
   audioUrl: string | null;
   status: 'idle' | 'loading' | 'done' | 'error';
   audioStatus: 'idle' | 'loading' | 'done' | 'error';
+  effect?: SceneEffect;
 }
 
 export interface StoryProject {

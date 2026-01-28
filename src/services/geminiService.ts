@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { CharacterProfile, StoryProject, VisualStyle, Scene } from "../types";
+import { CharacterProfile, StoryProject, VisualStyle, Scene, SceneEffect } from "../types";
 
 export class GeminiService {
   private getApiKey(): string {
@@ -180,11 +180,22 @@ For each scene, provide:
    - Background and environment
    - Lighting and mood
    - The established visual style
+3. "effect": Camera effect for video export. Analyze the scene's emotional intensity and context to assign:
+   - "effect_type": One of "3d_parallax", "zoom_in_slow", "zoom_in_fast", "zoom_out_slow", "pan_left", "pan_right", "static_subtle"
+   - "intensity": 1-10 based on emotional intensity of the scene
+   - Guidelines for effect_type selection:
+     * "3d_parallax": Best for establishing shots, scenic views, emotional moments (should be 45-65% of all scenes)
+     * "zoom_in_slow": For building tension, focusing on character emotions
+     * "zoom_in_fast": For dramatic reveals, shocking moments
+     * "zoom_out_slow": For conclusions, revelations, showing scale
+     * "pan_left/right": For following action, showing environments
+     * "static_subtle": For calm dialogue, contemplative moments
 
 Return a JSON array of scene objects with these fields:
 - id: unique UUID
 - scriptSegment: Korean text
 - imagePrompt: English prompt
+- effect: { effect_type: string, intensity: number }
 
 Aim for 4-8 scenes that capture the key moments of the story.
 
@@ -204,15 +215,57 @@ Return ONLY valid JSON array, no markdown or explanation.`;
 
     const scenes = JSON.parse(jsonMatch[0]);
 
-    return scenes.map((scene: any) => ({
-      id: scene.id || crypto.randomUUID(),
-      scriptSegment: scene.scriptSegment,
-      imagePrompt: scene.imagePrompt,
-      imageUrl: null,
-      audioUrl: null,
-      status: 'idle' as const,
-      audioStatus: 'idle' as const
-    }));
+    return scenes.map((scene: any) => {
+      // Generate motion_params based on effect_type and intensity
+      const effectType = scene.effect?.effect_type || '3d_parallax';
+      const intensity = scene.effect?.intensity || 5;
+      const motionParams = this.generateMotionParams(effectType, intensity);
+
+      return {
+        id: scene.id || crypto.randomUUID(),
+        scriptSegment: scene.scriptSegment,
+        imagePrompt: scene.imagePrompt,
+        imageUrl: null,
+        audioUrl: null,
+        status: 'idle' as const,
+        audioStatus: 'idle' as const,
+        effect: {
+          effect_type: effectType,
+          intensity,
+          motion_params: motionParams
+        } as SceneEffect
+      };
+    });
+  }
+
+  private generateMotionParams(effectType: string, intensity: number): SceneEffect['motion_params'] {
+    // Scale ranges from 1.1 to 1.3 based on intensity (1-10)
+    const baseScale = 1.1 + ((intensity - 1) / 9) * 0.2;
+    // Add small random variation
+    const scale = Math.round((baseScale + (Math.random() * 0.05 - 0.025)) * 100) / 100;
+
+    // Determine direction based on effect type
+    let direction: 'center' | 'left' | 'right' = 'center';
+    if (effectType === 'pan_left' || effectType === '3d_parallax') {
+      direction = Math.random() > 0.5 ? 'left' : 'center';
+    } else if (effectType === 'pan_right') {
+      direction = 'right';
+    } else if (effectType === '3d_parallax') {
+      const rand = Math.random();
+      direction = rand < 0.33 ? 'left' : rand < 0.66 ? 'right' : 'center';
+    }
+
+    // Determine speed based on effect type
+    let speed: 'slow' | 'medium' | 'fast' = 'medium';
+    if (effectType.includes('slow') || effectType === 'static_subtle') {
+      speed = 'slow';
+    } else if (effectType.includes('fast')) {
+      speed = 'fast';
+    } else if (effectType === '3d_parallax') {
+      speed = intensity > 6 ? 'medium' : 'slow';
+    }
+
+    return { scale, direction, speed };
   }
 
   async regeneratePrompt(

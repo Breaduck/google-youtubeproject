@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { GeminiService } from './services/geminiService';
-import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter } from './types';
+import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect } from './types';
 
 // 특징(태그) 한국어 번역 맵 (확장됨)
 const TAG_MAP: Record<string, string> = {
@@ -801,6 +801,88 @@ const App: React.FC = () => {
        });
     };
 
+    // Easing function for smooth acceleration/deceleration
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+
+    // Calculate render parameters based on effect type
+    const calculateEffectTransform = (
+      effect: SceneEffect | undefined,
+      progress: number,
+      canvasWidth: number,
+      canvasHeight: number
+    ): { scale: number; offsetX: number; offsetY: number } => {
+      const easedProgress = easeInOutCubic(progress);
+
+      // Default effect if none specified
+      if (!effect) {
+        const scale = 1.0 + (easedProgress * 0.15);
+        return { scale, offsetX: 0, offsetY: 0 };
+      }
+
+      const { effect_type, motion_params } = effect;
+      const targetScale = motion_params?.scale || 1.2;
+      const direction = motion_params?.direction || 'center';
+      const speed = motion_params?.speed || 'medium';
+
+      // Adjust progress based on speed
+      let adjustedProgress = easedProgress;
+      if (speed === 'slow') {
+        adjustedProgress = easedProgress;
+      } else if (speed === 'fast') {
+        adjustedProgress = Math.min(easedProgress * 2, 1);
+      }
+
+      let scale = 1.0;
+      let offsetX = 0;
+      let offsetY = 0;
+      const maxPanOffset = canvasWidth * 0.1; // 10% of canvas width for panning
+
+      switch (effect_type) {
+        case '3d_parallax':
+          // Combine zoom with directional movement for depth effect
+          scale = 1.0 + (adjustedProgress * (targetScale - 1) * 1.2);
+          if (direction === 'left') {
+            offsetX = adjustedProgress * maxPanOffset * 0.5;
+          } else if (direction === 'right') {
+            offsetX = -adjustedProgress * maxPanOffset * 0.5;
+          }
+          // Add subtle vertical movement for 3D feel
+          offsetY = adjustedProgress * (canvasHeight * 0.02);
+          break;
+
+        case 'zoom_in_slow':
+        case 'zoom_in_fast':
+          scale = 1.0 + (adjustedProgress * (targetScale - 1));
+          break;
+
+        case 'zoom_out_slow':
+          scale = targetScale - (adjustedProgress * (targetScale - 1));
+          break;
+
+        case 'pan_left':
+          scale = 1.05;
+          offsetX = adjustedProgress * maxPanOffset;
+          break;
+
+        case 'pan_right':
+          scale = 1.05;
+          offsetX = -adjustedProgress * maxPanOffset;
+          break;
+
+        case 'static_subtle':
+          // Very subtle scale change
+          scale = 1.0 + (adjustedProgress * 0.05);
+          break;
+
+        default:
+          scale = 1.0 + (adjustedProgress * 0.15);
+      }
+
+      return { scale, offsetX, offsetY };
+    };
+
     for (let i = 0; i < project.scenes.length; i++) {
       const scene = project.scenes[i];
       const img = new Image(); img.crossOrigin = "anonymous"; img.src = scene.imageUrl!;
@@ -812,19 +894,31 @@ const App: React.FC = () => {
       const source = audioCtx.createMediaElementSource(audio);
       source.connect(dest);
       audio.play();
-      const isZoomIn = i % 2 === 0;
       const subtitleParts = splitSubtitles(scene.scriptSegment);
+
+      // Log effect for debugging
+      console.log(`Scene ${i + 1} effect:`, scene.effect);
+
       await new Promise<void>(resolve => {
         const renderFrame = () => {
           const elapsed = audioCtx.currentTime - startTime;
           const progress = Math.min(elapsed / duration, 1);
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          let scale = isZoomIn ? 1.0 + (progress * 0.15) : 1.15 - (progress * 0.15);
+
+          // Calculate transform based on scene effect
+          const { scale, offsetX, offsetY } = calculateEffectTransform(
+            scene.effect,
+            progress,
+            canvas.width,
+            canvas.height
+          );
+
           const w = canvas.width * scale;
           const h = canvas.height * scale;
-          const x = (canvas.width - w) / 2;
-          const y = (canvas.height - h) / 2;
+          const x = (canvas.width - w) / 2 + offsetX;
+          const y = (canvas.height - h) / 2 + offsetY;
           ctx.drawImage(img, x, y, w, h);
+
           const partIndex = Math.min(Math.floor(progress * subtitleParts.length), subtitleParts.length - 1);
           const currentText = subtitleParts[partIndex];
           if (currentText) {
