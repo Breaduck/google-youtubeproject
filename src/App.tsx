@@ -457,10 +457,11 @@ const App: React.FC = () => {
       return;
     }
 
-    flushSync(() => {
-      setBgTask({ type: 'analysis', message: '등장인물 분석 중...' });
-      setBgProgress(10);
-    });
+    // 먼저 화면 이동
+    setStep('character_setup');
+    setHasVisitedSetup(true);
+    setBgTask({ type: 'analysis', message: '등장인물 분석 중...' });
+    setBgProgress(10);
 
     try {
       let customStyleDesc = undefined;
@@ -493,16 +494,9 @@ const App: React.FC = () => {
       updateCurrentProject(updatedProject);
       setBgProgress(100);
       setBgTask(null);
-      setBgProgress(0);
 
-      // 캐릭터 추출 완료 후 페이지 이동
-      setStep('character_setup');
-      setHasVisitedSetup(true);
-
-      // 페이지 이동 후 이미지 자동 생성
-      setTimeout(() => {
-        data.characters.forEach(char => generatePortrait(char.id, updatedProject));
-      }, 500);
+      // 이미지 자동 생성
+      data.characters.forEach(char => generatePortrait(char.id, updatedProject));
 
     } catch (err: any) {
       console.error(err);
