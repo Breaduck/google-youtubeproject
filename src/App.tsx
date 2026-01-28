@@ -435,7 +435,15 @@ const App: React.FC = () => {
   };
 
   const startAnalysis = async () => {
-    if (!script.trim()) return;
+    if (!script.trim()) {
+      alert('대본을 입력해주세요.');
+      return;
+    }
+    if (!geminiApiKey) {
+      alert('Gemini API 키를 설정해주세요.');
+      setIsMyPageOpen(true);
+      return;
+    }
     const activeProject = projects.find(p => p.id === currentProjectId);
     if (!activeProject) {
       alert('프로젝트를 선택해주세요.');
