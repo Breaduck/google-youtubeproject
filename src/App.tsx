@@ -112,7 +112,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('user_projects_v1', JSON.stringify(projects));
+      // 이미지 데이터 제외하고 저장 (용량 문제 방지)
+      const projectsToSave = projects.map(p => ({
+        ...p,
+        characters: p.characters.map(c => ({ ...c, portraitUrl: null })),
+        scenes: p.scenes.map(s => ({ ...s, imageUrl: null, audioUrl: null }))
+      }));
+      localStorage.setItem('user_projects_v1', JSON.stringify(projectsToSave));
     } catch (e) { console.error("Project Save Error", e); }
   }, [projects]);
 
