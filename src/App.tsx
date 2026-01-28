@@ -69,7 +69,7 @@ const App: React.FC = () => {
   const [isManualCharAdding, setIsManualCharAdding] = useState(false);
 
   const [expandedSetting, setExpandedSetting] = useState<string | null>(null);
-  const [geminiModel, setGeminiModel] = useState(localStorage.getItem('gemini_model') || 'gemini-2.0-flash');
+  const [geminiModel, setGeminiModel] = useState(localStorage.getItem('gemini_model') || 'gemini-3-flash');
   const [geminiImageModel, setGeminiImageModel] = useState(localStorage.getItem('gemini_image_model') || 'gemini-2.5-flash-image');
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [isGeminiValid, setIsGeminiValid] = useState(false);
@@ -185,7 +185,7 @@ const App: React.FC = () => {
     try {
       const ai = new GoogleGenAI({ apiKey: key });
       await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3-flash',
         contents: 'ping',
         config: { maxOutputTokens: 1, thinkingConfig: { thinkingBudget: 0 } }
       });
@@ -1447,7 +1447,7 @@ const App: React.FC = () => {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-slate-700">Gemini 모델</label>
                       <select value={geminiModel} onChange={e => setGeminiModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                        <option value="gemini-2.0-flash">Gemini 3 Flash (빠름)</option>
+                        <option value="gemini-3-flash">Gemini 3 Flash (빠름)</option>
                         <option value="gemini-1.5-pro">Gemini 1.5 Pro (고품질)</option>
                       </select>
                     </div>
