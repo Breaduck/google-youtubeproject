@@ -1143,7 +1143,7 @@ const App: React.FC = () => {
       {isMyPageOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsMyPageOpen(false)}>
           <div className="bg-white rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white rounded-t-3xl">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white rounded-t-3xl z-10">
               <h2 className="text-xl font-semibold text-slate-900">설정</h2>
               <button onClick={() => setIsMyPageOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -1151,7 +1151,10 @@ const App: React.FC = () => {
             </div>
             <div className="p-6 space-y-6">
               <div className="space-y-3">
-                <label className="text-sm font-medium text-slate-700">Gemini API 키</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-slate-700">Gemini API 키</label>
+                  {isGeminiValid && <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">연결됨</span>}
+                </div>
                 <input type={showGeminiKey ? "text" : "password"} value={geminiApiKey} onChange={e => setGeminiApiKey(e.target.value)} placeholder="API 키 입력" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm" />
                 <button onClick={() => setShowGeminiKey(!showGeminiKey)} className="text-xs text-slate-400 hover:text-slate-600">{showGeminiKey ? '숨기기' : '보기'}</button>
               </div>
@@ -1178,29 +1181,94 @@ const App: React.FC = () => {
                 </div>
               </div>
               {audioProvider === 'google' && (
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-slate-700">Chirp 음성</label>
-                  <select value={chirpVoice} onChange={e => setChirpVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                    <option value="Kore">Kore (한국어 여성)</option>
-                    <option value="Aoede">Aoede (영어 여성)</option>
-                    <option value="Charon">Charon (영어 남성)</option>
-                    <option value="Fenrir">Fenrir (영어 남성)</option>
-                    <option value="Puck">Puck (영어 남성)</option>
-                  </select>
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-slate-700">Chirp API 키 (Gemini와 동일)</label>
+                    <input type={showChirpKey ? "text" : "password"} value={chirpApiKey} onChange={e => setChirpApiKey(e.target.value)} placeholder="API 키 입력 (비워두면 Gemini 키 사용)" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm" />
+                    <button onClick={() => setShowChirpKey(!showChirpKey)} className="text-xs text-slate-400 hover:text-slate-600">{showChirpKey ? '숨기기' : '보기'}</button>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-slate-700">Chirp 음성</label>
+                    <select value={chirpVoice} onChange={e => setChirpVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                      <option value="Kore">Kore (한국어 여성)</option>
+                      <option value="Aoede">Aoede (영어 여성)</option>
+                      <option value="Charon">Charon (영어 남성)</option>
+                      <option value="Fenrir">Fenrir (영어 남성)</option>
+                      <option value="Puck">Puck (영어 남성)</option>
+                    </select>
+                  </div>
                 </div>
               )}
               {audioProvider === 'elevenlabs' && (
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-slate-700">ElevenLabs API 키</label>
-                  <input type={showElKey ? "text" : "password"} value={elSettings.apiKey} onChange={e => setElSettings({...elSettings, apiKey: e.target.value})} placeholder="API 키 입력" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm" />
-                  <button onClick={() => setShowElKey(!showElKey)} className="text-xs text-slate-400 hover:text-slate-600">{showElKey ? '숨기기' : '보기'}</button>
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-slate-700">ElevenLabs API 키</label>
+                      {isElConnected && <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">연결됨</span>}
+                    </div>
+                    <input type={showElKey ? "text" : "password"} value={elSettings.apiKey} onChange={e => setElSettings({...elSettings, apiKey: e.target.value})} placeholder="API 키 입력" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm" />
+                    <button onClick={() => setShowElKey(!showElKey)} className="text-xs text-slate-400 hover:text-slate-600">{showElKey ? '숨기기' : '보기'}</button>
+                  </div>
                   {voices.length > 0 && (
-                    <select value={elSettings.voiceId} onChange={e => setElSettings({...elSettings, voiceId: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white mt-2">
-                      {voices.map(v => <option key={v.voice_id} value={v.voice_id}>{v.name}</option>)}
-                    </select>
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-slate-700">음성 선택</label>
+                      <select value={elSettings.voiceId} onChange={e => setElSettings({...elSettings, voiceId: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                        {voices.map(v => <option key={v.voice_id} value={v.voice_id}>{v.name}</option>)}
+                      </select>
+                    </div>
                   )}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-slate-700">음성 속도: {elSettings.speed.toFixed(1)}x</label>
+                    <input type="range" min="0.5" max="2.0" step="0.1" value={elSettings.speed} onChange={e => setElSettings({...elSettings, speed: parseFloat(e.target.value)})} className="w-full accent-indigo-600" />
+                  </div>
                 </div>
               )}
+              <button onClick={handleVoiceTest} disabled={isVoiceTesting} className="w-full py-3 rounded-xl text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all disabled:opacity-50">
+                {isVoiceTesting ? '테스트 중...' : '음성 테스트'}
+              </button>
+              <hr className="border-slate-100" />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-slate-700">저장된 화풍</label>
+                  <span className="text-xs text-slate-400">{savedStyles.length}/10</span>
+                </div>
+                {savedStyles.length === 0 ? (
+                  <p className="text-sm text-slate-400">저장된 화풍이 없습니다</p>
+                ) : (
+                  <div className="space-y-2">
+                    {savedStyles.map(s => (
+                      <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          {s.refImages[0] && <img src={s.refImages[0]} className="w-10 h-10 rounded-lg object-cover" />}
+                          <span className="text-sm font-medium text-slate-700">{s.name}</span>
+                        </div>
+                        <button onClick={() => setSavedStyles(prev => prev.filter(x => x.id !== s.id))} className="text-xs text-red-500 hover:text-red-600">삭제</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-slate-700">저장된 인물</label>
+                  <span className="text-xs text-slate-400">{savedCharacters.length}/10</span>
+                </div>
+                {savedCharacters.length === 0 ? (
+                  <p className="text-sm text-slate-400">저장된 인물이 없습니다</p>
+                ) : (
+                  <div className="space-y-2">
+                    {savedCharacters.map(c => (
+                      <div key={c.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          {c.portraitUrl && <img src={c.portraitUrl} className="w-10 h-10 rounded-full object-cover" />}
+                          <span className="text-sm font-medium text-slate-700">{c.name}</span>
+                        </div>
+                        <button onClick={() => setSavedCharacters(prev => prev.filter(x => x.id !== c.id))} className="text-xs text-red-500 hover:text-red-600">삭제</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
