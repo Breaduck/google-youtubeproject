@@ -1182,8 +1182,14 @@ const App: React.FC = () => {
 
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
-          {step === 'character_setup' && project && (
+          {step === 'character_setup' && (
             <div className="max-w-5xl mx-auto space-y-8 pt-10">
+              {!project ? (
+                <div className="text-center py-20">
+                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                </div>
+              ) : (
+              <>
               <div className="text-center space-y-4">
                 <h1 className="text-3xl sm:text-5xl font-semibold">{project.title}</h1>
                 <p className="text-slate-400 font-medium">캐릭터를 확인하고 수정하세요</p>
@@ -1231,11 +1237,19 @@ const App: React.FC = () => {
                   </button>
                 )}
               </div>
+              </>
+              )}
             </div>
           )}
 
-          {step === 'storyboard' && project && (
+          {step === 'storyboard' && (
             <div className="space-y-8 pt-10">
+              {!project ? (
+                <div className="text-center py-20">
+                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                </div>
+              ) : (
+              <>
               <div className="text-center space-y-4">
                 <h1 className="text-3xl sm:text-5xl font-semibold">{project.title}</h1>
                 <p className="text-slate-400 font-medium">장면별로 이미지와 오디오를 생성하세요</p>
@@ -1327,6 +1341,8 @@ const App: React.FC = () => {
                   </div>
                 ))}
               </div>
+              </>
+              )}
             </div>
           )}
 
