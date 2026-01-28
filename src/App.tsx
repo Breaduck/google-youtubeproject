@@ -461,51 +461,54 @@ const App: React.FC = () => {
     setBgTask({ type: 'analysis', message: '시나리오 분석 및 캐릭터 일관성 학습 중...' });
     setBgProgress(10);
 
-    try {
-      let customStyleDesc = undefined;
-      const saved = savedStyles.find(s => s.id === style);
-      if (saved) {
-        customStyleDesc = saved.description;
-      } else if (style === 'custom') {
-        setBgProgress(20);
-        if (refImages.length > 0) {
-          customStyleDesc = await gemini.analyzeStyle(refImages);
-        } else {
-          customStyleDesc = "Modern clean digital art style";
+    // React가 화면을 렌더링할 시간을 준 후 API 호출 시작
+    setTimeout(async () => {
+      try {
+        let customStyleDesc = undefined;
+        const saved = savedStyles.find(s => s.id === style);
+        if (saved) {
+          customStyleDesc = saved.description;
+        } else if (style === 'custom') {
+          setBgProgress(20);
+          if (refImages.length > 0) {
+            customStyleDesc = await gemini.analyzeStyle(refImages);
+          } else {
+            customStyleDesc = "Modern clean digital art style";
+          }
         }
-      }
 
-      setBgProgress(40);
-      const data = await gemini.extractCharacters(script, style === 'custom' || saved ? 'custom' : style as VisualStyle, customStyleDesc);
+        setBgProgress(40);
+        const data = await gemini.extractCharacters(script, style === 'custom' || saved ? 'custom' : style as VisualStyle, customStyleDesc);
 
-      const updatedProject: StoryProject = {
-        ...activeProject,
-        title: data.title,
-        script,
-        style,
-        customStyleDescription: customStyleDesc,
-        characters: data.characters
-      };
+        const updatedProject: StoryProject = {
+          ...activeProject,
+          title: data.title,
+          script,
+          style,
+          customStyleDescription: customStyleDesc,
+          characters: data.characters
+        };
 
-      updateCurrentProject(updatedProject);
+        updateCurrentProject(updatedProject);
 
-      setBgProgress(60);
-      setBgTask({ type: 'analysis', message: '모든 캐릭터의 고유 외형 동시 생성 중...' });
+        setBgProgress(60);
+        setBgTask({ type: 'analysis', message: '모든 캐릭터의 고유 외형 동시 생성 중...' });
 
-      await Promise.all(data.characters.map(char => generatePortrait(char.id, updatedProject)));
+        await Promise.all(data.characters.map(char => generatePortrait(char.id, updatedProject)));
 
-      setBgProgress(100);
-      setTimeout(() => {
+        setBgProgress(100);
+        setTimeout(() => {
+          setBgTask(null);
+          setBgProgress(0);
+        }, 1000);
+      } catch (err: any) {
+        console.error(err);
+        alert("API 오류: " + (err?.message || "연결에 실패했습니다. 다시 시도해주세요."));
+        setStep('input');
         setBgTask(null);
         setBgProgress(0);
-      }, 1000);
-    } catch (err: any) {
-      console.error(err);
-      alert("API 오류: " + (err?.message || "연결에 실패했습니다. 다시 시도해주세요."));
-      setStep('input');
-      setBgTask(null);
-      setBgProgress(0);
-    }
+      }
+    }, 100);
   };
 
   const generatePortrait = async (charId: string, specificProject?: StoryProject) => {
