@@ -1169,6 +1169,154 @@ const App: React.FC = () => {
 
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
+          {step === 'character_setup' && project && (
+            <div className="max-w-5xl mx-auto space-y-8 pt-10">
+              <div className="text-center space-y-4">
+                <h1 className="text-3xl sm:text-5xl font-semibold">{project.title}</h1>
+                <p className="text-slate-400 font-medium">캐릭터를 확인하고 수정하세요</p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                {project.characters.map(char => (
+                  <div key={char.id} className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm hover:shadow-lg transition-all">
+                    <div className="aspect-square rounded-2xl overflow-hidden bg-slate-100 mb-4 relative">
+                      {char.status === 'loading' && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+                          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+                      {char.portraitUrl && (
+                        <img src={char.portraitUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(char.portraitUrl)} />
+                      )}
+                      {!char.portraitUrl && char.status !== 'loading' && (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-slate-900 text-center mb-1">{char.name}</h3>
+                    <p className="text-xs text-slate-400 text-center mb-3">{char.role}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => generatePortrait(char.id)} disabled={char.status === 'loading'} className="flex-1 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 rounded-xl transition-all disabled:opacity-50">재생성</button>
+                      <button onClick={() => { setPromptEditType('character'); setPromptEditId(char.id); setPromptEditInput(''); setIsPromptModalOpen(true); }} className="flex-1 py-2 text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all">수정</button>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={() => setIsCharModalOpen(true)} className="bg-slate-50 rounded-3xl p-6 border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all flex flex-col items-center justify-center min-h-[200px]">
+                  <span className="text-3xl text-slate-300 mb-2">+</span>
+                  <span className="text-sm text-slate-400 font-medium">캐릭터 추가</span>
+                </button>
+              </div>
+
+              <div className="flex justify-center gap-4 pt-6">
+                <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-semibold text-lg shadow-xl hover:bg-indigo-700 transition-all disabled:opacity-50">
+                  스토리보드 생성
+                </button>
+                {project.scenes.length > 0 && (
+                  <button onClick={() => proceedToStoryboard(false)} className="px-10 py-5 bg-white border border-slate-200 text-slate-700 rounded-2xl font-semibold text-lg hover:bg-slate-50 transition-all">
+                    기존 스토리보드 보기
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {step === 'storyboard' && project && (
+            <div className="space-y-8 pt-10">
+              <div className="text-center space-y-4">
+                <h1 className="text-3xl sm:text-5xl font-semibold">{project.title}</h1>
+                <p className="text-slate-400 font-medium">장면별로 이미지와 오디오를 생성하세요</p>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-3 mb-8">
+                <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
+                  전체 이미지 생성
+                </button>
+                <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-all disabled:opacity-50">
+                  전체 오디오 생성
+                </button>
+                <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-all disabled:opacity-50">
+                  동영상 추출
+                </button>
+                <button onClick={addSceneManually} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">
+                  장면 추가
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {project.scenes.map((scene, idx) => (
+                  <div key={scene.id} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
+                    <div className="flex items-start gap-4 mb-4">
+                      <span className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</span>
+                      <div className="flex-1">
+                        <p className="text-slate-700 font-medium leading-relaxed">{scene.scriptSegment}</p>
+                        {scene.effect && (
+                          <p className="text-xs text-slate-400 mt-2">효과: {scene.effect.effect_type} (강도: {scene.effect.intensity})</p>
+                        )}
+                      </div>
+                      <button onClick={() => deleteScene(scene.id)} className="text-slate-300 hover:text-red-500 transition-all">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* 이미지 영역 */}
+                      <div className="aspect-video rounded-2xl overflow-hidden bg-slate-100 relative">
+                        {scene.status === 'loading' && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        )}
+                        {scene.imageUrl && (
+                          <img src={scene.imageUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)} />
+                        )}
+                        {!scene.imageUrl && scene.status !== 'loading' && (
+                          <div className="w-full h-full flex items-center justify-center text-slate-300">
+                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 컨트롤 영역 */}
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <button onClick={() => generateSceneImage(scene.id)} disabled={scene.status === 'loading'} className="flex-1 py-3 text-sm font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all disabled:opacity-50">
+                            {scene.imageUrl ? '이미지 재생성' : '이미지 생성'}
+                          </button>
+                          <button onClick={() => { activeSceneId.current = scene.id; sceneImageUploadRef.current?.click(); }} className="py-3 px-4 text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl transition-all">
+                            업로드
+                          </button>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button onClick={() => generateAudio(scene.id)} disabled={scene.audioStatus === 'loading'} className="flex-1 py-3 text-sm font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-all disabled:opacity-50">
+                            {scene.audioUrl ? '오디오 재생성' : '오디오 생성'}
+                          </button>
+                          <button onClick={() => { activeSceneId.current = scene.id; sceneAudioUploadRef.current?.click(); }} className="py-3 px-4 text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl transition-all">
+                            업로드
+                          </button>
+                        </div>
+
+                        {scene.audioUrl && (
+                          <div className="flex items-center gap-2">
+                            <audio src={scene.audioUrl} controls className="flex-1 h-10" />
+                            <button onClick={() => deleteAudio(scene.id)} className="p-2 text-red-400 hover:text-red-600 transition-all">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        )}
+
+                        <button onClick={() => { setPromptEditType('scene'); setPromptEditId(scene.id); setPromptEditInput(''); setIsPromptModalOpen(true); }} className="w-full py-2 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-all">
+                          프롬프트 수정
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {step === 'input' && (
             <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12 pt-10 sm:pt-10">
                <div className="text-center space-y-2 sm:space-y-4">
@@ -1412,6 +1560,78 @@ const App: React.FC = () => {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 캐릭터 추가 모달 */}
+      {isCharModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsCharModalOpen(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-semibold text-slate-900 mb-6">새 캐릭터 추가</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">이름</label>
+                <input type="text" value={newCharData.name} onChange={e => setNewCharData({...newCharData, name: e.target.value})} placeholder="캐릭터 이름" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">성별</label>
+                  <select value={newCharData.gender} onChange={e => setNewCharData({...newCharData, gender: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                    <option value="여성">여성</option>
+                    <option value="남성">남성</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">나이</label>
+                  <select value={newCharData.age} onChange={e => setNewCharData({...newCharData, age: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                    <option value="어린이">어린이</option>
+                    <option value="청소년">청소년</option>
+                    <option value="성인">성인</option>
+                    <option value="중년">중년</option>
+                    <option value="노인">노인</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">외형 특징</label>
+                <textarea value={newCharData.traits} onChange={e => setNewCharData({...newCharData, traits: e.target.value})} placeholder="머리색, 옷차림, 특징 등" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm h-24 resize-none" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setIsCharModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">취소</button>
+              <button onClick={addCharacterManually} disabled={loading || !newCharData.name.trim() || !newCharData.traits.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
+                {loading ? '생성 중...' : '추가'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 프롬프트 수정 모달 */}
+      {isPromptModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsPromptModalOpen(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-semibold text-slate-900 mb-2">{promptEditType === 'character' ? '캐릭터' : '장면'} 수정</h3>
+            <p className="text-sm text-slate-400 mb-6">원하는 변경사항을 한국어로 설명해주세요</p>
+            <textarea value={promptEditInput} onChange={e => setPromptEditInput(e.target.value)} placeholder="예: 머리색을 금발로 바꿔줘 / 배경을 밤으로 바꿔줘" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm h-32 resize-none" />
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setIsPromptModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">취소</button>
+              <button onClick={handleRegeneratePrompt} disabled={!promptEditInput.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
+                재생성
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 백그라운드 작업 표시 */}
+      {bgTask && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl z-[400] flex items-center gap-4">
+          <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+          <div>
+            <p className="font-medium">{bgTask.message}</p>
+            {bgProgress > 0 && <p className="text-sm text-slate-400">{bgProgress}%</p>}
           </div>
         </div>
       )}
