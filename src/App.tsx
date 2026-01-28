@@ -1007,7 +1007,7 @@ const App: React.FC = () => {
       <div className="fixed top-4 right-4 sm:top-8 sm:right-8 z-[205]">
         <button onClick={() => setIsMyPageOpen(true)} className="w-12 h-12 sm:w-14 sm:h-14 bg-white shadow-xl rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:scale-105 transition-all group relative border border-slate-100">
           <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-          <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-black rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">내 페이지</div>
+          <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">내 페이지</div>
         </button>
       </div>
 
@@ -1015,7 +1015,7 @@ const App: React.FC = () => {
         <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[205]">
           <button onClick={handleBack} className="w-12 h-12 sm:w-14 sm:h-14 bg-white shadow-xl rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all border border-slate-100 group relative">
             <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
-            <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-black rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">이전으로 돌아가기</div>
+            <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">이전으로 돌아가기</div>
           </button>
         </div>
       )}
@@ -1024,10 +1024,10 @@ const App: React.FC = () => {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-10 py-10 sm:py-20 animate-in fade-in">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 sm:mb-16 gap-6">
             <div className="space-y-2 sm:space-y-4">
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900">내 프로젝트</h1>
+              <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900">내 프로젝트</h1>
               <p className="text-slate-400 font-medium text-sm sm:text-base">진행 중인 이야기들을 관리하세요</p>
             </div>
-            <button onClick={addNewProject} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 transition-all active:scale-95">
+            <button onClick={addNewProject} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 transition-all active:scale-95">
               <span className="text-xl">+</span> 새 프로젝트 추가
             </button>
           </header>
@@ -1035,7 +1035,7 @@ const App: React.FC = () => {
           {projects.length === 0 ? (
             <div className="bg-white border border-slate-100 rounded-[32px] sm:rounded-[40px] py-20 sm:py-40 flex flex-col items-center justify-center space-y-8 shadow-sm">
                <button onClick={addNewProject} className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-50 rounded-full flex items-center justify-center text-4xl sm:text-5xl text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 border-2 border-dashed border-slate-200 transition-all active:scale-90">+</button>
-               <p className="text-slate-400 font-black text-lg sm:text-xl px-6 text-center">첫 번째 프로젝트를 만들어보세요</p>
+               <p className="text-slate-400 font-semibold text-lg sm:text-xl px-6 text-center">첫 번째 프로젝트를 만들어보세요</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
@@ -1046,7 +1046,7 @@ const App: React.FC = () => {
                     </button>
                     <div className="space-y-3">
                        <div className="flex justify-between items-start">
-                         <h3 className="text-xl sm:text-2xl font-black text-slate-900 line-clamp-1 flex-1 pr-8">{p.title}</h3>
+                         <h3 className="text-xl sm:text-2xl font-semibold text-slate-900 line-clamp-1 flex-1 pr-8">{p.title}</h3>
                        </div>
                        <p className="text-slate-400 text-xs sm:text-sm font-medium">최종 수정: {new Date(p.updatedAt).toLocaleDateString()}</p>
                     </div>
@@ -1057,14 +1057,14 @@ const App: React.FC = () => {
                          </div>
                        ))}
                        {p.characters.length > 5 && (
-                         <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-white bg-indigo-50 flex items-center justify-center text-[10px] sm:text-xs font-black text-indigo-600 shadow-md">
+                         <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-white bg-indigo-50 flex items-center justify-center text-[10px] sm:text-xs font-semibold text-indigo-600 shadow-md">
                            +{p.characters.length - 5}
                          </div>
                        )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2 gap-3">
-                       <span className="px-3 py-1 sm:px-4 sm:py-2 bg-slate-50 border border-slate-100 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black uppercase text-slate-500">장면 {p.scenes.length}개</span>
-                       <span className="px-3 py-1 sm:px-4 sm:py-2 bg-indigo-50 border border-indigo-100 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black uppercase text-indigo-600">{getStyleDisplayName(p.style)}</span>
+                       <span className="px-3 py-1 sm:px-4 sm:py-2 bg-slate-50 border border-slate-100 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-semibold uppercase text-slate-500">장면 {p.scenes.length}개</span>
+                       <span className="px-3 py-1 sm:px-4 sm:py-2 bg-indigo-50 border border-indigo-100 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-semibold uppercase text-indigo-600">{getStyleDisplayName(p.style)}</span>
                     </div>
                  </div>
                ))}
@@ -1078,20 +1078,20 @@ const App: React.FC = () => {
           {step === 'input' && (
             <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12 pt-10 sm:pt-10">
                <div className="text-center space-y-2 sm:space-y-4">
-                  <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight">당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
+                  <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight leading-tight">당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
                   <p className="text-slate-400 font-medium text-base sm:text-lg">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
                </div>
                <div className="flex flex-wrap justify-center gap-3 sm:gap-6">
                   {['realistic', '2d-animation', 'custom'].map(s => (
-                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-black text-sm sm:text-lg ${style === s ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{s === '2d-animation' ? '2D 애니메이션' : s === 'realistic' ? '실사화' : '맞춤형'}</button>
+                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg ${style === s ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{s === '2d-animation' ? '2D 애니메이션' : s === 'realistic' ? '실사화' : '맞춤형'}</button>
                   ))}
                   {savedStyles.map(s => (
-                    <button key={s.id} onClick={() => { setStyle(s.id as VisualStyle); updateCurrentProject({ style: s.id }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-black text-sm sm:text-lg ${style === s.id ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{s.name}</button>
+                    <button key={s.id} onClick={() => { setStyle(s.id as VisualStyle); updateCurrentProject({ style: s.id }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg ${style === s.id ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{s.name}</button>
                   ))}
                </div>
                {currentSavedStyle && (
                  <div className="animate-in fade-in slide-in-bottom bg-slate-50 border p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-4">
-                   <h4 className="text-lg sm:text-xl font-black text-slate-900">{currentSavedStyle.name} 상세 정보</h4>
+                   <h4 className="text-lg sm:text-xl font-semibold text-slate-900">{currentSavedStyle.name} 상세 정보</h4>
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">학습된 스타일 묘사</p>
@@ -1107,10 +1107,10 @@ const App: React.FC = () => {
                  <div className="animate-in fade-in slide-in-bottom bg-indigo-50/50 border border-indigo-100 p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-6">
                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div>
-                        <h4 className="text-lg sm:text-xl font-black text-slate-900">맞춤형 스타일 학습</h4>
+                        <h4 className="text-lg sm:text-xl font-semibold text-slate-900">맞춤형 스타일 학습</h4>
                         <p className="text-xs sm:text-sm text-slate-500 mt-1">학습 레퍼런스 이미지 업로드 (최대 7장)</p>
                       </div>
-                      <button onClick={() => styleRefImageInputRef.current?.click()} className="w-full sm:w-auto px-6 py-3 bg-white border border-indigo-200 rounded-2xl text-xs font-black text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
+                      <button onClick={() => styleRefImageInputRef.current?.click()} className="w-full sm:w-auto px-6 py-3 bg-white border border-indigo-200 rounded-2xl text-xs font-semibold text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
                    </div>
                    <div className="flex gap-3 flex-wrap">
                       {refImages.map((img, idx) => (
@@ -1126,9 +1126,9 @@ const App: React.FC = () => {
                  <textarea className="w-full h-64 sm:h-80 bg-slate-50/50 border-none rounded-[24px] sm:rounded-[36px] p-6 sm:p-10 text-base sm:text-xl focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
                <div className="flex flex-col sm:flex-row gap-4">
-                 <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-6 sm:py-8 bg-indigo-600 text-white rounded-[24px] sm:rounded-[32px] font-black text-lg sm:text-2xl shadow-2xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
+                 <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-6 sm:py-8 bg-indigo-600 text-white rounded-[24px] sm:rounded-[32px] font-semibold text-lg sm:text-2xl shadow-2xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
                  {project && project.characters.length > 0 && (
-                   <button onClick={() => setStep('character_setup')} className="px-8 py-6 sm:py-8 bg-white border border-slate-200 text-slate-600 rounded-[24px] sm:rounded-[32px] font-black text-base sm:text-xl hover:bg-slate-50 hover:text-indigo-600 transition-all shadow-lg">
+                   <button onClick={() => setStep('character_setup')} className="px-8 py-6 sm:py-8 bg-white border border-slate-200 text-slate-600 rounded-[24px] sm:rounded-[32px] font-semibold text-base sm:text-xl hover:bg-slate-50 hover:text-indigo-600 transition-all shadow-lg">
                      다음 단계로 이동 &gt;
                    </button>
                  )}
@@ -1139,6 +1139,72 @@ const App: React.FC = () => {
       )}
 
       {selectedImage && <div className="fixed inset-0 bg-slate-900/95 z-[250] flex items-center justify-center p-2 sm:p-4 cursor-zoom-out animate-in fade-in" onClick={() => setSelectedImage(null)}><img src={selectedImage} className="max-w-full max-h-[90vh] object-contain rounded-2xl sm:rounded-[40px] shadow-2xl border-4 sm:border-8 border-white/10" /></div>}
+
+      {isMyPageOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsMyPageOpen(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white rounded-t-3xl">
+              <h2 className="text-xl font-semibold text-slate-900">설정</h2>
+              <button onClick={() => setIsMyPageOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-slate-700">Gemini API 키</label>
+                <input type={showGeminiKey ? "text" : "password"} value={geminiApiKey} onChange={e => setGeminiApiKey(e.target.value)} placeholder="API 키 입력" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm" />
+                <button onClick={() => setShowGeminiKey(!showGeminiKey)} className="text-xs text-slate-400 hover:text-slate-600">{showGeminiKey ? '숨기기' : '보기'}</button>
+              </div>
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-slate-700">Gemini 모델</label>
+                <select value={geminiModel} onChange={e => setGeminiModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                  <option value="gemini-3-flash-preview">Gemini 3 Flash (빠름)</option>
+                  <option value="gemini-2.5-pro-preview">Gemini 2.5 Pro (고품질)</option>
+                </select>
+              </div>
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-slate-700">이미지 생성 모델</label>
+                <select value={geminiImageModel} onChange={e => setGeminiImageModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                  <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
+                  <option value="imagen-3.0-generate-002">Imagen 3.0</option>
+                </select>
+              </div>
+              <hr className="border-slate-100" />
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-slate-700">음성 제공자</label>
+                <div className="flex gap-2">
+                  <button onClick={() => setAudioProvider('google')} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Google Chirp</button>
+                  <button onClick={() => setAudioProvider('elevenlabs')} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>ElevenLabs</button>
+                </div>
+              </div>
+              {audioProvider === 'google' && (
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-slate-700">Chirp 음성</label>
+                  <select value={chirpVoice} onChange={e => setChirpVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                    <option value="Kore">Kore (한국어 여성)</option>
+                    <option value="Aoede">Aoede (영어 여성)</option>
+                    <option value="Charon">Charon (영어 남성)</option>
+                    <option value="Fenrir">Fenrir (영어 남성)</option>
+                    <option value="Puck">Puck (영어 남성)</option>
+                  </select>
+                </div>
+              )}
+              {audioProvider === 'elevenlabs' && (
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-slate-700">ElevenLabs API 키</label>
+                  <input type={showElKey ? "text" : "password"} value={elSettings.apiKey} onChange={e => setElSettings({...elSettings, apiKey: e.target.value})} placeholder="API 키 입력" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm" />
+                  <button onClick={() => setShowElKey(!showElKey)} className="text-xs text-slate-400 hover:text-slate-600">{showElKey ? '숨기기' : '보기'}</button>
+                  {voices.length > 0 && (
+                    <select value={elSettings.voiceId} onChange={e => setElSettings({...elSettings, voiceId: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white mt-2">
+                      {voices.map(v => <option key={v.voice_id} value={v.voice_id}>{v.name}</option>)}
+                    </select>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
