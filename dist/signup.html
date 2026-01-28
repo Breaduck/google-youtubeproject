@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif;
+            background: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .form-container {
+            width: 100%;
+            max-width: 360px;
+            padding: 0 24px;
+        }
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #191f28;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            font-size: 15px;
+            color: #8b95a1;
+            margin-bottom: 40px;
+        }
+        .form-group {
+            margin-bottom: 24px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333d4b;
+            margin-bottom: 8px;
+        }
+        input {
+            width: 100%;
+            padding: 16px 0;
+            border: none;
+            border-bottom: 1px solid #e5e8eb;
+            font-size: 17px;
+            color: #191f28;
+            background: transparent;
+            transition: border-color 0.2s;
+        }
+        input::placeholder {
+            color: #c9cdd2;
+        }
+        input:focus {
+            outline: none;
+            border-bottom-color: #3182f6;
+        }
+        button {
+            width: 100%;
+            padding: 18px;
+            background: #3182f6;
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #1b64da;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>회원가입</h1>
+        <p class="subtitle">간단한 정보를 입력해주세요</p>
+        <form action="https://formspree.io/f/mdagrepw" method="POST">
+            <div class="form-group">
+                <label for="name">이름</label>
+                <input type="text" id="name" name="name" required placeholder="이름을 입력해주세요">
+            </div>
+            <div class="form-group">
+                <label for="email">이메일</label>
+                <input type="email" id="email" name="email" required placeholder="이메일을 입력해주세요">
+            </div>
+            <button type="submit">가입하기</button>
+        </form>
+    </div>
+</body>
+</html>
