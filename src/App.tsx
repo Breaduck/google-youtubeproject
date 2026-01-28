@@ -1189,6 +1189,7 @@ const App: React.FC = () => {
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
           {step === 'character_setup' && (
             <div className="max-w-5xl mx-auto space-y-8 pt-10">
+              <div className="bg-yellow-200 p-4 text-black text-center">DEBUG: character_setup 화면, 캐릭터 수: {project?.characters?.length || 0}</div>
               {bgTask ? (
                 <div className="text-center py-20">
                   <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
