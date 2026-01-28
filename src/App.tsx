@@ -112,14 +112,41 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      // 이미지 데이터 제외하고 저장 (용량 문제 방지)
+      // 이미지/오디오 데이터 완전 제외 (용량 문제 방지)
       const projectsToSave = projects.map(p => ({
-        ...p,
-        characters: p.characters.map(c => ({ ...c, portraitUrl: null })),
-        scenes: p.scenes.map(s => ({ ...s, imageUrl: null, audioUrl: null }))
+        id: p.id,
+        title: p.title,
+        script: p.script,
+        style: p.style,
+        customStyleDescription: p.customStyleDescription,
+        updatedAt: p.updatedAt,
+        characters: p.characters.map(c => ({
+          id: c.id,
+          name: c.name,
+          role: c.role,
+          visualDescription: c.visualDescription,
+          portraitUrl: null,
+          status: 'idle'
+        })),
+        scenes: p.scenes.map(s => ({
+          id: s.id,
+          scriptSegment: s.scriptSegment,
+          imagePrompt: s.imagePrompt,
+          imageUrl: null,
+          audioUrl: null,
+          status: 'idle',
+          audioStatus: 'idle',
+          effect: s.effect
+        }))
       }));
       localStorage.setItem('user_projects_v1', JSON.stringify(projectsToSave));
-    } catch (e) { console.error("Project Save Error", e); }
+    } catch (e) {
+      console.error("Project Save Error", e);
+      // 저장 실패 시 기존 데이터 삭제하고 재시도
+      try {
+        localStorage.removeItem('user_projects_v1');
+      } catch {}
+    }
   }, [projects]);
 
   useEffect(() => {
@@ -1187,6 +1214,7 @@ const App: React.FC = () => {
 
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
+          <div className="bg-red-500 text-white p-4 mb-4 text-center text-2xl">현재 step: {step}</div>
           {step === 'character_setup' && (
             <div className="max-w-5xl mx-auto space-y-8 pt-10">
               <div className="bg-yellow-200 p-4 text-black text-center">DEBUG: character_setup 화면, 캐릭터 수: {project?.characters?.length || 0}</div>
