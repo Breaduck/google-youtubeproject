@@ -456,6 +456,8 @@ const App: React.FC = () => {
       return;
     }
 
+    setStep('character_setup');
+    setHasVisitedSetup(true);
     setBgTask({ type: 'analysis', message: '시나리오 분석 및 캐릭터 일관성 학습 중...' });
     setBgProgress(10);
 
@@ -486,8 +488,6 @@ const App: React.FC = () => {
       };
 
       updateCurrentProject(updatedProject);
-      setStep('character_setup');
-      setHasVisitedSetup(true);
 
       setBgProgress(60);
       setBgTask({ type: 'analysis', message: '모든 캐릭터의 고유 외형 동시 생성 중...' });
