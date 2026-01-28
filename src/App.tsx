@@ -1184,19 +1184,20 @@ const App: React.FC = () => {
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
           {step === 'character_setup' && (
             <div className="max-w-5xl mx-auto space-y-8 pt-10">
-              {!project ? (
+              {!project || (project.characters.length === 0 && bgTask) ? (
                 <div className="text-center py-20">
-                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-slate-500">캐릭터 분석 중...</p>
                 </div>
               ) : (
               <>
               <div className="text-center space-y-4">
-                <h1 className="text-3xl sm:text-5xl font-semibold">{project.title}</h1>
+                <h1 className="text-3xl sm:text-5xl font-semibold">{project?.title || '새 프로젝트'}</h1>
                 <p className="text-slate-400 font-medium">캐릭터를 확인하고 수정하세요</p>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                {project.characters.map(char => (
+                {(project?.characters || []).map(char => (
                   <div key={char.id} className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm hover:shadow-lg transition-all">
                     <div className="aspect-square rounded-2xl overflow-hidden bg-slate-100 mb-4 relative">
                       {char.status === 'loading' && (
@@ -1231,7 +1232,7 @@ const App: React.FC = () => {
                 <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-semibold text-lg shadow-xl hover:bg-indigo-700 transition-all disabled:opacity-50">
                   스토리보드 생성
                 </button>
-                {project.scenes.length > 0 && (
+                {project && project.scenes.length > 0 && (
                   <button onClick={() => proceedToStoryboard(false)} className="px-10 py-5 bg-white border border-slate-200 text-slate-700 rounded-2xl font-semibold text-lg hover:bg-slate-50 transition-all">
                     기존 스토리보드 보기
                   </button>
