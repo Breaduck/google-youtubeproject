@@ -499,9 +499,10 @@ const App: React.FC = () => {
         setBgTask(null);
         setBgProgress(0);
       }, 1000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("GEMINI API 연결에 실패했습니다. 대본을 조금 더 구체적으로 입력하거나 다시 시도해주세요.");
+      alert("API 오류: " + (err?.message || "연결에 실패했습니다. 다시 시도해주세요."));
+      setStep('input');
       setBgTask(null);
       setBgProgress(0);
     }
