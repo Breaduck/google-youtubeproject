@@ -1150,6 +1150,8 @@ const App: React.FC = () => {
               </button>
             </div>
             <div className="p-6 space-y-6">
+              <a href="signup.html" className="block w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-center font-semibold rounded-xl transition-all">회원가입</a>
+              <hr className="border-slate-100" />
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-slate-700">Gemini API 키</label>
