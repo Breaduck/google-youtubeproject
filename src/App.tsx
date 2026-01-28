@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { GoogleGenAI } from "@google/genai";
 import { GeminiService } from './services/geminiService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect } from './types';
@@ -456,8 +457,10 @@ const App: React.FC = () => {
       return;
     }
 
-    setBgTask({ type: 'analysis', message: '등장인물 분석 중...' });
-    setBgProgress(10);
+    flushSync(() => {
+      setBgTask({ type: 'analysis', message: '등장인물 분석 중...' });
+      setBgProgress(10);
+    });
 
     try {
       let customStyleDesc = undefined;
