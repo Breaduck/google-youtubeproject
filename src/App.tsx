@@ -435,9 +435,14 @@ const App: React.FC = () => {
   };
 
   const startAnalysis = async () => {
-    if (!script.trim() || !project) return;
+    if (!script.trim()) return;
+    const activeProject = projects.find(p => p.id === currentProjectId);
+    if (!activeProject) {
+      alert('프로젝트를 선택해주세요.');
+      return;
+    }
 
-    if (project.characters.length > 0 && project.script === script) {
+    if (activeProject.characters.length > 0 && activeProject.script === script) {
       setStep('character_setup');
       setHasVisitedSetup(true);
       return;
@@ -464,7 +469,7 @@ const App: React.FC = () => {
       const data = await gemini.extractCharacters(script, style === 'custom' || saved ? 'custom' : style as VisualStyle, customStyleDesc);
 
       const updatedProject: StoryProject = {
-        ...project,
+        ...activeProject,
         title: data.title,
         script,
         style,
