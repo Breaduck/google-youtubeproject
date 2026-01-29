@@ -1225,9 +1225,9 @@ const App: React.FC = () => {
                 </div>
               ) : (
               <>
-              <div className="bg-white rounded-[24px] shadow-xl p-6 sm:p-8 mb-8">
+              <div className="bg-white rounded-[24px] shadow-xl p-6 sm:p-8 py-12 sm:py-16 mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900">등장인물 외형 설정</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">등장인물 외형 설정</h1>
                   <div className="flex gap-3">
                     <button onClick={() => setIsCharLoadModalOpen(true)} className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all">인물 불러오기</button>
                     <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50">스토리보드 생성</button>
@@ -1286,7 +1286,7 @@ const App: React.FC = () => {
                       <textarea
                         value={char.visualDescription || ''}
                         onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
-                        className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 h-24 w-full"
+                        className="text-xs text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 h-32 w-full"
                         placeholder="캐릭터 외형 설명을 입력하세요..."
                       />
                     </div>
@@ -1362,8 +1362,8 @@ const App: React.FC = () => {
                 {project.scenes.map((scene, idx) => (
                   <div key={scene.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md hover:border-slate-200 transition-all group/card">
                     {/* 이미지 영역 */}
-                    <div className="aspect-[4/3] bg-slate-50 relative group/img">
-                      <div className="absolute top-3 left-3 z-10 w-7 h-7 bg-slate-900/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-xs font-semibold">{idx + 1}</div>
+                    <div className="aspect-video bg-slate-50 relative group/img">
+                      <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-slate-900/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-xs font-semibold">#{idx + 1}</div>
 
                       {/* 상단 우측 버튼들 */}
                       <div className="absolute top-3 right-3 z-30 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all">
@@ -1384,8 +1384,13 @@ const App: React.FC = () => {
                       {scene.imageUrl ? (
                         <>
                           <img src={scene.imageUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)} />
-                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center z-10">
-                            <button onClick={() => generateSceneImage(scene.id)} className="px-4 py-2 bg-white/95 backdrop-blur-sm rounded-xl text-indigo-600 text-sm font-medium hover:bg-white transition-all shadow-lg">재생성</button>
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10">
+                            <button onClick={() => generateSceneImage(scene.id)} className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-indigo-600 hover:bg-white transition-all shadow-lg" title="재생성">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            </button>
+                            <button onClick={() => { if(scene.imageUrl) { const a = document.createElement('a'); a.href = scene.imageUrl; a.download = `scene-${idx+1}.png`; a.click(); }}} className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 hover:bg-white transition-all shadow-lg" title="다운로드">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            </button>
                           </div>
                         </>
                       ) : (
@@ -1401,11 +1406,11 @@ const App: React.FC = () => {
                     <div className="p-4 space-y-3">
                       {/* 장면 대사 */}
                       <div>
-                        <p className="text-[10px] text-slate-400 font-medium mb-1.5 uppercase tracking-wide">Scene</p>
+                        <p className="text-[10px] text-slate-400 font-medium mb-1.5 uppercase tracking-wide">Scene 대사</p>
                         <textarea
                           value={scene.scriptSegment}
                           onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                          className="w-full text-[13px] text-slate-700 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[44px] placeholder:text-slate-300"
+                          className="w-full text-sm font-semibold text-slate-800 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300"
                           placeholder="장면 대사..."
                         />
                       </div>
