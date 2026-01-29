@@ -1215,7 +1215,7 @@ const App: React.FC = () => {
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
           {step === 'character_setup' && (
-            <div className="max-w-6xl mx-auto pt-10 px-4">
+            <div className="w-[95%] max-w-[1600px] mx-auto pt-10 px-6">
               {bgTask ? (
                 <div className="text-center py-20">
                   <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -1236,10 +1236,10 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {(project?.characters || []).map(char => (
                   <div key={char.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all p-6 flex gap-6 cursor-pointer" onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}>
-                    <div className="w-[130px] h-[130px] rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
+                    <div className="w-[160px] h-[160px] rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
                       {char.status === 'loading' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
                           <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -1259,7 +1259,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 ))}
-                <button onClick={() => setIsCharModalOpen(true)} className="bg-white rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all p-6 flex flex-col items-center justify-center min-h-[162px]">
+                <button onClick={() => setIsCharModalOpen(true)} className="bg-white rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all p-6 flex flex-col items-center justify-center min-h-[192px]">
                   <span className="text-4xl text-slate-300 mb-2">+</span>
                   <span className="text-base text-slate-400 font-medium">등장인물 추가하기</span>
                 </button>
