@@ -1236,35 +1236,33 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-[20px] shadow-lg p-6">
-                <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
-                  {(project?.characters || []).map(char => (
-                    <div key={char.id} className="flex-shrink-0 w-[320px] bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-4 flex gap-4 cursor-pointer" onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}>
-                      <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-100 flex-shrink-0 relative">
-                        {char.status === 'loading' && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-                            <div className="w-6 h-6 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        )}
-                        {char.portraitUrl ? (
-                          <img src={char.portraitUrl} className="w-full h-full object-cover" />
-                        ) : char.status !== 'loading' && (
-                          <div className="w-full h-full flex items-center justify-center text-slate-300">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-slate-900 text-base mb-1">{char.name}</h3>
-                        <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">{char.visualDescription || char.role}</p>
-                      </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {(project?.characters || []).map(char => (
+                  <div key={char.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all p-6 flex gap-6 cursor-pointer" onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}>
+                    <div className="w-[130px] h-[130px] rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
+                      {char.status === 'loading' && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+                          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+                      {char.portraitUrl ? (
+                        <img src={char.portraitUrl} className="w-full h-full object-cover" />
+                      ) : char.status !== 'loading' && (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <svg className="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  <button onClick={() => setIsCharModalOpen(true)} className="flex-shrink-0 w-[320px] rounded-xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all p-4 flex items-center justify-center gap-3 min-h-[104px]">
-                    <span className="text-2xl text-slate-300">+</span>
-                    <span className="text-sm text-slate-400 font-medium">캐릭터 추가하기</span>
-                  </button>
-                </div>
+                    <div className="flex-1 min-w-0 py-1">
+                      <h3 className="font-bold text-slate-900 text-xl mb-2">{char.name}</h3>
+                      <p className="text-sm text-slate-400 leading-relaxed line-clamp-4">{char.visualDescription || char.role}</p>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={() => setIsCharModalOpen(true)} className="bg-white rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all p-6 flex flex-col items-center justify-center min-h-[162px]">
+                  <span className="text-4xl text-slate-300 mb-2">+</span>
+                  <span className="text-base text-slate-400 font-medium">등장인물 추가하기</span>
+                </button>
               </div>
 
               {project && project.scenes.length > 0 && (
