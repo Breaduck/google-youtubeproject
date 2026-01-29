@@ -1278,7 +1278,7 @@ const App: React.FC = () => {
           )}
 
           {step === 'storyboard' && (
-            <div className="max-w-7xl mx-auto pt-6 px-4">
+            <div className="w-[95%] max-w-[1600px] mx-auto pt-6 px-6">
               {!project ? (
                 <div className="text-center py-20">
                   <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -1309,7 +1309,7 @@ const App: React.FC = () => {
 
                 <div className="flex gap-5 overflow-x-auto pb-4">
                   {project.scenes.map((scene, idx) => (
-                    <div key={scene.id} className="flex-shrink-0 w-[300px] bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all overflow-hidden">
+                    <div key={scene.id} className="flex-shrink-0 w-[420px] bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all overflow-hidden">
                       <div className="aspect-video bg-slate-100 relative group rounded-t-2xl overflow-hidden">
                         <div className="absolute top-3 left-3 z-10 px-2 py-1 bg-black/60 rounded-md text-white text-xs font-medium">#{idx + 1}</div>
                         <button onClick={() => { activeSceneId.current = scene.id; sceneImageUploadRef.current?.click(); }} className="absolute top-3 right-3 z-10 p-1.5 bg-black/40 hover:bg-black/60 rounded-md text-white transition-all">
@@ -1355,7 +1355,7 @@ const App: React.FC = () => {
                     </div>
                   ))}
 
-                  <button onClick={addSceneManually} className="flex-shrink-0 w-[300px] min-h-[380px] rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all flex flex-col items-center justify-center gap-3">
+                  <button onClick={addSceneManually} className="flex-shrink-0 w-[420px] min-h-[420px] rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all flex flex-col items-center justify-center gap-3">
                     <div className="w-14 h-14 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400">
                       <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                     </div>
