@@ -1237,19 +1237,22 @@ const App: React.FC = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {(project?.characters || []).map(char => {
-                  const isSaved = savedCharacters.some(sc => sc.name === char.name || sc.portraitUrl === char.portraitUrl);
+                  const isSaved = savedCharacters.some(sc => sc.id === char.id);
                   return (
                   <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 relative group/card">
                     <div className="absolute top-4 right-4 flex gap-2 items-center opacity-0 group-hover/card:opacity-100 transition-all z-10">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if(isSaved) return;
-                          if(savedCharacters.length >= 10) { alert('최대 10명까지 저장 가능합니다.'); return; }
-                          setSavedCharacters([...savedCharacters, { id: crypto.randomUUID(), name: char.name, refImages: [], description: char.visualDescription, portraitUrl: char.portraitUrl }]);
+                          if(isSaved) {
+                            setSavedCharacters(savedCharacters.filter(sc => sc.id !== char.id));
+                          } else {
+                            if(savedCharacters.length >= 10) { alert('최대 10명까지 저장 가능합니다.'); return; }
+                            setSavedCharacters([...savedCharacters, { id: char.id, name: char.name, refImages: [], description: char.visualDescription, portraitUrl: char.portraitUrl }]);
+                          }
                         }}
                         className={`p-1.5 border rounded-lg transition-all flex items-center gap-1 ${isSaved ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300'}`}
-                        title={isSaved ? "저장됨" : "저장"}
+                        title={isSaved ? "저장됨 (클릭하여 해제)" : "저장"}
                       >
                         <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
                         {isSaved && <span className="text-xs font-medium">저장됨</span>}
@@ -1311,164 +1314,149 @@ const App: React.FC = () => {
           )}
 
           {step === 'storyboard' && (
-            <div className="w-full px-6 pt-6">
+            <div className="w-full px-4 sm:px-8 pt-6">
               {!project ? (
                 <div className="text-center py-20">
                   <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                 </div>
               ) : (
               <>
-              <div className="bg-white rounded-[24px] shadow-xl p-8 sm:p-10 mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
-                  <div>
+              {/* 상단바 - 토스 스타일 */}
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 sm:p-8 mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+                  <div className="flex items-center gap-5">
                     <input
                       type="text"
                       value={project.title}
                       onChange={(e) => updateCurrentProject({ title: e.target.value })}
-                      className="text-xl sm:text-2xl font-bold text-slate-900 mb-4 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-200 rounded-lg px-2 -ml-2 w-full max-w-md"
+                      className="text-lg sm:text-xl font-bold text-slate-900 bg-transparent border-none focus:outline-none w-auto min-w-[200px]"
                     />
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center -space-x-2">
                       {project.characters.slice(0, 4).map(char => (
-                        <div key={char.id} className="flex flex-col items-center gap-1">
-                          <div className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden border-2 border-white shadow-sm">
-                            {char.portraitUrl ? <img src={char.portraitUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300 text-xs">?</div>}
-                          </div>
-                          <span className="text-[10px] text-slate-400 font-medium">{char.name}</span>
+                        <div key={char.id} className="w-9 h-9 rounded-full bg-slate-100 overflow-hidden border-2 border-white shadow-sm" title={char.name}>
+                          {char.portraitUrl ? <img src={char.portraitUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300 text-[10px]">?</div>}
                         </div>
                       ))}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center">
-                    <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 생성</button>
-                    <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all disabled:opacity-50">오디오 생성</button>
-                    <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출 (Export)</button>
+                    <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 생성</button>
+                    <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all disabled:opacity-50">오디오 생성</button>
+                    <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출 (Export)</button>
                     <div className="relative group/download">
-                      <button className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all flex items-center gap-1">
+                      <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all flex items-center gap-1">
                         자산 다운로드
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                       </button>
-                      <div className="absolute top-full right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl py-2 min-w-[160px] opacity-0 invisible group-hover/download:opacity-100 group-hover/download:visible transition-all z-50">
-                        <button
-                          onClick={() => { project.scenes.forEach((s, i) => { if(s.imageUrl) { const a = document.createElement('a'); a.href = s.imageUrl; a.download = `scene-${i+1}.png`; a.click(); }}); }}
-                          className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 transition-all"
-                        >이미지 전체 다운로드</button>
-                        <button
-                          onClick={() => { project.scenes.forEach((s, i) => { if(s.audioUrl) { const a = document.createElement('a'); a.href = s.audioUrl; a.download = `audio-${i+1}.mp3`; a.click(); }}); }}
-                          className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 transition-all"
-                        >오디오 전체 다운로드</button>
+                      <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 min-w-[180px] opacity-0 invisible group-hover/download:opacity-100 group-hover/download:visible transition-all z-50">
+                        <button onClick={() => { project.scenes.forEach((s, i) => { if(s.imageUrl) { const a = document.createElement('a'); a.href = s.imageUrl; a.download = `scene-${i+1}.png`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 transition-all">이미지 전체 다운로드</button>
+                        <button onClick={() => { project.scenes.forEach((s, i) => { if(s.audioUrl) { const a = document.createElement('a'); a.href = s.audioUrl; a.download = `audio-${i+1}.mp3`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 transition-all">오디오 전체 다운로드</button>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {/* 씬 그리드 - 깔끔한 카드 스타일 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {project.scenes.map((scene, idx) => (
-                  <div key={scene.id} className="bg-slate-100 rounded-2xl p-3 hover:shadow-lg transition-all relative group/card">
-                    {/* 상단 버튼들 */}
-                    <div className="absolute top-5 right-5 z-30 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all">
-                      <label className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 hover:border-indigo-300 transition-all cursor-pointer">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                        <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imageUrl: ev.target?.result as string, status: 'done' } : s) }); }; reader.readAsDataURL(file); } }} />
-                      </label>
-                      <button onClick={() => deleteScene(scene.id)} className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-red-500 hover:border-red-300 transition-all">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
+                  <div key={scene.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md hover:border-slate-200 transition-all group/card">
+                    {/* 이미지 영역 */}
+                    <div className="aspect-[4/3] bg-slate-50 relative group/img">
+                      <div className="absolute top-3 left-3 z-10 w-7 h-7 bg-slate-900/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-xs font-semibold">{idx + 1}</div>
+
+                      {/* 상단 우측 버튼들 */}
+                      <div className="absolute top-3 right-3 z-30 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all">
+                        <label className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-all cursor-pointer shadow-sm">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                          <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imageUrl: ev.target?.result as string, status: 'done' } : s) }); }; reader.readAsDataURL(file); } }} />
+                        </label>
+                        <button onClick={() => deleteScene(scene.id)} className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 hover:text-red-500 transition-all shadow-sm">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+
+                      {scene.status === 'loading' && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm z-20">
+                          <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+                      {scene.imageUrl ? (
+                        <>
+                          <img src={scene.imageUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)} />
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center z-10">
+                            <button onClick={() => generateSceneImage(scene.id)} className="px-4 py-2 bg-white/95 backdrop-blur-sm rounded-xl text-indigo-600 text-sm font-medium hover:bg-white transition-all shadow-lg">재생성</button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <button onClick={() => generateSceneImage(scene.id)} disabled={scene.status === 'loading'} className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg">
+                            이미지 생성
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    {/* 흰색 카드 */}
-                    <div className="bg-white rounded-xl overflow-hidden">
-                      {/* 이미지 영역 */}
-                      <div className="aspect-video bg-slate-50 relative group/img">
-                        <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-black/60 rounded-lg text-white text-xs font-semibold">#{idx + 1}</div>
-                        {scene.status === 'loading' && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-slate-50/80 z-20">
-                            <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        )}
-                        {scene.imageUrl ? (
-                          <>
-                            <img src={scene.imageUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)} />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10">
-                              <button onClick={() => generateSceneImage(scene.id)} className="px-4 py-2 bg-white rounded-lg text-indigo-600 text-sm font-medium hover:bg-indigo-50 transition-all">재생성</button>
-                            </div>
-                          </>
+                    {/* 컨텐츠 영역 */}
+                    <div className="p-4 space-y-3">
+                      {/* 장면 대사 */}
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-medium mb-1.5 uppercase tracking-wide">Scene</p>
+                        <textarea
+                          value={scene.scriptSegment}
+                          onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
+                          className="w-full text-[13px] text-slate-700 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[44px] placeholder:text-slate-300"
+                          placeholder="장면 대사..."
+                        />
+                      </div>
+
+                      {/* 오디오 버튼 */}
+                      <div className="flex items-center gap-2">
+                        {scene.audioUrl ? (
+                          <audio src={scene.audioUrl} controls className="flex-1 h-9 rounded-xl" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <button onClick={() => generateSceneImage(scene.id)} disabled={scene.status === 'loading'} className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all">
-                              이미지 생성
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => generateAudio(scene.id)}
+                            disabled={scene.audioStatus === 'loading'}
+                            className="flex-1 py-2.5 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          >
+                            {scene.audioStatus === 'loading' ? (
+                              <div className="w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                            )}
+                            오디오 생성
+                          </button>
                         )}
+                        <label className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-all cursor-pointer flex-shrink-0">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                          <input type="file" className="hidden" accept="audio/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, audioUrl: url, audioStatus: 'done' } : s) }); } }} />
+                        </label>
                       </div>
 
-                      {/* 컨텐츠 영역 */}
-                      <div className="p-4 space-y-4">
-                        {/* 장면 대사 */}
-                        <div>
-                          <p className="text-[11px] text-slate-400 font-medium mb-1.5">장면 대사</p>
-                          <textarea
-                            value={scene.scriptSegment}
-                            onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                            className="w-full text-sm text-slate-800 font-medium leading-relaxed bg-slate-50 rounded-lg p-3 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 min-h-[60px]"
-                            placeholder="장면 대사를 입력하세요..."
-                          />
-                        </div>
-
-                        {/* 오디오 섹션 */}
-                        <div className="bg-slate-50 rounded-xl p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] text-slate-400 font-medium">오디오</span>
-                            <label className="p-1 text-slate-400 hover:text-slate-600 transition-all cursor-pointer">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                              <input type="file" className="hidden" accept="audio/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, audioUrl: url, audioStatus: 'done' } : s) }); } }} />
-                            </label>
-                          </div>
-                          {scene.audioUrl ? (
-                            <audio src={scene.audioUrl} controls className="w-full h-8" style={{ fontSize: '12px' }} />
-                          ) : (
-                            <button
-                              onClick={() => generateAudio(scene.id)}
-                              disabled={scene.audioStatus === 'loading'}
-                              className="w-full py-2 text-indigo-600 text-xs font-medium hover:bg-indigo-50 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                            >
-                              {scene.audioStatus === 'loading' ? (
-                                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-                              )}
-                              오디오 생성
-                            </button>
-                          )}
-                        </div>
-
-                        {/* 프롬프트 */}
-                        <div className="bg-slate-50 rounded-xl p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] text-slate-400 font-medium">프롬프트</span>
-                            <button onClick={() => generateSceneImage(scene.id)} className="p-1 text-indigo-500 hover:text-indigo-600 transition-all">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                            </button>
-                          </div>
-                          <textarea
-                            value={scene.imagePrompt}
-                            onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imagePrompt: e.target.value } : s) })}
-                            className="w-full text-[11px] text-slate-600 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[50px]"
-                            placeholder="이미지 프롬프트..."
-                          />
-                        </div>
-                      </div>
+                      {/* 프롬프트 - 접힌 스타일 */}
+                      <details className="group/prompt">
+                        <summary className="flex items-center justify-between cursor-pointer text-[10px] text-slate-400 font-medium uppercase tracking-wide py-1">
+                          <span>Prompt</span>
+                          <svg className="w-3.5 h-3.5 transform group-open/prompt:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </summary>
+                        <textarea
+                          value={scene.imagePrompt}
+                          onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imagePrompt: e.target.value } : s) })}
+                          className="w-full text-[11px] text-slate-500 leading-relaxed bg-slate-50 rounded-xl p-3 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-100 min-h-[60px] mt-2"
+                          placeholder="이미지 프롬프트..."
+                        />
+                      </details>
                     </div>
                   </div>
                 ))}
 
-                <button onClick={addSceneManually} className="bg-slate-100 rounded-2xl p-3 min-h-[400px] hover:bg-slate-200/70 transition-all">
-                  <div className="bg-white rounded-xl h-full flex flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all">
-                    <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
-                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                    </div>
-                    <span className="text-sm text-slate-400 font-medium">스토리보드 추가</span>
+                {/* 추가 버튼 */}
+                <button onClick={addSceneManually} className="bg-white rounded-3xl border-2 border-dashed border-slate-200 min-h-[320px] flex flex-col items-center justify-center gap-3 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all group/add">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover/add:bg-indigo-100 flex items-center justify-center text-slate-400 group-hover/add:text-indigo-500 transition-all">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                   </div>
+                  <span className="text-sm text-slate-400 group-hover/add:text-indigo-500 font-medium transition-all">스토리보드 추가</span>
                 </button>
               </div>
               </>
