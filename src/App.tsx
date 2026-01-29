@@ -1214,7 +1214,6 @@ const App: React.FC = () => {
 
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
-          <div className="bg-red-500 text-white p-4 mb-4 text-center text-2xl">현재 step: {step}</div>
           {step === 'character_setup' && (
             <div className="max-w-5xl mx-auto space-y-8 pt-10">
               <div className="bg-yellow-200 p-4 text-black text-center">DEBUG: character_setup 화면, 캐릭터 수: {project?.characters?.length || 0}</div>
@@ -1301,81 +1300,78 @@ const App: React.FC = () => {
                 <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-all disabled:opacity-50">
                   동영상 추출
                 </button>
-                <button onClick={addSceneManually} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">
-                  장면 추가
-                </button>
               </div>
 
-              <div className="space-y-6">
-                {project.scenes.map((scene, idx) => (
-                  <div key={scene.id} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-                    <div className="flex items-start gap-4 mb-4">
-                      <span className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</span>
-                      <div className="flex-1">
-                        <p className="text-slate-700 font-medium leading-relaxed">{scene.scriptSegment}</p>
-                        {scene.effect && (
-                          <p className="text-xs text-slate-400 mt-2">효과: {scene.effect.effect_type} (강도: {scene.effect.intensity})</p>
-                        )}
-                      </div>
-                      <button onClick={() => deleteScene(scene.id)} className="text-slate-300 hover:text-red-500 transition-all">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* 이미지 영역 */}
-                      <div className="aspect-video rounded-2xl overflow-hidden bg-slate-100 relative">
+              {/* 가로 스크롤 카드 컨테이너 */}
+              <div className="bg-white rounded-[20px] shadow-lg p-6 overflow-hidden">
+                <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                  {project.scenes.map((scene, idx) => (
+                    <div key={scene.id} className="flex-shrink-0 w-[280px] bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                      {/* 이미지 영역 - 16:9 비율 */}
+                      <div className="aspect-video bg-slate-100 relative group">
                         {scene.status === 'loading' && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                          <div className="absolute inset-0 flex items-center justify-center bg-slate-100/80 z-10">
+                            <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                           </div>
                         )}
-                        {scene.imageUrl && (
+                        {scene.imageUrl ? (
                           <img src={scene.imageUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)} />
-                        )}
-                        {!scene.imageUrl && scene.status !== 'loading' && (
+                        ) : (
                           <div className="w-full h-full flex items-center justify-center text-slate-300">
-                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                           </div>
                         )}
+                        {/* 호버 시 컨트롤 버튼 */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2">
+                          <button onClick={() => generateSceneImage(scene.id)} disabled={scene.status === 'loading'} className="p-2 bg-white rounded-full text-indigo-600 hover:bg-indigo-50 transition-all disabled:opacity-50">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          </button>
+                          <button onClick={() => { activeSceneId.current = scene.id; sceneImageUploadRef.current?.click(); }} className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-50 transition-all">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                          </button>
+                          <button onClick={() => deleteScene(scene.id)} className="p-2 bg-white rounded-full text-red-500 hover:bg-red-50 transition-all">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
                       </div>
 
-                      {/* 컨트롤 영역 */}
-                      <div className="space-y-3">
-                        <div className="flex gap-2">
-                          <button onClick={() => generateSceneImage(scene.id)} disabled={scene.status === 'loading'} className="flex-1 py-3 text-sm font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all disabled:opacity-50">
-                            {scene.imageUrl ? '이미지 재생성' : '이미지 생성'}
-                          </button>
-                          <button onClick={() => { activeSceneId.current = scene.id; sceneImageUploadRef.current?.click(); }} className="py-3 px-4 text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl transition-all">
-                            업로드
-                          </button>
-                        </div>
+                      {/* 텍스트 영역 */}
+                      <div className="p-4">
+                        <p className="text-xs text-slate-400 font-medium mb-1">장면 {idx + 1}</p>
+                        <p className="text-sm text-slate-700 font-medium line-clamp-2 leading-relaxed mb-3">{scene.scriptSegment}</p>
 
-                        <div className="flex gap-2">
-                          <button onClick={() => generateAudio(scene.id)} disabled={scene.audioStatus === 'loading'} className="flex-1 py-3 text-sm font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-all disabled:opacity-50">
-                            {scene.audioUrl ? '오디오 재생성' : '오디오 생성'}
-                          </button>
-                          <button onClick={() => { activeSceneId.current = scene.id; sceneAudioUploadRef.current?.click(); }} className="py-3 px-4 text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl transition-all">
-                            업로드
-                          </button>
-                        </div>
-
-                        {scene.audioUrl && (
+                        {/* 푸터 영역 */}
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                           <div className="flex items-center gap-2">
-                            <audio src={scene.audioUrl} controls className="flex-1 h-10" />
-                            <button onClick={() => deleteAudio(scene.id)} className="p-2 text-red-400 hover:text-red-600 transition-all">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            {scene.audioUrl ? (
+                              <button onClick={() => { const audio = new Audio(scene.audioUrl!); audio.play(); }} className="p-1.5 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                              </button>
+                            ) : (
+                              <button onClick={() => generateAudio(scene.id)} disabled={scene.audioStatus === 'loading'} className="p-1.5 rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 transition-all disabled:opacity-50">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                              </button>
+                            )}
+                            <button onClick={() => { activeSceneId.current = scene.id; sceneAudioUploadRef.current?.click(); }} className="p-1.5 rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 transition-all">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                             </button>
                           </div>
-                        )}
-
-                        <button onClick={() => { setPromptEditType('scene'); setPromptEditId(scene.id); setPromptEditInput(''); setIsPromptModalOpen(true); }} className="w-full py-2 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-all">
-                          프롬프트 수정
-                        </button>
+                          <button onClick={() => { setPromptEditType('scene'); setPromptEditId(scene.id); setPromptEditInput(''); setIsPromptModalOpen(true); }} className="text-xs text-slate-400 hover:text-indigo-600 transition-all">
+                            수정
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+
+                  {/* 추가하기 플레이스홀더 카드 */}
+                  <button onClick={addSceneManually} className="flex-shrink-0 w-[280px] min-h-[280px] rounded-xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all flex flex-col items-center justify-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                    </div>
+                    <span className="text-sm text-slate-400 font-medium">스토리보드 추가</span>
+                  </button>
+                </div>
               </div>
               </>
               )}
