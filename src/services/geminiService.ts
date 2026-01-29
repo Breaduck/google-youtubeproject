@@ -38,7 +38,7 @@ export class GeminiService {
 1. "title": A concise Korean title for this story (3-5 words)
 2. "characters": An array of character objects with:
    - "id": unique UUID
-   - "name": character name in Korean
+   - "name": character name in format "EnglishName(한글이름)" e.g. "Eunhwa(은화)", "Minjun(민준)", "Sora(소라)"
    - "role": brief role description in Korean
    - "visualDescription": detailed visual description for image generation in English, including: gender, age, hair color/style, eye color, clothing, distinctive features. Style: ${styleDesc}
 
