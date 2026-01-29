@@ -1229,44 +1229,67 @@ const App: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <h1 className="text-xl sm:text-2xl font-bold text-slate-900">등장인물 외형 설정</h1>
                   <div className="flex gap-3">
-                    <button onClick={() => setIsCharLoadModalOpen(true)} className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all">불러오기</button>
+                    <button onClick={() => setIsCharLoadModalOpen(true)} className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all">인물 불러오기</button>
                     <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50">스토리보드 생성</button>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {(project?.characters || []).map(char => (
+                {(project?.characters || []).map(char => {
+                  const isSaved = savedCharacters.some(sc => sc.name === char.name || sc.portraitUrl === char.portraitUrl);
+                  return (
                   <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 relative group/card">
-                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-all z-10">
-                      <button onClick={() => { if(savedCharacters.length >= 10) { alert('최대 10명까지 저장 가능합니다.'); return; } setSavedCharacters([...savedCharacters, { id: crypto.randomUUID(), name: char.name, refImages: [], description: char.visualDescription, portraitUrl: char.portraitUrl }]); }} className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-all" title="저장"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg></button>
+                    <div className="absolute top-4 right-4 flex gap-2 items-center opacity-0 group-hover/card:opacity-100 transition-all z-10">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if(isSaved) return;
+                          if(savedCharacters.length >= 10) { alert('최대 10명까지 저장 가능합니다.'); return; }
+                          setSavedCharacters([...savedCharacters, { id: crypto.randomUUID(), name: char.name, refImages: [], description: char.visualDescription, portraitUrl: char.portraitUrl }]);
+                        }}
+                        className={`p-1.5 border rounded-lg transition-all flex items-center gap-1 ${isSaved ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300'}`}
+                        title={isSaved ? "저장됨" : "저장"}
+                      >
+                        <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+                        {isSaved && <span className="text-xs font-medium">저장됨</span>}
+                      </button>
                       <button onClick={() => updateCurrentProject({ characters: project!.characters.filter(c => c.id !== char.id) })} className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-red-500 hover:border-red-300 transition-all" title="삭제"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                     </div>
-                    <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative group">
+                    <div
+                      className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative group cursor-pointer"
+                      onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}
+                    >
                       {char.status === 'loading' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-100 z-10">
                           <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                         </div>
                       )}
                       {char.portraitUrl ? (
-                        <img src={char.portraitUrl} className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" onClick={() => setSelectedImage(char.portraitUrl)} />
+                        <img src={char.portraitUrl} className="w-full h-full object-cover hover:scale-105 transition-transform" />
                       ) : char.status !== 'loading' && (
                         <div className="w-full h-full flex items-center justify-center text-slate-300">
                           <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2 z-20">
-                        <label className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, portraitUrl: ev.target?.result as string, status: 'done' } : c) }); }; reader.readAsDataURL(file); } }} /></label>
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2 z-20" onClick={(e) => e.stopPropagation()}>
+                        <label className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" onClick={(e) => e.stopPropagation()}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, portraitUrl: ev.target?.result as string, status: 'done' } : c) }); }; reader.readAsDataURL(file); } }} /></label>
                         <button onClick={(e) => { e.stopPropagation(); generatePortrait(char.id); }} className="p-2 bg-white rounded-full text-indigo-600 hover:bg-indigo-50 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
                         <button onClick={(e) => { e.stopPropagation(); if(char.portraitUrl) { const a = document.createElement('a'); a.href = char.portraitUrl; a.download = `${char.name}.png`; a.click(); }}} className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                       <h3 className="font-bold text-slate-900 text-2xl sm:text-3xl mb-3">{char.name}</h3>
-                      <p className="text-sm text-gray-500 leading-relaxed line-clamp-4">{char.visualDescription}</p>
+                      <textarea
+                        value={char.visualDescription || ''}
+                        onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
+                        className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 h-24 w-full"
+                        placeholder="캐릭터 외형 설명을 입력하세요..."
+                      />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 <button onClick={() => setIsCharModalOpen(true)} className="bg-white rounded-3xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all p-6 flex gap-6 items-center min-h-[180px]">
                   <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl bg-slate-50 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-all">
                     <span className="text-5xl text-slate-300">+</span>
