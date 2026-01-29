@@ -1215,8 +1215,7 @@ const App: React.FC = () => {
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
           {step === 'character_setup' && (
-            <div className="max-w-5xl mx-auto space-y-8 pt-10">
-              <div className="bg-yellow-200 p-4 text-black text-center">DEBUG: character_setup 화면, 캐릭터 수: {project?.characters?.length || 0}</div>
+            <div className="max-w-6xl mx-auto pt-10 px-4">
               {bgTask ? (
                 <div className="text-center py-20">
                   <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -1225,53 +1224,56 @@ const App: React.FC = () => {
                 </div>
               ) : (
               <>
-              <div className="text-center space-y-4">
-                <h1 className="text-3xl sm:text-5xl font-semibold">{project?.title || '새 프로젝트'}</h1>
-                <p className="text-slate-400 font-medium">캐릭터를 확인하고 수정하세요</p>
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">등장인물 외형 설정</h1>
+                <div className="flex gap-3">
+                  <button onClick={() => {}} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium text-sm hover:bg-slate-50 transition-all">
+                    불러오기
+                  </button>
+                  <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium text-sm shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50">
+                    스토리보드 생성
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                {(project?.characters || []).map(char => (
-                  <div key={char.id} className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm hover:shadow-lg transition-all">
-                    <div className="aspect-square rounded-2xl overflow-hidden bg-slate-100 mb-4 relative">
-                      {char.status === 'loading' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-                          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                      )}
-                      {char.portraitUrl && (
-                        <img src={char.portraitUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(char.portraitUrl)} />
-                      )}
-                      {!char.portraitUrl && char.status !== 'loading' && (
-                        <div className="w-full h-full flex items-center justify-center text-slate-300">
-                          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                        </div>
-                      )}
+              <div className="bg-white rounded-[20px] shadow-lg p-6">
+                <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                  {(project?.characters || []).map(char => (
+                    <div key={char.id} className="flex-shrink-0 w-[320px] bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-4 flex gap-4 cursor-pointer" onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}>
+                      <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-100 flex-shrink-0 relative">
+                        {char.status === 'loading' && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+                            <div className="w-6 h-6 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        )}
+                        {char.portraitUrl ? (
+                          <img src={char.portraitUrl} className="w-full h-full object-cover" />
+                        ) : char.status !== 'loading' && (
+                          <div className="w-full h-full flex items-center justify-center text-slate-300">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-slate-900 text-base mb-1">{char.name}</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">{char.visualDescription || char.role}</p>
+                      </div>
                     </div>
-                    <h3 className="font-semibold text-slate-900 text-center mb-1">{char.name}</h3>
-                    <p className="text-xs text-slate-400 text-center mb-3">{char.role}</p>
-                    <div className="flex gap-2">
-                      <button onClick={() => generatePortrait(char.id)} disabled={char.status === 'loading'} className="flex-1 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 rounded-xl transition-all disabled:opacity-50">재생성</button>
-                      <button onClick={() => { setPromptEditType('character'); setPromptEditId(char.id); setPromptEditInput(''); setIsPromptModalOpen(true); }} className="flex-1 py-2 text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all">수정</button>
-                    </div>
-                  </div>
-                ))}
-                <button onClick={() => setIsCharModalOpen(true)} className="bg-slate-50 rounded-3xl p-6 border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all flex flex-col items-center justify-center min-h-[200px]">
-                  <span className="text-3xl text-slate-300 mb-2">+</span>
-                  <span className="text-sm text-slate-400 font-medium">캐릭터 추가</span>
-                </button>
+                  ))}
+                  <button onClick={() => setIsCharModalOpen(true)} className="flex-shrink-0 w-[320px] rounded-xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all p-4 flex items-center justify-center gap-3 min-h-[104px]">
+                    <span className="text-2xl text-slate-300">+</span>
+                    <span className="text-sm text-slate-400 font-medium">캐릭터 추가하기</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="flex justify-center gap-4 pt-6">
-                <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-semibold text-lg shadow-xl hover:bg-indigo-700 transition-all disabled:opacity-50">
-                  스토리보드 생성
-                </button>
-                {project && project.scenes.length > 0 && (
-                  <button onClick={() => proceedToStoryboard(false)} className="px-10 py-5 bg-white border border-slate-200 text-slate-700 rounded-2xl font-semibold text-lg hover:bg-slate-50 transition-all">
+              {project && project.scenes.length > 0 && (
+                <div className="flex justify-center mt-6">
+                  <button onClick={() => proceedToStoryboard(false)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-all">
                     기존 스토리보드 보기
                   </button>
-                )}
-              </div>
+                </div>
+              )}
               </>
               )}
             </div>
