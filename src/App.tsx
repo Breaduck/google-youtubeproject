@@ -1215,7 +1215,7 @@ const App: React.FC = () => {
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
           {step === 'character_setup' && (
-            <div className="w-[95%] max-w-[1600px] mx-auto pt-10 px-6">
+            <div className="w-[95%] max-w-[1600px] mx-auto px-6 min-h-[calc(100vh-80px)] flex flex-col justify-center py-16">
               {bgTask ? (
                 <div className="text-center py-20">
                   <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -1261,7 +1261,11 @@ const App: React.FC = () => {
                     <div className="flex-1 min-w-0 py-1">
                       <h3 className="font-bold text-slate-900 text-xl mb-3">{char.name}</h3>
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-sm text-slate-500 leading-relaxed">{char.visualDescription || char.role}</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] text-slate-400 font-medium">프롬프트</span>
+                          <button onClick={(e) => { e.stopPropagation(); setPromptEditType('character'); setPromptEditId(char.id); setPromptEditInput(''); setIsPromptModalOpen(true); }} className="p-1 text-indigo-500 hover:text-indigo-600 transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
+                        </div>
+                        <textarea value={char.visualDescription || ''} onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })} className="w-full text-sm text-slate-500 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[80px] max-h-[120px] overflow-y-auto" />
                       </div>
                     </div>
                   </div>
@@ -1673,14 +1677,14 @@ const App: React.FC = () => {
       {/* 프롬프트 수정 모달 */}
       {isPromptModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsPromptModalOpen(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">{promptEditType === 'character' ? '캐릭터' : '장면'} 수정</h3>
-            <p className="text-sm text-slate-400 mb-6">원하는 변경사항을 한국어로 설명해주세요</p>
-            <textarea value={promptEditInput} onChange={e => setPromptEditInput(e.target.value)} placeholder="예: 머리색을 금발로 바꿔줘 / 배경을 밤으로 바꿔줘" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm h-32 resize-none" />
+          <div className="bg-white rounded-2xl w-full max-w-lg p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">수정 사항 입력</h3>
+            <p className="text-sm text-slate-400 mb-6">변경하고 싶은 특징을 한국어로 입력해주세요. 캐릭터 일관성을 유지하며 새로 생성합니다.</p>
+            <textarea value={promptEditInput} onChange={e => setPromptEditInput(e.target.value)} placeholder="예: 조금 더 밝은 조명으로 변경해주고 배경에 나무를 추가해줘" className="w-full px-4 py-4 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-indigo-200 outline-none text-sm h-28 resize-none" />
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setIsPromptModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">취소</button>
+              <button onClick={() => setIsPromptModalOpen(false)} className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-all">취소</button>
               <button onClick={handleRegeneratePrompt} disabled={!promptEditInput.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
-                재생성
+                적용하기
               </button>
             </div>
           </div>
