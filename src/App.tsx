@@ -85,6 +85,7 @@ const App: React.FC = () => {
   const [chirpVoice, setChirpVoice] = useState(localStorage.getItem('chirp_voice') || 'Kore');
 
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
+  const [isCharLoadModalOpen, setIsCharLoadModalOpen] = useState(false);
   const [newCharData, setNewCharData] = useState({ name: '', gender: '여성', age: '성인', traits: '' });
 
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
@@ -1215,7 +1216,7 @@ const App: React.FC = () => {
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
           {step === 'character_setup' && (
-            <div className="w-[95%] max-w-[1600px] mx-auto px-6 min-h-[calc(100vh-80px)] flex flex-col justify-center py-16">
+            <div className="w-full px-6 pt-6">
               {bgTask ? (
                 <div className="text-center py-20">
                   <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -1224,22 +1225,24 @@ const App: React.FC = () => {
                 </div>
               ) : (
               <>
-              <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">등장인물 외형 설정</h1>
-                <div className="flex gap-3">
-                  <button onClick={() => {}} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium text-sm hover:bg-slate-50 transition-all">
-                    불러오기
-                  </button>
-                  <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium text-sm shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50">
-                    스토리보드 생성
-                  </button>
+              <div className="bg-white rounded-[24px] shadow-xl p-6 sm:p-8 mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900">등장인물 외형 설정</h1>
+                  <div className="flex gap-3">
+                    <button onClick={() => setIsCharLoadModalOpen(true)} className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all">불러오기</button>
+                    <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50">스토리보드 생성</button>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {(project?.characters || []).map(char => (
-                  <div key={char.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all p-6 flex gap-6">
-                    <div className="w-[160px] h-[160px] rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative group">
+                  <div key={char.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all p-5 flex gap-5 relative group/card">
+                    <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-all z-10">
+                      <button onClick={() => { if(savedCharacters.length >= 10) { alert('최대 10명까지 저장 가능합니다.'); return; } setSavedCharacters([...savedCharacters, { id: crypto.randomUUID(), name: char.name, refImages: [], description: char.visualDescription, portraitUrl: char.portraitUrl }]); }} className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-all" title="저장"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg></button>
+                      <button onClick={() => updateCurrentProject({ characters: project!.characters.filter(c => c.id !== char.id) })} className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-red-500 hover:border-red-300 transition-all" title="삭제"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    </div>
+                    <div className="w-[130px] h-[130px] rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative group">
                       {char.status === 'loading' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-100 z-10">
                           <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -1249,38 +1252,32 @@ const App: React.FC = () => {
                         <img src={char.portraitUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(char.portraitUrl)} />
                       ) : char.status !== 'loading' && (
                         <div className="w-full h-full flex items-center justify-center text-slate-300">
-                          <svg className="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3 z-20">
-                        <button onClick={(e) => { e.stopPropagation(); }} className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg></button>
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2 z-20">
+                        <label className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, portraitUrl: ev.target?.result as string, status: 'done' } : c) }); }; reader.readAsDataURL(file); } }} /></label>
                         <button onClick={(e) => { e.stopPropagation(); generatePortrait(char.id); }} className="p-2 bg-white rounded-full text-indigo-600 hover:bg-indigo-50 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
                         <button onClick={(e) => { e.stopPropagation(); if(char.portraitUrl) { const a = document.createElement('a'); a.href = char.portraitUrl; a.download = `${char.name}.png`; a.click(); }}} className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0 py-1">
-                      <h3 className="font-bold text-slate-900 text-xl mb-3">{char.name}</h3>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] text-slate-400 font-medium">프롬프트</span>
-                          <button onClick={(e) => { e.stopPropagation(); setPromptEditType('character'); setPromptEditId(char.id); setPromptEditInput(''); setIsPromptModalOpen(true); }} className="p-1 text-indigo-500 hover:text-indigo-600 transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
-                        </div>
-                        <textarea value={char.visualDescription || ''} onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })} className="w-full text-sm text-slate-500 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[80px] max-h-[120px] overflow-y-auto" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-slate-900 text-lg mb-2">{char.name}</h3>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <textarea value={char.visualDescription || ''} onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })} className="w-full text-xs text-slate-500 leading-relaxed bg-transparent border-none resize-none focus:outline-none h-[70px] overflow-y-auto" />
                       </div>
                     </div>
                   </div>
                 ))}
-                <button onClick={() => setIsCharModalOpen(true)} className="bg-gray-50 rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-100/50 transition-all p-6 flex flex-col items-center justify-center min-h-[192px]">
-                  <span className="text-4xl text-slate-300 mb-2">+</span>
-                  <span className="text-base text-slate-400 font-medium">등장인물 추가하기</span>
+                <button onClick={() => setIsCharModalOpen(true)} className="bg-gray-50 rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-100/50 transition-all p-5 flex flex-col items-center justify-center min-h-[170px]">
+                  <span className="text-3xl text-slate-300 mb-2">+</span>
+                  <span className="text-sm text-slate-400 font-medium">등장인물 추가하기</span>
                 </button>
               </div>
 
               {project && project.scenes.length > 0 && (
                 <div className="flex justify-center mt-6">
-                  <button onClick={() => proceedToStoryboard(false)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-all">
-                    기존 스토리보드 보기
-                  </button>
+                  <button onClick={() => proceedToStoryboard(false)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-all">기존 스토리보드 보기</button>
                 </div>
               )}
               </>
@@ -1321,7 +1318,8 @@ const App: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {project.scenes.map((scene, idx) => (
-                  <div key={scene.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all overflow-hidden">
+                  <div key={scene.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all overflow-hidden relative group/card">
+                    <button onClick={() => deleteScene(scene.id)} className="absolute top-2 right-2 z-30 p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-red-500 hover:border-red-300 transition-all opacity-0 group-hover/card:opacity-100"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
                     <div className="aspect-video bg-slate-100 relative group rounded-t-2xl overflow-hidden">
                       <div className="absolute top-3 left-3 z-10 px-2 py-1 bg-black/60 rounded-md text-white text-xs font-medium">#{idx + 1}</div>
                       {scene.status === 'loading' && (
@@ -1670,6 +1668,33 @@ const App: React.FC = () => {
                 {loading ? '생성 중...' : '추가'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 캐릭터 불러오기 모달 */}
+      {isCharLoadModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsCharLoadModalOpen(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-slate-900 mb-4">저장된 캐릭터 불러오기</h3>
+            {savedCharacters.length === 0 ? (
+              <p className="text-sm text-slate-400 py-8 text-center">저장된 캐릭터가 없습니다.</p>
+            ) : (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {savedCharacters.map(sc => (
+                  <div key={sc.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all cursor-pointer" onClick={() => { if(project) { updateCurrentProject({ characters: [...project.characters, { id: crypto.randomUUID(), name: sc.name, role: '', visualDescription: sc.description, portraitUrl: sc.portraitUrl, status: sc.portraitUrl ? 'done' : 'idle' }] }); setIsCharLoadModalOpen(false); } }}>
+                    <div className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">
+                      {sc.portraitUrl ? <img src={sc.portraitUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900 text-sm">{sc.name}</p>
+                      <p className="text-xs text-slate-400 truncate">{sc.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setIsCharLoadModalOpen(false)} className="w-full mt-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">닫기</button>
           </div>
         </div>
       )}
