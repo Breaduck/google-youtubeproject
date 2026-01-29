@@ -155,51 +155,84 @@ Return ONLY valid JSON, no markdown or explanation.`;
     return response.text || 'Modern digital illustration style';
   }
 
+  private chunkScript(script: string): string[] {
+    const chunks: string[] = [];
+    const sentences = script.split(/(?<=[.!?。！？])\s*/);
+
+    let currentChunk = '';
+    let sentenceCount = 0;
+    const targetSentences = 4;
+
+    let processedIndex = 0;
+
+    for (let i = 0; i < sentences.length; i++) {
+      const sentence = sentences[i].trim();
+      if (!sentence) continue;
+
+      processedIndex = i + 1;
+
+      const isSceneBreak = /^[#\-\*]|장면|씬|INT\.|EXT\.|fade|cut/i.test(sentence);
+      const isDramatic = /[!！]{2,}|\.{3,}|…/.test(sentence) && sentence.length < 50;
+
+      if (isSceneBreak && currentChunk) {
+        chunks.push(currentChunk.trim());
+        currentChunk = sentence + ' ';
+        sentenceCount = 1;
+        continue;
+      }
+
+      currentChunk += sentence + ' ';
+      sentenceCount++;
+
+      if (sentenceCount >= targetSentences || isDramatic) {
+        chunks.push(currentChunk.trim());
+        currentChunk = '';
+        sentenceCount = 0;
+      }
+    }
+
+    if (currentChunk.trim()) {
+      chunks.push(currentChunk.trim());
+    }
+
+    if (processedIndex < sentences.length) {
+      console.warn(`Script chunking incomplete: processed ${processedIndex}/${sentences.length}`);
+    }
+
+    return chunks.filter(c => c.length > 0);
+  }
+
   async createStoryboard(project: StoryProject): Promise<Scene[]> {
     const ai = this.getClient();
+    const chunks = this.chunkScript(project.script);
+
+    if (chunks.length === 0) {
+      throw new Error('스크립트를 파싱할 수 없습니다.');
+    }
 
     const characterDescriptions = project.characters
       .map(c => `- ${c.name}: ${c.visualDescription}`)
       .join('\n');
 
-    const prompt = `Based on this script, create a storyboard by dividing it into scenes.
-
-Script:
-${project.script}
+    const prompt = `Generate image prompts for these ${chunks.length} script segments.
 
 Characters:
 ${characterDescriptions}
 
 Style: ${project.customStyleDescription || project.style}
 
-For each scene, provide:
-1. "scriptSegment": The Korean dialogue/narration for this scene (as it appears in the script)
-2. "imagePrompt": A detailed English prompt for generating the scene image. Include:
-   - Scene composition and camera angle
-   - Character positions and actions (use their visual descriptions)
-   - Background and environment
-   - Lighting and mood
-   - The established visual style
-3. "effect": Camera effect for video export. Analyze the scene's emotional intensity and context to assign:
-   - "effect_type": One of "3d_parallax", "zoom_in_slow", "zoom_in_fast", "zoom_out_slow", "pan_left", "pan_right", "static_subtle"
-   - "intensity": 1-10 based on emotional intensity of the scene
-   - Guidelines for effect_type selection:
-     * "3d_parallax": Best for establishing shots, scenic views, emotional moments (should be 45-65% of all scenes)
-     * "zoom_in_slow": For building tension, focusing on character emotions
-     * "zoom_in_fast": For dramatic reveals, shocking moments
-     * "zoom_out_slow": For conclusions, revelations, showing scale
-     * "pan_left/right": For following action, showing environments
-     * "static_subtle": For calm dialogue, contemplative moments
+Script segments (numbered):
+${chunks.map((chunk, i) => `[${i + 1}] ${chunk}`).join('\n\n')}
 
-Return a JSON array of scene objects with these fields:
-- id: unique UUID
-- scriptSegment: Korean text
-- imagePrompt: English prompt
-- effect: { effect_type: string, intensity: number }
+For EACH numbered segment, provide:
+1. "segment_number": The segment number (1 to ${chunks.length})
+2. "imagePrompt": A detailed English prompt for image generation including scene composition, character positions, background, lighting, mood
+3. "effect_type": One of "3d_parallax", "zoom_in_slow", "zoom_in_fast", "zoom_out_slow", "pan_left", "pan_right", "static_subtle"
+4. "intensity": 1-10 emotional intensity
 
-Aim for 4-8 scenes that capture the key moments of the story.
+IMPORTANT: You MUST generate exactly ${chunks.length} scene objects, one for each segment number.
 
-Return ONLY valid JSON array, no markdown or explanation.`;
+Return ONLY valid JSON array, no markdown.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
@@ -213,18 +246,25 @@ Return ONLY valid JSON array, no markdown or explanation.`;
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error('Failed to parse storyboard data');
 
-    const scenes = JSON.parse(jsonMatch[0]);
+    const aiScenes = JSON.parse(jsonMatch[0]);
+    const sceneMap = new Map<number, any>();
 
-    return scenes.map((scene: any) => {
-      // Generate motion_params based on effect_type and intensity
-      const effectType = scene.effect?.effect_type || '3d_parallax';
-      const intensity = scene.effect?.intensity || 5;
+    for (const scene of aiScenes) {
+      const num = scene.segment_number || scene.segmentNumber || sceneMap.size + 1;
+      sceneMap.set(num, scene);
+    }
+
+    return chunks.map((chunk, index) => {
+      const segNum = index + 1;
+      const aiScene = sceneMap.get(segNum) || {};
+      const effectType = aiScene.effect_type || aiScene.effectType || '3d_parallax';
+      const intensity = aiScene.intensity || 5;
       const motionParams = this.generateMotionParams(effectType, intensity);
 
       return {
-        id: scene.id || crypto.randomUUID(),
-        scriptSegment: scene.scriptSegment,
-        imagePrompt: scene.imagePrompt,
+        id: crypto.randomUUID(),
+        scriptSegment: chunk,
+        imagePrompt: aiScene.imagePrompt || `Scene depicting: ${chunk.substring(0, 100)}`,
         imageUrl: null,
         audioUrl: null,
         status: 'idle' as const,
