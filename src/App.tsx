@@ -93,6 +93,11 @@ const App: React.FC = () => {
   const [promptEditId, setPromptEditId] = useState<string | null>(null);
   const [promptEditInput, setPromptEditInput] = useState('');
 
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
+  const [regenerateType, setRegenerateType] = useState<'character' | 'scene'>('scene');
+  const [regenerateId, setRegenerateId] = useState<string | null>(null);
+  const [regenerateInput, setRegenerateInput] = useState('');
+
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
   const [elSettings, setElSettings] = useState<ElevenLabsSettings>({
     apiKey: localStorage.getItem('el_api_key') || '',
@@ -677,6 +682,84 @@ const App: React.FC = () => {
     }
   };
 
+  const openRegenerateModal = (type: 'character' | 'scene', id: string) => {
+    setRegenerateType(type);
+    setRegenerateId(id);
+    setRegenerateInput('');
+    setIsRegenerateModalOpen(true);
+  };
+
+  const handleRegenerateWithModification = async () => {
+    if (!project || !regenerateId || !regenerateInput.trim() || !currentProjectId) return;
+
+    if (regenerateType === 'character') {
+      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        ...p, characters: p.characters.map(c => c.id === regenerateId ? { ...c, status: 'loading', portraitUrl: null } : c)
+      } : p));
+    } else {
+      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        ...p, scenes: p.scenes.map(s => s.id === regenerateId ? { ...s, status: 'loading', imageUrl: null } : s)
+      } : p));
+    }
+
+    setIsRegenerateModalOpen(false);
+
+    try {
+      let currentPrompt = '';
+      if (regenerateType === 'character') {
+        currentPrompt = project.characters.find(c => c.id === regenerateId)?.visualDescription || '';
+      } else {
+        currentPrompt = project.scenes.find(s => s.id === regenerateId)?.imagePrompt || '';
+      }
+
+      const newPrompt = await gemini.regeneratePrompt(currentPrompt, regenerateInput, project);
+
+      const isPortrait = regenerateType === 'character';
+      const newImageUrl = await gemini.generateImage(newPrompt, isPortrait, geminiImageModel);
+
+      if (regenerateType === 'character') {
+        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+          ...p, characters: p.characters.map(c => c.id === regenerateId ? {
+            ...c,
+            visualDescription: newPrompt,
+            portraitUrl: newImageUrl,
+            status: 'done'
+          } : c)
+        } : p));
+      } else {
+        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+          ...p, scenes: p.scenes.map(s => s.id === regenerateId ? {
+            ...s,
+            imagePrompt: newPrompt,
+            imageUrl: newImageUrl,
+            status: 'done'
+          } : s)
+        } : p));
+      }
+      setRegenerateInput('');
+    } catch (err) {
+      console.error(err);
+      alert("재생성에 실패했습니다.");
+      if (regenerateType === 'character') {
+        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+          ...p, characters: p.characters.map(c => c.id === regenerateId ? { ...c, status: 'error' } : c)
+        } : p));
+      } else {
+        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+          ...p, scenes: p.scenes.map(s => s.id === regenerateId ? { ...s, status: 'error' } : s)
+        } : p));
+      }
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('클립보드에 복사되었습니다!');
+    }).catch(() => {
+      alert('복사에 실패했습니다.');
+    });
+  };
+
   const generateAudio = async (sceneId: string) => {
     if (!checkAndOpenAudioSettings()) return;
     if (!project) return;
@@ -1229,10 +1312,10 @@ const App: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">등장인물 외형 설정</h1>
                   <div className="flex gap-3">
-                    <button onClick={() => setIsCharLoadModalOpen(true)} className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all">인물 불러오기</button>
-                    <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50">스토리보드 생성</button>
+                    <button onClick={() => setIsCharLoadModalOpen(true)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-base font-medium hover:bg-slate-50 transition-all">인물 불러오기</button>
+                    <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50">스토리보드 생성</button>
                     {project && project.scenes.length > 0 && (
-                      <button onClick={() => proceedToStoryboard(false)} className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all">기존 스토리보드 보기</button>
+                      <button onClick={() => proceedToStoryboard(false)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-base font-medium hover:bg-slate-50 transition-all">기존 스토리보드 보기</button>
                     )}
                   </div>
                 </div>
@@ -1242,7 +1325,7 @@ const App: React.FC = () => {
                 {(project?.characters || []).map(char => {
                   const isSaved = savedCharacters.some(sc => sc.id === char.id);
                   return (
-                  <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 relative group/card">
+                  <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 items-center relative group/card">
                     <div className="absolute top-4 right-4 flex gap-2 items-center opacity-0 group-hover/card:opacity-100 transition-all z-10">
                       <button
                         onClick={(e) => {
@@ -1263,7 +1346,7 @@ const App: React.FC = () => {
                       <button onClick={() => updateCurrentProject({ characters: project!.characters.filter(c => c.id !== char.id) })} className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-red-500 hover:border-red-300 transition-all" title="삭제"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                     </div>
                     <div
-                      className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative group cursor-pointer"
+                      className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative group cursor-pointer flex items-center justify-center"
                       onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}
                     >
                       {char.status === 'loading' && (
@@ -1280,7 +1363,7 @@ const App: React.FC = () => {
                       )}
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2 z-20" onClick={(e) => e.stopPropagation()}>
                         <label className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" onClick={(e) => e.stopPropagation()}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, portraitUrl: ev.target?.result as string, status: 'done' } : c) }); }; reader.readAsDataURL(file); } }} /></label>
-                        <button onClick={(e) => { e.stopPropagation(); generatePortrait(char.id); }} className="p-2 bg-white rounded-full text-indigo-600 hover:bg-indigo-50 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
+                        <button onClick={(e) => { e.stopPropagation(); openRegenerateModal('character', char.id); }} className="p-2 bg-white rounded-full text-indigo-600 hover:bg-indigo-50 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
                         <button onClick={(e) => { e.stopPropagation(); if(char.portraitUrl) { const a = document.createElement('a'); a.href = char.portraitUrl; a.download = `${char.name}.png`; a.click(); }}} className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
                       </div>
                     </div>
@@ -1292,12 +1375,17 @@ const App: React.FC = () => {
                         className="font-bold text-slate-900 text-2xl sm:text-3xl mb-3 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-200 rounded-lg px-2 py-1"
                         placeholder="이름을 입력하세요..."
                       />
-                      <textarea
-                        value={char.visualDescription || ''}
-                        onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
-                        className="text-xs text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 h-32 w-full"
-                        placeholder="캐릭터 외형 설명을 입력하세요..."
-                      />
+                      <div className="relative">
+                        <textarea
+                          value={char.visualDescription || ''}
+                          onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
+                          className="text-xs text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 h-32 w-full"
+                          placeholder="캐릭터 외형 설명을 입력하세요..."
+                        />
+                        <button onClick={() => copyToClipboard(char.visualDescription)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   );
@@ -1325,7 +1413,7 @@ const App: React.FC = () => {
               ) : (
               <>
               {/* 상단바 - 토스 스타일 */}
-              <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 sm:p-8 mb-8">
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 sm:p-10 mb-8">
                 <div className="flex flex-col gap-6">
                   {/* 첫 번째 줄: 제목 & 버튼들 */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
@@ -1333,20 +1421,20 @@ const App: React.FC = () => {
                       type="text"
                       value={project.title}
                       onChange={(e) => updateCurrentProject({ title: e.target.value })}
-                      className="text-lg sm:text-xl font-bold text-slate-900 bg-transparent border-none focus:outline-none w-auto min-w-[200px]"
+                      className="text-2xl sm:text-3xl font-bold text-slate-900 bg-transparent border-none focus:outline-none w-auto min-w-[250px]"
                     />
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 생성</button>
-                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all disabled:opacity-50">오디오 생성</button>
-                      <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출 (Export)</button>
+                    <div className="flex flex-wrap gap-3 items-center">
+                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 생성</button>
+                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-base font-medium hover:bg-slate-200 transition-all disabled:opacity-50">오디오 생성</button>
+                      <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
                       <div className="relative group/download">
-                        <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all flex items-center gap-1">
+                        <button className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-base font-medium hover:bg-slate-200 transition-all flex items-center gap-1">
                           자산 다운로드
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                         </button>
-                        <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 min-w-[180px] opacity-0 invisible group-hover/download:opacity-100 group-hover/download:visible transition-all z-50">
-                          <button onClick={() => { project.scenes.forEach((s, i) => { if(s.imageUrl) { const a = document.createElement('a'); a.href = s.imageUrl; a.download = `scene-${i+1}.png`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 transition-all">이미지 전체 다운로드</button>
-                          <button onClick={() => { project.scenes.forEach((s, i) => { if(s.audioUrl) { const a = document.createElement('a'); a.href = s.audioUrl; a.download = `audio-${i+1}.mp3`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 transition-all">오디오 전체 다운로드</button>
+                        <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 min-w-[200px] opacity-0 invisible group-hover/download:opacity-100 group-hover/download:visible transition-all z-50">
+                          <button onClick={() => { project.scenes.forEach((s, i) => { if(s.imageUrl) { const a = document.createElement('a'); a.href = s.imageUrl; a.download = `scene-${i+1}.png`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-base text-slate-600 hover:bg-slate-50 transition-all">이미지 전체 다운로드</button>
+                          <button onClick={() => { project.scenes.forEach((s, i) => { if(s.audioUrl) { const a = document.createElement('a'); a.href = s.audioUrl; a.download = `audio-${i+1}.mp3`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-base text-slate-600 hover:bg-slate-50 transition-all">오디오 전체 다운로드</button>
                         </div>
                       </div>
                     </div>
@@ -1406,7 +1494,7 @@ const App: React.FC = () => {
                         <>
                           <img src={scene.imageUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)} />
                           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10 cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)}>
-                            <button onClick={(e) => { e.stopPropagation(); generateSceneImage(scene.id); }} className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-indigo-600 hover:bg-white transition-all shadow-lg" title="재생성">
+                            <button onClick={(e) => { e.stopPropagation(); openRegenerateModal('scene', scene.id); }} className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-indigo-600 hover:bg-white transition-all shadow-lg" title="재생성">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                             </button>
                             <button onClick={(e) => { e.stopPropagation(); if(scene.imageUrl) { const a = document.createElement('a'); a.href = scene.imageUrl; a.download = `scene-${idx+1}.png`; a.click(); }}} className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 hover:bg-white transition-all shadow-lg" title="다운로드">
@@ -1466,12 +1554,22 @@ const App: React.FC = () => {
                           <span>Prompt</span>
                           <svg className="w-3.5 h-3.5 transform group-open/prompt:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                         </summary>
-                        <textarea
-                          value={scene.imagePrompt}
-                          onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imagePrompt: e.target.value } : s) })}
-                          className="w-full text-[11px] text-slate-500 leading-relaxed bg-slate-50 rounded-xl p-3 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-100 min-h-[60px] mt-2"
-                          placeholder="이미지 프롬프트..."
-                        />
+                        <div className="mt-2 space-y-2">
+                          <div className="relative">
+                            <textarea
+                              value={scene.imagePrompt}
+                              onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imagePrompt: e.target.value } : s) })}
+                              className="w-full text-[11px] text-slate-500 leading-relaxed bg-slate-50 rounded-xl p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-100 min-h-[60px]"
+                              placeholder="이미지 프롬프트..."
+                            />
+                            <button onClick={() => copyToClipboard(scene.imagePrompt)} className="absolute top-2 right-2 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                            </button>
+                          </div>
+                          <button onClick={() => updateCurrentProject({ scenes: project.scenes })} className="w-full py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-all">
+                            저장하기
+                          </button>
+                        </div>
                       </details>
                     </div>
                   </div>
@@ -1554,6 +1652,36 @@ const App: React.FC = () => {
       )}
 
       {selectedImage && <div className="fixed inset-0 bg-slate-900/95 z-[250] flex items-center justify-center p-2 sm:p-4 cursor-zoom-out animate-in fade-in" onClick={() => setSelectedImage(null)}><img src={selectedImage} className="max-w-full max-h-[90vh] object-contain rounded-2xl sm:rounded-[40px] shadow-2xl border-4 sm:border-8 border-white/10" /></div>}
+
+      {isRegenerateModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsRegenerateModalOpen(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100">
+              <h2 className="text-xl font-semibold text-slate-900">이미지 재생성</h2>
+              <p className="text-sm text-slate-500 mt-1">변경하고 싶은 특징을 입력해주세요</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">수정사항 입력</label>
+                <textarea
+                  value={regenerateInput}
+                  onChange={(e) => setRegenerateInput(e.target.value)}
+                  className="w-full h-32 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none resize-none text-sm"
+                  placeholder="예: 배경을 더 밝게 해주세요, 인물을 더 젊게 그려주세요..."
+                />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setIsRegenerateModalOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">
+                  취소
+                </button>
+                <button onClick={handleRegenerateWithModification} disabled={!regenerateInput.trim()} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                  적용하기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isMyPageOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsMyPageOpen(false)}>
