@@ -1,8 +1,0 @@
-{
-  "name": "google-youtubeproject",
-  "compatibility_date": "2026-01-27",
-  "pages_build_output_dir": "./dist",
-  "assets": {
-    "directory": "./dist"
-  }
-}
