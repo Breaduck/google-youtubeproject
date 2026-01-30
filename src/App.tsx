@@ -352,7 +352,7 @@ const App: React.FC = () => {
   const handleStyleLibraryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (newStyleImages.length + files.length > 10) {
-      alert("자주 쓰는 화풍 레퍼런스는 최대 10장까지 가능합니다.");
+      alert("자주 쓰는 그림체 레퍼런스는 최대 10장까지 가능합니다.");
       return;
     }
     files.forEach(file => {
@@ -399,9 +399,9 @@ const App: React.FC = () => {
   };
 
   const addNewStyle = async () => {
-    if (!newStyleName.trim()) { alert('화풍 이름을 입력해주세요.'); return; }
+    if (!newStyleName.trim()) { alert('그림체 이름을 입력해주세요.'); return; }
     if (newStyleImages.length === 0) { alert('이미지를 최소 1장 이상 등록해주세요.'); return; }
-    if (savedStyles.length >= 10) { alert('자주 쓰는 화풍은 최대 10개까지 저장 가능합니다.'); return; }
+    if (savedStyles.length >= 10) { alert('자주 쓰는 그림체은 최대 10개까지 저장 가능합니다.'); return; }
 
     setBgTask({ type: 'style', message: '참고 이미지를 바탕으로 화풍을 학습중입니다' });
     setBgProgress(0);
@@ -1829,21 +1829,82 @@ const App: React.FC = () => {
                 )}
               </div>
 
-              {/* 저장된 화풍 - 아코디언 */}
+              {/* 저장된 그림체 - 아코디언 */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <button onClick={() => setExpandedSetting(expandedSetting === 'styles' ? null : 'styles')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">저장된 화풍</span>
+                    <span className="text-sm font-medium text-slate-700">저장된 그림체</span>
                     <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{savedStyles.length}/10</span>
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'styles' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {expandedSetting === 'styles' && (
-                  <div className="px-4 pb-4 border-t border-slate-100 bg-slate-50/50">
-                    {savedStyles.length === 0 ? (
-                      <p className="text-sm text-slate-400 pt-4">저장된 화풍이 없습니다</p>
-                    ) : (
-                      <div className="space-y-2 pt-4">
+                  <div className="px-4 pb-4 border-t border-slate-100 bg-slate-50/50 space-y-4">
+                    {/* 새 그림체 추가 폼 */}
+                    <div className="pt-4 space-y-3">
+                      <h4 className="text-sm font-semibold text-slate-700">새 그림체 추가</h4>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-600">제목</label>
+                        <input
+                          type="text"
+                          value={newStyleName}
+                          onChange={e => setNewStyleName(e.target.value)}
+                          placeholder="예: 지브리 스타일, 수채화 풍경 등"
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-600">특징 설명 (선택사항)</label>
+                        <textarea
+                          placeholder="이 그림체의 특징을 간단히 설명해주세요..."
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm h-20 resize-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-600">레퍼런스 이미지 (최대 10장)</label>
+                        <input
+                          ref={styleLibraryInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleStyleLibraryImageUpload}
+                        />
+                        <button
+                          onClick={() => styleLibraryInputRef.current?.click()}
+                          className="w-full py-2 border-2 border-dashed border-slate-200 rounded-lg text-sm text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all"
+                        >
+                          + 이미지 선택
+                        </button>
+                        {newStyleImages.length > 0 && (
+                          <div className="flex gap-2 flex-wrap">
+                            {newStyleImages.map((img, idx) => (
+                              <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 group">
+                                <img src={img} className="w-full h-full object-cover" />
+                                <button
+                                  onClick={() => setNewStyleImages(prev => prev.filter((_, i) => i !== idx))}
+                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition-opacity"
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={addNewStyle}
+                        disabled={!newStyleName.trim() || newStyleImages.length === 0}
+                        className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        그림체 저장
+                      </button>
+                    </div>
+
+                    {/* 저장된 그림체 목록 */}
+                    {savedStyles.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-slate-200">
+                        <h4 className="text-xs font-semibold text-slate-600">저장된 그림체 ({savedStyles.length}/10)</h4>
                         {savedStyles.map(s => (
                           <div key={s.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
                             <div className="flex items-center gap-3">
@@ -1869,11 +1930,65 @@ const App: React.FC = () => {
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'characters' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {expandedSetting === 'characters' && (
-                  <div className="px-4 pb-4 border-t border-slate-100 bg-slate-50/50">
-                    {savedCharacters.length === 0 ? (
-                      <p className="text-sm text-slate-400 pt-4">저장된 인물이 없습니다</p>
-                    ) : (
-                      <div className="space-y-2 pt-4">
+                  <div className="px-4 pb-4 border-t border-slate-100 bg-slate-50/50 space-y-4">
+                    {/* 새 인물 추가 폼 */}
+                    <div className="pt-4 space-y-3">
+                      <h4 className="text-sm font-semibold text-slate-700">새 인물 추가</h4>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-600">이름</label>
+                        <input
+                          type="text"
+                          value={newCharLibName}
+                          onChange={e => setNewCharLibName(e.target.value)}
+                          placeholder="예: 민준, Emma, 홍길동 등"
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-600">레퍼런스 이미지 (최대 10장)</label>
+                        <input
+                          ref={charLibInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleCharLibraryImageUpload}
+                        />
+                        <button
+                          onClick={() => charLibInputRef.current?.click()}
+                          className="w-full py-2 border-2 border-dashed border-slate-200 rounded-lg text-sm text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all"
+                        >
+                          + 이미지 선택
+                        </button>
+                        {newCharLibImages.length > 0 && (
+                          <div className="flex gap-2 flex-wrap">
+                            {newCharLibImages.map((img, idx) => (
+                              <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 group">
+                                <img src={img} className="w-full h-full object-cover" />
+                                <button
+                                  onClick={() => setNewCharLibImages(prev => prev.filter((_, i) => i !== idx))}
+                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition-opacity"
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={addNewCharToLibFromSidebar}
+                        disabled={!newCharLibName.trim() || newCharLibImages.length === 0 || charLibSaveProgress !== null}
+                        className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {charLibSaveProgress !== null ? `저장 중... ${charLibSaveProgress}%` : '인물 저장'}
+                      </button>
+                    </div>
+
+                    {/* 저장된 인물 목록 */}
+                    {savedCharacters.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-slate-200">
+                        <h4 className="text-xs font-semibold text-slate-600">저장된 인물 ({savedCharacters.length}/10)</h4>
                         {savedCharacters.map(c => (
                           <div key={c.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
                             <div className="flex items-center gap-3">
