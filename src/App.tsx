@@ -56,6 +56,7 @@ const App: React.FC = () => {
   const [newStyleDescription, setNewStyleDescription] = useState('');
   const [isStyleDescModalOpen, setIsStyleDescModalOpen] = useState(false);
   const [customStyleName, setCustomStyleName] = useState('');
+  const [isStyleNameModalOpen, setIsStyleNameModalOpen] = useState(false);
   const styleLibraryInputRef = useRef<HTMLInputElement>(null);
 
   const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>(() => {
@@ -102,6 +103,10 @@ const App: React.FC = () => {
   const [regenerateInput, setRegenerateInput] = useState('');
 
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
+
+  // Storyboard selection mode for merging
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedSceneIds, setSelectedSceneIds] = useState<string[]>([]);
   const [elSettings, setElSettings] = useState<ElevenLabsSettings>({
     apiKey: localStorage.getItem('el_api_key') || '',
     voiceId: '21m00Tcm4llvDq8ikWAM',
@@ -441,9 +446,16 @@ const App: React.FC = () => {
   };
 
   const saveCustomStyleFromInput = async () => {
-    if (!customStyleName.trim()) { alert('그림체 이름을 입력해주세요.'); return; }
     if (refImages.length === 0) { alert('이미지를 최소 1장 이상 등록해주세요.'); return; }
     if (savedStyles.length >= 10) { alert('자주 쓰는 그림체은 최대 10개까지 저장 가능합니다.'); return; }
+
+    // Show modal to get style name
+    setIsStyleNameModalOpen(true);
+  };
+
+  const confirmSaveCustomStyle = async () => {
+    if (!customStyleName.trim()) { alert('그림체 이름을 입력해주세요.'); return; }
+    setIsStyleNameModalOpen(false);
 
     setBgTask({ type: 'style', message: '참고 이미지를 바탕으로 화풍을 학습중입니다' });
     setBgProgress(0);
@@ -1217,6 +1229,78 @@ const App: React.FC = () => {
     updateCurrentProject({ scenes: project.scenes.map(s => s.id === id ? { ...s, imageUrl: null, status: 'idle' } : s) });
   };
 
+  const mergeSelectedScenes = async () => {
+    if (!project || selectedSceneIds.length < 2) return;
+
+    // Get selected scenes in order
+    const selectedScenes = project.scenes
+      .filter(s => selectedSceneIds.includes(s.id))
+      .sort((a, b) => project.scenes.indexOf(a) - project.scenes.indexOf(b));
+
+    // Combine script segments
+    const combinedScript = selectedScenes.map(s => s.scriptSegment).join(' ');
+
+    // Find position of first selected scene
+    const firstSceneIndex = project.scenes.findIndex(s => s.id === selectedScenes[0].id);
+
+    setBgTask({ type: 'storyboard', message: '씬을 병합하고 새 프롬프트 생성 중...' });
+    setBgProgress(30);
+
+    try {
+      // Generate new image prompt using Gemini
+      const characterDescriptions = project.characters
+        .map(c => `- ${c.name}: ${c.visualDescription}`)
+        .join('\n');
+
+      const prompt = `Generate a detailed image generation prompt for this scene.
+
+Characters:
+${characterDescriptions}
+
+Style: ${project.customStyleDescription || project.style}
+
+Scene dialogue:
+${combinedScript}
+
+Generate a detailed English prompt for image generation including scene composition, character positions, background, lighting, mood. Return ONLY the prompt text, no explanation.`;
+
+      const ai = gemini.getClient();
+      const response = await ai.models.generateContent({
+        model: gemini.getModel(),
+        contents: prompt
+      });
+
+      const newImagePrompt = response.text || combinedScript;
+
+      // Create merged scene
+      const mergedScene: Scene = {
+        id: crypto.randomUUID(),
+        scriptSegment: combinedScript,
+        imagePrompt: newImagePrompt,
+        imageUrl: null,
+        audioUrl: null,
+        status: 'idle',
+        audioStatus: 'idle',
+        effect: selectedScenes[0].effect // Copy effect from first scene
+      };
+
+      // Remove selected scenes and insert merged scene at first position
+      const newScenes = project.scenes.filter(s => !selectedSceneIds.includes(s.id));
+      newScenes.splice(firstSceneIndex, 0, mergedScene);
+
+      updateCurrentProject({ scenes: newScenes });
+      setSelectedSceneIds([]);
+      setIsSelectionMode(false);
+      setBgTask(null);
+      setBgProgress(0);
+    } catch (err) {
+      console.error('Merge failed:', err);
+      setBgTask(null);
+      setBgProgress(0);
+      alert('씬 병합에 실패했습니다.');
+    }
+  };
+
   const addNewProject = () => {
     const newId = crypto.randomUUID();
     const newProject: StoryProject = {
@@ -1421,8 +1505,8 @@ const App: React.FC = () => {
                       <button onClick={() => updateCurrentProject({ characters: project!.characters.filter(c => c.id !== char.id) })} className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-red-500 hover:border-red-300 transition-all" title="삭제"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                     </div>
                     <div
-                      className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative group cursor-pointer flex items-center justify-center"
-                      onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}
+                      className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative group/portrait cursor-pointer flex items-center justify-center"
+                      onClick={() => setSelectedImage(char.portraitUrl || '')}
                     >
                       {char.status === 'loading' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-100 z-10">
@@ -1436,7 +1520,16 @@ const App: React.FC = () => {
                           <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2 z-20" onClick={(e) => e.stopPropagation()}>
+                      {char.portraitUrl && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, portraitUrl: null, status: 'idle' } : c) }); }}
+                          className="absolute top-2 right-2 z-30 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover/portrait:opacity-100 transition-all hover:bg-red-600"
+                          title="이미지 삭제"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      )}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/portrait:opacity-100 transition-all flex items-center justify-center gap-2 z-20" onClick={(e) => e.stopPropagation()}>
                         <label className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" onClick={(e) => e.stopPropagation()}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, portraitUrl: ev.target?.result as string, status: 'done' } : c) }); }; reader.readAsDataURL(file); } }} /></label>
                         <button onClick={(e) => { e.stopPropagation(); openRegenerateModal('character', char.id); }} className="p-2 bg-white rounded-full text-indigo-600 hover:bg-indigo-50 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
                         <button onClick={(e) => { e.stopPropagation(); if(char.portraitUrl) { const a = document.createElement('a'); a.href = char.portraitUrl; a.download = `${char.name}.png`; a.click(); }}} className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
@@ -1454,7 +1547,7 @@ const App: React.FC = () => {
                         <textarea
                           value={char.visualDescription || ''}
                           onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
-                          className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 h-48 sm:h-56 w-full"
+                          className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 w-full h-48 sm:h-56"
                           placeholder="캐릭터 외형 설명을 입력하세요..."
                         />
                         <button onClick={() => copyToClipboard(char.visualDescription)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
@@ -1492,12 +1585,31 @@ const App: React.FC = () => {
                 <div className="flex flex-col gap-6">
                   {/* 첫 번째 줄: 제목 & 버튼들 */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-                    <input
-                      type="text"
-                      value={project.title}
-                      onChange={(e) => updateCurrentProject({ title: e.target.value })}
-                      className="text-2xl sm:text-3xl font-bold text-slate-900 bg-transparent border-none focus:outline-none w-auto min-w-[250px]"
-                    />
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="text"
+                        value={project.title}
+                        onChange={(e) => updateCurrentProject({ title: e.target.value })}
+                        className="text-2xl sm:text-3xl font-bold text-slate-900 bg-transparent border-none focus:outline-none w-auto min-w-[250px]"
+                      />
+                      <button
+                        onClick={() => {
+                          setIsSelectionMode(!isSelectionMode);
+                          if (isSelectionMode) setSelectedSceneIds([]);
+                        }}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${isSelectionMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                      >
+                        {isSelectionMode ? '취소' : '선택'}
+                      </button>
+                      {selectedSceneIds.length >= 2 && (
+                        <button
+                          onClick={mergeSelectedScenes}
+                          className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-all"
+                        >
+                          병합
+                        </button>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-3 items-center">
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-base font-medium hover:bg-slate-200 transition-all disabled:opacity-50">오디오 전체 생성</button>
@@ -1544,10 +1656,28 @@ const App: React.FC = () => {
               {/* 씬 그리드 - 깔끔한 카드 스타일 */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {project.scenes.map((scene, idx) => (
-                  <div key={scene.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md hover:border-slate-200 transition-all group/card">
+                  <div key={scene.id} className={`bg-white rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-slate-100 hover:border-slate-200'}`}>
                     {/* 이미지 영역 */}
                     <div className="aspect-video bg-slate-50 relative group/img">
                       <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-slate-900/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-xs font-semibold">#{idx + 1}</div>
+
+                      {/* Selection checkbox */}
+                      {isSelectionMode && (
+                        <div className="absolute top-3 left-14 z-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedSceneIds.includes(scene.id)}
+                            onChange={() => {
+                              setSelectedSceneIds(prev =>
+                                prev.includes(scene.id)
+                                  ? prev.filter(id => id !== scene.id)
+                                  : [...prev, scene.id]
+                              );
+                            }}
+                            className="w-5 h-5 rounded border-2 border-white cursor-pointer"
+                          />
+                        </div>
+                      )}
 
                       {/* 상단 우측 버튼들 */}
                       <div className="absolute top-3 right-3 z-30 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all">
@@ -1730,21 +1860,10 @@ const App: React.FC = () => {
                       <div className="flex gap-2 w-full sm:w-auto">
                         <button onClick={() => styleRefImageInputRef.current?.click()} className="flex-1 sm:flex-none px-6 py-3 bg-white border border-indigo-200 rounded-2xl text-xs font-semibold text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
                         {refImages.length > 0 && (
-                          <button onClick={saveCustomStyleFromInput} disabled={!customStyleName.trim()} className="px-6 py-3 bg-indigo-600 border border-indigo-600 rounded-2xl text-xs font-semibold text-white hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">저장하기</button>
+                          <button onClick={saveCustomStyleFromInput} className="px-6 py-3 bg-indigo-600 border border-indigo-600 rounded-2xl text-xs font-semibold text-white hover:bg-indigo-700 transition-all">저장하기</button>
                         )}
                       </div>
                    </div>
-                   {refImages.length > 0 && (
-                     <div>
-                       <input
-                         type="text"
-                         value={customStyleName}
-                         onChange={(e) => setCustomStyleName(e.target.value)}
-                         placeholder="그림체 이름을 입력해주세요 (예: 지브리 스타일)"
-                         className="w-full px-4 py-3 rounded-xl border border-indigo-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white"
-                       />
-                     </div>
-                   )}
                    <div className="flex gap-3 flex-wrap">
                       {refImages.map((img, idx) => (
                         <div key={idx} className="relative w-20 h-20 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-white shadow-md group">
@@ -2244,6 +2363,34 @@ const App: React.FC = () => {
               <button onClick={() => setIsPromptModalOpen(false)} className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-all">취소</button>
               <button onClick={handleRegeneratePrompt} disabled={!promptEditInput.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
                 적용하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 맞춤형 스타일 이름 입력 모달 */}
+      {isStyleNameModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsStyleNameModalOpen(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-lg p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">그림체 제목을 입력해주세요</h3>
+            <p className="text-sm text-slate-400 mb-6">저장할 맞춤형 스타일의 이름을 입력해주세요.</p>
+            <input
+              type="text"
+              value={customStyleName}
+              onChange={e => setCustomStyleName(e.target.value)}
+              placeholder="예: 지브리 스타일"
+              className="w-full px-4 py-4 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-indigo-200 outline-none text-sm"
+              onKeyDown={e => {
+                if (e.key === 'Enter' && customStyleName.trim()) {
+                  confirmSaveCustomStyle();
+                }
+              }}
+            />
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => { setIsStyleNameModalOpen(false); setCustomStyleName(''); }} className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-all">취소</button>
+              <button onClick={confirmSaveCustomStyle} disabled={!customStyleName.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
+                저장하기
               </button>
             </div>
           </div>
