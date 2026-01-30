@@ -251,13 +251,20 @@ const App: React.FC = () => {
     setIsValidatingGemini(true);
     try {
       const ai = new GoogleGenAI({ apiKey: key });
-      await ai.models.generateContent({
-        model: 'gemini-3-flash',
-        contents: 'ping',
-        config: { maxOutputTokens: 1, thinkingConfig: { thinkingBudget: 0 } }
+      const model = localStorage.getItem('gemini_model') || 'gemini-3-flash';
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: 'test'
       });
-      setIsGeminiValid(true);
-    } catch {
+
+      // If we get here without error, the key is valid
+      if (response) {
+        setIsGeminiValid(true);
+      } else {
+        setIsGeminiValid(false);
+      }
+    } catch (error) {
+      console.error('API key validation error:', error);
       setIsGeminiValid(false);
     } finally {
       setIsValidatingGemini(false);
@@ -1547,7 +1554,7 @@ Generate a detailed English prompt for image generation including scene composit
                 {(project?.characters || []).map(char => {
                   const isSaved = savedCharacters.some(sc => sc.id === char.id);
                   return (
-                  <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 items-end relative group/card">
+                  <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 items-center relative group/card">
                     <div className="absolute top-4 right-4 flex gap-2 items-center opacity-0 group-hover/card:opacity-100 transition-all z-10">
                       <button
                         onClick={(e) => {
@@ -1598,7 +1605,7 @@ Generate a detailed English prompt for image generation including scene composit
                         <button onClick={(e) => { e.stopPropagation(); if(char.portraitUrl) { const a = document.createElement('a'); a.href = char.portraitUrl; a.download = `${char.name}.png`; a.click(); }}} className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex-1 min-w-0 flex flex-col">
                       <input
                         type="text"
                         value={char.name}
@@ -1606,17 +1613,23 @@ Generate a detailed English prompt for image generation including scene composit
                         className="font-bold text-slate-900 text-2xl sm:text-3xl mb-3 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-200 rounded-lg px-2 py-1"
                         placeholder="이름을 입력하세요..."
                       />
-                      <div className="relative">
-                        <textarea
-                          value={char.visualDescription || ''}
-                          onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
-                          className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 w-full h-48 sm:h-56"
-                          placeholder="캐릭터 외형 설명을 입력하세요..."
-                        />
-                        <button onClick={() => copyToClipboard(char.visualDescription)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                        </button>
-                      </div>
+                      <details className="group/details">
+                        <summary className="cursor-pointer text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors mb-2 flex items-center gap-2">
+                          <svg className="w-4 h-4 transition-transform group-open/details:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                          프롬프트
+                        </summary>
+                        <div className="relative">
+                          <textarea
+                            value={char.visualDescription || ''}
+                            onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
+                            className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 w-full h-48 sm:h-56"
+                            placeholder="캐릭터 외형 설명을 입력하세요..."
+                          />
+                          <button onClick={() => copyToClipboard(char.visualDescription)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                          </button>
+                        </div>
+                      </details>
                     </div>
                   </div>
                   );
@@ -1655,14 +1668,6 @@ Generate a detailed English prompt for image generation including scene composit
                         onChange={(e) => updateCurrentProject({ title: e.target.value })}
                         className="text-2xl sm:text-3xl font-bold text-slate-900 bg-transparent border-none focus:outline-none w-auto min-w-[250px]"
                       />
-                      {selectedSceneIds.length >= 2 && (
-                        <button
-                          onClick={mergeSelectedScenes}
-                          className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-all"
-                        >
-                          병합
-                        </button>
-                      )}
                     </div>
                     <div className="flex flex-wrap gap-3 items-center">
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
@@ -1708,7 +1713,15 @@ Generate a detailed English prompt for image generation including scene composit
               </div>
 
               {/* 선택 버튼 영역 */}
-              <div className="mb-4 flex justify-end">
+              <div className="mb-4 flex justify-end gap-3">
+                {selectedSceneIds.length >= 2 && (
+                  <button
+                    onClick={mergeSelectedScenes}
+                    className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-all"
+                  >
+                    병합
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setIsSelectionMode(!isSelectionMode);
