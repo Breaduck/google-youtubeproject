@@ -78,6 +78,7 @@ const App: React.FC = () => {
   const [geminiImageModel, setGeminiImageModel] = useState(localStorage.getItem('gemini_image_model') || 'gemini-2.5-flash-image');
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [isGeminiValid, setIsGeminiValid] = useState(false);
+  const [isValidatingGemini, setIsValidatingGemini] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showElKey, setShowElKey] = useState(false);
   const [showChirpKey, setShowChirpKey] = useState(false);
@@ -103,6 +104,16 @@ const App: React.FC = () => {
   const [regenerateInput, setRegenerateInput] = useState('');
 
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
+
+  // Login/Signup states
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [signupUsername, setSignupUsername] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
 
   // Storyboard selection mode for merging
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -227,9 +238,17 @@ const App: React.FC = () => {
     return () => cancelAnimationFrame(frame);
   }, [targetProgress]);
 
+  useEffect(() => {
+    const user = localStorage.getItem('currentUser');
+    if (user) {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
   const gemini = useMemo(() => new GeminiService(), []);
 
   const checkGeminiKey = async (key: string) => {
+    setIsValidatingGemini(true);
     try {
       const ai = new GoogleGenAI({ apiKey: key });
       await ai.models.generateContent({
@@ -240,7 +259,49 @@ const App: React.FC = () => {
       setIsGeminiValid(true);
     } catch {
       setIsGeminiValid(false);
+    } finally {
+      setIsValidatingGemini(false);
     }
+  };
+
+  const handleLogin = () => {
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u: any) => u.username === loginUsername && u.password === loginPassword);
+    if (user) {
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      setIsLoggedIn(true);
+      setIsLoginModalOpen(false);
+      setLoginUsername('');
+      setLoginPassword('');
+      alert('로그인 성공!');
+    } else {
+      alert('아이디 또는 비밀번호가 일치하지 않습니다.');
+    }
+  };
+
+  const handleSignup = () => {
+    if (!signupUsername || !signupPassword || !signupEmail) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    if (users.find((u: any) => u.username === signupUsername)) {
+      alert('이미 존재하는 아이디입니다.');
+      return;
+    }
+    users.push({ username: signupUsername, password: signupPassword, email: signupEmail });
+    localStorage.setItem('users', JSON.stringify(users));
+    setIsSignupModalOpen(false);
+    setSignupUsername('');
+    setSignupPassword('');
+    setSignupEmail('');
+    alert('회원가입 성공! 로그인해주세요.');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    setIsLoggedIn(false);
+    alert('로그아웃되었습니다.');
   };
 
   const updateCurrentProject = useCallback((updates: Partial<StoryProject>) => {
@@ -1486,7 +1547,7 @@ Generate a detailed English prompt for image generation including scene composit
                 {(project?.characters || []).map(char => {
                   const isSaved = savedCharacters.some(sc => sc.id === char.id);
                   return (
-                  <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 items-center relative group/card">
+                  <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 items-end relative group/card">
                     <div className="absolute top-4 right-4 flex gap-2 items-center opacity-0 group-hover/card:opacity-100 transition-all z-10">
                       <button
                         onClick={(e) => {
@@ -1508,7 +1569,7 @@ Generate a detailed English prompt for image generation including scene composit
                     </div>
                     <div
                       className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative group/portrait cursor-pointer flex items-center justify-center"
-                      onClick={() => setSelectedImage(char.portraitUrl || '')}
+                      onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}
                     >
                       {char.status === 'loading' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-100 z-10">
@@ -1531,8 +1592,8 @@ Generate a detailed English prompt for image generation including scene composit
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/portrait:opacity-100 transition-all flex items-center justify-center gap-2 z-20" onClick={(e) => e.stopPropagation()}>
-                        <label className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" onClick={(e) => e.stopPropagation()}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, portraitUrl: ev.target?.result as string, status: 'done' } : c) }); }; reader.readAsDataURL(file); } }} /></label>
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/portrait:opacity-100 transition-all flex items-center justify-center gap-2 z-20">
+                        <label className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" onClick={(e) => e.stopPropagation()}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><input type="file" className="hidden" accept="image/*" onChange={(e) => { e.stopPropagation(); const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, portraitUrl: ev.target?.result as string, status: 'done' } : c) }); }; reader.readAsDataURL(file); } }} /></label>
                         <button onClick={(e) => { e.stopPropagation(); openRegenerateModal('character', char.id); }} className="p-2 bg-white rounded-full text-indigo-600 hover:bg-indigo-50 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
                         <button onClick={(e) => { e.stopPropagation(); if(char.portraitUrl) { const a = document.createElement('a'); a.href = char.portraitUrl; a.download = `${char.name}.png`; a.click(); }}} className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
                       </div>
@@ -1594,15 +1655,6 @@ Generate a detailed English prompt for image generation including scene composit
                         onChange={(e) => updateCurrentProject({ title: e.target.value })}
                         className="text-2xl sm:text-3xl font-bold text-slate-900 bg-transparent border-none focus:outline-none w-auto min-w-[250px]"
                       />
-                      <button
-                        onClick={() => {
-                          setIsSelectionMode(!isSelectionMode);
-                          if (isSelectionMode) setSelectedSceneIds([]);
-                        }}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${isSelectionMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                      >
-                        {isSelectionMode ? '취소' : '선택'}
-                      </button>
                       {selectedSceneIds.length >= 2 && (
                         <button
                           onClick={mergeSelectedScenes}
@@ -1653,6 +1705,19 @@ Generate a detailed English prompt for image generation including scene composit
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* 선택 버튼 영역 */}
+              <div className="mb-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setIsSelectionMode(!isSelectionMode);
+                    if (isSelectionMode) setSelectedSceneIds([]);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${isSelectionMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                >
+                  {isSelectionMode ? '취소' : '선택'}
+                </button>
               </div>
 
               {/* 씬 그리드 - 깔끔한 카드 스타일 */}
@@ -1962,10 +2027,17 @@ Generate a detailed English prompt for image generation including scene composit
             </div>
             <div className="p-6 space-y-3">
               {/* 로그인/회원가입 섹션 */}
-              <div className="flex gap-3">
-                <button className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-center font-semibold rounded-xl transition-all text-sm">로그인</button>
-                <a href="signup.html" className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-center font-semibold rounded-xl transition-all text-sm">회원가입</a>
-              </div>
+              {isLoggedIn ? (
+                <div className="flex gap-3 items-center">
+                  <div className="flex-1 py-3 bg-green-50 border border-green-200 text-green-700 text-center font-semibold rounded-xl text-sm">로그인됨</div>
+                  <button onClick={handleLogout} className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-center font-semibold rounded-xl transition-all text-sm">로그아웃</button>
+                </div>
+              ) : (
+                <div className="flex gap-3">
+                  <button onClick={() => setIsLoginModalOpen(true)} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-center font-semibold rounded-xl transition-all text-sm">로그인</button>
+                  <button onClick={() => setIsSignupModalOpen(true)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-center font-semibold rounded-xl transition-all text-sm">회원가입</button>
+                </div>
+              )}
 
               {/* Gemini API 설정 - 아코디언 */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
@@ -1983,7 +2055,7 @@ Generate a detailed English prompt for image generation including scene composit
                     <div className="space-y-2 pt-4">
                       <label className="text-sm font-medium text-slate-700">API 키</label>
                       <div className="relative">
-                        <input type={showGeminiKey ? "text" : "password"} value={geminiApiKey} onChange={e => setGeminiApiKey(e.target.value)} placeholder="API 키 입력" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
+                        <input type={showGeminiKey ? "text" : "password"} value={geminiApiKey} onChange={e => setGeminiApiKey(e.target.value)} onBlur={() => geminiApiKey.length > 20 && checkGeminiKey(geminiApiKey)} placeholder="API 키 입력" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
                         <button onClick={() => setShowGeminiKey(!showGeminiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
                           {showGeminiKey ? (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -1992,6 +2064,26 @@ Generate a detailed English prompt for image generation including scene composit
                           )}
                         </button>
                       </div>
+                      {geminiApiKey.length > 20 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          {isValidatingGemini ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                              <span className="text-slate-600">검증 중...</span>
+                            </>
+                          ) : isGeminiValid ? (
+                            <>
+                              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                              <span className="text-green-600 font-medium">유효함</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                              <span className="text-red-600 font-medium">유효하지 않음</span>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-slate-700">Gemini 모델</label>
@@ -2406,6 +2498,56 @@ Generate a detailed English prompt for image generation including scene composit
           <div>
             <p className="font-medium">{bgTask.message}</p>
             {bgProgress > 0 && <p className="text-sm text-slate-400">{bgProgress}%</p>}
+          </div>
+        </div>
+      )}
+
+      {/* 로그인 모달 */}
+      {isLoginModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsLoginModalOpen(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-semibold text-slate-900 mb-6">로그인</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">아이디</label>
+                <input type="text" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} placeholder="아이디를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">비밀번호</label>
+                <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="비밀번호를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setIsLoginModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">취소</button>
+              <button onClick={handleLogin} disabled={!loginUsername.trim() || !loginPassword.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">로그인</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 회원가입 모달 */}
+      {isSignupModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsSignupModalOpen(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-semibold text-slate-900 mb-6">회원가입</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">아이디</label>
+                <input type="text" value={signupUsername} onChange={e => setSignupUsername(e.target.value)} placeholder="아이디를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">비밀번호</label>
+                <input type="password" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} placeholder="비밀번호를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">이메일</label>
+                <input type="email" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} placeholder="이메일을 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setIsSignupModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">취소</button>
+              <button onClick={handleSignup} disabled={!signupUsername.trim() || !signupPassword.trim() || !signupEmail.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">회원가입</button>
+            </div>
           </div>
         </div>
       )}
