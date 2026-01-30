@@ -556,7 +556,14 @@ const App: React.FC = () => {
     try {
       const char = activeProject.characters.find(c => c.id === charId);
       if (!char) return;
-      const url = await gemini.generateImage(char.visualDescription, true, geminiImageModel);
+
+      // 학습된 그림체 스타일 100% 적용
+      let finalPrompt = char.visualDescription;
+      if (activeProject.customStyleDescription) {
+        finalPrompt = `${char.visualDescription}, Art style: ${activeProject.customStyleDescription}`;
+      }
+
+      const url = await gemini.generateImage(finalPrompt, true, geminiImageModel);
       setProjects(prev => prev.map(p => p.id === activeProject.id ? {
         ...p, characters: p.characters.map(c => c.id === charId ? { ...c, portraitUrl: url, status: 'done' } : c)
       } : p));
@@ -603,9 +610,15 @@ const App: React.FC = () => {
     try {
       const activeProject = projects.find(p => p.id === currentProjectId);
       const scene = activeProject?.scenes.find(s => s.id === sceneId);
-      if (!scene) return;
+      if (!scene || !activeProject) return;
 
-      const url = await gemini.generateImage(scene.imagePrompt, false, geminiImageModel);
+      // 학습된 그림체 스타일 100% 적용
+      let finalPrompt = scene.imagePrompt;
+      if (activeProject.customStyleDescription) {
+        finalPrompt = `${scene.imagePrompt}, Art style: ${activeProject.customStyleDescription}`;
+      }
+
+      const url = await gemini.generateImage(finalPrompt, false, geminiImageModel);
 
       setProjects(prev => prev.map(p => p.id === currentProjectId ? {
         ...p,
@@ -645,7 +658,14 @@ const App: React.FC = () => {
       const newPrompt = await gemini.regeneratePrompt(currentPrompt, promptEditInput, project);
 
       const isPortrait = promptEditType === 'character';
-      const newImageUrl = await gemini.generateImage(newPrompt, isPortrait, geminiImageModel);
+
+      // 학습된 그림체 스타일 100% 적용
+      let finalPrompt = newPrompt;
+      if (project.customStyleDescription) {
+        finalPrompt = `${newPrompt}, Art style: ${project.customStyleDescription}`;
+      }
+
+      const newImageUrl = await gemini.generateImage(finalPrompt, isPortrait, geminiImageModel);
 
       if (promptEditType === 'character') {
         setProjects(prev => prev.map(p => p.id === currentProjectId ? {
@@ -715,7 +735,14 @@ const App: React.FC = () => {
       const newPrompt = await gemini.regeneratePrompt(currentPrompt, regenerateInput, project);
 
       const isPortrait = regenerateType === 'character';
-      const newImageUrl = await gemini.generateImage(newPrompt, isPortrait, geminiImageModel);
+
+      // 학습된 그림체 스타일 100% 적용
+      let finalPrompt = newPrompt;
+      if (project.customStyleDescription) {
+        finalPrompt = `${newPrompt}, Art style: ${project.customStyleDescription}`;
+      }
+
+      const newImageUrl = await gemini.generateImage(finalPrompt, isPortrait, geminiImageModel);
 
       if (regenerateType === 'character') {
         setProjects(prev => prev.map(p => p.id === currentProjectId ? {
@@ -1598,9 +1625,26 @@ const App: React.FC = () => {
                   {['realistic', '2d-animation', 'custom'].map(s => (
                     <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg ${style === s ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{s === '2d-animation' ? '2D 애니메이션' : s === 'realistic' ? '실사화' : '맞춤형'}</button>
                   ))}
-                  {savedStyles.map(s => (
-                    <button key={s.id} onClick={() => { setStyle(s.id as VisualStyle); updateCurrentProject({ style: s.id }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg ${style === s.id ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{s.name}</button>
-                  ))}
+                  {savedStyles.length > 0 && (
+                    <div className="relative group/styles">
+                      <button className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg flex items-center gap-2 ${savedStyles.some(s => s.id === style) ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+                        자주 쓰는 그림체
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl py-2 min-w-[200px] opacity-0 invisible group-hover/styles:opacity-100 group-hover/styles:visible transition-all z-50">
+                        {savedStyles.map(s => (
+                          <button
+                            key={s.id}
+                            onClick={() => { setStyle(s.id as VisualStyle); updateCurrentProject({ style: s.id }); }}
+                            className={`w-full px-4 py-3 text-left text-sm font-medium transition-all flex items-center gap-3 ${style === s.id ? 'bg-indigo-50 text-indigo-600' : 'text-slate-700 hover:bg-slate-50'}`}
+                          >
+                            {s.refImages[0] && <img src={s.refImages[0]} className="w-8 h-8 rounded-lg object-cover" />}
+                            <span>{s.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                </div>
                {currentSavedStyle && (
                  <div className="animate-in fade-in slide-in-bottom bg-slate-50 border p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-4">
