@@ -1264,9 +1264,11 @@ ${combinedScript}
 
 Generate a detailed English prompt for image generation including scene composition, character positions, background, lighting, mood. Return ONLY the prompt text, no explanation.`;
 
-      const ai = gemini.getClient();
+      const apiKey = localStorage.getItem('gemini_api_key') || '';
+      const model = localStorage.getItem('gemini_model') || 'gemini-3-flash';
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model: gemini.getModel(),
+        model: model,
         contents: prompt
       });
 
