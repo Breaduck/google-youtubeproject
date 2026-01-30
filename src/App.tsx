@@ -1554,7 +1554,7 @@ Generate a detailed English prompt for image generation including scene composit
                 {(project?.characters || []).map(char => {
                   const isSaved = savedCharacters.some(sc => sc.id === char.id);
                   return (
-                  <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 items-center relative group/card">
+                  <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 items-start relative group/card">
                     <div className="absolute top-4 right-4 flex gap-2 items-center opacity-0 group-hover/card:opacity-100 transition-all z-10">
                       <button
                         onClick={(e) => {
@@ -1613,23 +1613,17 @@ Generate a detailed English prompt for image generation including scene composit
                         className="font-bold text-slate-900 text-2xl sm:text-3xl mb-3 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-200 rounded-lg px-2 py-1"
                         placeholder="이름을 입력하세요..."
                       />
-                      <details className="group/details">
-                        <summary className="cursor-pointer text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors mb-2 flex items-center gap-2">
-                          <svg className="w-4 h-4 transition-transform group-open/details:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                          프롬프트
-                        </summary>
-                        <div className="relative">
-                          <textarea
-                            value={char.visualDescription || ''}
-                            onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
-                            className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 w-full h-48 sm:h-56"
-                            placeholder="캐릭터 외형 설명을 입력하세요..."
-                          />
-                          <button onClick={() => copyToClipboard(char.visualDescription)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                          </button>
-                        </div>
-                      </details>
+                      <div className="relative">
+                        <textarea
+                          value={char.visualDescription || ''}
+                          onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
+                          className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 w-full h-48 sm:h-56"
+                          placeholder="캐릭터 외형 설명을 입력하세요..."
+                        />
+                        <button onClick={() => copyToClipboard(char.visualDescription)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   );
@@ -1673,16 +1667,6 @@ Generate a detailed English prompt for image generation including scene composit
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-base font-medium hover:bg-slate-200 transition-all disabled:opacity-50">오디오 전체 생성</button>
                       <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
-                      <div className="relative group/download">
-                        <button className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-base font-medium hover:bg-slate-200 transition-all flex items-center gap-1">
-                          자산 다운로드
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                        </button>
-                        <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 min-w-[200px] opacity-0 invisible group-hover/download:opacity-100 group-hover/download:visible transition-all z-50">
-                          <button onClick={() => { project.scenes.forEach((s, i) => { if(s.imageUrl) { const a = document.createElement('a'); a.href = s.imageUrl; a.download = `scene-${i+1}.png`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-base text-slate-600 hover:bg-slate-50 transition-all">이미지 전체 다운로드</button>
-                          <button onClick={() => { project.scenes.forEach((s, i) => { if(s.audioUrl) { const a = document.createElement('a'); a.href = s.audioUrl; a.download = `audio-${i+1}.mp3`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-base text-slate-600 hover:bg-slate-50 transition-all">오디오 전체 다운로드</button>
-                        </div>
-                      </div>
                     </div>
                   </div>
 
@@ -1731,6 +1715,16 @@ Generate a detailed English prompt for image generation including scene composit
                 >
                   {isSelectionMode ? '취소' : '선택'}
                 </button>
+                <div className="relative group/download">
+                  <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all flex items-center gap-1">
+                    자산 다운로드
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 min-w-[200px] opacity-0 invisible group-hover/download:opacity-100 group-hover/download:visible transition-all z-50">
+                    <button onClick={() => { project.scenes.forEach((s, i) => { if(s.imageUrl) { const a = document.createElement('a'); a.href = s.imageUrl; a.download = `scene-${i+1}.png`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 transition-all">이미지 전체 다운로드</button>
+                    <button onClick={() => { project.scenes.forEach((s, i) => { if(s.audioUrl) { const a = document.createElement('a'); a.href = s.audioUrl; a.download = `audio-${i+1}.mp3`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 transition-all">오디오 전체 다운로드</button>
+                  </div>
+                </div>
               </div>
 
               {/* 씬 그리드 - 깔끔한 카드 스타일 */}
