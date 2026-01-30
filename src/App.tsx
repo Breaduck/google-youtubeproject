@@ -1605,19 +1605,19 @@ Generate a detailed English prompt for image generation including scene composit
                         <button onClick={(e) => { e.stopPropagation(); if(char.portraitUrl) { const a = document.createElement('a'); a.href = char.portraitUrl; a.download = `${char.name}.png`; a.click(); }}} className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0 flex flex-col">
+                    <div className="flex-1 min-w-0 flex flex-col h-48 sm:h-56">
                       <input
                         type="text"
                         value={char.name}
                         onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, name: e.target.value } : c) })}
-                        className="font-bold text-slate-900 text-2xl sm:text-3xl mb-3 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-200 rounded-lg px-2 py-1"
+                        className="font-bold text-slate-900 text-2xl sm:text-3xl mb-3 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-200 rounded-lg px-2 py-1 flex-shrink-0"
                         placeholder="이름을 입력하세요..."
                       />
-                      <div className="relative">
+                      <div className="relative flex-1">
                         <textarea
                           value={char.visualDescription || ''}
                           onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
-                          className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 w-full h-48 sm:h-56"
+                          className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 w-full h-full"
                           placeholder="캐릭터 외형 설명을 입력하세요..."
                         />
                         <button onClick={() => copyToClipboard(char.visualDescription)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
