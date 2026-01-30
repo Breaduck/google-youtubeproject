@@ -80,9 +80,9 @@ Return ONLY valid JSON, no markdown or explanation.`;
 
     let enhancedPrompt = prompt;
     if (isPortrait) {
-      enhancedPrompt = `Portrait shot, centered composition, ${prompt}, high quality, detailed, professional lighting`;
+      enhancedPrompt = `Portrait shot, centered composition, square 1:1 aspect ratio, ${prompt}, high quality, detailed, professional lighting`;
     } else {
-      enhancedPrompt = `${prompt}, cinematic composition, high quality, detailed, professional lighting`;
+      enhancedPrompt = `Widescreen 16:9 aspect ratio, ${prompt}, cinematic composition, high quality, detailed, professional lighting`;
     }
 
     // Check if using Imagen models
