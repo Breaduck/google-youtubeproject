@@ -53,6 +53,9 @@ const App: React.FC = () => {
   });
   const [newStyleName, setNewStyleName] = useState('');
   const [newStyleImages, setNewStyleImages] = useState<string[]>([]);
+  const [newStyleDescription, setNewStyleDescription] = useState('');
+  const [isStyleDescModalOpen, setIsStyleDescModalOpen] = useState(false);
+  const [customStyleName, setCustomStyleName] = useState('');
   const styleLibraryInputRef = useRef<HTMLInputElement>(null);
 
   const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>(() => {
@@ -428,6 +431,46 @@ const App: React.FC = () => {
       setTimeout(() => {
          setBgTask(null);
          setBgProgress(0);
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      clearInterval(progressTimer);
+      alert('화풍 학습에 실패했습니다.');
+      setBgTask(null);
+    }
+  };
+
+  const saveCustomStyleFromInput = async () => {
+    if (!customStyleName.trim()) { alert('그림체 이름을 입력해주세요.'); return; }
+    if (refImages.length === 0) { alert('이미지를 최소 1장 이상 등록해주세요.'); return; }
+    if (savedStyles.length >= 10) { alert('자주 쓰는 그림체은 최대 10개까지 저장 가능합니다.'); return; }
+
+    setBgTask({ type: 'style', message: '참고 이미지를 바탕으로 화풍을 학습중입니다' });
+    setBgProgress(0);
+
+    const progressTimer = setInterval(() => {
+       setBgProgress(prev => Math.min(prev + 2, 90));
+    }, 200);
+
+    try {
+      const description = await gemini.analyzeStyle(refImages);
+      clearInterval(progressTimer);
+      setBgProgress(100);
+
+      const newStyle: SavedStyle = {
+        id: crypto.randomUUID(),
+        name: customStyleName,
+        refImages: refImages,
+        description
+      };
+      setSavedStyles(prev => [...prev, newStyle]);
+      setCustomStyleName('');
+      setRefImages([]);
+
+      setTimeout(() => {
+         setBgTask(null);
+         setBgProgress(0);
+         setStep('dashboard');
       }, 1500);
     } catch (err) {
       console.error(err);
@@ -1169,6 +1212,11 @@ const App: React.FC = () => {
     updateCurrentProject({ scenes: project.scenes.filter(s => s.id !== id) });
   };
 
+  const deleteSceneImage = (id: string) => {
+    if (!project) return;
+    updateCurrentProject({ scenes: project.scenes.map(s => s.id === id ? { ...s, imageUrl: null, status: 'idle' } : s) });
+  };
+
   const addNewProject = () => {
     const newId = crypto.randomUUID();
     const newProject: StoryProject = {
@@ -1406,7 +1454,7 @@ const App: React.FC = () => {
                         <textarea
                           value={char.visualDescription || ''}
                           onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
-                          className="text-xs text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 h-32 w-full"
+                          className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 h-48 sm:h-56 w-full"
                           placeholder="캐릭터 외형 설명을 입력하세요..."
                         />
                         <button onClick={() => copyToClipboard(char.visualDescription)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
@@ -1417,8 +1465,8 @@ const App: React.FC = () => {
                   </div>
                   );
                 })}
-                <button onClick={() => setIsCharModalOpen(true)} className="bg-white rounded-3xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all p-6 flex gap-6 items-center min-h-[240px]">
-                  <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl bg-slate-50 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-all">
+                <button onClick={() => setIsCharModalOpen(true)} className="bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all p-6 flex gap-6 items-center min-h-[240px]">
+                  <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-all">
                     <span className="text-7xl text-slate-300">+</span>
                   </div>
                   <div className="flex-1">
@@ -1451,8 +1499,8 @@ const App: React.FC = () => {
                       className="text-2xl sm:text-3xl font-bold text-slate-900 bg-transparent border-none focus:outline-none w-auto min-w-[250px]"
                     />
                     <div className="flex flex-wrap gap-3 items-center">
-                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 생성</button>
-                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-base font-medium hover:bg-slate-200 transition-all disabled:opacity-50">오디오 생성</button>
+                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
+                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-base font-medium hover:bg-slate-200 transition-all disabled:opacity-50">오디오 전체 생성</button>
                       <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
                       <div className="relative group/download">
                         <button className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-base font-medium hover:bg-slate-200 transition-all flex items-center gap-1">
@@ -1507,9 +1555,21 @@ const App: React.FC = () => {
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                           <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imageUrl: ev.target?.result as string, status: 'done' } : s) }); }; reader.readAsDataURL(file); } }} />
                         </label>
-                        <button onClick={() => deleteScene(scene.id)} className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 hover:text-red-500 transition-all shadow-sm">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
+                        {scene.imageUrl ? (
+                          <div className="relative group/delete">
+                            <button className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 hover:text-red-500 transition-all shadow-sm">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <div className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-xl py-1 min-w-[140px] opacity-0 invisible group-hover/delete:opacity-100 group-hover/delete:visible transition-all z-50">
+                              <button onClick={() => deleteSceneImage(scene.id)} className="w-full px-3 py-2 text-left text-xs text-slate-600 hover:bg-slate-50 transition-all">이미지만 삭제</button>
+                              <button onClick={() => deleteScene(scene.id)} className="w-full px-3 py-2 text-left text-xs text-red-500 hover:bg-red-50 transition-all">씬 삭제</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => deleteScene(scene.id)} className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 hover:text-red-500 transition-all shadow-sm">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        )}
                       </div>
 
                       {scene.status === 'loading' && (
@@ -1546,7 +1606,7 @@ const App: React.FC = () => {
                         <textarea
                           value={scene.scriptSegment}
                           onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                          className="w-full text-sm font-semibold text-slate-800 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300"
+                          className="w-full text-base font-semibold text-slate-800 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300"
                           placeholder="장면 대사..."
                         />
                       </div>
@@ -1578,7 +1638,7 @@ const App: React.FC = () => {
                       {/* 프롬프트 - 접힌 스타일 */}
                       <details className="group/prompt">
                         <summary className="flex items-center justify-between cursor-pointer text-[10px] text-slate-400 font-medium uppercase tracking-wide py-1">
-                          <span>Prompt</span>
+                          <span>이미지 프롬프트</span>
                           <svg className="w-3.5 h-3.5 transform group-open/prompt:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                         </summary>
                         <div className="mt-2 space-y-2">
@@ -1603,7 +1663,7 @@ const App: React.FC = () => {
                 ))}
 
                 {/* 추가 버튼 */}
-                <button onClick={addSceneManually} className="bg-white rounded-3xl border-2 border-dashed border-slate-200 min-h-[320px] flex flex-col items-center justify-center gap-3 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all group/add">
+                <button onClick={addSceneManually} className="bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300 min-h-[320px] flex flex-col items-center justify-center gap-3 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all group/add">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover/add:bg-indigo-100 flex items-center justify-center text-slate-400 group-hover/add:text-indigo-500 transition-all">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                   </div>
@@ -1616,7 +1676,7 @@ const App: React.FC = () => {
           )}
 
           {step === 'input' && (
-            <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12 pt-10 sm:pt-10">
+            <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12 pt-10 sm:pt-10 min-h-[calc(100vh-200px)] flex flex-col justify-center">
                <div className="text-center space-y-2 sm:space-y-4">
                   <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight leading-tight">당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
                   <p className="text-slate-400 font-medium text-base sm:text-lg">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
@@ -1667,8 +1727,24 @@ const App: React.FC = () => {
                         <h4 className="text-lg sm:text-xl font-semibold text-slate-900">맞춤형 스타일 학습</h4>
                         <p className="text-xs sm:text-sm text-slate-500 mt-1">학습 레퍼런스 이미지 업로드 (최대 7장)</p>
                       </div>
-                      <button onClick={() => styleRefImageInputRef.current?.click()} className="w-full sm:w-auto px-6 py-3 bg-white border border-indigo-200 rounded-2xl text-xs font-semibold text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
+                      <div className="flex gap-2 w-full sm:w-auto">
+                        <button onClick={() => styleRefImageInputRef.current?.click()} className="flex-1 sm:flex-none px-6 py-3 bg-white border border-indigo-200 rounded-2xl text-xs font-semibold text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
+                        {refImages.length > 0 && (
+                          <button onClick={saveCustomStyleFromInput} disabled={!customStyleName.trim()} className="px-6 py-3 bg-indigo-600 border border-indigo-600 rounded-2xl text-xs font-semibold text-white hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">저장하기</button>
+                        )}
+                      </div>
                    </div>
+                   {refImages.length > 0 && (
+                     <div>
+                       <input
+                         type="text"
+                         value={customStyleName}
+                         onChange={(e) => setCustomStyleName(e.target.value)}
+                         placeholder="그림체 이름을 입력해주세요 (예: 지브리 스타일)"
+                         className="w-full px-4 py-3 rounded-xl border border-indigo-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white"
+                       />
+                     </div>
+                   )}
                    <div className="flex gap-3 flex-wrap">
                       {refImages.map((img, idx) => (
                         <div key={idx} className="relative w-20 h-20 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-white shadow-md group">
@@ -1686,7 +1762,7 @@ const App: React.FC = () => {
                  <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-6 sm:py-8 bg-indigo-600 text-white rounded-[24px] sm:rounded-[32px] font-semibold text-lg sm:text-2xl shadow-2xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
                  {project && project.characters.length > 0 && (
                    <button onClick={() => setStep('character_setup')} className="px-8 py-6 sm:py-8 bg-white border border-slate-200 text-slate-600 rounded-[24px] sm:rounded-[32px] font-semibold text-base sm:text-xl hover:bg-slate-50 hover:text-indigo-600 transition-all shadow-lg">
-                     다음 단계로 이동 &gt;
+                     등장인물 설정 &gt;
                    </button>
                  )}
                </div>
@@ -1720,6 +1796,33 @@ const App: React.FC = () => {
                 </button>
                 <button onClick={handleRegenerateWithModification} disabled={!regenerateInput.trim()} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                   적용하기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isStyleDescModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsStyleDescModalOpen(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100">
+              <h2 className="text-xl font-semibold text-slate-900">고급 설정</h2>
+              <p className="text-sm text-slate-500 mt-1">그림체의 특징을 상세히 설명해주세요</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">특징 설명 (선택사항)</label>
+                <textarea
+                  value={newStyleDescription}
+                  onChange={(e) => setNewStyleDescription(e.target.value)}
+                  className="w-full h-32 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none resize-none text-sm"
+                  placeholder="이 그림체의 특징을 간단히 설명해주세요..."
+                />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setIsStyleDescModalOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">
+                  닫기
                 </button>
               </div>
             </div>
@@ -1886,7 +1989,21 @@ const App: React.FC = () => {
                   <div className="px-4 pb-4 border-t border-slate-100 bg-slate-50/50 space-y-4">
                     {/* 새 그림체 추가 폼 */}
                     <div className="pt-4 space-y-3">
-                      <h4 className="text-sm font-semibold text-slate-700">새 그림체 추가</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-slate-700">새 그림체 추가</h4>
+                        <button
+                          onClick={() => setIsStyleDescModalOpen(true)}
+                          className="group relative p-1.5 hover:bg-slate-100 rounded-lg transition-all"
+                          title="고급 설정"
+                        >
+                          <svg className="w-4 h-4 text-slate-500 hover:text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                          </svg>
+                          <span className="absolute -top-8 right-0 bg-slate-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                            고급 설정
+                          </span>
+                        </button>
+                      </div>
                       <div className="space-y-2">
                         <label className="text-xs font-medium text-slate-600">제목</label>
                         <input
@@ -1895,13 +2012,6 @@ const App: React.FC = () => {
                           onChange={e => setNewStyleName(e.target.value)}
                           placeholder="예: 지브리 스타일, 수채화 풍경 등"
                           className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-slate-600">특징 설명 (선택사항)</label>
-                        <textarea
-                          placeholder="이 그림체의 특징을 간단히 설명해주세요..."
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm h-20 resize-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
                         />
                       </div>
                       <div className="space-y-2">
@@ -1984,7 +2094,7 @@ const App: React.FC = () => {
                           type="text"
                           value={newCharLibName}
                           onChange={e => setNewCharLibName(e.target.value)}
-                          placeholder="예: 민준, Emma, 홍길동 등"
+                          placeholder="이름을 입력해주세요"
                           className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
                         />
                       </div>
@@ -2036,7 +2146,7 @@ const App: React.FC = () => {
                         {savedCharacters.map(c => (
                           <div key={c.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
                             <div className="flex items-center gap-3">
-                              {c.portraitUrl && <img src={c.portraitUrl} className="w-10 h-10 rounded-full object-cover" />}
+                              {c.portraitUrl && <img src={c.portraitUrl} onClick={() => setSelectedImage(c.portraitUrl)} className="w-10 h-10 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform" />}
                               <span className="text-sm font-medium text-slate-700">{c.name}</span>
                             </div>
                             <button onClick={() => setSavedCharacters(prev => prev.filter(x => x.id !== c.id))} className="text-xs text-red-500 hover:text-red-600">삭제</button>
