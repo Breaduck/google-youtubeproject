@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Modal API Base64 Test</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #4F46E5; color: white; border: none; border-radius: 8px; margin: 10px 0; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #log { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-top: 20px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+    video { max-width: 100%; margin-top: 20px; border: 2px solid #4F46E5; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>🎬 Modal API Base64 이미지 테스트</h1>
+
+  <div>
+    <label>이미지 선택: <input type="file" id="imageInput" accept="image/*"></label>
+  </div>
+
+  <button id="testBtn" disabled>Modal API 테스트 (Base64)</button>
+
+  <div id="log">준비 중...</div>
+
+  <video id="resultVideo" controls style="display:none;"></video>
+
+  <script>
+    const MODAL_API = 'https://hiyoonsh1--ltx-video-service-v2-web-app.modal.run';
+
+    const log = (msg) => {
+      const logEl = document.getElementById('log');
+      const timestamp = new Date().toLocaleTimeString();
+      logEl.textContent += `[${timestamp}] ${msg}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(msg);
+    };
+
+    let selectedImageBase64 = null;
+
+    document.getElementById('imageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          selectedImageBase64 = ev.target.result;
+          log(`✅ 이미지 로드 완료: ${file.name} (${(selectedImageBase64.length / 1024).toFixed(1)} KB base64)`);
+          document.getElementById('testBtn').disabled = false;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('testBtn').addEventListener('click', async () => {
+      if (!selectedImageBase64) {
+        log('❌ 이미지를 먼저 선택하세요');
+        return;
+      }
+
+      const btn = document.getElementById('testBtn');
+      btn.disabled = true;
+      log('🚀 Modal API 테스트 시작...\n');
+
+      try {
+        const testPrompt = "A person standing still, subtle breathing motion, gentle expression";
+
+        log(`📤 요청 데이터:`);
+        log(`   - Prompt: ${testPrompt}`);
+        log(`   - Image: base64 data URL (${(selectedImageBase64.length / 1024).toFixed(1)} KB)`);
+        log(`   - Frames: 97`);
+        log(`\n🌐 Modal API 호출 중...`);
+
+        const startTime = Date.now();
+        const response = await fetch(`${MODAL_API}/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: testPrompt,
+            image_url: selectedImageBase64,
+            character_description: '',
+            num_frames: 97
+          })
+        });
+
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        log(`⏱️ 응답 시간: ${elapsed}초`);
+        log(`📊 응답 상태: ${response.status} ${response.statusText}`);
+        log(`📋 Content-Type: ${response.headers.get('Content-Type')}`);
+
+        if (!response.ok) {
+          let errorMsg = `HTTP ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorData.detail || errorMsg;
+            log(`❌ 오류 (JSON): ${errorMsg}`);
+          } catch (e) {
+            const errorText = await response.text();
+            log(`❌ 오류 (Text): ${errorText.substring(0, 200)}`);
+          }
+          throw new Error(errorMsg);
+        }
+
+        const videoBlob = await response.blob();
+        log(`✅ 비디오 Blob 수신: ${(videoBlob.size / 1024 / 1024).toFixed(2)} MB`);
+        log(`   MIME Type: ${videoBlob.type}`);
+
+        const videoUrl = URL.createObjectURL(videoBlob);
+        const videoEl = document.getElementById('resultVideo');
+        videoEl.src = videoUrl;
+        videoEl.style.display = 'block';
+
+        log(`\n✅✅✅ 테스트 성공! 비디오가 생성되었습니다.`);
+        log(`📥 비디오를 다운로드하려면 우클릭 > 다른 이름으로 저장`);
+      } catch (error) {
+        log(`\n❌ 테스트 실패: ${error.message}`);
+        console.error('Full error:', error);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    log('✅ 테스트 페이지 로드 완료');
+    log(`✅ Modal API: ${MODAL_API}`);
+    log('\n📝 이미지를 선택하고 테스트 버튼을 클릭하세요.');
+  </script>
+</body>
+</html>

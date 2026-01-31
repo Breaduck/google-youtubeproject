@@ -47,9 +47,18 @@ export async function generateSceneVideo(
   console.log(`[LTX] Modal API response: ${response.status} (${elapsed}s)`);
 
   if (!response.ok) {
-    const error = await response.json();
-    console.error('[LTX] Modal API error:', error);
-    throw new Error(error.error || 'Video generation failed');
+    let errorMessage = 'Video generation failed';
+    try {
+      const error = await response.json();
+      console.error('[LTX] Modal API error:', error);
+      errorMessage = error.error || error.detail || errorMessage;
+    } catch (e) {
+      // Response is not JSON, try reading as text
+      const text = await response.text();
+      console.error('[LTX] Modal API error (non-JSON):', text.substring(0, 200));
+      errorMessage = `Modal API error (${response.status}): ${text.substring(0, 100)}`;
+    }
+    throw new Error(errorMessage);
   }
 
   const blob = await response.blob();
