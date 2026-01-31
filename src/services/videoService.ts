@@ -19,11 +19,9 @@ export async function generateSceneVideo(
   console.log('[LTX] generateSceneVideo called');
   console.log('[LTX] Dialogue:', dialogue.substring(0, 50));
 
-  // Generate motion-enhanced prompt using Gemini
-  const gemini = new GeminiService();
-  console.log('[LTX] Calling Gemini for motion prompt...');
-  const motionDescription = await gemini.generateMotionPrompt(dialogue, imagePrompt);
-  console.log('[LTX] Motion prompt:', motionDescription.substring(0, 80));
+  // 기본 모션 프롬프트 (Gemini 비용 절약)
+  const motionDescription = 'subtle natural movement, gentle facial expressions, slight body motion';
+  console.log('[LTX] Using default motion prompt');
 
   // Combine image prompt with motion
   const enhancedPrompt = `${imagePrompt}. ${motionDescription}`;
