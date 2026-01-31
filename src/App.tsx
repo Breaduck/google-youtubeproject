@@ -1350,11 +1350,22 @@ const App: React.FC = () => {
 
         // 생성된 LTX 비디오 로드
         const videoElement = document.createElement('video');
-        videoElement.src = URL.createObjectURL(videoBlob);
+        videoElement.crossOrigin = 'anonymous';
         videoElement.muted = true;
+        videoElement.playsInline = true;
+        const videoUrl = URL.createObjectURL(new Blob([videoBlob], { type: 'video/mp4' }));
+        videoElement.src = videoUrl;
+
         await new Promise((resolve, reject) => {
-          videoElement.onloadeddata = resolve;
-          videoElement.onerror = reject;
+          videoElement.onloadeddata = () => {
+            console.log('[DEBUG] Video loaded successfully');
+            resolve(null);
+          };
+          videoElement.onerror = (e) => {
+            console.error('[DEBUG] Video load error:', e, videoElement.error);
+            reject(e);
+          };
+          videoElement.load();
         });
         await videoElement.play();
         const audio = new Audio(scene.audioUrl!);
