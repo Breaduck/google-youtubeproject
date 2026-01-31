@@ -159,9 +159,10 @@ def generate_video(
             prompt=prompt,
             image=input_image,
             num_frames=num_frames,
-            guidance_scale=3.0,  # 낮은 값 = 이미지에 더 충실
-            num_inference_steps=30,  # 속도와 품질의 균형
+            guidance_scale=3.0,
+            num_inference_steps=30,
             generator=torch.Generator("cuda").manual_seed(seed),
+            mu=1.0,  # LTX 모델에 필요한 파라미터
         )
 
     # 4. 비디오 저장 (임시 파일)
