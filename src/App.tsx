@@ -1173,37 +1173,38 @@ const App: React.FC = () => {
   const exportVideo = async () => {
     if (!project) return;
 
-    // 1단계: 이미지와 오디오 확인
+    // 이미지와 오디오 확인
     const missingAssets = project.scenes.some(s => !s.imageUrl || !s.audioUrl);
     if (missingAssets) {
       alert("모든 장면의 이미지와 오디오가 생성되어야 합니다.");
       return;
     }
 
-    // 2단계: LTX 비디오가 없는 씬이 있으면 자동 생성
-    const scenesNeedingVideo = project.scenes.filter(s => s.imageUrl && !s.videoUrl);
-    if (scenesNeedingVideo.length > 0) {
-      const shouldGenerate = confirm(
-        `${scenesNeedingVideo.length}개 씬의 LTX 비디오를 먼저 생성하시겠습니까?\n` +
-        `(생성 시간: 약 ${scenesNeedingVideo.length * 60}초)`
-      );
-
-      if (shouldGenerate) {
-        await generateAllVideos();
-        // 비디오 생성 완료 후 다시 확인
-        const stillMissing = project.scenes.some(s => s.imageUrl && !s.videoUrl);
-        if (stillMissing) {
-          alert("비디오 생성이 완료되지 않았습니다. 다시 시도해주세요.");
-          return;
-        }
-      } else {
-        // 사용자가 취소한 경우 정적 이미지로 진행
-        console.log("정적 이미지 + 오디오로 동영상 생성");
-      }
-    }
-
-    setBgTask({ type: 'video', message: '동영상 렌더링 중' });
+    setBgTask({ type: 'video', message: 'LTX 비디오 생성 중...' });
     setBgProgress(0);
+
+    try {
+      // 1단계: 모든 씬의 LTX 비디오 생성
+      const characterDesc = project.characters.length > 0 ? project.characters[0].visualDescription : '';
+      const videoBlobs: Blob[] = [];
+
+      for (let i = 0; i < project.scenes.length; i++) {
+        const scene = project.scenes[i];
+        setBgTask({ type: 'video', message: `LTX 비디오 생성 중 (${i + 1}/${project.scenes.length})...` });
+        setBgProgress(Math.round((i / project.scenes.length) * 50)); // 50%까지는 비디오 생성
+
+        const videoBlob = await generateSceneVideo(
+          scene.imageUrl!,
+          scene.imagePrompt,
+          scene.scriptSegment,
+          characterDesc
+        );
+        videoBlobs.push(videoBlob);
+      }
+
+      // 2단계: Canvas 기반 최종 렌더링
+      setBgTask({ type: 'video', message: '최종 동영상 렌더링 중...' });
+      setBgProgress(50);
 
     const canvas = document.createElement('canvas'); canvas.width = 1920; canvas.height = 1080;
     const ctx = canvas.getContext('2d')!;
@@ -1339,32 +1340,17 @@ const App: React.FC = () => {
 
     for (let i = 0; i < project.scenes.length; i++) {
       const scene = project.scenes[i];
+      const videoBlob = videoBlobs[i];
 
-      // LTX 비디오가 있으면 비디오 사용, 없으면 정적 이미지 사용
-      const useLTXVideo = !!scene.videoUrl;
-
-      // LTX 비디오 또는 정적 이미지 로드
-      let videoElement: HTMLVideoElement | null = null;
-      let img: HTMLImageElement | null = null;
-
-      if (useLTXVideo) {
-        // LTX 비디오 사용
-        videoElement = document.createElement('video');
-        videoElement.crossOrigin = "anonymous";
-        videoElement.src = scene.videoUrl!;
-        videoElement.muted = true;
-        await new Promise((resolve, reject) => {
-          videoElement!.onloadeddata = resolve;
-          videoElement!.onerror = reject;
-        });
-        await videoElement!.play();
-      } else {
-        // 정적 이미지 사용
-        img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = scene.imageUrl!;
-        await new Promise(r => img!.onload = r);
-      }
+      // 생성된 LTX 비디오 로드
+      const videoElement = document.createElement('video');
+      videoElement.src = URL.createObjectURL(videoBlob);
+      videoElement.muted = true;
+      await new Promise((resolve, reject) => {
+        videoElement.onloadeddata = resolve;
+        videoElement.onerror = reject;
+      });
+      await videoElement.play();
       const audio = new Audio(scene.audioUrl!);
       await new Promise(r => audio.oncanplaythrough = r);
       const duration = audio.duration;
@@ -1383,35 +1369,14 @@ const App: React.FC = () => {
           const progress = Math.min(elapsed / duration, 1);
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          // LTX 비디오는 이미 모션이 있으므로 추가 효과 적용 안 함
-          let scale = 1;
-          let offsetX = 0;
-          let offsetY = 0;
+          // LTX 비디오는 이미 모션이 있으므로 1:1로 그림 (추가 효과 없음)
+          const w = canvas.width;
+          const h = canvas.height;
+          const x = 0;
+          const y = 0;
 
-          if (!useLTXVideo) {
-            // 정적 이미지만 효과 적용
-            const transform = calculateEffectTransform(
-              scene.effect,
-              progress,
-              canvas.width,
-              canvas.height
-            );
-            scale = transform.scale;
-            offsetX = transform.offsetX;
-            offsetY = transform.offsetY;
-          }
-
-          const w = canvas.width * scale;
-          const h = canvas.height * scale;
-          const x = (canvas.width - w) / 2 + offsetX;
-          const y = (canvas.height - h) / 2 + offsetY;
-
-          // LTX 비디오가 있으면 비디오 프레임 사용, 없으면 정적 이미지 사용
-          if (useLTXVideo && videoElement) {
-            ctx.drawImage(videoElement, x, y, w, h);
-          } else if (img) {
-            ctx.drawImage(img, x, y, w, h);
-          }
+          // LTX 비디오 프레임 그리기
+          ctx.drawImage(videoElement, x, y, w, h);
 
           const partIndex = Math.min(Math.floor(progress * subtitleParts.length), subtitleParts.length - 1);
           const currentText = subtitleParts[partIndex];
@@ -1426,21 +1391,28 @@ const App: React.FC = () => {
       });
 
       // 비디오 정리
-      if (videoElement) {
-        videoElement.pause();
-        videoElement.src = '';
-      }
+      videoElement.pause();
+      videoElement.src = '';
+      URL.revokeObjectURL(videoElement.src);
 
-      setBgProgress(Math.round(((i + 1) / project.scenes.length) * 100));
+      // 진행률 업데이트 (50% ~ 100%)
+      const renderProgress = 50 + Math.round(((i + 1) / project.scenes.length) * 50);
+      setBgProgress(renderProgress);
     }
     recorder.stop();
     await new Promise(r => recorder.onstop = r);
     const videoBlob = new Blob(chunks, { type: 'video/mp4' });
     const url = URL.createObjectURL(videoBlob);
-    downloadAsset(url, `${project.title}.mp4`);
-    setBgTask(null);
-    setBgProgress(0);
-    alert("동영상 저장이 완료되었습니다.");
+      downloadAsset(url, `${project.title}.mp4`);
+      setBgTask(null);
+      setBgProgress(0);
+      alert("동영상 저장이 완료되었습니다.");
+    } catch (error) {
+      console.error('Export failed:', error);
+      setBgTask(null);
+      setBgProgress(0);
+      alert(`동영상 생성 중 오류가 발생했습니다: ${error}`);
+    }
   };
 
   const addCharacterManually = async () => {
