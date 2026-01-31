@@ -1212,22 +1212,22 @@ const App: React.FC = () => {
       setBgTask({ type: 'video', message: '최종 동영상 렌더링 중...' });
       setBgProgress(50);
 
-    const canvas = document.createElement('canvas'); canvas.width = 1920; canvas.height = 1080;
-    const ctx = canvas.getContext('2d')!;
-    const stream = canvas.captureStream(60);
+      const canvas = document.createElement('canvas'); canvas.width = 1920; canvas.height = 1080;
+      const ctx = canvas.getContext('2d')!;
+      const stream = canvas.captureStream(60);
 
-    const audioCtx = new AudioContext();
-    const dest = audioCtx.createMediaStreamDestination();
-    const recorder = new MediaRecorder(new MediaStream([...stream.getVideoTracks(), ...dest.stream.getAudioTracks()]), {
-      mimeType: 'video/webm',
-      videoBitsPerSecond: 20000000
-    });
+      const audioCtx = new AudioContext();
+      const dest = audioCtx.createMediaStreamDestination();
+      const recorder = new MediaRecorder(new MediaStream([...stream.getVideoTracks(), ...dest.stream.getAudioTracks()]), {
+        mimeType: 'video/webm',
+        videoBitsPerSecond: 20000000
+      });
 
-    const chunks: Blob[] = [];
-    recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.start();
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.start();
 
-    const drawMultiLineText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
+      const drawMultiLineText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
        const words = text.split(' ');
        let line = '';
        const lines: string[] = [];
@@ -1344,70 +1344,70 @@ const App: React.FC = () => {
       return { scale, offsetX, offsetY };
     };
 
-    for (let i = 0; i < project.scenes.length; i++) {
-      const scene = project.scenes[i];
-      const videoBlob = videoBlobs[i];
+      for (let i = 0; i < project.scenes.length; i++) {
+        const scene = project.scenes[i];
+        const videoBlob = videoBlobs[i];
 
-      // 생성된 LTX 비디오 로드
-      const videoElement = document.createElement('video');
-      videoElement.src = URL.createObjectURL(videoBlob);
-      videoElement.muted = true;
-      await new Promise((resolve, reject) => {
-        videoElement.onloadeddata = resolve;
-        videoElement.onerror = reject;
-      });
-      await videoElement.play();
-      const audio = new Audio(scene.audioUrl!);
-      await new Promise(r => audio.oncanplaythrough = r);
-      const duration = audio.duration;
-      const startTime = audioCtx.currentTime;
-      const source = audioCtx.createMediaElementSource(audio);
-      source.connect(dest);
-      audio.play();
-      const subtitleParts = splitSubtitles(scene.scriptSegment);
+        // 생성된 LTX 비디오 로드
+        const videoElement = document.createElement('video');
+        videoElement.src = URL.createObjectURL(videoBlob);
+        videoElement.muted = true;
+        await new Promise((resolve, reject) => {
+          videoElement.onloadeddata = resolve;
+          videoElement.onerror = reject;
+        });
+        await videoElement.play();
+        const audio = new Audio(scene.audioUrl!);
+        await new Promise(r => audio.oncanplaythrough = r);
+        const duration = audio.duration;
+        const startTime = audioCtx.currentTime;
+        const source = audioCtx.createMediaElementSource(audio);
+        source.connect(dest);
+        audio.play();
+        const subtitleParts = splitSubtitles(scene.scriptSegment);
 
-      // Log effect for debugging
-      console.log(`Scene ${i + 1} effect:`, scene.effect);
+        // Log effect for debugging
+        console.log(`Scene ${i + 1} effect:`, scene.effect);
 
-      await new Promise<void>(resolve => {
-        const renderFrame = () => {
-          const elapsed = audioCtx.currentTime - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        await new Promise<void>(resolve => {
+          const renderFrame = () => {
+            const elapsed = audioCtx.currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          // LTX 비디오는 이미 모션이 있으므로 1:1로 그림 (추가 효과 없음)
-          const w = canvas.width;
-          const h = canvas.height;
-          const x = 0;
-          const y = 0;
+            // LTX 비디오는 이미 모션이 있으므로 1:1로 그림 (추가 효과 없음)
+            const w = canvas.width;
+            const h = canvas.height;
+            const x = 0;
+            const y = 0;
 
-          // LTX 비디오 프레임 그리기
-          ctx.drawImage(videoElement, x, y, w, h);
+            // LTX 비디오 프레임 그리기
+            ctx.drawImage(videoElement, x, y, w, h);
 
-          const partIndex = Math.min(Math.floor(progress * subtitleParts.length), subtitleParts.length - 1);
-          const currentText = subtitleParts[partIndex];
-          if (currentText) {
-            ctx.font = "bold 60px Pretendard";
-            drawMultiLineText(ctx, currentText, canvas.width/2, 0, 1400, 80);
-          }
-          if (progress < 1) requestAnimationFrame(renderFrame);
-          else resolve();
-        };
-        requestAnimationFrame(renderFrame);
-      });
+            const partIndex = Math.min(Math.floor(progress * subtitleParts.length), subtitleParts.length - 1);
+            const currentText = subtitleParts[partIndex];
+            if (currentText) {
+              ctx.font = "bold 60px Pretendard";
+              drawMultiLineText(ctx, currentText, canvas.width/2, 0, 1400, 80);
+            }
+            if (progress < 1) requestAnimationFrame(renderFrame);
+            else resolve();
+          };
+          requestAnimationFrame(renderFrame);
+        });
 
-      // 비디오 정리
-      videoElement.pause();
-      videoElement.src = '';
-      URL.revokeObjectURL(videoElement.src);
+        // 비디오 정리
+        videoElement.pause();
+        videoElement.src = '';
+        URL.revokeObjectURL(videoElement.src);
 
-      // 진행률 업데이트 (50% ~ 100%)
-      const renderProgress = 50 + Math.round(((i + 1) / project.scenes.length) * 50);
-      setBgProgress(renderProgress);
-    }
-    recorder.stop();
-    await new Promise(r => recorder.onstop = r);
-    const videoBlob = new Blob(chunks, { type: 'video/mp4' });
+        // 진행률 업데이트 (50% ~ 100%)
+        const renderProgress = 50 + Math.round(((i + 1) / project.scenes.length) * 50);
+        setBgProgress(renderProgress);
+      }
+      recorder.stop();
+      await new Promise(r => recorder.onstop = r);
+      const videoBlob = new Blob(chunks, { type: 'video/mp4' });
     const url = URL.createObjectURL(videoBlob);
       downloadAsset(url, `${project.title}.mp4`);
       setBgTask(null);
