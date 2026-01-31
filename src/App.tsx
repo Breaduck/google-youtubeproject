@@ -1481,8 +1481,10 @@ const App: React.FC = () => {
       imagePrompt: 'new scene prompt',
       imageUrl: null,
       audioUrl: null,
+      videoUrl: null,
       status: 'idle',
-      audioStatus: 'idle'
+      audioStatus: 'idle',
+      videoStatus: 'idle'
     };
     updateCurrentProject({ scenes: [...project.scenes, newScene] });
   };
@@ -1549,8 +1551,10 @@ Generate a detailed English prompt for image generation including scene composit
         imagePrompt: newImagePrompt,
         imageUrl: null,
         audioUrl: null,
+        videoUrl: null,
         status: 'idle',
         audioStatus: 'idle',
+        videoStatus: 'idle',
         effect: selectedScenes[0].effect // Copy effect from first scene
       };
 
