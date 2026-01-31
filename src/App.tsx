@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom';
 import { GoogleGenAI } from "@google/genai";
 import { GeminiService } from './services/geminiService';
+import { generateSceneVideo, generateBatchVideos } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect } from './types';
 
 // 특징(태그) 한국어 번역 맵 (확장됨)
@@ -983,6 +984,111 @@ const App: React.FC = () => {
     }
   };
 
+  // Video generation functions
+  const generateVideo = async (sceneId: string) => {
+    if (!project) return;
+
+    const scene = project.scenes.find(s => s.id === sceneId);
+    if (!scene || !scene.imageUrl) {
+      alert('이미지를 먼저 생성해주세요!');
+      return;
+    }
+
+    updateCurrentProject({
+      scenes: project.scenes.map(s => s.id === sceneId ? { ...s, videoStatus: 'loading' } : s)
+    });
+
+    try {
+      const characterDesc = project.characters.length > 0
+        ? project.characters[0].visualDescription
+        : '';
+
+      const videoBlob = await generateSceneVideo(
+        scene.imageUrl,
+        scene.imagePrompt,
+        characterDesc
+      );
+
+      const videoUrl = URL.createObjectURL(videoBlob);
+
+      updateCurrentProject({
+        scenes: project.scenes.map(s =>
+          s.id === sceneId
+            ? { ...s, videoUrl, videoStatus: 'done' }
+            : s
+        )
+      });
+    } catch (err) {
+      console.error('Video generation failed:', err);
+      updateCurrentProject({
+        scenes: project.scenes.map(s => s.id === sceneId ? { ...s, videoStatus: 'error' } : s)
+      });
+      alert('비디오 생성에 실패했습니다.');
+    }
+  };
+
+  const generateAllVideos = async () => {
+    if (!project) return;
+
+    const scenesNeedingVideo = project.scenes.filter(s => s.imageUrl && !s.videoUrl);
+
+    if (scenesNeedingVideo.length === 0) {
+      alert('생성할 비디오가 없습니다!');
+      return;
+    }
+
+    // 5개씩 제한 (테스트용)
+    const limitedScenes = scenesNeedingVideo.slice(0, 5);
+
+    setIsBatchGenerating(true);
+    setLoadingText(`비디오 생성 중 (${limitedScenes.length}개)...`);
+
+    // Mark all as loading
+    updateCurrentProject({
+      scenes: project.scenes.map(s =>
+        limitedScenes.some(ls => ls.id === s.id)
+          ? { ...s, videoStatus: 'loading' }
+          : s
+      )
+    });
+
+    try {
+      const characterDesc = project.characters.length > 0
+        ? project.characters[0].visualDescription
+        : '';
+
+      const requests = limitedScenes.map(scene => ({
+        prompt: scene.imagePrompt,
+        image_url: scene.imageUrl!,
+        character_description: characterDesc,
+      }));
+
+      const videoBlobs = await generateBatchVideos(requests);
+
+      // Update all scenes with generated videos
+      const updatedScenes = [...project.scenes];
+      limitedScenes.forEach((scene, idx) => {
+        const sceneIndex = updatedScenes.findIndex(s => s.id === scene.id);
+        if (sceneIndex !== -1 && videoBlobs[idx]) {
+          const videoUrl = URL.createObjectURL(videoBlobs[idx]);
+          updatedScenes[sceneIndex] = {
+            ...updatedScenes[sceneIndex],
+            videoUrl,
+            videoStatus: 'done'
+          };
+        }
+      });
+
+      updateCurrentProject({ scenes: updatedScenes });
+      alert(`${limitedScenes.length}개 비디오 생성 완료!`);
+    } catch (err) {
+      console.error('Batch video generation failed:', err);
+      alert('비디오 일괄 생성에 실패했습니다.');
+    } finally {
+      setIsBatchGenerating(false);
+    }
+  };
+
   const deleteAudio = (sceneId: string) => {
     if (!project) return;
     updateCurrentProject({
@@ -1666,6 +1772,7 @@ Generate a detailed English prompt for image generation including scene composit
                     <div className="flex flex-wrap gap-3 items-center">
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-base font-medium hover:bg-slate-200 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-6 py-3 bg-green-600 text-white rounded-xl text-base font-medium hover:bg-green-700 transition-all disabled:opacity-50">비디오 생성 (최대 5개)</button>
                       <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
                     </div>
                   </div>
@@ -1837,6 +1944,29 @@ Generate a detailed English prompt for image generation including scene composit
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                           <input type="file" className="hidden" accept="audio/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, audioUrl: url, audioStatus: 'done' } : s) }); } }} />
                         </label>
+                      </div>
+
+                      {/* 비디오 버튼 (LTX Video) */}
+                      <div className="flex items-center gap-2">
+                        {scene.videoUrl ? (
+                          <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-green-50 rounded-xl">
+                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                            <span className="text-xs font-medium text-green-600">비디오 생성됨 (720p)</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => generateVideo(scene.id)}
+                            disabled={!scene.imageUrl || scene.videoStatus === 'loading'}
+                            className="flex-1 py-2.5 bg-green-50 text-green-600 text-xs font-semibold rounded-xl hover:bg-green-100 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          >
+                            {scene.videoStatus === 'loading' ? (
+                              <div className="w-3.5 h-3.5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            )}
+                            비디오 생성
+                          </button>
+                        )}
                       </div>
 
                       {/* 프롬프트 - 접힌 스타일 */}
