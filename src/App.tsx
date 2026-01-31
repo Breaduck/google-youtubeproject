@@ -1353,7 +1353,7 @@ const App: React.FC = () => {
         videoElement.crossOrigin = 'anonymous';
         videoElement.muted = true;
         videoElement.playsInline = true;
-        const videoUrl = URL.createObjectURL(new Blob([videoBlob], { type: 'video/mp4' }));
+        const videoUrl = URL.createObjectURL(videoBlob);
         videoElement.src = videoUrl;
 
         await new Promise((resolve, reject) => {
