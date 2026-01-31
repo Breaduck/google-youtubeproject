@@ -1208,8 +1208,35 @@ const App: React.FC = () => {
       }
       console.log(`[DEBUG] Total videos generated:`, videoBlobs.length);
 
-      // 2단계: Canvas 기반 최종 렌더링
-      setBgTask({ type: 'video', message: '최종 동영상 렌더링 중...' });
+      // 2단계: LTX 비디오 다운로드 (Canvas 렌더링 스킵)
+      setBgTask({ type: 'video', message: '비디오 다운로드 중...' });
+
+      if (videoBlobs.length === 1) {
+        // 1개 씬 → 바로 다운로드
+        const url = URL.createObjectURL(videoBlobs[0]);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${project.title}_ltx_video.mp4`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        // 여러 씬 → 개별 다운로드
+        videoBlobs.forEach((blob, i) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${project.title}_scene${i + 1}.mp4`;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+      }
+
+      setBgTask(null);
+      setBgProgress(0);
+      alert(`${videoBlobs.length}개 LTX 비디오 다운로드 완료!`);
+      return; // Canvas 렌더링 건너뜀
+
+      // 아래는 미사용 (Canvas 렌더링 코드)
       setBgProgress(50);
 
       const canvas = document.createElement('canvas'); canvas.width = 1920; canvas.height = 1080;
