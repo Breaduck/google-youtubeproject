@@ -136,6 +136,35 @@ const App: React.FC = () => {
   const activeCharId = useRef<string | null>(null);
   const activeSceneId = useRef<string | null>(null);
 
+  // 기존 프로젝트 마이그레이션: videoUrl, videoStatus 필드 추가
+  useEffect(() => {
+    const stored = localStorage.getItem('user_projects_v1');
+    if (!stored) return;
+
+    try {
+      const oldProjects = JSON.parse(stored);
+      let needsMigration = false;
+
+      const migratedProjects = oldProjects.map((p: any) => {
+        const migratedScenes = p.scenes.map((s: any) => {
+          if (!('videoUrl' in s) || !('videoStatus' in s)) {
+            needsMigration = true;
+            return { ...s, videoUrl: null, videoStatus: 'idle' };
+          }
+          return s;
+        });
+        return { ...p, scenes: migratedScenes };
+      });
+
+      if (needsMigration) {
+        console.log('🔧 프로젝트 마이그레이션: videoUrl, videoStatus 필드 추가됨');
+        setProjects(migratedProjects);
+      }
+    } catch (e) {
+      console.error('Migration failed:', e);
+    }
+  }, []); // 한 번만 실행
+
   useEffect(() => {
     try {
       // 이미지/오디오 데이터 완전 제외 (용량 문제 방지)
@@ -160,8 +189,10 @@ const App: React.FC = () => {
           imagePrompt: s.imagePrompt,
           imageUrl: null,
           audioUrl: null,
+          videoUrl: null,
           status: 'idle',
           audioStatus: 'idle',
+          videoStatus: 'idle',
           effect: s.effect
         }))
       }));
