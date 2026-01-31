@@ -27,8 +27,10 @@ export interface Scene {
   imagePrompt: string;
   imageUrl: string | null;
   audioUrl: string | null;
+  videoUrl: string | null;  // LTX Video generated video
   status: 'idle' | 'loading' | 'done' | 'error';
   audioStatus: 'idle' | 'loading' | 'done' | 'error';
+  videoStatus: 'idle' | 'loading' | 'done' | 'error';  // Video generation status
   effect?: SceneEffect;
 }
 
