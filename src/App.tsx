@@ -1172,8 +1172,35 @@ const App: React.FC = () => {
 
   const exportVideo = async () => {
     if (!project) return;
+
+    // 1단계: 이미지와 오디오 확인
     const missingAssets = project.scenes.some(s => !s.imageUrl || !s.audioUrl);
-    if (missingAssets) { alert("모든 장면의 이미지와 오디오가 생성되어야 합니다."); return; }
+    if (missingAssets) {
+      alert("모든 장면의 이미지와 오디오가 생성되어야 합니다.");
+      return;
+    }
+
+    // 2단계: LTX 비디오가 없는 씬이 있으면 자동 생성
+    const scenesNeedingVideo = project.scenes.filter(s => s.imageUrl && !s.videoUrl);
+    if (scenesNeedingVideo.length > 0) {
+      const shouldGenerate = confirm(
+        `${scenesNeedingVideo.length}개 씬의 LTX 비디오를 먼저 생성하시겠습니까?\n` +
+        `(생성 시간: 약 ${scenesNeedingVideo.length * 60}초)`
+      );
+
+      if (shouldGenerate) {
+        await generateAllVideos();
+        // 비디오 생성 완료 후 다시 확인
+        const stillMissing = project.scenes.some(s => s.imageUrl && !s.videoUrl);
+        if (stillMissing) {
+          alert("비디오 생성이 완료되지 않았습니다. 다시 시도해주세요.");
+          return;
+        }
+      } else {
+        // 사용자가 취소한 경우 정적 이미지로 진행
+        console.log("정적 이미지 + 오디오로 동영상 생성");
+      }
+    }
 
     setBgTask({ type: 'video', message: '동영상 렌더링 중' });
     setBgProgress(0);
