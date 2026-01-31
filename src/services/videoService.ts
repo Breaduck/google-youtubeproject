@@ -16,12 +16,21 @@ export async function generateSceneVideo(
   dialogue: string,
   characterDescription: string = ''
 ): Promise<Blob> {
+  console.log('[LTX] generateSceneVideo called');
+  console.log('[LTX] Dialogue:', dialogue.substring(0, 50));
+
   // Generate motion-enhanced prompt using Gemini
   const gemini = new GeminiService();
+  console.log('[LTX] Calling Gemini for motion prompt...');
   const motionDescription = await gemini.generateMotionPrompt(dialogue, imagePrompt);
+  console.log('[LTX] Motion prompt:', motionDescription.substring(0, 80));
 
   // Combine image prompt with motion
   const enhancedPrompt = `${imagePrompt}. ${motionDescription}`;
+
+  console.log('[LTX] Calling Modal API:', MODAL_API);
+  console.log('[LTX] Enhanced prompt:', enhancedPrompt.substring(0, 100));
+  const startTime = Date.now();
 
   const response = await fetch(`${MODAL_API}/generate`, {
     method: 'POST',
@@ -36,12 +45,18 @@ export async function generateSceneVideo(
     }),
   });
 
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[LTX] Modal API response: ${response.status} (${elapsed}s)`);
+
   if (!response.ok) {
     const error = await response.json();
+    console.error('[LTX] Modal API error:', error);
     throw new Error(error.error || 'Video generation failed');
   }
 
-  return await response.blob();
+  const blob = await response.blob();
+  console.log(`[LTX] Video blob received: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+  return blob;
 }
 
 export async function generateBatchVideos(

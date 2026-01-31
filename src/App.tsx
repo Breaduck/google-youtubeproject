@@ -1190,8 +1190,12 @@ const App: React.FC = () => {
 
       for (let i = 0; i < project.scenes.length; i++) {
         const scene = project.scenes[i];
+        console.log(`[DEBUG] Scene ${i + 1}/${project.scenes.length} - Starting LTX generation`);
+        console.log(`[DEBUG] Image URL:`, scene.imageUrl?.substring(0, 50));
+        console.log(`[DEBUG] Dialogue:`, scene.scriptSegment?.substring(0, 50));
+
         setBgTask({ type: 'video', message: `LTX 비디오 생성 중 (${i + 1}/${project.scenes.length})...` });
-        setBgProgress(Math.round((i / project.scenes.length) * 50)); // 50%까지는 비디오 생성
+        setBgProgress(Math.round((i / project.scenes.length) * 50));
 
         const videoBlob = await generateSceneVideo(
           scene.imageUrl!,
@@ -1199,8 +1203,10 @@ const App: React.FC = () => {
           scene.scriptSegment,
           characterDesc
         );
+        console.log(`[DEBUG] Scene ${i + 1} - Video blob size:`, (videoBlob.size / 1024 / 1024).toFixed(2), 'MB');
         videoBlobs.push(videoBlob);
       }
+      console.log(`[DEBUG] Total videos generated:`, videoBlobs.length);
 
       // 2단계: Canvas 기반 최종 렌더링
       setBgTask({ type: 'video', message: '최종 동영상 렌더링 중...' });
