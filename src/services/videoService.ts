@@ -1,4 +1,6 @@
 // LTX Video Service
+import { GeminiService } from './geminiService';
+
 const MODAL_API = 'https://hiyoonsh1--ltx-video-service-v2-web-app.modal.run';
 
 export interface VideoGenerationRequest {
@@ -10,16 +12,24 @@ export interface VideoGenerationRequest {
 
 export async function generateSceneVideo(
   imageUrl: string,
-  prompt: string,
+  imagePrompt: string,
+  dialogue: string,
   characterDescription: string = ''
 ): Promise<Blob> {
+  // Generate motion-enhanced prompt using Gemini
+  const gemini = new GeminiService();
+  const motionDescription = await gemini.generateMotionPrompt(dialogue, imagePrompt);
+
+  // Combine image prompt with motion
+  const enhancedPrompt = `${imagePrompt}. ${motionDescription}`;
+
   const response = await fetch(`${MODAL_API}/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      prompt,
+      prompt: enhancedPrompt,
       image_url: imageUrl,
       character_description: characterDescription,
       num_frames: 97, // ~4 seconds @ 24fps

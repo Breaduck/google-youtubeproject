@@ -1006,6 +1006,7 @@ const App: React.FC = () => {
       const videoBlob = await generateSceneVideo(
         scene.imageUrl,
         scene.imagePrompt,
+        scene.scriptSegment, // Pass dialogue for motion generation
         characterDesc
       );
 
@@ -1057,34 +1058,44 @@ const App: React.FC = () => {
         ? project.characters[0].visualDescription
         : '';
 
-      const requests = limitedScenes.map(scene => ({
-        prompt: scene.imagePrompt,
-        image_url: scene.imageUrl!,
-        character_description: characterDesc,
-      }));
+      // Generate videos one by one to use Gemini motion prompts
+      for (let i = 0; i < limitedScenes.length; i++) {
+        const scene = limitedScenes[i];
+        setLoadingText(`비디오 생성 중 (${i + 1}/${limitedScenes.length})...`);
 
-      const videoBlobs = await generateBatchVideos(requests);
+        try {
+          const videoBlob = await generateSceneVideo(
+            scene.imageUrl!,
+            scene.imagePrompt,
+            scene.scriptSegment,
+            characterDesc
+          );
 
-      // Update all scenes with generated videos
-      const updatedScenes = [...project.scenes];
-      limitedScenes.forEach((scene, idx) => {
-        const sceneIndex = updatedScenes.findIndex(s => s.id === scene.id);
-        if (sceneIndex !== -1 && videoBlobs[idx]) {
-          const videoUrl = URL.createObjectURL(videoBlobs[idx]);
-          updatedScenes[sceneIndex] = {
-            ...updatedScenes[sceneIndex],
-            videoUrl,
-            videoStatus: 'done'
-          };
+          const videoUrl = URL.createObjectURL(videoBlob);
+
+          updateCurrentProject({
+            scenes: project.scenes.map(s =>
+              s.id === scene.id
+                ? { ...s, videoUrl, videoStatus: 'done' }
+                : s
+            )
+          });
+        } catch (err) {
+          console.error(`Video generation failed for scene ${i + 1}:`, err);
+          updateCurrentProject({
+            scenes: project.scenes.map(s =>
+              s.id === scene.id
+                ? { ...s, videoStatus: 'error' }
+                : s
+            )
+          });
         }
-      });
+      }
 
-      updateCurrentProject({ scenes: updatedScenes });
       alert(`${limitedScenes.length}개 비디오 생성 완료!`);
     } catch (err) {
       console.error('Batch video generation failed:', err);
       alert('비디오 일괄 생성에 실패했습니다.');
-    } finally {
       setIsBatchGenerating(false);
     }
   };
