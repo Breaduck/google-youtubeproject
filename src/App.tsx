@@ -1339,8 +1339,32 @@ const App: React.FC = () => {
 
     for (let i = 0; i < project.scenes.length; i++) {
       const scene = project.scenes[i];
-      const img = new Image(); img.crossOrigin = "anonymous"; img.src = scene.imageUrl!;
-      await new Promise(r => img.onload = r);
+
+      // LTX 비디오가 있으면 비디오 사용, 없으면 정적 이미지 사용
+      const useLTXVideo = !!scene.videoUrl;
+
+      // LTX 비디오 또는 정적 이미지 로드
+      let videoElement: HTMLVideoElement | null = null;
+      let img: HTMLImageElement | null = null;
+
+      if (useLTXVideo) {
+        // LTX 비디오 사용
+        videoElement = document.createElement('video');
+        videoElement.crossOrigin = "anonymous";
+        videoElement.src = scene.videoUrl!;
+        videoElement.muted = true;
+        await new Promise((resolve, reject) => {
+          videoElement!.onloadeddata = resolve;
+          videoElement!.onerror = reject;
+        });
+        await videoElement!.play();
+      } else {
+        // 정적 이미지 사용
+        img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = scene.imageUrl!;
+        await new Promise(r => img!.onload = r);
+      }
       const audio = new Audio(scene.audioUrl!);
       await new Promise(r => audio.oncanplaythrough = r);
       const duration = audio.duration;
@@ -1359,19 +1383,35 @@ const App: React.FC = () => {
           const progress = Math.min(elapsed / duration, 1);
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          // Calculate transform based on scene effect
-          const { scale, offsetX, offsetY } = calculateEffectTransform(
-            scene.effect,
-            progress,
-            canvas.width,
-            canvas.height
-          );
+          // LTX 비디오는 이미 모션이 있으므로 추가 효과 적용 안 함
+          let scale = 1;
+          let offsetX = 0;
+          let offsetY = 0;
+
+          if (!useLTXVideo) {
+            // 정적 이미지만 효과 적용
+            const transform = calculateEffectTransform(
+              scene.effect,
+              progress,
+              canvas.width,
+              canvas.height
+            );
+            scale = transform.scale;
+            offsetX = transform.offsetX;
+            offsetY = transform.offsetY;
+          }
 
           const w = canvas.width * scale;
           const h = canvas.height * scale;
           const x = (canvas.width - w) / 2 + offsetX;
           const y = (canvas.height - h) / 2 + offsetY;
-          ctx.drawImage(img, x, y, w, h);
+
+          // LTX 비디오가 있으면 비디오 프레임 사용, 없으면 정적 이미지 사용
+          if (useLTXVideo && videoElement) {
+            ctx.drawImage(videoElement, x, y, w, h);
+          } else if (img) {
+            ctx.drawImage(img, x, y, w, h);
+          }
 
           const partIndex = Math.min(Math.floor(progress * subtitleParts.length), subtitleParts.length - 1);
           const currentText = subtitleParts[partIndex];
@@ -1384,6 +1424,13 @@ const App: React.FC = () => {
         };
         requestAnimationFrame(renderFrame);
       });
+
+      // 비디오 정리
+      if (videoElement) {
+        videoElement.pause();
+        videoElement.src = '';
+      }
+
       setBgProgress(Math.round(((i + 1) / project.scenes.length) * 100));
     }
     recorder.stop();
