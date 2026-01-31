@@ -1,251 +1,257 @@
 """
-LTX-Video Service for AI Video Generation
-씬당 8초 짜리 AI 영상을 빠르고 저렴하게 생성하는 Modal 서비스
+LTX-Video Image-to-Video Service
+씬 이미지를 8초 AI 영상으로 변환하는 Modal 서비스
 """
 
 import modal
+import io
+import base64
 from pathlib import Path
 
 # ============================================================================
-# 1. 이미지 설정: 필요한 라이브러리 설치
+# 1. 이미지 설정
 # ============================================================================
-image = modal.Image.debian_slim().pip_install(
-    "torch",
-    "diffusers",
-    "transformers",
-    "accelerate",
-    "sentencepiece",
-    "huggingface_hub",
-    "pillow",  # 이미지 처리용
-    "requests"  # 이미지 다운로드용
+image = (
+    modal.Image.debian_slim(python_version="3.12")
+    .pip_install(
+        "accelerate==1.6.0",
+        "diffusers==0.33.1",
+        "huggingface-hub==0.36.0",
+        "imageio==2.37.0",
+        "imageio-ffmpeg==0.5.1",
+        "sentencepiece==0.2.0",
+        "torch==2.7.0",
+        "transformers==4.51.3",
+        "pillow",
+        "requests",
+    )
+    .env({"HF_XET_HIGH_PERFORMANCE": "1"})
 )
 
 # ============================================================================
-# 2. 볼륨 설정: 모델 캐시 (매번 다운로드 방지)
+# 2. 볼륨 설정
 # ============================================================================
-model_cache = modal.Volume.from_name(
-    "model-cache",
-    create_if_missing=True
-)
+MODEL_VOLUME_NAME = "ltx-model"
+model_volume = modal.Volume.from_name(MODEL_VOLUME_NAME, create_if_missing=True)
 
-MODEL_DIR = "/models"
-MODEL_NAME = "Lightricks/LTX-Video"
+MODEL_PATH = Path("/models")
+image = image.env({"HF_HOME": str(MODEL_PATH)})
+
+MINUTES = 60
 
 # ============================================================================
-# 3. Modal 앱 정의
+# 3. Modal 앱
 # ============================================================================
 app = modal.App("ltx-video-service")
 
 # ============================================================================
-# 4. 모델 다운로드 함수 (최초 1회만 실행)
+# 4. LTX 비디오 생성 클래스
 # ============================================================================
-@app.function(
+@app.cls(
     image=image,
-    volumes={MODEL_DIR: model_cache},
+    volumes={MODEL_PATH: model_volume},
+    gpu="A10G",  # A10G: 비용 효율적, 필요시 H100으로 변경
+    timeout=10 * MINUTES,
     secrets=[modal.Secret.from_name("huggingface-secret")],
-    timeout=3600,  # 1시간 (모델 다운로드는 시간이 걸릴 수 있음)
 )
-def download_model():
-    """
-    Hugging Face에서 LTX-Video 모델을 다운로드합니다.
-    모델이 이미 있으면 스킵합니다.
-    """
-    from huggingface_hub import snapshot_download
-    import os
+class LTX:
+    @modal.enter()
+    def load_model(self):
+        """모델 로드 (컨테이너 시작시 1회 실행)"""
+        import torch
+        from diffusers import LTXImageToVideoPipeline
 
-    model_path = Path(MODEL_DIR) / MODEL_NAME.replace("/", "--")
+        print("🔧 LTX-Video 모델 로드 중...")
 
-    # 모델이 이미 있는지 확인
-    if model_path.exists() and any(model_path.iterdir()):
-        print(f"✅ 모델이 이미 존재합니다: {model_path}")
-        return str(model_path)
-
-    print(f"📥 모델 다운로드 중: {MODEL_NAME}")
-    print(f"📁 저장 위치: {model_path}")
-
-    # Hugging Face에서 모델 다운로드
-    hf_token = os.environ.get("HF_TOKEN")
-
-    downloaded_path = snapshot_download(
-        repo_id=MODEL_NAME,
-        local_dir=str(model_path),
-        token=hf_token,
-        ignore_patterns=["*.md", "*.txt"]  # 불필요한 파일 제외
-    )
-
-    # 볼륨에 변경사항 저장
-    model_cache.commit()
-
-    print(f"✅ 모델 다운로드 완료: {downloaded_path}")
-    return downloaded_path
-
-
-# ============================================================================
-# 5. 비디오 생성 함수 (핵심 기능)
-# ============================================================================
-@app.function(
-    image=image,
-    volumes={MODEL_DIR: model_cache},
-    secrets=[modal.Secret.from_name("huggingface-secret")],
-    gpu="A10G",  # LTX-Video는 GPU 필요 (A10G는 비용 효율적)
-    timeout=600,  # 10분 (비디오 생성)
-    memory=16384,  # 16GB RAM
-)
-def generate_video(
-    image_url: str,
-    prompt: str,
-    duration: float = 8.0,
-    fps: int = 24,
-    seed: int = 42,
-) -> bytes:
-    """
-    이미지 한 장을 받아서 8초짜리 AI 비디오를 생성합니다.
-
-    Args:
-        image_url: 입력 이미지 URL (스토리보드 이미지)
-        prompt: 비디오 생성 프롬프트 (표정, 동작, 배경 움직임 등)
-        duration: 비디오 길이 (초) - 기본 8초
-        fps: 초당 프레임 수 - 기본 24fps
-        seed: 랜덤 시드 (재현성)
-
-    Returns:
-        생성된 비디오 바이트 (MP4)
-    """
-    import torch
-    from diffusers import LTXPipeline
-    from PIL import Image
-    import requests
-    from io import BytesIO
-    import tempfile
-    import os
-
-    print(f"🎬 비디오 생성 시작")
-    print(f"   이미지: {image_url}")
-    print(f"   프롬프트: {prompt}")
-    print(f"   길이: {duration}초, FPS: {fps}")
-
-    # 모델 경로
-    model_path = Path(MODEL_DIR) / MODEL_NAME.replace("/", "--")
-
-    if not model_path.exists():
-        raise FileNotFoundError(
-            f"모델이 없습니다. download_model()을 먼저 실행하세요: {model_path}"
+        # Image-to-Video 파이프라인 사용
+        self.pipe = LTXImageToVideoPipeline.from_pretrained(
+            "Lightricks/LTX-Video",
+            torch_dtype=torch.bfloat16
         )
+        self.pipe.to("cuda")
 
-    # 1. 입력 이미지 다운로드
-    print("📥 이미지 다운로드 중...")
-    response = requests.get(image_url)
-    response.raise_for_status()
-    input_image = Image.open(BytesIO(response.content)).convert("RGB")
+        print("✅ 모델 로드 완료!")
 
-    # 2. 파이프라인 로드
-    print("🔧 파이프라인 로드 중...")
-    pipe = LTXPipeline.from_pretrained(
-        str(model_path),
-        torch_dtype=torch.bfloat16,
-    ).to("cuda")
+    @modal.method()
+    def generate(
+        self,
+        image_url: str,
+        prompt: str = "natural movement, subtle expressions, gentle background motion",
+        negative_prompt: str = "worst quality, inconsistent motion, blurry, jittery, distorted",
+        width: int = 704,
+        height: int = 480,
+        num_frames: int = 161,  # 8초 @ 24fps = 192 프레임, 하지만 161이 권장값
+        num_inference_steps: int = 30,  # 속도와 품질의 균형
+        guidance_scale: float = 3.0,
+        seed: int = 42,
+    ) -> bytes:
+        """
+        이미지 URL을 받아서 8초 비디오를 생성합니다.
 
-    # 메모리 최적화
-    pipe.enable_model_cpu_offload()
+        Args:
+            image_url: 입력 이미지 URL
+            prompt: 움직임 설명 프롬프트
+            negative_prompt: 피할 요소들
+            width: 비디오 너비 (704 권장)
+            height: 비디오 높이 (480 권장)
+            num_frames: 프레임 수 (161 = ~6.7초)
+            num_inference_steps: 생성 스텝 (30-50 권장)
+            guidance_scale: 가이던스 스케일
+            seed: 랜덤 시드
 
-    # 3. 비디오 생성
-    print("🎥 비디오 생성 중...")
+        Returns:
+            MP4 비디오 바이트
+        """
+        import torch
+        import requests
+        from PIL import Image
+        from diffusers.utils import export_to_video
+        import tempfile
 
-    # 프레임 수 계산
-    num_frames = int(duration * fps)
+        print(f"🎬 비디오 생성 시작")
+        print(f"   이미지: {image_url[:50]}...")
+        print(f"   프롬프트: {prompt}")
+        print(f"   크기: {width}x{height}, {num_frames} 프레임")
 
-    with torch.inference_mode():
-        output = pipe(
-            prompt=prompt,
-            image=input_image,
-            num_frames=num_frames,
-            guidance_scale=3.0,
-            num_inference_steps=30,
-            generator=torch.Generator("cuda").manual_seed(seed),
-            mu=1.0,  # LTX 모델에 필요한 파라미터
-        )
+        # 1. 이미지 다운로드
+        print("📥 이미지 다운로드 중...")
+        response = requests.get(image_url, timeout=30)
+        response.raise_for_status()
+        input_image = Image.open(io.BytesIO(response.content)).convert("RGB")
 
-    # 4. 비디오 저장 (임시 파일)
-    print("💾 비디오 저장 중...")
-    frames = output.frames[0]  # List of PIL Images
+        # 이미지 리사이즈 (권장 크기에 맞춤)
+        input_image = input_image.resize((width, height))
 
-    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-        temp_path = tmp.name
+        # 2. 비디오 생성
+        print("🎥 AI 비디오 생성 중...")
 
-    # PIL 이미지들을 MP4로 변환
-    from diffusers.utils import export_to_video
-    export_to_video(frames, temp_path, fps=fps)
+        with torch.inference_mode():
+            result = self.pipe(
+                image=input_image,
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                width=width,
+                height=height,
+                num_frames=num_frames,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale,
+                decode_timestep=0.03,  # LTX 권장값
+                decode_noise_scale=0.025,  # LTX 권장값
+                generator=torch.Generator("cuda").manual_seed(seed),
+            )
 
-    # 5. 바이트로 읽어서 반환
-    with open(temp_path, "rb") as f:
-        video_bytes = f.read()
+        frames = result.frames[0]  # List of PIL Images
 
-    # 임시 파일 삭제
-    os.unlink(temp_path)
+        # 3. MP4로 저장
+        print("💾 비디오 저장 중...")
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+            temp_path = tmp.name
 
-    print(f"✅ 비디오 생성 완료! 크기: {len(video_bytes) / 1024 / 1024:.2f}MB")
+        # 24fps로 저장 (161 프레임 = 약 6.7초)
+        export_to_video(frames, temp_path, fps=24)
 
-    return video_bytes
+        # 4. 바이트로 읽기
+        with open(temp_path, "rb") as f:
+            video_bytes = f.read()
+
+        # 임시 파일 삭제
+        import os
+        os.unlink(temp_path)
+
+        size_mb = len(video_bytes) / 1024 / 1024
+        print(f"✅ 비디오 생성 완료! 크기: {size_mb:.2f}MB")
+
+        return video_bytes
 
 
 # ============================================================================
-# 6. 웹 엔드포인트 (프론트엔드에서 호출)
+# 5. 웹 엔드포인트 (프론트엔드에서 호출)
 # ============================================================================
-@app.function(
-    image=image,
-)
+@app.function(image=image)
 @modal.web_endpoint(method="POST")
 def generate_video_endpoint(item: dict) -> dict:
     """
-    프론트엔드에서 호출할 REST API 엔드포인트
+    REST API 엔드포인트
 
     Request Body:
     {
         "image_url": "https://...",
-        "prompt": "subtle facial expressions, gentle background movement",
-        "duration": 8.0,
-        "fps": 24,
+        "prompt": "subtle facial expressions, gentle movement",
+        "width": 704,
+        "height": 480,
+        "num_frames": 161,
         "seed": 42
     }
 
     Response:
     {
         "status": "success",
-        "video_url": "https://...",  # Modal에서 제공하는 임시 URL
+        "video_base64": "...",
         "size_mb": 12.5
     }
     """
-    import base64
+    print(f"🎬 API 요청 받음: {item.get('image_url', 'N/A')[:50]}...")
 
-    # 비디오 생성 (병렬 호출 가능)
-    video_bytes = generate_video.remote(
+    # LTX 인스턴스 생성 및 비디오 생성
+    ltx = LTX()
+
+    video_bytes = ltx.generate.remote(
         image_url=item["image_url"],
         prompt=item.get("prompt", "natural movement, subtle expressions"),
-        duration=item.get("duration", 8.0),
-        fps=item.get("fps", 24),
+        negative_prompt=item.get(
+            "negative_prompt",
+            "worst quality, inconsistent motion, blurry, jittery, distorted"
+        ),
+        width=item.get("width", 704),
+        height=item.get("height", 480),
+        num_frames=item.get("num_frames", 161),
+        num_inference_steps=item.get("num_inference_steps", 30),
+        guidance_scale=item.get("guidance_scale", 3.0),
         seed=item.get("seed", 42),
     )
 
-    # Base64 인코딩하여 반환 (또는 S3/Cloudflare R2에 업로드)
+    # Base64 인코딩
     video_base64 = base64.b64encode(video_bytes).decode()
+    size_mb = len(video_bytes) / 1024 / 1024
+
+    print(f"✅ API 응답 전송: {size_mb:.2f}MB")
 
     return {
         "status": "success",
         "video_base64": video_base64,
-        "size_mb": len(video_bytes) / 1024 / 1024,
+        "size_mb": round(size_mb, 2),
     }
 
 
 # ============================================================================
-# 7. 로컬 테스트용 (선택사항)
+# 6. 로컬 테스트용
 # ============================================================================
 @app.local_entrypoint()
-def main():
+def main(
+    image_url: str = "https://picsum.photos/704/480",
+    prompt: str = "gentle movements, natural lighting",
+):
     """
-    로컬에서 테스트할 때 사용
-    터미널에서: modal run modal-server/main.py
+    로컬 테스트
+
+    Usage:
+        modal run main.py
+        modal run main.py --image-url="https://..." --prompt="..."
     """
     print("🚀 LTX-Video 서비스 테스트")
-    print("1. 모델 다운로드...")
-    download_model.remote()
-    print("✅ 완료!")
+    print(f"   이미지: {image_url}")
+    print(f"   프롬프트: {prompt}")
+
+    ltx = LTX()
+
+    video_bytes = ltx.generate.remote(
+        image_url=image_url,
+        prompt=prompt,
+    )
+
+    # 로컬에 저장
+    output_path = Path("/tmp/test_output.mp4")
+    output_path.write_bytes(video_bytes)
+
+    print(f"✅ 완료! 비디오 저장됨: {output_path}")
+    print(f"   크기: {len(video_bytes) / 1024 / 1024:.2f}MB")
