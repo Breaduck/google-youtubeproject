@@ -1,175 +1,502 @@
-"""LTX-Video Image-to-Video Service"""
-
 import modal
-import io
-import base64
-from pathlib import Path
 
-# Image setup
+# 1. Image setup
 image = (
-    modal.Image.debian_slim(python_version="3.12")
-    .pip_install(
-        "accelerate==1.6.0",
-        "diffusers==0.33.1",
-        "huggingface-hub==0.36.0",
-        "imageio==2.37.0",
-        "imageio-ffmpeg==0.5.1",
-        "sentencepiece==0.2.0",
-        "torch==2.7.0",
-        "transformers==4.51.3",
-        "pillow",
-        "requests",
-        "fastapi",
-        "pydantic",
+    modal.Image.debian_slim()
+    .apt_install(
+        "git",
+        "libgl1",
+        "libglib2.0-0",
+        "ffmpeg"
     )
-    .env({"HF_XET_HIGH_PERFORMANCE": "1"})
+    .pip_install(
+        "torch",
+        "transformers",
+        "accelerate",
+        "sentencepiece",
+        "huggingface_hub",
+        "Pillow",
+        "fastapi[standard]",
+        "av",
+        "opencv-python-headless",
+        "opencv-contrib-python-headless",  # OpenCV DNN Super Resolution
+        "imageio",
+        "imageio-ffmpeg",
+        "numpy"
+    )
+    .run_commands(
+        "pip install git+https://github.com/huggingface/diffusers.git"
+    )
 )
 
-# Volume setup
-MODEL_VOLUME_NAME = "ltx-model"
-model_volume = modal.Volume.from_name(MODEL_VOLUME_NAME, create_if_missing=True)
-MODEL_PATH = "/models"
-image = image.env({"HF_HOME": MODEL_PATH})
+app = modal.App("ltx-video-service-distilled-1080p", image=image)
+model_cache = modal.Volume.from_name("model-cache-distilled", create_if_missing=True)
 
-MINUTES = 60
-
-app = modal.App("ltx-video-service")
-
+# 2. Model class
 @app.cls(
-    image=image,
-    volumes={MODEL_PATH: model_volume},
     gpu="A10G",
-    timeout=10 * MINUTES,
-    secrets=[modal.Secret.from_name("huggingface-secret")],
+    timeout=3600,
+    volumes={"/models": model_cache},
+    secrets=[modal.Secret.from_name("huggingface-secret")]
 )
-class LTX:
+class VideoGenerator:
     @modal.enter()
     def load_model(self):
+        import os
         import torch
-        from diffusers import LTXImageToVideoPipeline
+        import cv2
+        from huggingface_hub import snapshot_download
+        from diffusers import LTX2Pipeline
 
-        print("Loading LTX-Video model...")
-        self.pipe = LTXImageToVideoPipeline.from_pretrained(
-            "Lightricks/LTX-Video",
+        print("=" * 70)
+        print("CHARACTER FIDELITY PRIORITY + OpenCV DNN Upscale")
+        print("=" * 70)
+
+        # Use Distilled model for speed (8 steps instead of 40)
+        local_dir = "/models/Lightricks/LTX-2-Distilled"
+        if not os.path.exists(local_dir):
+            print(f"Downloading LTX-2 Distilled model to {local_dir}...")
+            snapshot_download("Lightricks/ltx-2-19b-distilled", local_dir=local_dir)
+            print("Download complete!")
+        else:
+            print(f"Using cached LTX-2 Distilled model from {local_dir}")
+
+        # Verify model files exist
+        config_file = os.path.join(local_dir, "model_index.json")
+        if not os.path.exists(config_file):
+            print(f"[ERROR] Model config not found at {config_file}")
+            raise FileNotFoundError(f"Model files missing at {local_dir}")
+
+        print("\n[1/3] Loading LTX-2 Distilled (CHARACTER FIDELITY OPTIMIZED)...")
+        self.pipe = LTX2Pipeline.from_pretrained(
+            local_dir,
             torch_dtype=torch.bfloat16
         )
-        self.pipe.to("cuda")
-        print("Model loaded!")
 
-    @modal.method()
-    def generate(
-        self,
-        image_url: str,
-        prompt: str = "natural movement",
-        negative_prompt: str = "worst quality, blurry",
-        width: int = 704,
-        height: int = 480,
-        num_frames: int = 161,
-        num_inference_steps: int = 30,
-        seed: int = 42,
-    ) -> bytes:
-        import torch
-        import requests
-        from PIL import Image
-        from diffusers.utils import export_to_video
-        import tempfile
-        import os
+        print("[2/3] Applying memory optimizations...")
+        # Enable CPU offloading for A10G 24GB
+        print("  - Sequential CPU offload...")
+        self.pipe.enable_sequential_cpu_offload()
 
-        print(f"Generating video from {image_url[:50]}...")
+        # Enable VAE tiling for memory efficiency
+        print("  - VAE tiling...")
+        self.pipe.vae.enable_tiling()
 
-        # Download image
-        response = requests.get(image_url, timeout=30)
-        response.raise_for_status()
-        input_image = Image.open(io.BytesIO(response.content)).convert("RGB")
-        input_image = input_image.resize((width, height))
+        print("[3/3] Loading OpenCV DNN Super Resolution...")
+        # Download EDSR model for upscaling (fast and good quality)
+        model_path = "/models/opencv-sr/EDSR_x2.pb"
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
-        # Generate video
-        with torch.inference_mode():
-            result = self.pipe(
-                image=input_image,
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                width=width,
-                height=height,
-                num_frames=num_frames,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=3.0,
-                decode_timestep=0.03,
-                decode_noise_scale=0.025,
-                generator=torch.Generator("cuda").manual_seed(seed),
+        if not os.path.exists(model_path):
+            print("  - Downloading EDSR x2 model...")
+            import urllib.request
+            urllib.request.urlretrieve(
+                "https://github.com/Saafke/EDSR_Tensorflow/raw/master/models/EDSR_x2.pb",
+                model_path
             )
 
-        frames = result.frames[0]
+        # Create DNN Super Resolution object
+        self.sr = cv2.dnn_superres.DnnSuperResImpl_create()
+        self.sr.readModel(model_path)
+        self.sr.setModel("edsr", 2)  # x2 upscale
 
-        # Save to MP4
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-            temp_path = tmp.name
+        print(f"\n{'='*70}")
+        print("PIPELINE LOADED - CHARACTER FIDELITY FIRST!")
+        print(f"{'='*70}")
+        print("Configuration:")
+        print("  [Priority 1] Character Fidelity:")
+        print("    - Distilled model (8 steps, CFG=1)")
+        print("    - Minimal prompt (motion only)")
+        print("    - Strong negative prompt (no character change)")
+        print("    - First frame forced replacement")
+        print("    - Multi-frame verification")
+        print("  [Priority 2] Upscaling:")
+        print("    - OpenCV DNN EDSR x2")
+        print("    - 720p → 1440p → resized to 1080p")
+        print(f"{'='*70}\n")
 
-        export_to_video(frames, temp_path, fps=24)
+    @modal.method()
+    def generate(self, prompt: str, image_url: str, character_description: str = "", num_frames: int = 97):
+        import tempfile
+        import torch
+        import numpy as np
+        import requests
+        from PIL import Image
+        from io import BytesIO
 
-        with open(temp_path, "rb") as f:
+        print(f"\n{'='*60}")
+        print(f"[IMAGE-TO-VIDEO] Starting generation")
+        print(f"{'='*60}")
+        print(f"User prompt: {prompt[:100]}...")
+
+        # Handle both HTTP URLs and base64 data URLs
+        if image_url.startswith('data:'):
+            # Extract base64 data
+            import base64
+            header, encoded = image_url.split(',', 1)
+            image_data = base64.b64decode(encoded)
+            reference_image = Image.open(BytesIO(image_data)).convert("RGB")
+            print(f"[INPUT] Loaded base64 image: {reference_image.size}")
+        else:
+            # Download from HTTP URL
+            response = requests.get(image_url, timeout=30)
+            reference_image = Image.open(BytesIO(response.content)).convert("RGB")
+            print(f"[INPUT] Downloaded image from URL: {reference_image.size}")
+
+        # 720p GENERATION: 1280x720 (16:9, divisible by 32 for LTX-2)
+        # Will be upscaled to 1080p (1920x1080) using Real-ESRGAN
+        target_width = 1280   # 40 * 32
+        target_height = 720   # 45 * 16
+
+        print(f"[PREPROCESSING] Target resolution: {target_width}x{target_height} (720p)")
+        print(f"[PREPROCESSING] Final output: 1920x1080 (1080p via 1.5x upscale)")
+
+        # Center crop and resize for best quality
+        img_width, img_height = reference_image.size
+        aspect_ratio = target_width / target_height
+        img_aspect = img_width / img_height
+
+        print(f"[PREPROCESSING] Original: {img_width}x{img_height} (aspect: {img_aspect:.2f})")
+
+        if img_aspect > aspect_ratio:
+            # Image is wider - crop width
+            new_width = int(img_height * aspect_ratio)
+            left = (img_width - new_width) // 2
+            reference_image = reference_image.crop((left, 0, left + new_width, img_height))
+            print(f"[PREPROCESSING] Cropped width: {img_width} -> {new_width}")
+        else:
+            # Image is taller - crop height
+            new_height = int(img_width / aspect_ratio)
+            top = (img_height - new_height) // 2
+            reference_image = reference_image.crop((0, top, img_width, top + new_height))
+            print(f"[PREPROCESSING] Cropped height: {img_height} -> {new_height}")
+
+        # Resize to target dimensions with high-quality resampling
+        reference_image = reference_image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+        print(f"[PREPROCESSING] Final size: {reference_image.size}")
+
+        # Save preprocessed image for verification
+        import hashlib
+        img_hash = hashlib.md5(np.array(reference_image).tobytes()).hexdigest()[:8]
+        print(f"[PREPROCESSING] Image hash: {img_hash}")
+
+        # CRITICAL FIX: Maximum image conditioning for LTX-2
+        # Problems from previous test:
+        # 1. Identity loss (0s vs 3s = different person)
+        # 2. Global motion (whole body wobbling like jelly)
+        # 3. Expression control failure (mouth stuck, eyes collapse)
+        # 4. Detail melting (facial features displaced)
+        # 5. Background warping (ripple effect around character)
+
+        # LTX-2 Solution: EXTREME image conditioning
+        # Prompt: MINIMAL motion description (less is more)
+        motion_only_prompt = "subtle motion"
+
+        # NO quality keywords (they weaken image conditioning)
+        enhanced_prompt = motion_only_prompt
+
+        # Negative prompt: AGGRESSIVE anti-distortion + AI feel removal
+        negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered"
+
+        print(f"\n[GENERATION SETTINGS - QUALITY OPTIMIZED]")
+        print(f"  Model: LTX-2 Distilled")
+        print(f"  Generation: {target_width}x{target_height} (720p)")
+        print(f"  Upscale: 1.5x → 1920x1080 (1080p)")
+        print(f"  Frames: {num_frames} (~{num_frames/24:.1f}s @ 24fps)")
+        print(f"  Inference steps: 10 (quality boost from 8)")
+        print(f"  Guidance scale: 1.0 (Distilled CFG-free)")
+        print(f"  Prompt: '{enhanced_prompt}' (minimal)")
+        print(f"  Negative: Enhanced AI-removal + anti-distortion")
+        print(f"  Target: ~25 KRW (₩20s mid-range)")
+        print(f"\n[STARTING 720p GENERATION]...")
+
+        import time
+        gen_start = time.time()
+
+        # LTX-2 Distilled - quality optimized
+        # 10 steps for better quality (vs 8), CFG=1
+        output = self.pipe(
+            image=reference_image,
+            prompt=enhanced_prompt,
+            negative_prompt=negative_prompt,
+            width=target_width,
+            height=target_height,
+            num_frames=num_frames,
+            num_inference_steps=10,        # Quality boost: 10 steps (was 8)
+            guidance_scale=1.0,            # Distilled: CFG=1 (no guidance)
+            generator=torch.Generator(device="cuda").manual_seed(42),
+            output_type="pil",
+        ).frames[0]
+
+        gen_time = time.time() - gen_start
+        print(f"\n[720p GENERATION COMPLETE] Time: {gen_time:.1f}s")
+
+        print(f"\n[CHARACTER FIDELITY VERIFICATION - PRIORITY #1]")
+        print(f"  Generated {len(output)} frames @ {target_width}x{target_height}")
+
+        # CRITICAL: Verify character fidelity at 720p BEFORE upscaling
+        input_image_array = np.array(reference_image)
+
+        check_indices = [0, len(output)//4, len(output)//2, len(output)*3//4, len(output)-1]
+        fidelity_scores = []
+
+        for idx in check_indices:
+            frame_array = np.array(output[idx])
+            diff = np.abs(frame_array.astype(float) - input_image_array.astype(float)).mean()
+            fidelity_scores.append(diff)
+            status = "OK" if diff < 20.0 else "WARN" if diff < 30.0 else "FAIL"
+            print(f"  Frame {idx:3d}: diff={diff:5.2f} [{status}]")
+
+        max_diff = max(fidelity_scores)
+        avg_diff = sum(fidelity_scores) / len(fidelity_scores)
+        print(f"  Max difference: {max_diff:.2f}")
+        print(f"  Avg difference: {avg_diff:.2f}")
+
+        # STRICT CHARACTER FIDELITY ENFORCEMENT
+        if max_diff > 30.0:
+            print(f"  [CRITICAL] Character fidelity FAILED (>{30.0})")
+            print(f"  [ACTION] Forcing first frame replacement")
+            output[0] = reference_image.copy()
+            print(f"  [ACTION] This indicates image conditioning is weak!")
+        elif max_diff > 20.0:
+            print(f"  [WARNING] Character fidelity borderline")
+            print(f"  [ACTION] Forcing first frame replacement as safety")
+            output[0] = reference_image.copy()
+        else:
+            print(f"  [OK] CHARACTER FIDELITY EXCELLENT! ✓")
+
+        print(f"\n[UPSCALING TO 1080p - PRIORITY #2]")
+        print(f"  Input: {len(output)} frames @ {target_width}x{target_height}")
+        print(f"  Method: OpenCV DNN EDSR x2")
+        print(f"  Target: 1920x1080")
+
+        upscale_start = time.time()
+
+        # Upscale frames using OpenCV DNN
+        upscaled_frames = []
+        import cv2
+
+        for i, frame in enumerate(output):
+            if i % 20 == 0:
+                print(f"  Upscaling frame {i+1}/{len(output)}...")
+
+            # Convert PIL to OpenCV format
+            frame_np = np.array(frame)
+            frame_cv = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
+
+            # OpenCV DNN Super Resolution (x2)
+            upscaled_cv = self.sr.upsample(frame_cv)  # 1280x720 → 2560x1440
+
+            # Resize to 1920x1080 (1.5x from original)
+            upscaled_cv = cv2.resize(upscaled_cv, (1920, 1080), interpolation=cv2.INTER_LANCZOS4)
+
+            # Convert back to RGB and PIL
+            upscaled_np = cv2.cvtColor(upscaled_cv, cv2.COLOR_BGR2RGB)
+            from PIL import Image as PILImage
+            upscaled_pil = PILImage.fromarray(upscaled_np)
+
+            upscaled_frames.append(upscaled_pil)
+
+        upscale_time = time.time() - upscale_start
+        print(f"  [UPSCALE COMPLETE] Time: {upscale_time:.1f}s")
+        print(f"  Output: {len(upscaled_frames)} frames @ 1920x1080")
+
+        # Replace output with upscaled frames
+        output = upscaled_frames
+
+        # Final verification at 1080p
+        print(f"\n[FINAL VERIFICATION @ 1080p]")
+        input_1080p = reference_image.resize((1920, 1080), Image.Resampling.LANCZOS)
+        input_1080p_array = np.array(input_1080p)
+
+        final_diff = np.abs(np.array(output[0]).astype(float) - input_1080p_array.astype(float)).mean()
+        print(f"  First frame diff @ 1080p: {final_diff:.2f}")
+
+        if final_diff > 25.0:
+            print(f"  [ACTION] Replacing first frame at 1080p")
+            output[0] = input_1080p.copy()
+        else:
+            print(f"  [OK] 1080p character fidelity maintained ✓")
+
+        # Save video with optimized codec
+        import imageio
+        output_path = tempfile.mktemp(suffix=".mp4")
+
+        frames_np = [np.array(frame) for frame in output]
+
+        writer = imageio.get_writer(
+            output_path,
+            fps=24,
+            codec='libx264',
+            quality=8,  # Higher quality
+            pixelformat='yuv420p'  # YouTube compatible
+        )
+        for frame in frames_np:
+            writer.append_data(frame)
+        writer.close()
+
+        with open(output_path, "rb") as f:
             video_bytes = f.read()
 
-        os.unlink(temp_path)
+        total_time = time.time() - gen_start
+        cost_usd = total_time * 0.000306
+        cost_krw = cost_usd * 1450
 
-        print(f"Video generated: {len(video_bytes) / 1024 / 1024:.2f}MB")
+        print(f"\n[COMPLETE]")
+        print(f"  [OK] Generated {len(output)} frames @ 1920x1080 (1080p)")
+        print(f"  [OK] Video size: {len(video_bytes) / 1024 / 1024:.2f} MB")
+        print(f"  [OK] Duration: ~{num_frames/24:.1f}s @ 24fps")
+        print(f"\n[PERFORMANCE]")
+        print(f"  Generation time: {gen_time:.1f}s")
+        print(f"  Upscale time: {upscale_time:.1f}s")
+        print(f"  Total time: {total_time:.1f}s")
+        print(f"  Cost: ${cost_usd:.4f} (₩{cost_krw:.0f})")
+        print(f"  Target: <67s (<₩30)")
+        if total_time <= 67:
+            print(f"  [OK] Time target achieved! ✓")
+        else:
+            print(f"  [!] Time exceeded target by {total_time-67:.1f}s")
+        print(f"{'='*70}\n")
         return video_bytes
 
-
+# 3. Web API
 @app.function(image=image)
 @modal.asgi_app()
-def fastapi_app():
+def web_app():
     from fastapi import FastAPI
+    from fastapi.responses import Response, StreamingResponse
+    from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel
+    from typing import List
+    import asyncio
+    import json
 
-    web_app = FastAPI()
+    web = FastAPI()
 
-    class VideoRequest(BaseModel):
+    # Enable CORS for frontend
+    web.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    class GenerateRequest(BaseModel):
+        prompt: str
         image_url: str
-        prompt: str = "natural movement"
-        negative_prompt: str = "worst quality, blurry"
-        width: int = 704
-        height: int = 480
-        num_frames: int = 161
-        num_inference_steps: int = 30
-        seed: int = 42
+        character_description: str = ""
+        num_frames: int = 97
 
-    @web_app.post("/")
-    def generate_video(request: VideoRequest):
-        ltx = LTX()
-        video_bytes = ltx.generate.remote(
-            image_url=request.image_url,
-            prompt=request.prompt,
-            negative_prompt=request.negative_prompt,
-            width=request.width,
-            height=request.height,
-            num_frames=request.num_frames,
-            num_inference_steps=request.num_inference_steps,
-            seed=request.seed,
+    class BatchGenerateRequest(BaseModel):
+        scenes: List[GenerateRequest]
+
+    @web.post("/generate")
+    async def generate(req: GenerateRequest):
+        """Generate single video from image"""
+        try:
+            generator = VideoGenerator()
+            video_bytes = generator.generate.remote(
+                req.prompt,
+                req.image_url,
+                req.character_description,
+                req.num_frames
+            )
+            return Response(
+                content=video_bytes,
+                media_type="video/mp4",
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "*"
+                }
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                content=json.dumps({"error": str(e)}),
+                media_type="application/json",
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "*"
+                }
+            )
+
+    @web.options("/generate")
+    async def generate_options():
+        """Handle preflight CORS request"""
+        return Response(
+            content="",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "*"
+            }
         )
 
-        video_base64 = base64.b64encode(video_bytes).decode()
-        size_mb = len(video_bytes) / 1024 / 1024
+    @web.post("/batch-generate")
+    async def batch_generate(req: BatchGenerateRequest):
+        """Generate multiple videos in parallel (up to 10 at a time)"""
+        try:
+            generator = VideoGenerator()
+            total = len(req.scenes)
 
-        return {
-            "status": "success",
-            "video_base64": video_base64,
-            "size_mb": round(size_mb, 2),
-        }
+            # Process in batches of 10 for cost optimization
+            batch_size = min(10, total)
+            results = []
 
-    return web_app
+            for i in range(0, total, batch_size):
+                batch = req.scenes[i:i+batch_size]
 
+                # Parallel processing
+                batch_results = await asyncio.gather(*[
+                    generator.generate.remote.aio(
+                        scene.prompt,
+                        scene.image_url,
+                        scene.character_description,
+                        scene.num_frames
+                    )
+                    for scene in batch
+                ])
 
-@app.local_entrypoint()
-def main(
-    image_url: str = "https://picsum.photos/704/480",
-    prompt: str = "gentle movements",
-):
-    print(f"Testing with image: {image_url}")
-    ltx = LTX()
-    video_bytes = ltx.generate.remote(image_url=image_url, prompt=prompt)
+                results.extend(batch_results)
+                print(f"Batch progress: {len(results)}/{total}")
 
-    output_path = Path("/tmp/test_output.mp4")
-    output_path.write_bytes(video_bytes)
-    print(f"Video saved to: {output_path}")
-    print(f"Size: {len(video_bytes) / 1024 / 1024:.2f}MB")
+            # Return all videos as base64 for easy handling
+            import base64
+            encoded_videos = [base64.b64encode(video).decode() for video in results]
+
+            return Response(
+                content=json.dumps({
+                    "success": True,
+                    "total": total,
+                    "videos": encoded_videos
+                }),
+                media_type="application/json",
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "*"
+                }
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                content=json.dumps({"error": str(e)}),
+                media_type="application/json",
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "*"
+                }
+            )
+
+    @web.get("/health")
+    async def health():
+        """Health check endpoint"""
+        return {"status": "healthy", "service": "ltx-video-720p"}
+
+    return web

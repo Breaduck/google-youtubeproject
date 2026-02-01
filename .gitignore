@@ -21,3 +21,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code and Python cache
+.claude/
+__pycache__/
+*.pyc
+nul
