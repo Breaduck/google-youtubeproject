@@ -486,6 +486,10 @@ def web_app():
         image_url: str
         character_description: str = ""
         num_frames: int = 97
+        # Test parameters (optional)
+        test_conditioning: float = None
+        test_guidance: float = None
+        test_steps: int = None
 
     class BatchGenerateRequest(BaseModel):
         scenes: List[GenerateRequest]
@@ -499,7 +503,10 @@ def web_app():
                 req.prompt,
                 req.image_url,
                 req.character_description,
-                req.num_frames
+                req.num_frames,
+                req.test_conditioning,
+                req.test_guidance,
+                req.test_steps
             )
             return Response(
                 content=video_bytes,
