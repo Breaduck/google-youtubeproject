@@ -67,13 +67,32 @@ class VideoGenerator:
             print(f"[ERROR] Model config not found at {config_file}")
             raise FileNotFoundError(f"Model files missing at {local_dir}")
 
-        print("\n[1/3] Loading LTX-2 Distilled (CHARACTER FIDELITY OPTIMIZED)...")
+        print("\n[1/4] Loading LTX-2 Distilled (CHARACTER FIDELITY OPTIMIZED)...")
         self.pipe = LTX2Pipeline.from_pretrained(
             local_dir,
             torch_dtype=torch.bfloat16
         )
 
-        print("[2/3] Applying memory optimizations...")
+        print("[2/4] Loading Lightweight LoRA (Rank 175 FP8 - 1.79 GB)...")
+        from huggingface_hub import hf_hub_download
+
+        lora_cache_dir = "/models/loras"
+        os.makedirs(lora_cache_dir, exist_ok=True)
+
+        lora_path = hf_hub_download(
+            repo_id="Kijai/LTXV2_comfy",
+            filename="loras/ltx-2-19b-distilled-lora_resized_dynamic_fro09_avg_rank_175_fp8.safetensors",
+            cache_dir=lora_cache_dir
+        )
+
+        print(f"  - LoRA downloaded/cached at: {lora_path}")
+        print("  - Loading LoRA weights...")
+        self.pipe.load_lora_weights(lora_path)
+        print("  - Fusing LoRA (scale=0.65)...")
+        self.pipe.fuse_lora(lora_scale=0.65)
+        print("  ✓ LoRA loaded successfully (Rank 175 FP8)")
+
+        print("[3/4] Applying memory optimizations...")
         # Enable CPU offloading for A10G 24GB
         print("  - Sequential CPU offload...")
         self.pipe.enable_sequential_cpu_offload()
@@ -82,7 +101,7 @@ class VideoGenerator:
         print("  - VAE tiling...")
         self.pipe.vae.enable_tiling()
 
-        print("[3/3] Loading OpenCV DNN Super Resolution...")
+        print("[4/4] Loading OpenCV DNN Super Resolution...")
         # Download EDSR model for upscaling (fast and good quality)
         model_path = "/models/opencv-sr/EDSR_x2.pb"
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
@@ -101,18 +120,22 @@ class VideoGenerator:
         self.sr.setModel("edsr", 2)  # x2 upscale
 
         print(f"\n{'='*70}")
-        print("PIPELINE LOADED - CHARACTER FIDELITY FIRST!")
+        print("PIPELINE LOADED - CHARACTER FIDELITY + LORA QUALITY BOOST!")
         print(f"{'='*70}")
         print("Configuration:")
         print("  [Priority 1] Character Fidelity:")
-        print("    - Distilled model (8 steps, CFG=1)")
+        print("    - Distilled model (10 steps, CFG=1)")
+        print("    - LoRA Rank 175 FP8 (1.79 GB) @ scale 0.65")
         print("    - Minimal prompt (motion only)")
-        print("    - Strong negative prompt (no character change)")
+        print("    - Enhanced negative prompt (27 keywords)")
         print("    - First frame forced replacement")
-        print("    - Multi-frame verification")
+        print("    - Multi-frame verification (5 checkpoints)")
         print("  [Priority 2] Upscaling:")
         print("    - OpenCV DNN EDSR x2")
         print("    - 720p → 1440p → resized to 1080p")
+        print("  [Performance Target]:")
+        print("    - Time: ~60 seconds")
+        print("    - Cost: ~₩27 (30원 목표)")
         print(f"{'='*70}\n")
 
     @modal.method()
