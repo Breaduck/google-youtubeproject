@@ -1,73 +1,88 @@
-# React + TypeScript + Vite
+# YouTube Storyboard Generator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+AI-powered storyboard and video generation for YouTube content creation.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 📝 Script-based storyboard generation using Gemini AI
+- 🎨 Automatic image generation for each scene
+- 🎬 Image-to-video conversion using LTX Video model
+- 📹 High-quality 1024x576 video output (16:9)
+- ⚡ Fast parallel processing for batch video generation
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS
+- **AI Models:**
+  - Google Gemini 2.0 Flash (script & image generation)
+  - Lightricks LTX-Video-0.9.8 (image-to-video)
+- **Backend:** Modal serverless (A10G GPU)
+- **Deployment:** Cloudflare Pages
 
-## Expanding the ESLint configuration
+## Recent Updates (2025-02-01)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Critical Image Conditioning Fixes ✓
+Fixed LTX Video model ignoring input images and generating different characters:
+- Lowered guidance_scale from 8.5 to 4.0 for stronger image conditioning
+- Removed all appearance descriptions from prompts (motion only)
+- Added explicit negative prompts to prevent character changes
+- Implemented first-frame verification and forced replacement
+- Enhanced debugging logs for production monitoring
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**Result:** Input image characters are now preserved exactly with only subtle natural motion.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Quick Start
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Development
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Build
+```bash
+npm run build
 ```
+
+### Environment Variables
+Create `.env` file:
+```
+VITE_GEMINI_API_KEY=your_gemini_api_key
+```
+
+## Architecture
+
+```
+User Script → Gemini AI → Scene Breakdown
+              ↓
+         Image Generation (Gemini Imagen)
+              ↓
+         Video Generation (LTX Video on Modal)
+              ↓
+         Download & Export
+```
+
+## Modal API Endpoint
+
+Production: `https://hiyoonsh1--ltx-video-service-v2-web-app.modal.run`
+
+### API Endpoints
+- `POST /generate` - Single video generation
+- `POST /batch-generate` - Batch processing (up to 10 parallel)
+- `GET /health` - Health check
+
+## Video Generation Parameters
+
+- **Resolution:** 1024x576 (16:9 aspect ratio)
+- **Frame Rate:** 24fps
+- **Duration:** ~4 seconds (97 frames per scene)
+- **Quality:** High (guidance_scale: 4.0)
+- **Motion:** Subtle natural movements only
+
+## Testing
+
+Test page available at: `test-modal-base64.html`
+
+## License
+
+Private project
