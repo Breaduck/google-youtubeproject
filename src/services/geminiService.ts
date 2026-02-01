@@ -437,35 +437,44 @@ Return ONLY the new prompt text, no explanation or markdown.`;
   async generateMotionPrompt(dialogue: string, imagePrompt: string): Promise<string> {
     const ai = this.getClient();
 
-    const prompt = `Generate a video motion prompt using the 5-STEP FORMULA for LTX-2 video generation.
+    const prompt = `Generate a video motion prompt using the OFFICIAL LTX-2 6-ELEMENT STRUCTURE.
 
 INPUT:
 Dialogue: "${dialogue}"
 Character/Scene: "${imagePrompt}"
 
-5-STEP FORMULA:
-1. Subject: Who/what is moving (from image description)
-2. Action: Specific facial expressions and lip movements matching dialogue emotion
-3. Camera: MANDATORY camera movement - NEVER static! Use "slow dolly-in", "subtle camera pan", "gentle zoom in", or "smooth camera drift"
-4. Quality: Visual quality descriptors (2D animation style, NOT photorealistic)
-5. Constraint: What NOT to do (to prevent artifacts)
+OFFICIAL LTX-2 STRUCTURE (6 Elements):
+1. Shot establishment: Cinematography terminology (medium shot, close-up, etc.)
+2. Scene setting: Lighting, color palette, textures, mood (2D animation style)
+3. Action sequence: Natural movements flowing from start to finish
+4. Character definition: Visual emotional cues through physicality (NOT labels like "sad")
+5. Camera movement: Specific direction ("slow dolly in", "handheld tracking")
+6. Audio/dialogue: Ambient sounds, dialogue in quotes, vocal style
 
-RULES:
-- Action MUST include "lips moving according to dialogue" or "mouth moving with speech"
-- Match emotion: crying dialogue → sad expression, teary eyes
-- Match emotion: laughing dialogue → smiling, joyful expression
-- Match emotion: angry dialogue → furrowed brows, intense look
-- SUBTLE movements only (no dramatic gestures)
-- Keep character identity consistent
+CRITICAL RULES:
+- Single flowing paragraph (4-8 sentences, present tense)
+- Show emotion through VISUAL CUES (posture, facial expressions, gestures) NOT labels
+- Match dialogue emotion to visual: crying → teary eyes, slumped posture
+- MANDATORY camera movement: "slow dolly in", "subtle camera pan", "gentle zoom"
+- 2D animation aesthetic (vibrant colors, stylized) NOT photorealistic
+- Action includes "lips moving with speech" or "mouth forming words"
+- Avoid: complex physics, too many characters, text/logos, conflicting lighting
+
+WHAT WORKS WELL:
+- Single-subject emotional expressions
+- Atmospheric elements (soft lighting, gentle shadows)
+- Stylized animation aesthetic
+- Subtle gestures and facial movements
+- Clear camera language
 
 EXAMPLES:
 Input: "I can't believe this happened..." (sad scene)
-Output: "Character with sad expression, teary eyes, lips moving according to dialogue, slight head shake, slow dolly-in camera movement, 2D animation style, smooth motion, vibrant colors, avoid wobbling, avoid realistic, avoid 3d render, avoid photorealistic"
+Output: "Medium shot in soft diffused lighting with muted color palette. Character's shoulders slumped forward, head tilting downward, eyes glistening with tears, lips trembling and forming words. Hands fidgeting nervously at sides, breathing visibly heavy. Slow dolly in toward face as expression deepens. 2D animation style with smooth motion and subtle shadows. Ambient sound of quiet breathing, dialogue 'I can't believe this happened...' spoken in shaky, quiet voice."
 
 Input: "Hahaha! That's hilarious!" (happy scene)
-Output: "Character smiling broadly, joyful expression, lips moving with laughter, eyes squinting with joy, gentle camera pan right, 2D animation aesthetic, natural character motion, avoid morphing, avoid photo, avoid realistic"
+Output: "Close-up shot with warm golden lighting and vibrant color palette. Character's face brightening with broad smile, eyes squinting with joy, head tilting back slightly as laughter erupts. Lips moving energetically with speech, shoulders shaking with mirth. Gentle camera pan right following face movement. 2D animation aesthetic with dynamic motion and bright highlights. Ambient sound of cheerful atmosphere, dialogue 'Hahaha! That's hilarious!' spoken in enthusiastic, playful tone."
 
-Now generate for the input above. Return ONLY the prompt text in English, no quotes, no explanation.`;
+Now generate for the input above. Write as a SINGLE FLOWING PARAGRAPH in present tense. Return ONLY the prompt text in English, no quotes, no explanation.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
