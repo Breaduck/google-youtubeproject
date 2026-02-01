@@ -146,7 +146,11 @@ class VideoGenerator:
         print(f"{'='*70}\n")
 
     @modal.method()
-    def generate(self, prompt: str, image_url: str, character_description: str = "", num_frames: int = 97):
+    def generate(self, prompt: str, image_url: str, character_description: str = "", num_frames: int = 97,
+                 # 테스트용 파라미터 (품질 실험)
+                 test_conditioning: float = None,
+                 test_guidance: float = None,
+                 test_steps: int = None):
         import tempfile
         import torch
         import numpy as np
@@ -230,26 +234,45 @@ class VideoGenerator:
         # Negative prompt: Anti-distortion + 2D Animation Style enforcement
         negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic"
 
-        print(f"\n[GENERATION SETTINGS - COMMUNITY OPTIMIZED]")
+        mode_label = "TEST MODE - QUALITY EXPERIMENT" if test_mode else "PRODUCTION MODE"
+        print(f"\n[GENERATION SETTINGS - {mode_label}]")
         print(f"  Model: LTX-2 Distilled + ORIGINAL LoRA (7.67 GB @ scale 0.65)")
         print(f"  Generation: {target_width}x{target_height} (720p)")
         print(f"  Upscale: 1.5x → 1920x1080 (1080p)")
         print(f"  Frames: {num_frames} (~{num_frames/24:.1f}s @ 24fps)")
-        print(f"  Inference steps: 15 (cost optimized)")
-        print(f"  Guidance scale: 3.5 (strict prompt following)")
-        print(f"  Image conditioning: 0.75 (balanced: face stability + movement)")
+        print(f"  Inference steps: {final_steps} {'(TEST)' if test_steps else '(default)'}")
+        print(f"  Guidance scale: {final_guidance} {'(TEST)' if test_guidance else '(default)'}")
+        print(f"  Image conditioning: {final_conditioning} {'(TEST)' if test_conditioning else '(default)'}")
         print(f"  Style: 2D Anime (clean lines, flat shading)")
         print(f"  Camera: Slow zoom-in (mandatory)")
         print(f"  Prompt: Gemini 6-element + 2D Anime prefix")
         print(f"  Negative: Enhanced + 2D style enforcement")
-        print(f"  Target: ~₩32 (business viable)")
+        if test_mode:
+            est_cost = int((70 + final_steps * 2.7) * 0.000306 * 1450)
+            print(f"  Estimated cost: ~₩{est_cost}")
+        else:
+            print(f"  Target: ~₩32 (business viable)")
         print(f"\n[STARTING 720p GENERATION]...")
 
         import time
         gen_start = time.time()
 
-        # COMMUNITY-OPTIMIZED: 2D Anime Style + Face Stability Balance
-        # 15 steps, guidance 3.5, conditioning 0.75, ORIGINAL LoRA 7.67GB @ 0.65
+        # 테스트 모드: 파라미터 override (품질 실험용)
+        final_conditioning = test_conditioning if test_conditioning is not None else 0.75
+        final_guidance = test_guidance if test_guidance is not None else 3.5
+        final_steps = test_steps if test_steps is not None else 15
+
+        test_mode = test_conditioning is not None or test_guidance is not None or test_steps is not None
+
+        if test_mode:
+            print(f"\n{'='*60}")
+            print(f"[TEST MODE] Custom parameters:")
+            print(f"  Conditioning: {final_conditioning} {'(TEST)' if test_conditioning else '(default)'}")
+            print(f"  Guidance: {final_guidance} {'(TEST)' if test_guidance else '(default)'}")
+            print(f"  Steps: {final_steps} {'(TEST)' if test_steps else '(default)'}")
+            print(f"{'='*60}")
+
+        # QUALITY-FIRST MODE: Accept custom parameters for experimentation
         output = self.pipe(
             image=reference_image,
             prompt=enhanced_prompt,          # RESPECTS FRONTEND (Gemini 6-element + 2D Anime prefix)
@@ -257,9 +280,9 @@ class VideoGenerator:
             width=target_width,
             height=target_height,
             num_frames=num_frames,
-            num_inference_steps=15,          # OPTIMIZED: 15 steps for ₩30 target
-            guidance_scale=3.5,              # STRONGER: 3.5 for strict prompt following
-            image_conditioning_scale=0.75,   # BALANCED: 0.75 (face stability + movement)
+            num_inference_steps=final_steps,
+            guidance_scale=final_guidance,
+            image_conditioning_scale=final_conditioning,
             generator=torch.Generator(device="cuda").manual_seed(42),
             output_type="pil",
         ).frames[0]

@@ -8,13 +8,23 @@ export interface VideoGenerationRequest {
   image_url: string;
   character_description?: string;
   num_frames?: number;
+  // 테스트용 파라미터 (품질 실험)
+  test_conditioning?: number;
+  test_guidance?: number;
+  test_steps?: number;
 }
 
 export async function generateSceneVideo(
   imageUrl: string,
   imagePrompt: string,
   dialogue: string,
-  characterDescription: string = ''
+  characterDescription: string = '',
+  // 테스트용 파라미터 (품질 실험)
+  testParams?: {
+    conditioning?: number;
+    guidance?: number;
+    steps?: number;
+  }
 ): Promise<Blob> {
   console.log('[LTX] generateSceneVideo called');
   console.log('[LTX] Dialogue:', dialogue.substring(0, 50));
@@ -32,17 +42,28 @@ export async function generateSceneVideo(
   console.log('[LTX] Final prompt:', enhancedPrompt.substring(0, 100));
   const startTime = Date.now();
 
+  const requestBody: any = {
+    prompt: enhancedPrompt,
+    image_url: imageUrl,
+    character_description: characterDescription,
+    num_frames: 97, // ~4 seconds @ 24fps
+  };
+
+  // 테스트 파라미터 추가 (있으면)
+  if (testParams) {
+    if (testParams.conditioning !== undefined) requestBody.test_conditioning = testParams.conditioning;
+    if (testParams.guidance !== undefined) requestBody.test_guidance = testParams.guidance;
+    if (testParams.steps !== undefined) requestBody.test_steps = testParams.steps;
+
+    console.log('[LTX] TEST MODE:', testParams);
+  }
+
   const response = await fetch(`${MODAL_API}/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      prompt: enhancedPrompt,
-      image_url: imageUrl,
-      character_description: characterDescription,
-      num_frames: 97, // ~4 seconds @ 24fps
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
