@@ -89,8 +89,8 @@ class VideoGenerator:
         print(f"  - LoRA downloaded/cached at: {lora_path}")
         print("  - Loading ORIGINAL LoRA weights (7.67 GB)...")
         self.pipe.load_lora_weights(lora_path)
-        print("  - Fusing LoRA (scale=0.65)...")
-        self.pipe.fuse_lora(lora_scale=0.65)
+        print("  - Fusing LoRA (scale=0.7, official recommended 0.6-0.8)...")
+        self.pipe.fuse_lora(lora_scale=0.7)
         print("  OK ORIGINAL LoRA loaded successfully (Rank 384, 7.67 GB)")
 
         print("[3/4] Applying memory optimizations...")
@@ -121,28 +121,30 @@ class VideoGenerator:
         self.sr.setModel("edsr", 2)  # x2 upscale
 
         print(f"\n{'='*70}")
-        print("PIPELINE LOADED - FINAL TWEAK: MOVEMENT + COST OPTIMIZED!")
+        print("PIPELINE LOADED - OFFICIAL LTX-2 OPTIMIZED SETTINGS!")
         print(f"{'='*70}")
-        print("Configuration:")
-        print("  [Priority 1] Natural Movement:")
-        print("    - Conditioning: 0.7 (movement priority > face rigidity)")
-        print("    - Forced camera movement (dolly-in/pan)")
-        print("    - 2D Animation style (NOT photorealistic)")
-        print("    - Steps: 15 (cost optimized from 20)")
-        print("  [Priority 2] Emotion & Expression:")
-        print("    - Gemini 5-step formula prompts (dialogue → emotion)")
-        print("    - ORIGINAL LoRA Rank 384 (7.67 GB) @ scale 0.65")
-        print("    - Guidance: 3.0 (strong prompt following)")
-        print("  [Priority 3] Character Fidelity:")
-        print("    - Multi-frame verification (5 checkpoints)")
-        print("    - First frame forced replacement")
-        print("    - Negative: 2D style enforcement (no realistic/3d/photo)")
-        print("  [Priority 4] Upscaling:")
-        print("    - OpenCV DNN EDSR x2")
-        print("    - 720p → 1440p → resized to 1080p")
-        print("  [Performance Target]:")
-        print("    - Time: ~70 seconds (25% faster)")
-        print("    - Cost: ~₩35 (business viable)")
+        print("Configuration (Based on Official Documentation):")
+        print("  [Model & LoRA]:")
+        print("    - LTX-2 Distilled (19B parameters)")
+        print("    - ORIGINAL LoRA Rank 384 (7.67 GB) @ scale 0.7")
+        print("    - LoRA strength: 0.7 (official recommended 0.6-0.8)")
+        print("  [Generation Parameters]:")
+        print("    - Steps: 25 (official recommended 20-30)")
+        print("    - Guidance: 3.0 (official typical value)")
+        print("    - Conditioning: 0.8 (balanced)")
+        print("  [Prompt Strategy]:")
+        print("    - Gemini 6-element structure (official LTX-2 format)")
+        print("    - 2D Animation style enforcement")
+        print("    - Visual emotional cues (not labels)")
+        print("  [Quality Assurance]:")
+        print("    - 5-checkpoint character fidelity verification")
+        print("    - First frame forced replacement (if needed)")
+        print("    - Enhanced negative prompts")
+        print("  [Upscaling]:")
+        print("    - OpenCV DNN EDSR x2 (720p → 1440p → 1080p)")
+        print("  [Performance]:")
+        print("    - Expected time: ~85 seconds (4초 영상)")
+        print("    - Expected cost: ~₩56 (4초 기준)")
         print(f"{'='*70}\n")
 
     @modal.method()
@@ -234,61 +236,99 @@ class VideoGenerator:
         # Negative prompt: Anti-distortion + 2D Animation Style enforcement
         negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic"
 
-        mode_label = "TEST MODE - QUALITY EXPERIMENT" if test_mode else "PRODUCTION MODE"
+        mode_label = "TEST MODE" if test_mode else "OFFICIAL OPTIMIZED MODE"
         print(f"\n[GENERATION SETTINGS - {mode_label}]")
-        print(f"  Model: LTX-2 Distilled + ORIGINAL LoRA (7.67 GB @ scale 0.65)")
+        print(f"  Model: LTX-2 Distilled + ORIGINAL LoRA (7.67 GB @ scale 0.7)")
         print(f"  Generation: {target_width}x{target_height} (720p)")
         print(f"  Upscale: 1.5x → 1920x1080 (1080p)")
         print(f"  Frames: {num_frames} (~{num_frames/24:.1f}s @ 24fps)")
-        print(f"  Inference steps: {final_steps} {'(TEST)' if test_steps else '(default)'}")
-        print(f"  Guidance scale: {final_guidance} {'(TEST)' if test_guidance else '(default)'}")
-        print(f"  Image conditioning: {final_conditioning} {'(TEST)' if test_conditioning else '(default)'}")
+        print(f"  Inference steps: {final_steps} (official: 20-30 recommended)")
+        print(f"  Guidance scale: {final_guidance} (official: 3.0 typical)")
+        print(f"  Image conditioning: {final_conditioning}")
         print(f"  Style: 2D Anime (clean lines, flat shading)")
-        print(f"  Camera: Slow zoom-in (mandatory)")
         print(f"  Prompt: Gemini 6-element + 2D Anime prefix")
         print(f"  Negative: Enhanced + 2D style enforcement")
-        if test_mode:
-            est_cost = int((70 + final_steps * 2.7) * 0.000306 * 1450)
-            print(f"  Estimated cost: ~₩{est_cost}")
-        else:
-            print(f"  Target: ~₩32 (business viable)")
+        est_cost = int((70 + final_steps * 2.7) * 0.000306 * 1450)
+        print(f"  Estimated cost: ~₩{est_cost} (4초 기준)")
         print(f"\n[STARTING 720p GENERATION]...")
 
         import time
         gen_start = time.time()
 
-        # 테스트 모드: 파라미터 override (품질 실험용)
-        final_conditioning = test_conditioning if test_conditioning is not None else 0.75
-        final_guidance = test_guidance if test_guidance is not None else 3.5
-        final_steps = test_steps if test_steps is not None else 15
+        # 공식 권장 기준 (Official LTX-2 recommendations)
+        # cfg_scale: 3.0 typical (2.0-5.0 range)
+        # steps: 40 default, 20-30 for quality/speed balance
+        # distilled_lora: 0.6-0.8 strength
+
+        # 기본값 (공식 권장 기반)
+        DEFAULT_CONDITIONING = 0.8  # 공식 문서 기반
+        DEFAULT_GUIDANCE = 3.0      # 공식 기본값
+        DEFAULT_STEPS = 25          # 공식 권장 범위 (20-30)
+
+        final_conditioning = test_conditioning if test_conditioning is not None else DEFAULT_CONDITIONING
+        final_guidance = test_guidance if test_guidance is not None else DEFAULT_GUIDANCE
+        final_steps = test_steps if test_steps is not None else DEFAULT_STEPS
+
+        # 파라미터 검증 (극단값 방지)
+        final_conditioning = max(0.3, min(1.0, final_conditioning))  # 0.3-1.0 범위
+        final_guidance = max(1.0, min(10.0, final_guidance))         # 1.0-10.0 범위
+        final_steps = max(8, min(50, final_steps))                   # 8-50 범위
 
         test_mode = test_conditioning is not None or test_guidance is not None or test_steps is not None
 
         if test_mode:
             print(f"\n{'='*60}")
-            print(f"[TEST MODE] Custom parameters:")
-            print(f"  Conditioning: {final_conditioning} {'(TEST)' if test_conditioning else '(default)'}")
-            print(f"  Guidance: {final_guidance} {'(TEST)' if test_guidance else '(default)'}")
-            print(f"  Steps: {final_steps} {'(TEST)' if test_steps else '(default)'}")
+            print(f"[TEST MODE] Custom parameters (validated):")
+            print(f"  Conditioning: {final_conditioning} {'(TEST)' if test_conditioning else '(default 0.8)'}")
+            print(f"  Guidance: {final_guidance} {'(TEST)' if test_guidance else '(default 3.0)'}")
+            print(f"  Steps: {final_steps} {'(TEST)' if test_steps else '(default 25)'}")
+            print(f"{'='*60}")
+        else:
+            print(f"\n{'='*60}")
+            print(f"[PRODUCTION MODE] Official LTX-2 recommended settings:")
+            print(f"  Conditioning: {final_conditioning} (official range)")
+            print(f"  Guidance: {final_guidance} (official default)")
+            print(f"  Steps: {final_steps} (official recommended 20-30)")
+            print(f"  LoRA strength: 0.7 (official recommended 0.6-0.8)")
             print(f"{'='*60}")
 
         # QUALITY-FIRST MODE: Accept custom parameters for experimentation
-        output = self.pipe(
-            image=reference_image,
-            prompt=enhanced_prompt,          # RESPECTS FRONTEND (Gemini 6-element + 2D Anime prefix)
-            negative_prompt=negative_prompt,
-            width=target_width,
-            height=target_height,
-            num_frames=num_frames,
-            num_inference_steps=final_steps,
-            guidance_scale=final_guidance,
-            image_conditioning_scale=final_conditioning,
-            generator=torch.Generator(device="cuda").manual_seed(42),
-            output_type="pil",
-        ).frames[0]
+        try:
+            output = self.pipe(
+                image=reference_image,
+                prompt=enhanced_prompt,          # RESPECTS FRONTEND (Gemini 6-element + 2D Anime prefix)
+                negative_prompt=negative_prompt,
+                width=target_width,
+                height=target_height,
+                num_frames=num_frames,
+                num_inference_steps=final_steps,
+                guidance_scale=final_guidance,
+                image_conditioning_scale=final_conditioning,
+                generator=torch.Generator(device="cuda").manual_seed(42),
+                output_type="pil",
+            ).frames[0]
 
-        gen_time = time.time() - gen_start
-        print(f"\n[720p GENERATION COMPLETE] Time: {gen_time:.1f}s")
+            gen_time = time.time() - gen_start
+            print(f"\n[720p GENERATION COMPLETE] Time: {gen_time:.1f}s")
+
+        except Exception as e:
+            gen_time = time.time() - gen_start
+            print(f"\n{'='*60}")
+            print(f"[ERROR] LTX-2 GENERATION FAILED!")
+            print(f"{'='*60}")
+            print(f"  Error type: {type(e).__name__}")
+            print(f"  Error message: {str(e)[:200]}")
+            print(f"\n  Parameters used:")
+            print(f"    - steps: {final_steps}")
+            print(f"    - guidance: {final_guidance}")
+            print(f"    - conditioning: {final_conditioning}")
+            print(f"    - frames: {num_frames}")
+            print(f"    - resolution: {target_width}x{target_height}")
+            print(f"  Time before failure: {gen_time:.1f}s")
+            print(f"{'='*60}")
+            import traceback
+            traceback.print_exc()
+            raise Exception(f"LTX-2 generation failed after {gen_time:.1f}s: {str(e)[:100]}")
 
         print(f"\n[CHARACTER FIDELITY VERIFICATION - PRIORITY #1]")
         print(f"  Generated {len(output)} frames @ {target_width}x{target_height}")

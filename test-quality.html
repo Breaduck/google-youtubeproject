@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LTX-2 Quality Test Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .setup-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .test-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .test-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .test-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .test-cost {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .test-params {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .test-purpose {
+            color: #888;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-run-all {
+            background: #10b981;
+            margin-top: 20px;
+            padding: 16px;
+            font-size: 16px;
+        }
+
+        .btn-run-all:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .status.running {
+            display: block;
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status.success {
+            display: block;
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .progress {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .progress.active {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s;
+            width: 0%;
+        }
+
+        .logs {
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 LTX-2 품질 테스트</h1>
+        <p class="subtitle">5개 파라미터 조합 테스트 (총 ₩255)</p>
+
+        <div class="setup-section">
+            <div class="input-group">
+                <label>테스트 이미지 *</label>
+                <input type="file" id="imageFile" accept="image/*">
+                <div style="margin-top: 5px; font-size: 12px; color: #666;">
+                    이미지 파일을 선택하세요 (JPG, PNG 등)
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>테스트 대사</label>
+                <textarea id="dialogue" rows="2" placeholder="너무 슬퍼... 왜 이런 일이...">너무 슬퍼... 왜 이런 일이...</textarea>
+            </div>
+
+            <div id="imagePreview" style="margin-top: 10px; display: none;">
+                <img id="previewImg" style="max-width: 200px; border-radius: 8px; border: 2px solid #e0e0e0;">
+            </div>
+        </div>
+
+        <div id="tests">
+            <!-- Test cards will be inserted here -->
+        </div>
+
+        <button class="btn btn-run-all" id="runAllBtn">🚀 전체 테스트 실행 (5개, ₩255)</button>
+
+        <div class="progress" id="progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="progressText">준비 중...</div>
+            <div class="logs" id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        const MODAL_API = 'https://hiyoonsh1--ltx-video-service-distilled-1080p-web-app.modal.run';
+
+        const tests = [
+            {
+                id: 1,
+                name: 'Test 1: 베이스라인 (현재 설정)',
+                conditioning: 0.75,
+                guidance: 3.5,
+                steps: 15,
+                cost: 32,
+                purpose: '현재 품질 확인'
+            },
+            {
+                id: 2,
+                name: 'Test 2: 최대 품질',
+                conditioning: 0.8,
+                guidance: 4.0,
+                steps: 30,
+                cost: 64,
+                purpose: 'LTX-2 최대 성능'
+            },
+            {
+                id: 3,
+                name: 'Test 3: 얼굴 고정 최대',
+                conditioning: 0.9,
+                guidance: 4.5,
+                steps: 25,
+                cost: 53,
+                purpose: '얼굴 흘러내림 최소화'
+            },
+            {
+                id: 4,
+                name: 'Test 4: 움직임 우선',
+                conditioning: 0.6,
+                guidance: 3.5,
+                steps: 25,
+                cost: 53,
+                purpose: '자연스러운 움직임'
+            },
+            {
+                id: 5,
+                name: 'Test 5: 균형 (고품질)',
+                conditioning: 0.75,
+                guidance: 4.0,
+                steps: 25,
+                cost: 53,
+                purpose: '얼굴 안정 + 움직임'
+            }
+        ];
+
+        // Render test cards
+        const testsContainer = document.getElementById('tests');
+        tests.forEach(test => {
+            const card = document.createElement('div');
+            card.className = 'test-card';
+            card.innerHTML = `
+                <div class="test-header">
+                    <div class="test-title">${test.name}</div>
+                    <div class="test-cost">₩${test.cost}</div>
+                </div>
+                <div class="test-params">
+                    <span>Cond: ${test.conditioning}</span>
+                    <span>Guide: ${test.guidance}</span>
+                    <span>Steps: ${test.steps}</span>
+                </div>
+                <div class="test-purpose">${test.purpose}</div>
+                <button class="btn" onclick="runSingleTest(${test.id})">
+                    이 테스트만 실행
+                </button>
+                <div class="status" id="status-${test.id}"></div>
+            `;
+            testsContainer.appendChild(card);
+        });
+
+        // Image handling
+        let imageDataUrl = null;
+
+        document.getElementById('imageFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                imageDataUrl = event.target.result;
+
+                // Show preview
+                const preview = document.getElementById('imagePreview');
+                const previewImg = document.getElementById('previewImg');
+                previewImg.src = imageDataUrl;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Generate motion prompt (simplified - uses fixed prompt for testing)
+        function getTestPrompt() {
+            return 'Cinematic 2D Anime style, clean lines, flat shading. Medium shot in soft diffused lighting with muted color palette. Character with slumped shoulders, head tilting downward, eyes glistening with tears, lips trembling. Slow camera zoom-in toward face.';
+        }
+
+        // Run single test
+        async function runSingleTest(testId) {
+            const test = tests.find(t => t.id === testId);
+
+            if (!imageDataUrl) {
+                alert('이미지 파일을 선택해주세요!');
+                return;
+            }
+
+            const statusEl = document.getElementById(`status-${testId}`);
+            statusEl.className = 'status running';
+            statusEl.textContent = '생성 중... (약 1-2분)';
+
+            try {
+                const startTime = Date.now();
+
+                const response = await fetch(`${MODAL_API}/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: getTestPrompt(),
+                        image_url: imageDataUrl,
+                        num_frames: 97,
+                        test_conditioning: test.conditioning,
+                        test_guidance: test.guidance,
+                        test_steps: test.steps
+                    })
+                });
+
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+
+                const blob = await response.blob();
+
+                // Download
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `test${test.id}_${test.name.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
+                a.click();
+
+                statusEl.className = 'status success';
+                statusEl.textContent = `✅ 완료! (${elapsed}초, ${(blob.size / 1024 / 1024).toFixed(2)} MB)`;
+
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = `❌ 실패: ${error.message}`;
+                console.error('Test error:', error);
+            }
+        }
+
+        // Run all tests
+        document.getElementById('runAllBtn').addEventListener('click', async () => {
+            if (!imageDataUrl) {
+                alert('이미지 파일을 선택해주세요!');
+                return;
+            }
+
+            const progressEl = document.getElementById('progress');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const logsEl = document.getElementById('logs');
+            const runAllBtn = document.getElementById('runAllBtn');
+
+            progressEl.className = 'progress active';
+            runAllBtn.disabled = true;
+            logsEl.innerHTML = '';
+
+            function addLog(message) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logsEl.appendChild(entry);
+                logsEl.scrollTop = logsEl.scrollHeight;
+            }
+
+            addLog('전체 테스트 시작...');
+
+            for (let i = 0; i < tests.length; i++) {
+                const test = tests[i];
+                const progress = ((i) / tests.length * 100).toFixed(0);
+                progressFill.style.width = `${progress}%`;
+                progressText.textContent = `${i + 1}/${tests.length} - ${test.name} 실행 중...`;
+
+                addLog(`[${i + 1}/${tests.length}] ${test.name} 시작 (cond=${test.conditioning}, guide=${test.guidance}, steps=${test.steps})`);
+
+                const statusEl = document.getElementById(`status-${test.id}`);
+                statusEl.className = 'status running';
+                statusEl.textContent = '생성 중...';
+
+                try {
+                    const startTime = Date.now();
+
+                    const response = await fetch(`${MODAL_API}/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            prompt: getTestPrompt(),
+                            image_url: imageDataUrl,
+                            num_frames: 97,
+                            test_conditioning: test.conditioning,
+                            test_guidance: test.guidance,
+                            test_steps: test.steps
+                        })
+                    });
+
+                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const blob = await response.blob();
+
+                    // Download
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `test${test.id}_${test.name.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
+                    a.click();
+
+                    statusEl.className = 'status success';
+                    statusEl.textContent = `✅ 완료 (${elapsed}초)`;
+                    addLog(`✅ 완료! 시간: ${elapsed}초, 크기: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+
+                } catch (error) {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = `❌ 실패`;
+                    addLog(`❌ 실패: ${error.message}`);
+                    console.error('Test error:', error);
+                }
+
+                // Wait 5 seconds between tests
+                if (i < tests.length - 1) {
+                    addLog('다음 테스트 전 5초 대기...');
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
+            }
+
+            progressFill.style.width = '100%';
+            progressText.textContent = '✅ 전체 테스트 완료!';
+            addLog('🎉 모든 테스트 완료! 다운로드된 5개 비디오를 비교하세요.');
+            runAllBtn.disabled = false;
+        });
+
+        // Make runSingleTest global
+        window.runSingleTest = runSingleTest;
+    </script>
+</body>
+</html>
