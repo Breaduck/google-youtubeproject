@@ -1,7 +1,7 @@
 // LTX Video Service
 import { GeminiService } from './geminiService';
 
-const MODAL_API = 'https://hiyoonsh1--ltx-video-service-v2-web-app.modal.run';
+const MODAL_API = 'https://hiyoonsh1--ltx-video-service-v2-ltx2-web-app.modal.run';
 
 export interface VideoGenerationRequest {
   prompt: string;
