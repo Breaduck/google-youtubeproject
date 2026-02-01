@@ -91,7 +91,7 @@ class VideoGenerator:
         self.pipe.load_lora_weights(lora_path)
         print("  - Fusing LoRA (scale=0.65)...")
         self.pipe.fuse_lora(lora_scale=0.65)
-        print("  ✓ ORIGINAL LoRA loaded successfully (Rank 384, 7.67 GB)")
+        print("  OK ORIGINAL LoRA loaded successfully (Rank 384, 7.67 GB)")
 
         print("[3/4] Applying memory optimizations...")
         # Enable CPU offloading for A10G 24GB
@@ -230,36 +230,36 @@ class VideoGenerator:
         # Negative prompt: Anti-distortion + 2D Animation Style enforcement
         negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic"
 
-        print(f"\n[GENERATION SETTINGS - FINAL TWEAK: COST OPTIMIZED]")
-        print(f"  Model: LTX-2 Distilled + ORIGINAL LoRA (7.67 GB)")
+        print(f"\n[GENERATION SETTINGS - COMMUNITY OPTIMIZED]")
+        print(f"  Model: LTX-2 Distilled + ORIGINAL LoRA (7.67 GB @ scale 0.65)")
         print(f"  Generation: {target_width}x{target_height} (720p)")
         print(f"  Upscale: 1.5x → 1920x1080 (1080p)")
         print(f"  Frames: {num_frames} (~{num_frames/24:.1f}s @ 24fps)")
-        print(f"  Inference steps: 15 (cost optimized from 20)")
-        print(f"  Guidance scale: 3.0 (strong prompt following)")
-        print(f"  Image conditioning: 0.7 (movement priority)")
-        print(f"  Style: 2D Animation (NOT photorealistic)")
-        print(f"  Camera: Forced movement (dolly-in/pan)")
-        print(f"  Prompt: Gemini 5-step (dialogue → emotion)")
+        print(f"  Inference steps: 15 (cost optimized)")
+        print(f"  Guidance scale: 3.5 (strict prompt following)")
+        print(f"  Image conditioning: 0.75 (balanced: face stability + movement)")
+        print(f"  Style: 2D Anime (clean lines, flat shading)")
+        print(f"  Camera: Slow zoom-in (mandatory)")
+        print(f"  Prompt: Gemini 6-element + 2D Anime prefix")
         print(f"  Negative: Enhanced + 2D style enforcement")
-        print(f"  Target: ~30 KRW (business viability)")
+        print(f"  Target: ~₩32 (business viable)")
         print(f"\n[STARTING 720p GENERATION]...")
 
         import time
         gen_start = time.time()
 
-        # FINAL TWEAK: COST OPTIMIZED + MOVEMENT PRIORITY
-        # 15 steps, guidance 3.0, conditioning 0.7, ORIGINAL LoRA 7.67GB
+        # COMMUNITY-OPTIMIZED: 2D Anime Style + Face Stability Balance
+        # 15 steps, guidance 3.5, conditioning 0.75, ORIGINAL LoRA 7.67GB @ 0.65
         output = self.pipe(
             image=reference_image,
-            prompt=enhanced_prompt,          # RESPECTS FRONTEND (Gemini 5-step + camera movement)
+            prompt=enhanced_prompt,          # RESPECTS FRONTEND (Gemini 6-element + 2D Anime prefix)
             negative_prompt=negative_prompt,
             width=target_width,
             height=target_height,
             num_frames=num_frames,
-            num_inference_steps=15,          # OPTIMIZED: 15 steps (was 20) for ₩30 target
-            guidance_scale=3.0,              # STRONG: 3.0 for prompt following
-            image_conditioning_scale=0.7,    # MOVEMENT: 0.7 (was 0.8) - prioritize natural motion
+            num_inference_steps=15,          # OPTIMIZED: 15 steps for ₩30 target
+            guidance_scale=3.5,              # STRONGER: 3.5 for strict prompt following
+            image_conditioning_scale=0.75,   # BALANCED: 0.75 (face stability + movement)
             generator=torch.Generator(device="cuda").manual_seed(42),
             output_type="pil",
         ).frames[0]
@@ -299,7 +299,7 @@ class VideoGenerator:
             print(f"  [ACTION] Forcing first frame replacement as safety")
             output[0] = reference_image.copy()
         else:
-            print(f"  [OK] CHARACTER FIDELITY EXCELLENT! ✓")
+            print(f"  [OK] CHARACTER FIDELITY EXCELLENT! OK")
 
         print(f"\n[UPSCALING TO 1080p - PRIORITY #2]")
         print(f"  Input: {len(output)} frames @ {target_width}x{target_height}")
@@ -352,7 +352,7 @@ class VideoGenerator:
             print(f"  [ACTION] Replacing first frame at 1080p")
             output[0] = input_1080p.copy()
         else:
-            print(f"  [OK] 1080p character fidelity maintained ✓")
+            print(f"  [OK] 1080p character fidelity maintained OK")
 
         # Save video with optimized codec
         import imageio
@@ -389,7 +389,7 @@ class VideoGenerator:
         print(f"  Cost: ${cost_usd:.4f} (₩{cost_krw:.0f})")
         print(f"  Target: <67s (<₩30)")
         if total_time <= 67:
-            print(f"  [OK] Time target achieved! ✓")
+            print(f"  [OK] Time target achieved! OK")
         else:
             print(f"  [!] Time exceeded target by {total_time-67:.1f}s")
         print(f"{'='*70}\n")

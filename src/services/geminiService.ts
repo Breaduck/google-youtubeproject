@@ -443,44 +443,57 @@ INPUT:
 Dialogue: "${dialogue}"
 Character/Scene: "${imagePrompt}"
 
+MANDATORY PREFIX (MUST START WITH):
+"Cinematic 2D Anime style, clean lines, flat shading"
+
+MANDATORY CAMERA MOVEMENT:
+MUST include "Slow camera zoom-in" (to prevent static frames)
+
 OFFICIAL LTX-2 STRUCTURE (6 Elements):
 1. Shot establishment: Cinematography terminology (medium shot, close-up, etc.)
-2. Scene setting: Lighting, color palette, textures, mood (2D animation style)
+2. Scene setting: Lighting, color palette, textures, mood (2D anime style)
 3. Action sequence: Natural movements flowing from start to finish
 4. Character definition: Visual emotional cues through physicality (NOT labels like "sad")
-5. Camera movement: Specific direction ("slow dolly in", "handheld tracking")
+5. Camera movement: MUST be "Slow camera zoom-in"
 6. Audio/dialogue: Ambient sounds, dialogue in quotes, vocal style
 
 CRITICAL RULES:
+- MUST start with "Cinematic 2D Anime style, clean lines, flat shading"
 - Single flowing paragraph (4-8 sentences, present tense)
 - Show emotion through VISUAL CUES (posture, facial expressions, gestures) NOT labels
 - Match dialogue emotion to visual: crying → teary eyes, slumped posture
-- MANDATORY camera movement: "slow dolly in", "subtle camera pan", "gentle zoom"
-- 2D animation aesthetic (vibrant colors, stylized) NOT photorealistic
+- MANDATORY camera: "Slow camera zoom-in" (exact phrase required)
 - Action includes "lips moving with speech" or "mouth forming words"
-- Avoid: complex physics, too many characters, text/logos, conflicting lighting
-
-WHAT WORKS WELL:
-- Single-subject emotional expressions
-- Atmospheric elements (soft lighting, gentle shadows)
-- Stylized animation aesthetic
-- Subtle gestures and facial movements
-- Clear camera language
+- Avoid: realistic, photorealistic, 3D render, complex physics, text/logos
 
 EXAMPLES:
 Input: "I can't believe this happened..." (sad scene)
-Output: "Medium shot in soft diffused lighting with muted color palette. Character's shoulders slumped forward, head tilting downward, eyes glistening with tears, lips trembling and forming words. Hands fidgeting nervously at sides, breathing visibly heavy. Slow dolly in toward face as expression deepens. 2D animation style with smooth motion and subtle shadows. Ambient sound of quiet breathing, dialogue 'I can't believe this happened...' spoken in shaky, quiet voice."
+Output: "Cinematic 2D Anime style, clean lines, flat shading. Medium shot in soft diffused lighting with muted color palette. Character's shoulders slumped forward, head tilting downward, eyes glistening with tears, lips trembling and forming words. Hands fidgeting nervously at sides, breathing visibly heavy. Slow camera zoom-in toward face as expression deepens. Ambient sound of quiet breathing, dialogue 'I can't believe this happened...' spoken in shaky, quiet voice."
 
 Input: "Hahaha! That's hilarious!" (happy scene)
-Output: "Close-up shot with warm golden lighting and vibrant color palette. Character's face brightening with broad smile, eyes squinting with joy, head tilting back slightly as laughter erupts. Lips moving energetically with speech, shoulders shaking with mirth. Gentle camera pan right following face movement. 2D animation aesthetic with dynamic motion and bright highlights. Ambient sound of cheerful atmosphere, dialogue 'Hahaha! That's hilarious!' spoken in enthusiastic, playful tone."
+Output: "Cinematic 2D Anime style, clean lines, flat shading. Close-up shot with warm golden lighting and vibrant color palette. Character's face brightening with broad smile, eyes squinting with joy, head tilting back slightly as laughter erupts. Lips moving energetically with speech, shoulders shaking with mirth. Slow camera zoom-in following face movement. Ambient sound of cheerful atmosphere, dialogue 'Hahaha! That's hilarious!' spoken in enthusiastic, playful tone."
 
-Now generate for the input above. Write as a SINGLE FLOWING PARAGRAPH in present tense. Return ONLY the prompt text in English, no quotes, no explanation.`;
+Now generate for the input above. MUST start with "Cinematic 2D Anime style, clean lines, flat shading" and include "Slow camera zoom-in". Write as a SINGLE FLOWING PARAGRAPH in present tense. Return ONLY the prompt text in English, no quotes, no explanation.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
       contents: prompt
     });
 
-    return response.text?.trim() || 'subtle natural movement, gentle expression change, lips moving according to dialogue';
+    let generatedPrompt = response.text?.trim() || 'Cinematic 2D Anime style, clean lines, flat shading. Subtle natural movement, gentle expression change, lips moving according to dialogue. Slow camera zoom-in.';
+
+    // Enforce mandatory prefix if missing
+    if (!generatedPrompt.toLowerCase().includes('cinematic 2d anime')) {
+      generatedPrompt = `Cinematic 2D Anime style, clean lines, flat shading. ${generatedPrompt}`;
+    }
+
+    // Enforce mandatory camera movement if missing
+    if (!generatedPrompt.toLowerCase().includes('slow camera zoom-in') &&
+        !generatedPrompt.toLowerCase().includes('slow zoom-in') &&
+        !generatedPrompt.toLowerCase().includes('camera zoom')) {
+      generatedPrompt = generatedPrompt.replace(/\.$/, '') + '. Slow camera zoom-in.';
+    }
+
+    return generatedPrompt;
   }
 }
