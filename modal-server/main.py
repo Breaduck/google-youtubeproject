@@ -211,33 +211,37 @@ class VideoGenerator:
         # 4. Detail melting (facial features displaced)
         # 5. Background warping (ripple effect around character)
 
-        # LTX-2 Solution: EXTREME image conditioning
-        # Prompt: MINIMAL motion description (less is more)
-        motion_only_prompt = "subtle motion"
+        # AGGRESSIVE QUALITY SETTINGS - EXPRESSION & MOTION PRIORITY
+        # Strategy: Allow more motion freedom while maintaining character
 
-        # NO quality keywords (they weaken image conditioning)
-        enhanced_prompt = motion_only_prompt
+        # Cinematic prefix for dynamic motion
+        cinematic_prefix = "Cinematic motion, natural character movement, high dynamic range"
+        motion_description = "subtle motion"
+
+        # Combined prompt with cinematic quality
+        enhanced_prompt = f"{cinematic_prefix}, {motion_description}"
 
         # Negative prompt: AGGRESSIVE anti-distortion + AI feel removal
         negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered"
 
-        print(f"\n[GENERATION SETTINGS - QUALITY OPTIMIZED]")
-        print(f"  Model: LTX-2 Distilled")
+        print(f"\n[GENERATION SETTINGS - AGGRESSIVE QUALITY MODE]")
+        print(f"  Model: LTX-2 Distilled + LoRA")
         print(f"  Generation: {target_width}x{target_height} (720p)")
         print(f"  Upscale: 1.5x → 1920x1080 (1080p)")
         print(f"  Frames: {num_frames} (~{num_frames/24:.1f}s @ 24fps)")
-        print(f"  Inference steps: 10 (quality boost from 8)")
-        print(f"  Guidance scale: 1.0 (Distilled CFG-free)")
-        print(f"  Prompt: '{enhanced_prompt}' (minimal)")
+        print(f"  Inference steps: 20 (2x quality - cost doubled)")
+        print(f"  Guidance scale: 3.0 (prompt following)")
+        print(f"  Image conditioning: 0.85 (relaxed for motion)")
+        print(f"  Prompt: Cinematic + motion")
         print(f"  Negative: Enhanced AI-removal + anti-distortion")
-        print(f"  Target: ~25 KRW (₩20s mid-range)")
+        print(f"  Target: ~50 KRW (품질 우선, 비용 2배)")
         print(f"\n[STARTING 720p GENERATION]...")
 
         import time
         gen_start = time.time()
 
-        # LTX-2 Distilled - quality optimized
-        # 10 steps for better quality (vs 8), CFG=1
+        # AGGRESSIVE QUALITY MODE - Expression & Motion Priority
+        # 20 steps (2x computation), guidance_scale 3.0, relaxed conditioning
         output = self.pipe(
             image=reference_image,
             prompt=enhanced_prompt,
@@ -245,8 +249,9 @@ class VideoGenerator:
             width=target_width,
             height=target_height,
             num_frames=num_frames,
-            num_inference_steps=10,        # Quality boost: 10 steps (was 8)
-            guidance_scale=1.0,            # Distilled: CFG=1 (no guidance)
+            num_inference_steps=20,        # DOUBLED: 20 steps (was 10) for quality
+            guidance_scale=3.0,            # INCREASED: 3.0 (was 1.0) for prompt following
+            image_conditioning_scale=0.85, # RELAXED: 0.85 (default 1.0) for natural motion
             generator=torch.Generator(device="cuda").manual_seed(42),
             output_type="pil",
         ).frames[0]
