@@ -73,24 +73,25 @@ class VideoGenerator:
             torch_dtype=torch.bfloat16
         )
 
-        print("[2/4] Loading Lightweight LoRA (Rank 175 FP8 - 1.79 GB)...")
+        print("[2/4] Loading ORIGINAL LoRA (Rank 384 - 7.67 GB) for MAXIMUM QUALITY...")
         from huggingface_hub import hf_hub_download
 
         lora_cache_dir = "/models/loras"
         os.makedirs(lora_cache_dir, exist_ok=True)
 
+        # ORIGINAL 7.67GB LoRA for best quality
         lora_path = hf_hub_download(
-            repo_id="Kijai/LTXV2_comfy",
-            filename="loras/ltx-2-19b-distilled-lora_resized_dynamic_fro09_avg_rank_175_fp8.safetensors",
+            repo_id="Lightricks/LTX-2",
+            filename="ltx-2-19b-distilled-lora-384.safetensors",
             cache_dir=lora_cache_dir
         )
 
         print(f"  - LoRA downloaded/cached at: {lora_path}")
-        print("  - Loading LoRA weights...")
+        print("  - Loading ORIGINAL LoRA weights (7.67 GB)...")
         self.pipe.load_lora_weights(lora_path)
         print("  - Fusing LoRA (scale=0.65)...")
         self.pipe.fuse_lora(lora_scale=0.65)
-        print("  ✓ LoRA loaded successfully (Rank 175 FP8)")
+        print("  ✓ ORIGINAL LoRA loaded successfully (Rank 384, 7.67 GB)")
 
         print("[3/4] Applying memory optimizations...")
         # Enable CPU offloading for A10G 24GB
@@ -120,22 +121,25 @@ class VideoGenerator:
         self.sr.setModel("edsr", 2)  # x2 upscale
 
         print(f"\n{'='*70}")
-        print("PIPELINE LOADED - CHARACTER FIDELITY + LORA QUALITY BOOST!")
+        print("PIPELINE LOADED - MAXIMUM QUALITY + EMOTION-DRIVEN MOTION!")
         print(f"{'='*70}")
         print("Configuration:")
-        print("  [Priority 1] Character Fidelity:")
-        print("    - Distilled model (10 steps, CFG=1)")
-        print("    - LoRA Rank 175 FP8 (1.79 GB) @ scale 0.65")
-        print("    - Minimal prompt (motion only)")
-        print("    - Enhanced negative prompt (27 keywords)")
-        print("    - First frame forced replacement")
+        print("  [Priority 1] Emotion & Expression:")
+        print("    - Gemini 5-step formula prompts (dialogue → emotion)")
+        print("    - ORIGINAL LoRA Rank 384 (7.67 GB) @ scale 0.65")
+        print("    - Relaxed conditioning (0.8) for expression freedom")
+        print("    - Steps: 20 (maximum quality)")
+        print("    - Guidance: 3.0 (strong prompt following)")
+        print("  [Priority 2] Character Fidelity:")
         print("    - Multi-frame verification (5 checkpoints)")
-        print("  [Priority 2] Upscaling:")
+        print("    - First frame forced replacement")
+        print("    - Enhanced negative prompt (27 keywords)")
+        print("  [Priority 3] Upscaling:")
         print("    - OpenCV DNN EDSR x2")
         print("    - 720p → 1440p → resized to 1080p")
         print("  [Performance Target]:")
-        print("    - Time: ~60 seconds")
-        print("    - Cost: ~₩27 (30원 목표)")
+        print("    - Time: ~90 seconds (quality priority)")
+        print("    - Cost: ~₩60 (expression quality investment)")
         print(f"{'='*70}\n")
 
     @modal.method()
@@ -211,47 +215,46 @@ class VideoGenerator:
         # 4. Detail melting (facial features displaced)
         # 5. Background warping (ripple effect around character)
 
-        # AGGRESSIVE QUALITY SETTINGS - EXPRESSION & MOTION PRIORITY
-        # Strategy: Allow more motion freedom while maintaining character
+        # EMOTION-DRIVEN MOTION - Frontend Gemini 5-step formula prompt
+        # Strategy: 100% respect frontend prompt (Gemini analyzed dialogue)
 
-        # Cinematic prefix for dynamic motion
-        cinematic_prefix = "Cinematic motion, natural character movement, high dynamic range"
-        motion_description = "subtle motion"
+        # USE FRONTEND PROMPT DIRECTLY (no override!)
+        enhanced_prompt = prompt  # Gemini 5-step formula from frontend
 
-        # Combined prompt with cinematic quality
-        enhanced_prompt = f"{cinematic_prefix}, {motion_description}"
+        print(f"\n[FRONTEND PROMPT] Gemini 5-step formula:")
+        print(f"  {enhanced_prompt[:200]}...")
 
         # Negative prompt: AGGRESSIVE anti-distortion + AI feel removal
         negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered"
 
-        print(f"\n[GENERATION SETTINGS - AGGRESSIVE QUALITY MODE]")
-        print(f"  Model: LTX-2 Distilled + LoRA")
+        print(f"\n[GENERATION SETTINGS - EMOTION-DRIVEN MAXIMUM QUALITY]")
+        print(f"  Model: LTX-2 Distilled + ORIGINAL LoRA (7.67 GB)")
         print(f"  Generation: {target_width}x{target_height} (720p)")
         print(f"  Upscale: 1.5x → 1920x1080 (1080p)")
         print(f"  Frames: {num_frames} (~{num_frames/24:.1f}s @ 24fps)")
-        print(f"  Inference steps: 20 (2x quality - cost doubled)")
-        print(f"  Guidance scale: 3.0 (prompt following)")
-        print(f"  Image conditioning: 0.85 (relaxed for motion)")
-        print(f"  Prompt: Cinematic + motion")
+        print(f"  Inference steps: 20 (maximum quality)")
+        print(f"  Guidance scale: 3.0 (strong prompt following)")
+        print(f"  Image conditioning: 0.8 (expression freedom)")
+        print(f"  Prompt: Gemini 5-step (dialogue → emotion)")
         print(f"  Negative: Enhanced AI-removal + anti-distortion")
-        print(f"  Target: ~50 KRW (품질 우선, 비용 2배)")
+        print(f"  Target: ~60 KRW (emotion quality priority)")
         print(f"\n[STARTING 720p GENERATION]...")
 
         import time
         gen_start = time.time()
 
-        # AGGRESSIVE QUALITY MODE - Expression & Motion Priority
-        # 20 steps (2x computation), guidance_scale 3.0, relaxed conditioning
+        # EMOTION-DRIVEN MAXIMUM QUALITY MODE
+        # 20 steps, guidance 3.0, conditioning 0.8, ORIGINAL LoRA 7.67GB
         output = self.pipe(
             image=reference_image,
-            prompt=enhanced_prompt,
+            prompt=enhanced_prompt,          # RESPECTS FRONTEND (Gemini 5-step)
             negative_prompt=negative_prompt,
             width=target_width,
             height=target_height,
             num_frames=num_frames,
-            num_inference_steps=20,        # DOUBLED: 20 steps (was 10) for quality
-            guidance_scale=3.0,            # INCREASED: 3.0 (was 1.0) for prompt following
-            image_conditioning_scale=0.85, # RELAXED: 0.85 (default 1.0) for natural motion
+            num_inference_steps=20,          # MAXIMUM: 20 steps for quality
+            guidance_scale=3.0,              # STRONG: 3.0 for prompt following
+            image_conditioning_scale=0.8,    # RELAXED: 0.8 (was 0.85) for expression freedom
             generator=torch.Generator(device="cuda").manual_seed(42),
             output_type="pil",
         ).frames[0]

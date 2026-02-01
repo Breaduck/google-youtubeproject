@@ -437,29 +437,41 @@ Return ONLY the new prompt text, no explanation or markdown.`;
   async generateMotionPrompt(dialogue: string, imagePrompt: string): Promise<string> {
     const ai = this.getClient();
 
-    const prompt = `Based on this dialogue and image description, generate a motion prompt for subtle video animation.
+    const prompt = `Generate a video motion prompt using the 5-STEP FORMULA for LTX-2 video generation.
 
+INPUT:
 Dialogue: "${dialogue}"
-Image Description: "${imagePrompt}"
+Character/Scene: "${imagePrompt}"
 
-Generate a motion description that:
-1. Matches the emotion/action in the dialogue
-2. Uses SUBTLE, NATURAL movements only (no dramatic actions)
-3. Focuses on facial expressions, slight body shifts, or gentle gestures
-4. Keeps character consistent with the image description
+5-STEP FORMULA:
+1. Subject: Who/what is moving (from image description)
+2. Action: Specific facial expressions and lip movements matching dialogue emotion
+3. Camera: Camera movement (static, slow zoom, etc.)
+4. Quality: Visual quality descriptors
+5. Constraint: What NOT to do (to prevent artifacts)
 
-Examples:
-- Dialogue: "I can't believe it!" → "character's eyes widen slightly, eyebrows raise, small gasp expression"
-- Dialogue: "Hello, everyone." → "character smiles gently and nods head slightly"
-- Dialogue: "It's beautiful..." → "character gazes softly, slight head tilt, peaceful expression"
+RULES:
+- Action MUST include "lips moving according to dialogue" or "mouth moving with speech"
+- Match emotion: crying dialogue → sad expression, teary eyes
+- Match emotion: laughing dialogue → smiling, joyful expression
+- Match emotion: angry dialogue → furrowed brows, intense look
+- SUBTLE movements only (no dramatic gestures)
+- Keep character identity consistent
 
-Return ONLY the motion description in English, no quotes, no extra text.`;
+EXAMPLES:
+Input: "I can't believe this happened..." (sad scene)
+Output: "Character with sad expression, teary eyes, lips moving according to dialogue, slight head shake, subtle emotional facial movement, cinematic lighting, high quality, natural motion, avoid wobbling, avoid face distortion"
+
+Input: "Hahaha! That's hilarious!" (happy scene)
+Output: "Character smiling broadly, joyful expression, lips moving with laughter, eyes squinting with joy, slight head tilt, cinematic motion, photorealistic, high dynamic range, avoid morphing, avoid character change"
+
+Now generate for the input above. Return ONLY the prompt text in English, no quotes, no explanation.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
       contents: prompt
     });
 
-    return response.text?.trim() || 'subtle natural movement, gentle expression change';
+    return response.text?.trim() || 'subtle natural movement, gentle expression change, lips moving according to dialogue';
   }
 }
