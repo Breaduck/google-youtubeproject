@@ -19,15 +19,17 @@ export async function generateSceneVideo(
   console.log('[LTX] generateSceneVideo called');
   console.log('[LTX] Dialogue:', dialogue.substring(0, 50));
 
-  // 기본 모션 프롬프트 (Gemini 비용 절약)
-  const motionDescription = 'subtle natural movement, gentle facial expressions, slight body motion';
-  console.log('[LTX] Using default motion prompt');
+  // Gemini 감정 분석 → 5단계 공식 모션 프롬프트 생성
+  console.log('[LTX] Generating emotion-based motion prompt via Gemini...');
+  const gemini = new GeminiService();
+  const motionDescription = await gemini.generateMotionPrompt(dialogue, imagePrompt);
+  console.log('[LTX] Gemini motion prompt:', motionDescription);
 
-  // Combine image prompt with motion
-  const enhancedPrompt = `${imagePrompt}. ${motionDescription}`;
+  // 최종 프롬프트 = Gemini가 생성한 감정 기반 모션
+  const enhancedPrompt = motionDescription;
 
   console.log('[LTX] Calling Modal API:', MODAL_API);
-  console.log('[LTX] Enhanced prompt:', enhancedPrompt.substring(0, 100));
+  console.log('[LTX] Final prompt:', enhancedPrompt.substring(0, 100));
   const startTime = Date.now();
 
   const response = await fetch(`${MODAL_API}/generate`, {
