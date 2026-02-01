@@ -446,8 +446,8 @@ Character/Scene: "${imagePrompt}"
 5-STEP FORMULA:
 1. Subject: Who/what is moving (from image description)
 2. Action: Specific facial expressions and lip movements matching dialogue emotion
-3. Camera: Camera movement (static, slow zoom, etc.)
-4. Quality: Visual quality descriptors
+3. Camera: MANDATORY camera movement - NEVER static! Use "slow dolly-in", "subtle camera pan", "gentle zoom in", or "smooth camera drift"
+4. Quality: Visual quality descriptors (2D animation style, NOT photorealistic)
 5. Constraint: What NOT to do (to prevent artifacts)
 
 RULES:
@@ -460,10 +460,10 @@ RULES:
 
 EXAMPLES:
 Input: "I can't believe this happened..." (sad scene)
-Output: "Character with sad expression, teary eyes, lips moving according to dialogue, slight head shake, subtle emotional facial movement, cinematic lighting, high quality, natural motion, avoid wobbling, avoid face distortion"
+Output: "Character with sad expression, teary eyes, lips moving according to dialogue, slight head shake, slow dolly-in camera movement, 2D animation style, smooth motion, vibrant colors, avoid wobbling, avoid realistic, avoid 3d render, avoid photorealistic"
 
 Input: "Hahaha! That's hilarious!" (happy scene)
-Output: "Character smiling broadly, joyful expression, lips moving with laughter, eyes squinting with joy, slight head tilt, cinematic motion, photorealistic, high dynamic range, avoid morphing, avoid character change"
+Output: "Character smiling broadly, joyful expression, lips moving with laughter, eyes squinting with joy, gentle camera pan right, 2D animation aesthetic, natural character motion, avoid morphing, avoid photo, avoid realistic"
 
 Now generate for the input above. Return ONLY the prompt text in English, no quotes, no explanation.`;
 

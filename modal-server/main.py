@@ -121,25 +121,28 @@ class VideoGenerator:
         self.sr.setModel("edsr", 2)  # x2 upscale
 
         print(f"\n{'='*70}")
-        print("PIPELINE LOADED - MAXIMUM QUALITY + EMOTION-DRIVEN MOTION!")
+        print("PIPELINE LOADED - FINAL TWEAK: MOVEMENT + COST OPTIMIZED!")
         print(f"{'='*70}")
         print("Configuration:")
-        print("  [Priority 1] Emotion & Expression:")
+        print("  [Priority 1] Natural Movement:")
+        print("    - Conditioning: 0.7 (movement priority > face rigidity)")
+        print("    - Forced camera movement (dolly-in/pan)")
+        print("    - 2D Animation style (NOT photorealistic)")
+        print("    - Steps: 15 (cost optimized from 20)")
+        print("  [Priority 2] Emotion & Expression:")
         print("    - Gemini 5-step formula prompts (dialogue → emotion)")
         print("    - ORIGINAL LoRA Rank 384 (7.67 GB) @ scale 0.65")
-        print("    - Relaxed conditioning (0.8) for expression freedom")
-        print("    - Steps: 20 (maximum quality)")
         print("    - Guidance: 3.0 (strong prompt following)")
-        print("  [Priority 2] Character Fidelity:")
+        print("  [Priority 3] Character Fidelity:")
         print("    - Multi-frame verification (5 checkpoints)")
         print("    - First frame forced replacement")
-        print("    - Enhanced negative prompt (27 keywords)")
-        print("  [Priority 3] Upscaling:")
+        print("    - Negative: 2D style enforcement (no realistic/3d/photo)")
+        print("  [Priority 4] Upscaling:")
         print("    - OpenCV DNN EDSR x2")
         print("    - 720p → 1440p → resized to 1080p")
         print("  [Performance Target]:")
-        print("    - Time: ~90 seconds (quality priority)")
-        print("    - Cost: ~₩60 (expression quality investment)")
+        print("    - Time: ~70 seconds (25% faster)")
+        print("    - Cost: ~₩35 (business viable)")
         print(f"{'='*70}\n")
 
     @modal.method()
@@ -224,37 +227,39 @@ class VideoGenerator:
         print(f"\n[FRONTEND PROMPT] Gemini 5-step formula:")
         print(f"  {enhanced_prompt[:200]}...")
 
-        # Negative prompt: AGGRESSIVE anti-distortion + AI feel removal
-        negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered"
+        # Negative prompt: Anti-distortion + 2D Animation Style enforcement
+        negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic"
 
-        print(f"\n[GENERATION SETTINGS - EMOTION-DRIVEN MAXIMUM QUALITY]")
+        print(f"\n[GENERATION SETTINGS - FINAL TWEAK: COST OPTIMIZED]")
         print(f"  Model: LTX-2 Distilled + ORIGINAL LoRA (7.67 GB)")
         print(f"  Generation: {target_width}x{target_height} (720p)")
         print(f"  Upscale: 1.5x → 1920x1080 (1080p)")
         print(f"  Frames: {num_frames} (~{num_frames/24:.1f}s @ 24fps)")
-        print(f"  Inference steps: 20 (maximum quality)")
+        print(f"  Inference steps: 15 (cost optimized from 20)")
         print(f"  Guidance scale: 3.0 (strong prompt following)")
-        print(f"  Image conditioning: 0.8 (expression freedom)")
+        print(f"  Image conditioning: 0.7 (movement priority)")
+        print(f"  Style: 2D Animation (NOT photorealistic)")
+        print(f"  Camera: Forced movement (dolly-in/pan)")
         print(f"  Prompt: Gemini 5-step (dialogue → emotion)")
-        print(f"  Negative: Enhanced AI-removal + anti-distortion")
-        print(f"  Target: ~60 KRW (emotion quality priority)")
+        print(f"  Negative: Enhanced + 2D style enforcement")
+        print(f"  Target: ~30 KRW (business viability)")
         print(f"\n[STARTING 720p GENERATION]...")
 
         import time
         gen_start = time.time()
 
-        # EMOTION-DRIVEN MAXIMUM QUALITY MODE
-        # 20 steps, guidance 3.0, conditioning 0.8, ORIGINAL LoRA 7.67GB
+        # FINAL TWEAK: COST OPTIMIZED + MOVEMENT PRIORITY
+        # 15 steps, guidance 3.0, conditioning 0.7, ORIGINAL LoRA 7.67GB
         output = self.pipe(
             image=reference_image,
-            prompt=enhanced_prompt,          # RESPECTS FRONTEND (Gemini 5-step)
+            prompt=enhanced_prompt,          # RESPECTS FRONTEND (Gemini 5-step + camera movement)
             negative_prompt=negative_prompt,
             width=target_width,
             height=target_height,
             num_frames=num_frames,
-            num_inference_steps=20,          # MAXIMUM: 20 steps for quality
+            num_inference_steps=15,          # OPTIMIZED: 15 steps (was 20) for ₩30 target
             guidance_scale=3.0,              # STRONG: 3.0 for prompt following
-            image_conditioning_scale=0.8,    # RELAXED: 0.8 (was 0.85) for expression freedom
+            image_conditioning_scale=0.7,    # MOVEMENT: 0.7 (was 0.8) - prioritize natural motion
             generator=torch.Generator(device="cuda").manual_seed(42),
             output_type="pil",
         ).frames[0]
