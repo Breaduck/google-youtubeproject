@@ -73,30 +73,13 @@ class VideoGenerator:
             torch_dtype=torch.bfloat16
         )
 
-        print("[2/4] Loading ORIGINAL LoRA (Rank 384 - 7.67 GB) for MAXIMUM QUALITY...")
-        from huggingface_hub import hf_hub_download
-
-        lora_cache_dir = "/models/loras"
-        os.makedirs(lora_cache_dir, exist_ok=True)
-
-        # ORIGINAL 7.67GB LoRA for best quality
-        lora_path = hf_hub_download(
-            repo_id="Lightricks/LTX-2",
-            filename="ltx-2-19b-distilled-lora-384.safetensors",
-            cache_dir=lora_cache_dir
-        )
-
-        print(f"  - LoRA downloaded/cached at: {lora_path}")
-        print("  - Loading ORIGINAL LoRA weights (7.67 GB)...")
-        self.pipe.load_lora_weights(lora_path)
-        print("  - Fusing LoRA (scale=0.7, official recommended 0.6-0.8)...")
-        self.pipe.fuse_lora(lora_scale=0.7)
-        print("  OK ORIGINAL LoRA loaded successfully (Rank 384, 7.67 GB)")
+        print("[2/4] SKIPPING LoRA for stability (base model only)...")
+        print("  - Using base Distilled model without LoRA")
 
         print("[3/4] Applying memory optimizations...")
-        # Enable CPU offloading for A10G 24GB
-        print("  - Sequential CPU offload...")
-        self.pipe.enable_sequential_cpu_offload()
+        # Move to GPU (A10G has 24GB VRAM - no offload needed)
+        print("  - Moving pipeline to CUDA...")
+        self.pipe.to("cuda")
 
         # Enable VAE tiling for memory efficiency
         print("  - VAE tiling...")
@@ -121,30 +104,22 @@ class VideoGenerator:
         self.sr.setModel("edsr", 2)  # x2 upscale
 
         print(f"\n{'='*70}")
-        print("PIPELINE LOADED - OFFICIAL LTX-2 OPTIMIZED SETTINGS!")
+        print("PIPELINE LOADED - FAST & STABLE MODE!")
         print(f"{'='*70}")
-        print("Configuration (Based on Official Documentation):")
-        print("  [Model & LoRA]:")
+        print("Configuration (Optimized for Speed & Stability):")
+        print("  [Model]:")
         print("    - LTX-2 Distilled (19B parameters)")
-        print("    - ORIGINAL LoRA Rank 384 (7.67 GB) @ scale 0.7")
-        print("    - LoRA strength: 0.7 (official recommended 0.6-0.8)")
+        print("    - Base model only (no LoRA)")
+        print("    - Direct CUDA loading (no CPU offload)")
         print("  [Generation Parameters]:")
-        print("    - Steps: 25 (official recommended 20-30)")
+        print("    - Steps: 8 (Distilled optimal)")
         print("    - Guidance: 3.0 (official typical value)")
         print("    - Conditioning: 0.8 (balanced)")
-        print("  [Prompt Strategy]:")
-        print("    - Gemini 6-element structure (official LTX-2 format)")
-        print("    - 2D Animation style enforcement")
-        print("    - Visual emotional cues (not labels)")
-        print("  [Quality Assurance]:")
-        print("    - 5-checkpoint character fidelity verification")
-        print("    - First frame forced replacement (if needed)")
-        print("    - Enhanced negative prompts")
         print("  [Upscaling]:")
         print("    - OpenCV DNN EDSR x2 (720p → 1440p → 1080p)")
         print("  [Performance]:")
-        print("    - Expected time: ~85 seconds (4초 영상)")
-        print("    - Expected cost: ~₩56 (4초 기준)")
+        print("    - Expected time: ~40 seconds (4초 영상)")
+        print("    - Expected cost: ~₩20 (4초 기준)")
         print(f"{'='*70}\n")
 
     @modal.method()
@@ -241,10 +216,10 @@ class VideoGenerator:
         # steps: 40 default, 20-30 for quality/speed balance
         # distilled_lora: 0.6-0.8 strength
 
-        # 기본값 (공식 권장 기반) - MUST BE DEFINED FIRST!
+        # 기본값 (Distilled 모델 최적화) - MUST BE DEFINED FIRST!
         DEFAULT_CONDITIONING = 0.8  # 공식 문서 기반
         DEFAULT_GUIDANCE = 3.0      # 공식 기본값
-        DEFAULT_STEPS = 25          # 공식 권장 범위 (20-30)
+        DEFAULT_STEPS = 8           # Distilled 모델 권장 (8 steps stage 1)
 
         final_conditioning = test_conditioning if test_conditioning is not None else DEFAULT_CONDITIONING
         final_guidance = test_guidance if test_guidance is not None else DEFAULT_GUIDANCE
@@ -257,19 +232,19 @@ class VideoGenerator:
 
         test_mode = test_conditioning is not None or test_guidance is not None or test_steps is not None
 
-        mode_label = "TEST MODE" if test_mode else "OFFICIAL OPTIMIZED MODE"
+        mode_label = "TEST MODE" if test_mode else "FAST & STABLE MODE"
         print(f"\n[GENERATION SETTINGS - {mode_label}]")
-        print(f"  Model: LTX-2 Distilled + ORIGINAL LoRA (7.67 GB @ scale 0.7)")
+        print(f"  Model: LTX-2 Distilled (base model, no LoRA)")
         print(f"  Generation: {target_width}x{target_height} (720p)")
         print(f"  Upscale: 1.5x → 1920x1080 (1080p)")
         print(f"  Frames: {num_frames} (~{num_frames/24:.1f}s @ 24fps)")
-        print(f"  Inference steps: {final_steps} (official: 20-30 recommended)")
+        print(f"  Inference steps: {final_steps} (Distilled optimal: 8)")
         print(f"  Guidance scale: {final_guidance} (official: 3.0 typical)")
         print(f"  Image conditioning: {final_conditioning}")
         print(f"  Style: 2D Anime (clean lines, flat shading)")
         print(f"  Prompt: Gemini 6-element + 2D Anime prefix")
         print(f"  Negative: Enhanced + 2D style enforcement")
-        est_cost = int((70 + final_steps * 2.7) * 0.000306 * 1450)
+        est_cost = int((30 + final_steps * 1.5) * 0.000306 * 1450)
         print(f"  Estimated cost: ~₩{est_cost} (4초 기준)")
         print(f"\n[STARTING 720p GENERATION]...")
 
@@ -281,15 +256,15 @@ class VideoGenerator:
             print(f"[TEST MODE] Custom parameters (validated):")
             print(f"  Conditioning: {final_conditioning} {'(TEST)' if test_conditioning else '(default 0.8)'}")
             print(f"  Guidance: {final_guidance} {'(TEST)' if test_guidance else '(default 3.0)'}")
-            print(f"  Steps: {final_steps} {'(TEST)' if test_steps else '(default 25)'}")
+            print(f"  Steps: {final_steps} {'(TEST)' if test_steps else '(default 8)'}")
             print(f"{'='*60}")
         else:
             print(f"\n{'='*60}")
-            print(f"[PRODUCTION MODE] Official LTX-2 recommended settings:")
+            print(f"[PRODUCTION MODE] Distilled optimized settings:")
             print(f"  Conditioning: {final_conditioning} (official range)")
             print(f"  Guidance: {final_guidance} (official default)")
-            print(f"  Steps: {final_steps} (official recommended 20-30)")
-            print(f"  LoRA strength: 0.7 (official recommended 0.6-0.8)")
+            print(f"  Steps: {final_steps} (Distilled optimal: 8)")
+            print(f"  Model: Base only (no LoRA for stability)")
             print(f"{'='*60}")
 
         # QUALITY-FIRST MODE: Accept custom parameters for experimentation
