@@ -461,17 +461,48 @@ def web_app():
 
     web = FastAPI()
 
-    # CORS middleware - 모든 응답에 헤더 추가
+    # CRITICAL: CORS middleware MUST be first and handle ALL responses including errors
     @web.middleware("http")
     async def add_cors_headers(request: Request, call_next):
-        response = await call_next(request)
+        # Handle OPTIONS preflight
+        if request.method == "OPTIONS":
+            return Response(
+                content="",
+                status_code=200,
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Credentials": "true",
+                }
+            )
+
+        try:
+            response = await call_next(request)
+        except Exception as e:
+            # Even on error, return with CORS headers
+            import traceback
+            error_detail = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+            print(f"[ERROR] Middleware caught exception: {error_detail}")
+            return Response(
+                content=json.dumps({"error": str(e), "detail": error_detail}),
+                status_code=500,
+                media_type="application/json",
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                }
+            )
+
+        # Add CORS headers to successful responses
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "*"
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
-    # Enable CORS for frontend
+    # Enable CORS for frontend (backup)
     web.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -496,8 +527,18 @@ def web_app():
     @web.post("/generate")
     async def generate(req: GenerateRequest):
         """Generate single video from image"""
+        print(f"\n{'='*60}")
+        print(f"[API REQUEST] /generate")
+        print(f"  Prompt: {req.prompt[:100]}...")
+        print(f"  Image URL length: {len(req.image_url)}")
+        print(f"  Frames: {req.num_frames}")
+        print(f"{'='*60}\n")
+
         try:
+            print("[API] Creating VideoGenerator instance...")
             generator = VideoGenerator()
+
+            print("[API] Calling generate.remote()...")
             video_bytes = generator.generate.remote(
                 req.prompt,
                 req.image_url,
@@ -507,6 +548,9 @@ def web_app():
                 req.test_guidance,
                 req.test_steps
             )
+
+            print(f"[API] Video generated successfully: {len(video_bytes)} bytes")
+
             return Response(
                 content=video_bytes,
                 media_type="video/mp4",
@@ -518,9 +562,21 @@ def web_app():
             )
         except Exception as e:
             import traceback
-            traceback.print_exc()
+            error_trace = traceback.format_exc()
+            print(f"\n{'='*60}")
+            print(f"[API ERROR] Exception in /generate")
+            print(f"  Type: {type(e).__name__}")
+            print(f"  Message: {str(e)}")
+            print(f"  Traceback:\n{error_trace}")
+            print(f"{'='*60}\n")
+
             return Response(
-                content=json.dumps({"error": str(e)}),
+                content=json.dumps({
+                    "error": str(e),
+                    "type": type(e).__name__,
+                    "traceback": error_trace
+                }),
+                status_code=500,
                 media_type="application/json",
                 headers={
                     "Access-Control-Allow-Origin": "*",
