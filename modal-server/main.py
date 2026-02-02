@@ -392,25 +392,39 @@ class VideoGenerator:
         else:
             print(f"  [OK] 1080p character fidelity maintained OK")
 
-        # Save video with optimized codec
-        import imageio
+        # Save video with OpenCV (more reliable than imageio)
         output_path = tempfile.mktemp(suffix=".mp4")
 
-        frames_np = [np.array(frame) for frame in output]
+        print(f"\n[ENCODING VIDEO]")
+        print(f"  Output: {output_path}")
+        print(f"  Frames: {len(output)}")
+        print(f"  Resolution: 1920x1080")
+        print(f"  FPS: 24")
 
-        writer = imageio.get_writer(
-            output_path,
-            fps=24,
-            codec='libx264',
-            quality=8,  # Higher quality
-            pixelformat='yuv420p'  # YouTube compatible
-        )
-        for frame in frames_np:
-            writer.append_data(frame)
-        writer.close()
+        # Use OpenCV VideoWriter for reliable encoding
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video_writer = cv2.VideoWriter(output_path, fourcc, 24.0, (1920, 1080))
+
+        if not video_writer.isOpened():
+            raise Exception("Failed to open video writer")
+
+        for i, frame in enumerate(output):
+            frame_np = np.array(frame)
+            frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
+            video_writer.write(frame_bgr)
+
+            if i % 20 == 0:
+                print(f"  Encoding frame {i+1}/{len(output)}...")
+
+        video_writer.release()
+        print(f"  [OK] Video encoding complete")
 
         with open(output_path, "rb") as f:
             video_bytes = f.read()
+
+        # CRITICAL: Verify video file is valid
+        if len(video_bytes) < 1000:
+            raise Exception(f"Video file too small ({len(video_bytes)} bytes) - generation failed")
 
         total_time = time.time() - gen_start
         cost_usd = total_time * 0.000306
