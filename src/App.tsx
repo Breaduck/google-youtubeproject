@@ -1501,7 +1501,10 @@ Generate a detailed English prompt for image generation including scene composit
         <div className="max-w-[1400px] mx-auto px-4 sm:px-10 py-10 sm:py-20 animate-in fade-in">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 sm:mb-16 gap-6">
             <div className="space-y-2 sm:space-y-4">
-              <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900">내 프로젝트</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900">내 프로젝트</h1>
+                <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">v2.0.0 업데이트</span>
+              </div>
               <p className="text-slate-400 font-medium text-sm sm:text-base">진행 중인 이야기들을 관리하세요</p>
             </div>
             <button onClick={addNewProject} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 transition-all active:scale-95">
