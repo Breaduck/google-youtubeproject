@@ -437,7 +437,7 @@ class VideoGenerator:
 @app.function(image=image)
 @modal.asgi_app()
 def web_app():
-    from fastapi import FastAPI
+    from fastapi import FastAPI, Request
     from fastapi.responses import Response, StreamingResponse
     from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel
@@ -446,6 +446,16 @@ def web_app():
     import json
 
     web = FastAPI()
+
+    # CORS middleware - 모든 응답에 헤더 추가
+    @web.middleware("http")
+    async def add_cors_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
 
     # Enable CORS for frontend
     web.add_middleware(
