@@ -236,6 +236,27 @@ class VideoGenerator:
         # Negative prompt: Anti-distortion + 2D Animation Style enforcement
         negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic"
 
+        # 공식 권장 기준 (Official LTX-2 recommendations)
+        # cfg_scale: 3.0 typical (2.0-5.0 range)
+        # steps: 40 default, 20-30 for quality/speed balance
+        # distilled_lora: 0.6-0.8 strength
+
+        # 기본값 (공식 권장 기반) - MUST BE DEFINED FIRST!
+        DEFAULT_CONDITIONING = 0.8  # 공식 문서 기반
+        DEFAULT_GUIDANCE = 3.0      # 공식 기본값
+        DEFAULT_STEPS = 25          # 공식 권장 범위 (20-30)
+
+        final_conditioning = test_conditioning if test_conditioning is not None else DEFAULT_CONDITIONING
+        final_guidance = test_guidance if test_guidance is not None else DEFAULT_GUIDANCE
+        final_steps = test_steps if test_steps is not None else DEFAULT_STEPS
+
+        # 파라미터 검증 (극단값 방지)
+        final_conditioning = max(0.3, min(1.0, final_conditioning))  # 0.3-1.0 범위
+        final_guidance = max(1.0, min(10.0, final_guidance))         # 1.0-10.0 범위
+        final_steps = max(8, min(50, final_steps))                   # 8-50 범위
+
+        test_mode = test_conditioning is not None or test_guidance is not None or test_steps is not None
+
         mode_label = "TEST MODE" if test_mode else "OFFICIAL OPTIMIZED MODE"
         print(f"\n[GENERATION SETTINGS - {mode_label}]")
         print(f"  Model: LTX-2 Distilled + ORIGINAL LoRA (7.67 GB @ scale 0.7)")
@@ -254,27 +275,6 @@ class VideoGenerator:
 
         import time
         gen_start = time.time()
-
-        # 공식 권장 기준 (Official LTX-2 recommendations)
-        # cfg_scale: 3.0 typical (2.0-5.0 range)
-        # steps: 40 default, 20-30 for quality/speed balance
-        # distilled_lora: 0.6-0.8 strength
-
-        # 기본값 (공식 권장 기반)
-        DEFAULT_CONDITIONING = 0.8  # 공식 문서 기반
-        DEFAULT_GUIDANCE = 3.0      # 공식 기본값
-        DEFAULT_STEPS = 25          # 공식 권장 범위 (20-30)
-
-        final_conditioning = test_conditioning if test_conditioning is not None else DEFAULT_CONDITIONING
-        final_guidance = test_guidance if test_guidance is not None else DEFAULT_GUIDANCE
-        final_steps = test_steps if test_steps is not None else DEFAULT_STEPS
-
-        # 파라미터 검증 (극단값 방지)
-        final_conditioning = max(0.3, min(1.0, final_conditioning))  # 0.3-1.0 범위
-        final_guidance = max(1.0, min(10.0, final_guidance))         # 1.0-10.0 범위
-        final_steps = max(8, min(50, final_steps))                   # 8-50 범위
-
-        test_mode = test_conditioning is not None or test_guidance is not None or test_steps is not None
 
         if test_mode:
             print(f"\n{'='*60}")
