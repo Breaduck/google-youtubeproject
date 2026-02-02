@@ -73,13 +73,17 @@ class VideoGenerator:
         print("  - Using base Distilled model without LoRA")
 
         print("[3/4] Applying memory optimizations...")
-        # Move to GPU (A10G has 24GB VRAM - no offload needed)
-        print("  - Moving pipeline to CUDA...")
-        self.pipe.to("cuda")
+        # CRITICAL: 19B model needs CPU offload for 24GB GPU
+        print("  - Sequential CPU offload (19B model requires this)...")
+        self.pipe.enable_sequential_cpu_offload()
 
         # Enable VAE tiling for memory efficiency
         print("  - VAE tiling...")
         self.pipe.vae.enable_tiling()
+
+        # Enable attention slicing for further memory reduction
+        print("  - Attention slicing...")
+        self.pipe.enable_attention_slicing()
 
         print("[4/4] Loading OpenCV DNN Super Resolution...")
         # Download EDSR model for upscaling (fast and good quality)
@@ -397,8 +401,8 @@ class VideoGenerator:
         print(f"  Resolution: 1920x1080")
         print(f"  FPS: 24")
 
-        # Use OpenCV VideoWriter for reliable encoding
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        # Use H.264 codec for better browser compatibility
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')
         video_writer = cv2.VideoWriter(output_path, fourcc, 24.0, (1920, 1080))
 
         if not video_writer.isOpened():
