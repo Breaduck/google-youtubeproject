@@ -45,33 +45,29 @@ class VideoGenerator:
         import os
         import torch
         import cv2
-        from huggingface_hub import snapshot_download
         from diffusers import LTX2Pipeline
 
         print("=" * 70)
-        print("CHARACTER FIDELITY PRIORITY + OpenCV DNN Upscale")
+        print("LTX-2 FAST MODE (BASE MODEL)")
         print("=" * 70)
 
-        # Use Distilled model for speed (8 steps instead of 40)
-        local_dir = "/models/Lightricks/LTX-2-Distilled"
-        if not os.path.exists(local_dir):
-            print(f"Downloading LTX-2 Distilled model to {local_dir}...")
-            snapshot_download("Lightricks/ltx-2-19b-distilled", local_dir=local_dir)
-            print("Download complete!")
-        else:
-            print(f"Using cached LTX-2 Distilled model from {local_dir}")
+        # Use official LTX-2 model from Hugging Face
+        model_id = "Lightricks/LTX-2"
+        cache_dir = "/models/ltx2-cache"
 
-        # Verify model files exist
-        config_file = os.path.join(local_dir, "model_index.json")
-        if not os.path.exists(config_file):
-            print(f"[ERROR] Model config not found at {config_file}")
-            raise FileNotFoundError(f"Model files missing at {local_dir}")
+        print(f"\n[1/4] Loading LTX-2 from {model_id}...")
+        print(f"  Cache directory: {cache_dir}")
 
-        print("\n[1/4] Loading LTX-2 Distilled (CHARACTER FIDELITY OPTIMIZED)...")
+        # Use Hugging Face token from secrets
+        hf_token = os.environ.get("HF_TOKEN")
+
         self.pipe = LTX2Pipeline.from_pretrained(
-            local_dir,
-            torch_dtype=torch.bfloat16
+            model_id,
+            torch_dtype=torch.bfloat16,
+            cache_dir=cache_dir,
+            token=hf_token
         )
+        print("  [OK] Model loaded successfully")
 
         print("[2/4] SKIPPING LoRA for stability (base model only)...")
         print("  - Using base Distilled model without LoRA")
