@@ -1,6 +1,6 @@
 import modal
 
-# 1. Image setup
+# 1. Image setup (Modal Official Example Standard)
 image = (
     modal.Image.debian_slim()
     .apt_install(
@@ -27,6 +27,7 @@ image = (
     .run_commands(
         "pip install git+https://github.com/huggingface/diffusers.git"
     )
+    .env({"HF_HOME": "/models"})  # Official Modal standard: Set HF cache location
 )
 
 app = modal.App("ltx-video-service-distilled-1080p", image=image)
