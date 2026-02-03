@@ -23,3 +23,11 @@
 - **Sync Rule:** 유의미한 코드 수정이나 최적화 작업이 끝나면, 작업 내역을 요약하여 위 레포지토리로 반드시 `git push` 할 것.
 - **Auto Deploy:** GitHub push → Cloudflare Pages 자동 배포 (1-2분)
 - **Structure:** 로컬 `video-saas` 폴더의 작업물을 레포지토리 구조에 맞춰 일관성 있게 관리할 것.
+
+AI Self-Reflection & Auto-Fix Protocol
+Pre-Deployment Sanity Check: 모든 코드 수정 후 배포(Push) 전, 다음 항목을 스스로 시뮬레이션한다.
+VRAM 체크: LTX-2 + LoRA(Rank 175) 조합이 A10G(24GB)에서 OOM을 일으키지 않는가?
+인코딩 검증: 윈도우 환경의 CP949 충돌 가능성이 있는가? (UTF-8 강제 적용 여부)
+의존성 체크: Modal 환경 구축에 필요한 라이브러리가 누락되지 않았는가?
+Auto-Fix Execution: 검토 과정에서 오류 가능성이 발견되면, 사용자에게 보고하기 전 선제적으로 코드를 수정하여 '정상 작동' 상태를 만든 뒤 배포한다.
+Reflection Log: 배포 시, "스스로 발견한 잠재적 오류 및 이를 해결하기 위해 수정한 내역"을 짧고 명확하게 요약 보고한다.
