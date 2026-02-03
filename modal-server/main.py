@@ -49,6 +49,11 @@ class VideoGenerator:
         import os
         import torch
         import cv2
+
+        # Force disable progress bars at runtime (critical for cp949 fix)
+        os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+        os.environ["PYTHONIOENCODING"] = "utf-8"
+
         from diffusers import LTX2ImageToVideoPipeline
         from diffusers.pipelines.ltx2 import LTX2LatentUpsamplePipeline
         from diffusers.pipelines.ltx2.latent_upsampler import LTX2LatentUpsamplerModel
