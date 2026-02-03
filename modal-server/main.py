@@ -48,38 +48,38 @@ class VideoGenerator:
         from diffusers import LTX2Pipeline
 
         print("=" * 70)
-        print("LTX-2 FP8 MODE (OPTIMIZED FOR A10G)")
+        print("LTX-2 QUALITY MODE (bfloat16 + Optimized Offload)")
         print("=" * 70)
 
-        # Use official LTX-2 FP8 model from Hugging Face
+        # Use official LTX-2 model from Hugging Face
         model_id = "Lightricks/LTX-2"
-        cache_dir = "/models/ltx2-fp8-cache"
+        cache_dir = "/models/ltx2-cache"
 
-        print(f"\n[1/4] Loading LTX-2 FP8 from {model_id}...")
-        print(f"  Quantization: FP8 (40% memory reduction)")
+        print(f"\n[1/4] Loading LTX-2 from {model_id}...")
+        print(f"  Precision: bfloat16 (highest quality)")
         print(f"  Cache directory: {cache_dir}")
 
         # Use Hugging Face token from secrets
         hf_token = os.environ.get("HF_TOKEN")
 
-        # Load FP8 variant for optimal A10G performance
+        # Load bfloat16 model for best quality
         self.pipe = LTX2Pipeline.from_pretrained(
             model_id,
-            variant="fp8",
+            torch_dtype=torch.bfloat16,
             cache_dir=cache_dir,
             token=hf_token
         )
-        print("  [OK] FP8 Model loaded successfully (~23GB)")
+        print("  [OK] Model loaded successfully")
 
         print("[2/4] SKIPPING LoRA for stability (base model only)...")
         print("  - Using base Distilled model without LoRA")
 
         print("[3/4] Applying memory optimizations...")
-        # FP8 (23GB) fits perfectly in A10G (24GB) - no CPU offload needed!
-        print("  - Moving FP8 pipeline to CUDA (23GB fits in 24GB)...")
-        self.pipe.to("cuda")
+        # Model CPU offload: 2-3x faster than sequential, works on A10G 24GB
+        print("  - Model CPU offload (2-3x faster than sequential)...")
+        self.pipe.enable_model_cpu_offload()
 
-        # Enable VAE tiling for safety margin
+        # Enable VAE tiling for memory efficiency
         print("  - VAE tiling...")
         self.pipe.vae.enable_tiling()
 
@@ -106,14 +106,13 @@ class VideoGenerator:
         self.sr.setModel("edsr", 2)  # x2 upscale
 
         print(f"\n{'='*70}")
-        print("PIPELINE LOADED - FP8 OPTIMIZED MODE!")
+        print("PIPELINE LOADED - QUALITY MODE (MVP)")
         print(f"{'='*70}")
-        print("Configuration (FP8 for Best Speed/Quality/Cost):")
+        print("Configuration (Quality First, Optimize Later):")
         print("  [Model]:")
-        print("    - LTX-2 FP8 (19B parameters, 23GB)")
-        print("    - 40% memory reduction vs bfloat16")
-        print("    - 2x faster than CPU offload")
-        print("    - Direct CUDA loading on A10G")
+        print("    - LTX-2 bfloat16 (19B parameters)")
+        print("    - Highest quality precision")
+        print("    - Model CPU offload (2-3x faster than sequential)")
         print("  [Generation Parameters]:")
         print("    - Steps: 8 (Distilled optimal)")
         print("    - Guidance: 3.0 (official typical value)")
@@ -121,9 +120,12 @@ class VideoGenerator:
         print("  [Upscaling]:")
         print("    - OpenCV DNN EDSR x2 (720p → 1440p → 1080p)")
         print("  [Performance Target]:")
-        print("    - Expected time: ~45 seconds (4초 영상)")
-        print("    - Expected cost: ~₩20 (4초 기준)")
-        print("    - Quality: 85/100 (imperceptible FP8 loss)")
+        print("    - Expected time: ~60 seconds (4초 영상)")
+        print("    - Expected cost: ~₩27 (4초 기준)")
+        print("    - Quality: 75/100 (MVP validation)")
+        print("  [Strategy]:")
+        print("    - Current: Quality validation (품질 검증)")
+        print("    - Future: Cost optimization at scale (확장 시 최적화)")
         print(f"{'='*70}\n")
 
     @modal.method()
@@ -236,9 +238,9 @@ class VideoGenerator:
 
         test_mode = test_conditioning is not None or test_guidance is not None or test_steps is not None
 
-        mode_label = "TEST MODE" if test_mode else "FP8 OPTIMIZED MODE"
+        mode_label = "TEST MODE" if test_mode else "QUALITY MODE (MVP)"
         print(f"\n[GENERATION SETTINGS - {mode_label}]")
-        print(f"  Model: LTX-2 FP8 (23GB, 2x faster)")
+        print(f"  Model: LTX-2 bfloat16 (highest quality)")
         print(f"  Generation: {target_width}x{target_height} (720p)")
         print(f"  Upscale: 1.5x → 1920x1080 (1080p)")
         print(f"  Frames: {num_frames} (~{num_frames/24:.1f}s @ 24fps)")
@@ -248,9 +250,9 @@ class VideoGenerator:
         print(f"  Style: 2D Anime (clean lines, flat shading)")
         print(f"  Prompt: Gemini 6-element + 2D Anime prefix")
         print(f"  Negative: Enhanced + 2D style enforcement")
-        est_cost = int((30 + final_steps * 1.5) * 0.000306 * 1450)
+        est_cost = int((50 + final_steps * 2.0) * 0.000306 * 1450)
         print(f"  Estimated cost: ~₩{est_cost} (4초 기준)")
-        print(f"\n[STARTING 720p FP8 GENERATION]...")
+        print(f"\n[STARTING 720p GENERATION - QUALITY FIRST]...")
 
         import time
         gen_start = time.time()
