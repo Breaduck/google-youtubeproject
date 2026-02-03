@@ -27,7 +27,10 @@ image = (
     .run_commands(
         "pip install git+https://github.com/huggingface/diffusers.git"
     )
-    .env({"HF_HOME": "/models"})  # Official Modal standard: Set HF cache location
+    .env({
+        "HF_HOME": "/models",  # Official Modal standard: Set HF cache location
+        "HF_HUB_DISABLE_PROGRESS_BARS": "1"  # Fix cp949 encoding error on Windows
+    })
 )
 
 app = modal.App("ltx-video-service-distilled-1080p", image=image)
@@ -67,14 +70,17 @@ class VideoGenerator:
         print(f"  Note: Distilled = 8 steps Stage 1, no LoRA")
 
         # Load Image-to-Video Distilled pipeline
-        # Debug: Check HF_TOKEN before use
-        print(f"  HF_TOKEN status: {'✓ SET' if os.environ.get('HF_TOKEN') else '✗ NOT SET'}")
+        # Get HF_TOKEN from Modal Secret (safe handling)
+        hf_token = os.environ.get("HF_TOKEN")
+        if not hf_token:
+            raise ValueError("HF_TOKEN not found in Modal Secret 'huggingface-secret'")
+        print(f"  HF_TOKEN: ✓ Loaded from Secret")
 
         self.pipe = LTX2ImageToVideoPipeline.from_pretrained(
             model_id,
             torch_dtype=torch.bfloat16,
             cache_dir=cache_dir,
-            token=os.environ["HF_TOKEN"]  # Latest diffusers: use_auth_token deprecated
+            token=hf_token  # Latest diffusers: use_auth_token deprecated
         )
         print("  [OK] Distilled Image-to-Video Pipeline loaded")
 
@@ -87,7 +93,7 @@ class VideoGenerator:
                 subfolder="latent_upsampler",
                 torch_dtype=torch.bfloat16,
                 cache_dir=cache_dir,
-                token=os.environ["HF_TOKEN"]  # Latest diffusers: use_auth_token deprecated
+                token=hf_token  # Use same token from above
             )
         )
         print("  [OK] Latent Upsample Pipeline ready (2x upscale)")
