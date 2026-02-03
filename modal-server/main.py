@@ -66,18 +66,12 @@ class VideoGenerator:
         print(f"  Cache directory: {cache_dir}")
         print(f"  Note: Distilled = 8 steps Stage 1, no LoRA")
 
-        # Use Hugging Face token from secrets
-        hf_token = os.environ.get("HF_TOKEN")
-        print(f"  DEBUG: HF_TOKEN = {'SET ✓' if hf_token else 'NOT SET ✗'}")
-        if not hf_token:
-            print(f"  WARNING: No HF_TOKEN found. Available env vars: {list(os.environ.keys())[:10]}")
-
-        # Load Image-to-Video Distilled pipeline
+        # Load Image-to-Video Distilled pipeline (Official Modal Standard)
         self.pipe = LTX2ImageToVideoPipeline.from_pretrained(
             model_id,
             torch_dtype=torch.bfloat16,
             cache_dir=cache_dir,
-            token=hf_token
+            use_auth_token=os.environ["HF_TOKEN"]  # Modal official standard
         )
         print("  [OK] Distilled Image-to-Video Pipeline loaded")
 
@@ -90,7 +84,7 @@ class VideoGenerator:
                 subfolder="latent_upsampler",
                 torch_dtype=torch.bfloat16,
                 cache_dir=cache_dir,
-                token=hf_token
+                use_auth_token=os.environ["HF_TOKEN"]  # Modal official standard
             )
         )
         print("  [OK] Latent Upsample Pipeline ready (2x upscale)")
