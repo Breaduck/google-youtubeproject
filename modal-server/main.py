@@ -74,7 +74,7 @@ class VideoGenerator:
             model_id,
             torch_dtype=torch.bfloat16,
             cache_dir=cache_dir,
-            use_auth_token=os.environ["HF_TOKEN"]  # Modal official standard
+            token=os.environ["HF_TOKEN"]  # Latest diffusers: use_auth_token deprecated
         )
         print("  [OK] Distilled Image-to-Video Pipeline loaded")
 
@@ -87,7 +87,7 @@ class VideoGenerator:
                 subfolder="latent_upsampler",
                 torch_dtype=torch.bfloat16,
                 cache_dir=cache_dir,
-                use_auth_token=os.environ["HF_TOKEN"]  # Modal official standard
+                token=os.environ["HF_TOKEN"]  # Latest diffusers: use_auth_token deprecated
             )
         )
         print("  [OK] Latent Upsample Pipeline ready (2x upscale)")
