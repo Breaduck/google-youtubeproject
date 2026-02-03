@@ -68,6 +68,9 @@ class VideoGenerator:
 
         # Use Hugging Face token from secrets
         hf_token = os.environ.get("HF_TOKEN")
+        print(f"  DEBUG: HF_TOKEN = {'SET ✓' if hf_token else 'NOT SET ✗'}")
+        if not hf_token:
+            print(f"  WARNING: No HF_TOKEN found. Available env vars: {list(os.environ.keys())[:10]}")
 
         # Load Image-to-Video Distilled pipeline
         self.pipe = LTX2ImageToVideoPipeline.from_pretrained(
