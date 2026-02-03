@@ -45,7 +45,7 @@ class VideoGenerator:
         import os
         import torch
         import cv2
-        from diffusers import LTX2Pipeline
+        from diffusers import LTX2ImageToVideoPipeline
 
         print("=" * 70)
         print("LTX-2 QUALITY MODE (bfloat16 + Optimized Offload)")
@@ -62,14 +62,14 @@ class VideoGenerator:
         # Use Hugging Face token from secrets
         hf_token = os.environ.get("HF_TOKEN")
 
-        # Load bfloat16 model for best quality
-        self.pipe = LTX2Pipeline.from_pretrained(
+        # Load Image-to-Video pipeline for best quality
+        self.pipe = LTX2ImageToVideoPipeline.from_pretrained(
             model_id,
             torch_dtype=torch.bfloat16,
             cache_dir=cache_dir,
             token=hf_token
         )
-        print("  [OK] Model loaded successfully")
+        print("  [OK] Image-to-Video Pipeline loaded successfully")
 
         print("[2/4] SKIPPING LoRA for stability (base model only)...")
         print("  - Using base Distilled model without LoRA")
@@ -284,10 +284,9 @@ class VideoGenerator:
                 num_frames=num_frames,
                 num_inference_steps=final_steps,
                 guidance_scale=final_guidance,
-                image_conditioning_scale=final_conditioning,
                 generator=torch.Generator(device="cuda").manual_seed(42),
                 output_type="pil",
-            ).frames[0]
+            )
 
             gen_time = time.time() - gen_start
             print(f"\n[720p GENERATION COMPLETE] Time: {gen_time:.1f}s")
