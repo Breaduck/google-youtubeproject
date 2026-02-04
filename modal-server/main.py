@@ -85,7 +85,8 @@ class VideoGenerator:
             model_id,
             torch_dtype=torch.bfloat16,
             cache_dir=cache_dir,
-            token=hf_token  # Latest diffusers: use_auth_token deprecated
+            token=hf_token,
+            low_cpu_mem_usage=True  # Load on CPU first, prevent GPU OOM
         )
         print("  [OK] Distilled Image-to-Video Pipeline loaded")
 
@@ -330,7 +331,8 @@ class VideoGenerator:
                     subfolder="latent_upsampler",
                     torch_dtype=torch.bfloat16,
                     cache_dir=self.cache_dir,
-                    token=self.hf_token
+                    token=self.hf_token,
+                    low_cpu_mem_usage=True  # CPU load, prevent OOM
                 )
             )
             upsample_pipe.enable_model_cpu_offload()
