@@ -100,8 +100,8 @@ class VideoGenerator:
         print("[2/4] Stage 2 Upsampler: deferred loading (VRAM optimization)")
 
         print("[3/4] Applying memory optimizations...")
-        print("  - Model CPU offload (official)...")
-        self.pipe.enable_model_cpu_offload()
+        print("  - Sequential CPU offload (official distilled)...")
+        self.pipe.enable_sequential_cpu_offload()
 
         print("  - VAE tiling...")
         self.pipe.vae.enable_tiling()
@@ -125,7 +125,7 @@ class VideoGenerator:
         print("  [Model]:")
         print("    - LTX-2-19b-distilled (rootonchair)")
         print("    - Two-Stages architecture")
-        print("    - Model CPU offload (official)")
+        print("    - Sequential CPU offload (official distilled)")
         print("  [Stage 1 - Generation]:")
         print("    - Resolution: 768x512 (official)")
         print("    - Steps: 8 (distilled)")
@@ -335,7 +335,7 @@ class VideoGenerator:
                     low_cpu_mem_usage=True  # CPU load, prevent OOM
                 )
             )
-            upsample_pipe.enable_model_cpu_offload()
+            upsample_pipe.enable_sequential_cpu_offload()
             print(f"[STAGE 2a] Upsampler loaded. Running 2x upsample...")
 
             upscale_start = time.time()
@@ -369,11 +369,12 @@ class VideoGenerator:
 
             refine_start = time.time()
             video, audio = self.pipe(
-                image=reference_image,  # Required for image-to-video pipeline
                 latents=upscaled_video_latent,
+                audio_latents=audio_latent,
                 prompt=enhanced_prompt,
                 negative_prompt=negative_prompt,
                 num_inference_steps=DEFAULT_STEPS_STAGE2,
+                noise_scale=self.stage2_sigmas[0],
                 sigmas=self.stage2_sigmas,
                 guidance_scale=DEFAULT_GUIDANCE_STAGE2,
                 generator=generator,
