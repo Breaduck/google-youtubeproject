@@ -505,6 +505,88 @@ def web_app():
     class BatchGenerateRequest(BaseModel):
         scenes: List[GenerateRequest]
 
+    # ── Polling pattern for long-running generations ──
+    jobs = {}  # {job_id: {"status", "result", "error"}}
+
+    async def _run_job(job_id, prompt, image_url, character_description, num_frames,
+                       test_conditioning, test_guidance, test_steps):
+        try:
+            print(f"[JOB {job_id}] Starting generation...")
+            generator = VideoGenerator()
+            video_bytes = await generator.generate.remote.aio(
+                prompt, image_url, character_description, num_frames,
+                test_conditioning, test_guidance, test_steps
+            )
+            jobs[job_id]["status"] = "complete"
+            jobs[job_id]["result"] = video_bytes
+            print(f"[JOB {job_id}] Complete: {len(video_bytes)} bytes")
+        except Exception as e:
+            import traceback
+            jobs[job_id]["status"] = "error"
+            jobs[job_id]["error"] = str(e)
+            print(f"[JOB {job_id}] Error: {e}")
+            traceback.print_exc()
+
+    @web.post("/start")
+    async def start_generation(req: GenerateRequest):
+        """Start video generation, return job_id immediately"""
+        import uuid
+        job_id = uuid.uuid4().hex[:8]
+        jobs[job_id] = {"status": "running", "result": None, "error": None}
+        asyncio.create_task(_run_job(
+            job_id, req.prompt, req.image_url, req.character_description,
+            req.num_frames, req.test_conditioning, req.test_guidance, req.test_steps
+        ))
+        print(f"[JOB {job_id}] Started")
+        return Response(
+            content=json.dumps({"job_id": job_id}),
+            media_type="application/json",
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+
+    @web.get("/status/{job_id}")
+    async def job_status(job_id: str):
+        """Poll job status: running | complete | error"""
+        if job_id not in jobs:
+            return Response(
+                content=json.dumps({"status": "not_found"}),
+                status_code=404,
+                media_type="application/json",
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
+        job = jobs[job_id]
+        return Response(
+            content=json.dumps({"status": job["status"], "error": job["error"]}),
+            media_type="application/json",
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+
+    @web.get("/result/{job_id}")
+    async def job_result(job_id: str):
+        """Retrieve completed video"""
+        if job_id not in jobs:
+            return Response(
+                content=json.dumps({"error": "not_found"}),
+                status_code=404,
+                media_type="application/json",
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
+        job = jobs[job_id]
+        if job["status"] != "complete":
+            return Response(
+                content=json.dumps({"error": "not ready", "status": job["status"]}),
+                status_code=202,
+                media_type="application/json",
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
+        video_bytes = job["result"]
+        del jobs[job_id]
+        return Response(
+            content=video_bytes,
+            media_type="video/mp4",
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+
     @web.post("/generate")
     async def generate(req: GenerateRequest):
         """Generate single video from image"""
