@@ -89,31 +89,22 @@ class VideoGenerator:
         )
         print("  [OK] Distilled Image-to-Video Pipeline loaded")
 
-        print("[2/4] Loading Stage 2 Latent Upsampler (Official 2x)...")
-        # Create Latent Upsample Pipeline
-        self.upsample_pipe = LTX2LatentUpsamplePipeline(
-            vae=self.pipe.vae,
-            latent_upsampler=LTX2LatentUpsamplerModel.from_pretrained(
-                model_id,
-                subfolder="latent_upsampler",
-                torch_dtype=torch.bfloat16,
-                cache_dir=cache_dir,
-                token=hf_token  # Use same token from above
-            )
-        )
-        print("  [OK] Latent Upsample Pipeline ready (2x upscale)")
+        # Save for dynamic Stage 2 loading
+        self.model_id = model_id
+        self.cache_dir = cache_dir
+        self.hf_token = hf_token
+
+        # Stage 2 Latent Upsampler: NOT loaded here (A10G VRAM limit)
+        # → Dynamically loaded in Stage 2 after Stage 1 GPU memory is freed
+        print("[2/4] Stage 2 Upsampler: deferred loading (VRAM optimization)")
 
         print("[3/4] Applying memory optimizations...")
-        # Model CPU offload: official recommendation for memory management
         print("  - Model CPU offload (official)...")
         self.pipe.enable_model_cpu_offload()
-        self.upsample_pipe.enable_model_cpu_offload()
 
-        # Enable VAE tiling for memory efficiency
         print("  - VAE tiling...")
         self.pipe.vae.enable_tiling()
 
-        # Enable attention slicing for extra memory safety
         print("  - Attention slicing...")
         self.pipe.enable_attention_slicing()
 
@@ -309,6 +300,12 @@ class VideoGenerator:
             stage1_time = time.time() - gen_start
             print(f"[STAGE 1 COMPLETE] Time: {stage1_time:.1f}s")
 
+            # Free GPU memory after Stage 1
+            print("[VRAM] Freeing GPU memory after Stage 1...")
+            del generator
+            torch.cuda.empty_cache()
+            print(f"[VRAM] Freed. Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
+
         except Exception as e:
             stage1_time = time.time() - gen_start
             print(f"\n[ERROR] STAGE 1 FAILED: {str(e)[:200]}")
@@ -317,15 +314,31 @@ class VideoGenerator:
             raise Exception(f"Stage 1 failed after {stage1_time:.1f}s: {str(e)[:100]}")
 
         # ============================================================
-        # STAGE 2: Upsample latents 2x
+        # STAGE 2a: Upsample latents 2x (dynamic load)
         # ============================================================
         try:
             print(f"\n{'='*60}")
-            print(f"[STAGE 2a] Upsampling latents 2x")
+            print(f"[STAGE 2a] Loading Latent Upsampler (dynamic, VRAM optimized)...")
             print(f"{'='*60}")
 
+            from diffusers.pipelines.ltx2 import LTX2LatentUpsamplePipeline
+            from diffusers.pipelines.ltx2.latent_upsampler import LTX2LatentUpsamplerModel
+
+            upsample_pipe = LTX2LatentUpsamplePipeline(
+                vae=self.pipe.vae,
+                latent_upsampler=LTX2LatentUpsamplerModel.from_pretrained(
+                    self.model_id,
+                    subfolder="latent_upsampler",
+                    torch_dtype=torch.bfloat16,
+                    cache_dir=self.cache_dir,
+                    token=self.hf_token
+                )
+            )
+            upsample_pipe.enable_model_cpu_offload()
+            print(f"[STAGE 2a] Upsampler loaded. Running 2x upsample...")
+
             upscale_start = time.time()
-            upscaled_video_latent = self.upsample_pipe(
+            upscaled_video_latent = upsample_pipe(
                 latents=video_latent,
                 output_type="latent",
                 return_dict=False,
@@ -333,6 +346,11 @@ class VideoGenerator:
 
             upscale_time = time.time() - upscale_start
             print(f"[STAGE 2a COMPLETE] Upsample time: {upscale_time:.1f}s")
+
+            # Free upsample_pipe immediately
+            del upsample_pipe
+            torch.cuda.empty_cache()
+            print(f"[VRAM] Upsampler freed. Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
 
         except Exception as e:
             print(f"\n[ERROR] STAGE 2a UPSAMPLE FAILED: {str(e)[:200]}")
