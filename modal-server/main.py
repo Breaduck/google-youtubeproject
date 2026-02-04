@@ -282,7 +282,8 @@ class VideoGenerator:
             generator = torch.Generator(device="cuda").manual_seed(42)
             frame_rate = 24.0
 
-            video_latent, audio_latent = self.pipe(
+            # Stage 1: direct output (np) at 768x512 — proven stable
+            video, audio = self.pipe(
                 image=reference_image,
                 prompt=enhanced_prompt,
                 negative_prompt=negative_prompt,
@@ -294,17 +295,15 @@ class VideoGenerator:
                 sigmas=self.stage1_sigmas,
                 guidance_scale=final_guidance_stage1,
                 generator=generator,
-                output_type="latent",
+                output_type="np",
                 return_dict=False,
             )
 
             stage1_time = time.time() - gen_start
             print(f"[STAGE 1 COMPLETE] Time: {stage1_time:.1f}s")
-
-            # Free GPU memory after Stage 1
-            print("[VRAM] Freeing GPU memory after Stage 1...")
-            torch.cuda.empty_cache()
-            print(f"[VRAM] Freed. Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
+            print(f"[VRAM] Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
+            upscale_time = 0.0
+            refine_time = 0.0
 
         except Exception as e:
             stage1_time = time.time() - gen_start
@@ -314,109 +313,28 @@ class VideoGenerator:
             raise Exception(f"Stage 1 failed after {stage1_time:.1f}s: {str(e)[:100]}")
 
         # ============================================================
-        # STAGE 2a: Upsample latents 2x (dynamic load)
-        # ============================================================
-        try:
-            print(f"\n{'='*60}")
-            print(f"[STAGE 2a] Loading Latent Upsampler (dynamic, VRAM optimized)...")
-            print(f"{'='*60}")
-
-            from diffusers.pipelines.ltx2 import LTX2LatentUpsamplePipeline
-            from diffusers.pipelines.ltx2.latent_upsampler import LTX2LatentUpsamplerModel
-
-            upsample_pipe = LTX2LatentUpsamplePipeline(
-                vae=self.pipe.vae,
-                latent_upsampler=LTX2LatentUpsamplerModel.from_pretrained(
-                    self.model_id,
-                    subfolder="latent_upsampler",
-                    torch_dtype=torch.bfloat16,
-                    cache_dir=self.cache_dir,
-                    token=self.hf_token,
-                    low_cpu_mem_usage=True  # CPU load, prevent OOM
-                )
-            )
-            upsample_pipe.enable_sequential_cpu_offload()
-            print(f"[STAGE 2a] Upsampler loaded. Running 2x upsample...")
-
-            upscale_start = time.time()
-            upscaled_video_latent = upsample_pipe(
-                latents=video_latent,
-                output_type="latent",
-                return_dict=False,
-            )[0]
-
-            upscale_time = time.time() - upscale_start
-            print(f"[STAGE 2a COMPLETE] Upsample time: {upscale_time:.1f}s")
-
-            # Free upsample_pipe immediately
-            del upsample_pipe
-            torch.cuda.empty_cache()
-            print(f"[VRAM] Upsampler freed. Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
-
-        except Exception as e:
-            print(f"\n[ERROR] STAGE 2a UPSAMPLE FAILED: {str(e)[:200]}")
-            import traceback
-            traceback.print_exc()
-            raise Exception(f"Stage 2a upsample failed: {str(e)[:100]}")
-
-        # ============================================================
-        # STAGE 2b: Refine with distilled sigmas (no LoRA)
-        # ============================================================
-        try:
-            print(f"\n{'='*60}")
-            print(f"[STAGE 2b] Refining with distilled sigmas (3 steps, no LoRA)")
-            print(f"{'='*60}")
-
-            refine_start = time.time()
-            video, audio = self.pipe(
-                latents=upscaled_video_latent,
-                audio_latents=audio_latent,
-                prompt=enhanced_prompt,
-                negative_prompt=negative_prompt,
-                num_inference_steps=DEFAULT_STEPS_STAGE2,
-                noise_scale=self.stage2_sigmas[0],
-                sigmas=self.stage2_sigmas,
-                guidance_scale=DEFAULT_GUIDANCE_STAGE2,
-                generator=generator,
-                output_type="np",
-                return_dict=False,
-            )
-
-            refine_time = time.time() - refine_start
-            total_time = time.time() - gen_start
-            print(f"[STAGE 2b COMPLETE] Refine time: {refine_time:.1f}s")
-            print(f"[TOTAL GENERATION TIME] {total_time:.1f}s")
-
-        except Exception as e:
-            print(f"\n[ERROR] STAGE 2b REFINE FAILED: {str(e)[:200]}")
-            import traceback
-            traceback.print_exc()
-            raise Exception(f"Stage 2b refine failed: {str(e)[:100]}")
-
-        # ============================================================
         # ENCODE TO MP4 (Official)
         # ============================================================
         print(f"\n{'='*60}")
         print(f"[ENCODING] Converting to MP4")
         print(f"{'='*60}")
 
-        # Convert video from float [0,1] to uint8 [0,255]
-        video = (video * 255).round().astype("uint8")
-        video = torch.from_numpy(video)
+        # Ensure video is numpy array (pipeline may return list or tensor)
+        if not isinstance(video, np.ndarray):
+            video = np.array(video)
+        # Clip to [0,1] then convert to uint8 (safe against [-1,1] or >1 edge cases)
+        video = np.clip(video * 255, 0, 255).round().astype("uint8")
         print(f"  Video shape: {video.shape}")
         print(f"  Frames: {video.shape[1]}")
         print(f"  Resolution: {video.shape[3]}x{video.shape[2]}")
 
-        # Save to temporary MP4 file using official encoder
+        # Encode to MP4 using imageio (already installed, ffmpeg-backed)
+        import imageio
         output_path = tempfile.mktemp(suffix=".mp4")
+        video_frames = video[0]  # (frames, H, W, C) uint8 numpy
 
-        encode_video(
-            video[0],  # First batch
-            fps=frame_rate,
-            audio=audio[0].float().cpu() if audio is not None else None,
-            audio_sample_rate=self.pipe.vocoder.config.output_sampling_rate if audio is not None else None,
-            output_path=output_path,
-        )
+        imageio.mimwrite(output_path, video_frames, fps=int(frame_rate))
+        print(f"  [OK] Video encoded: {video_frames.shape[0]} frames, {video_frames.shape[2]}x{video_frames.shape[1]}")
 
         print(f"  [OK] Video encoded to: {output_path}")
 
@@ -453,7 +371,7 @@ class VideoGenerator:
         return video_bytes
 
 # 3. Web API
-@app.function(image=image)
+@app.function(image=image, timeout=900)
 @modal.asgi_app()
 def web_app():
     from fastapi import FastAPI, Request
