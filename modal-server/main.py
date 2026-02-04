@@ -272,18 +272,17 @@ class VideoGenerator:
         gen_start = time.time()
 
         # ============================================================
-        # STAGE 1: Generate video latents at 512p
+        # STAGE 1: I2V generation at 768x512 → output as PIL (공식 I2V 패턴)
         # ============================================================
         try:
             print(f"\n{'='*60}")
-            print(f"[STAGE 1] Generating video latents at {target_width}x{target_height}")
+            print(f"[STAGE 1] I2V at {target_width}x{target_height}")
             print(f"{'='*60}")
 
             generator = torch.Generator(device="cuda").manual_seed(42)
             frame_rate = 24.0
 
-            # Stage 1: direct output (np) at 768x512 — proven stable
-            video, audio = self.pipe(
+            video_pil, audio = self.pipe(
                 image=reference_image,
                 prompt=enhanced_prompt,
                 negative_prompt=negative_prompt,
@@ -295,15 +294,13 @@ class VideoGenerator:
                 sigmas=self.stage1_sigmas,
                 guidance_scale=final_guidance_stage1,
                 generator=generator,
-                output_type="np",
+                output_type="pil",   # PIL output — 공식 I2V upsample 패턴
                 return_dict=False,
             )
 
             stage1_time = time.time() - gen_start
             print(f"[STAGE 1 COMPLETE] Time: {stage1_time:.1f}s")
             print(f"[VRAM] Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
-            upscale_time = 0.0
-            refine_time = 0.0
 
         except Exception as e:
             stage1_time = time.time() - gen_start
@@ -313,29 +310,91 @@ class VideoGenerator:
             raise Exception(f"Stage 1 failed after {stage1_time:.1f}s: {str(e)[:100]}")
 
         # ============================================================
-        # ENCODE TO MP4 (Official)
+        # STAGE 2a: Upsample 2x via video= (공식 I2V upsample 패턴)
+        # ============================================================
+        try:
+            print(f"\n{'='*60}")
+            print(f"[STAGE 2a] Upsample 768x512 → 1536x1024")
+            print(f"{'='*60}")
+
+            from diffusers.pipelines.ltx2 import LTX2LatentUpsamplePipeline
+            from diffusers.pipelines.ltx2.latent_upsampler import LTX2LatentUpsamplerModel
+
+            latent_upsampler = LTX2LatentUpsamplerModel.from_pretrained(
+                self.model_id,
+                subfolder="latent_upsampler",
+                torch_dtype=torch.bfloat16,
+                cache_dir=self.cache_dir,
+                token=self.hf_token,
+            )
+            upsample_pipe = LTX2LatentUpsamplePipeline(
+                vae=self.pipe.vae,
+                latent_upsampler=latent_upsampler,
+            )
+            upsample_pipe.vae.enable_tiling()
+            upsample_pipe.enable_model_cpu_offload()
+
+            upscale_start = time.time()
+            # 공식 I2V upsample: video= (PIL frames), width/height = 원본 해상도
+            video_np = upsample_pipe(
+                video=video_pil,
+                width=target_width,
+                height=target_height,
+                output_type="np",
+                return_dict=False,
+            )[0]
+            upscale_time = time.time() - upscale_start
+            print(f"[STAGE 2a COMPLETE] Time: {upscale_time:.1f}s")
+
+            del upsample_pipe, latent_upsampler
+            torch.cuda.empty_cache()
+
+        except Exception as e:
+            print(f"\n[ERROR] STAGE 2a FAILED: {str(e)[:200]}")
+            import traceback
+            traceback.print_exc()
+            # Fallback: use Stage 1 PIL output directly (768x512)
+            print("[FALLBACK] Stage 2a failed, using Stage 1 output (768x512)")
+            video_np = np.array(video_pil[0]) / 255.0  # convert PIL list to numpy
+            video_np = np.stack([np.array(f) for f in video_pil]) / 255.0
+            video_np = video_np[np.newaxis, ...]  # add batch dim
+            upscale_time = 0.0
+
+        refine_time = 0.0
+
+        # ============================================================
+        # ENCODE TO MP4 (공식 패턴: numpy → torch → encode_video)
         # ============================================================
         print(f"\n{'='*60}")
         print(f"[ENCODING] Converting to MP4")
         print(f"{'='*60}")
 
-        # Ensure video is numpy array (pipeline may return list or tensor)
-        if not isinstance(video, np.ndarray):
-            video = np.array(video)
-        # Clip to [0,1] then convert to uint8 (safe against [-1,1] or >1 edge cases)
-        video = np.clip(video * 255, 0, 255).round().astype("uint8")
-        print(f"  Video shape: {video.shape}")
-        print(f"  Frames: {video.shape[1]}")
-        print(f"  Resolution: {video.shape[3]}x{video.shape[2]}")
+        # numpy [0,1] → uint8 → torch tensor (공식 encode_video 패턴)
+        if not isinstance(video_np, np.ndarray):
+            video_np = np.array(video_np)
+        video_uint8 = np.clip(video_np * 255, 0, 255).round().astype("uint8")
+        video_tensor = torch.from_numpy(video_uint8)  # 공식: torch.from_numpy 필수
+        print(f"  Video shape: {video_tensor.shape}")
+        print(f"  Frames: {video_tensor.shape[1]}, Resolution: {video_tensor.shape[3]}x{video_tensor.shape[2]}")
 
-        # Encode to MP4 using imageio (already installed, ffmpeg-backed)
-        import imageio
         output_path = tempfile.mktemp(suffix=".mp4")
-        video_frames = video[0]  # (frames, H, W, C) uint8 numpy
 
-        imageio.mimwrite(output_path, video_frames, fps=int(frame_rate))
-        print(f"  [OK] Video encoded: {video_frames.shape[0]} frames, {video_frames.shape[2]}x{video_frames.shape[1]}")
+        # 공식 encode_video 호출 패턴
+        from diffusers.pipelines.ltx2.export_utils import encode_video
+        audio_data = None
+        audio_sr = None
+        if audio is not None and hasattr(self.pipe, 'vocoder') and self.pipe.vocoder is not None:
+            audio_data = audio[0].float().cpu()  # audio는 항상 torch tensor
+            audio_sr = self.pipe.vocoder.config.output_sampling_rate
+            print(f"  Audio: sample_rate={audio_sr}")
 
+        encode_video(
+            video_tensor[0],        # (frames, H, W, C) torch tensor
+            fps=frame_rate,
+            audio=audio_data,
+            audio_sample_rate=audio_sr,
+            output_path=output_path,
+        )
         print(f"  [OK] Video encoded to: {output_path}")
 
         with open(output_path, "rb") as f:
