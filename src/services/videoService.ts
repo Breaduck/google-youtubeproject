@@ -58,34 +58,38 @@ export async function generateSceneVideo(
     console.log('[LTX] TEST MODE:', testParams);
   }
 
-  const response = await fetch(`${MODAL_API}/generate`, {
+  // 1. 생성 시작 → job_id 즉시 반환
+  const startResponse = await fetch(`${MODAL_API}/start`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(requestBody),
   });
+  if (!startResponse.ok) {
+    throw new Error(`Generation start failed: ${startResponse.status} ${await startResponse.text()}`);
+  }
+  const { job_id } = await startResponse.json();
+  console.log(`[LTX] Job started: ${job_id}`);
 
-  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-  console.log(`[LTX] Modal API response: ${response.status} (${elapsed}s)`);
-
-  if (!response.ok) {
-    let errorMessage = 'Video generation failed';
-    try {
-      const error = await response.json();
-      console.error('[LTX] Modal API error:', error);
-      errorMessage = error.error || error.detail || errorMessage;
-    } catch (e) {
-      // Response is not JSON, try reading as text
-      const text = await response.text();
-      console.error('[LTX] Modal API error (non-JSON):', text.substring(0, 200));
-      errorMessage = `Modal API error (${response.status}): ${text.substring(0, 100)}`;
-    }
-    throw new Error(errorMessage);
+  // 2. 폴링으로 완료 대기
+  while (true) {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    const statusResponse = await fetch(`${MODAL_API}/status/${job_id}`);
+    const statusData = await statusResponse.json();
+    console.log(`[LTX] Job ${job_id} status: ${statusData.status}`);
+    if (statusData.status === 'complete') break;
+    if (statusData.status === 'error') throw new Error(`Generation failed: ${statusData.error}`);
+    if (statusData.status === 'not_found') throw new Error('Job not found');
   }
 
-  const blob = await response.blob();
-  console.log(`[LTX] Video blob received: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+  // 3. 결과 다운로드
+  const resultResponse = await fetch(`${MODAL_API}/result/${job_id}`);
+  if (!resultResponse.ok) {
+    throw new Error(`Result fetch failed: ${resultResponse.status}`);
+  }
+  const blob = await resultResponse.blob();
+
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[LTX] Video blob received: ${(blob.size / 1024 / 1024).toFixed(2)} MB (${elapsed}s)`);
   return blob;
 }
 
