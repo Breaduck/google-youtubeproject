@@ -302,7 +302,6 @@ class VideoGenerator:
 
             # Free GPU memory after Stage 1
             print("[VRAM] Freeing GPU memory after Stage 1...")
-            del generator
             torch.cuda.empty_cache()
             print(f"[VRAM] Freed. Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
 
@@ -368,12 +367,11 @@ class VideoGenerator:
 
             refine_start = time.time()
             video, audio = self.pipe(
+                image=reference_image,  # Required for image-to-video pipeline
                 latents=upscaled_video_latent,
-                audio_latents=audio_latent,
                 prompt=enhanced_prompt,
                 negative_prompt=negative_prompt,
                 num_inference_steps=DEFAULT_STEPS_STAGE2,
-                noise_scale=self.stage2_sigmas[0],
                 sigmas=self.stage2_sigmas,
                 guidance_scale=DEFAULT_GUIDANCE_STAGE2,
                 generator=generator,
