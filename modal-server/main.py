@@ -110,13 +110,18 @@ class VideoGenerator:
         self.pipe.enable_attention_slicing()
 
         print("[4/4] Loading Distilled Sigmas...")
-        # Import distilled sigma values for Stage 1 and Stage 2
-        from diffusers.pipelines.ltx2.utils import DISTILLED_SIGMA_VALUES, STAGE_2_DISTILLED_SIGMA_VALUES
+        # Import distilled sigma values for Stage 1
+        from diffusers.pipelines.ltx2.utils import DISTILLED_SIGMA_VALUES
         self.stage1_sigmas = DISTILLED_SIGMA_VALUES
-        self.stage2_sigmas = STAGE_2_DISTILLED_SIGMA_VALUES
+
+        # CRITICAL: Use official 4-step Stage 2 schedule (diffusers has only 3)
+        # Source: https://github.com/Lightricks/LTX-2/blob/main/packages/ltx-pipelines/src/ltx_pipelines/utils/constants.py
+        STAGE_2_DISTILLED_SIGMA_VALUES_OFFICIAL = [0.909375, 0.725, 0.421875, 0.0]
+        self.stage2_sigmas = STAGE_2_DISTILLED_SIGMA_VALUES_OFFICIAL
+
         print(f"  - Stage 1 sigmas: {len(self.stage1_sigmas)} values")
-        print(f"  - Stage 2 sigmas: {len(self.stage2_sigmas)} values")
-        print("  [OK] Distilled sigmas loaded (no LoRA needed)")
+        print(f"  - Stage 2 sigmas: {len(self.stage2_sigmas)} values (official 4-step)")
+        print("  [OK] Distilled sigmas loaded (8+4 official schedule)")
 
         print(f"\n{'='*70}")
         print("PIPELINE LOADED - OFFICIAL DISTILLED 3-STAGE PATTERN")
@@ -136,9 +141,9 @@ class VideoGenerator:
         print("    - 2x upsample: 768x512 → 1536x1024")
         print("    - Latent-to-latent (no VAE)")
         print("  [Stage 2b - Refinement (NEW)]:")
-        print(f"    - Steps: {len(self.stage2_sigmas)}")
+        print(f"    - Steps: {len(self.stage2_sigmas)} (official 4-step schedule)")
         print("    - Guidance: 1.8")
-        print("    - Sigmas: STAGE_2_DISTILLED_SIGMA_VALUES")
+        print("    - Sigmas: STAGE_2_DISTILLED_SIGMA_VALUES (official)")
         print("    - Input: upscaled latent")
         print("  [VAE Decode]:")
         print("    - Latent → Pixels (final step)")
