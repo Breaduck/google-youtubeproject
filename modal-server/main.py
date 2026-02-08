@@ -241,12 +241,12 @@ class VideoGenerator:
         print(f"{'='*60}")
         print(f"  Original: {prompt[:200]}...")
 
-        # Camera motion keywords to remove
+        # Camera motion keywords to remove (causes instability)
         camera_keywords = [
             'zoom', 'pan', 'dolly', 'track', 'cinematic', 'camera movement',
-            'zoom-in', 'zoom-out', 'zoom in', 'zoom out',
-            'pan left', 'pan right', 'panning', 'tracking shot',
-            'camera motion', 'camera zoom', 'moving camera'
+            'zoom-in', 'zoom-out', 'zoom in', 'zoom out', 'close-up', 'closeup',
+            'pan left', 'pan right', 'panning', 'tracking shot', 'tilt',
+            'camera motion', 'camera zoom', 'moving camera', 'reframing'
         ]
 
         # Speech/lip keywords to detect and remove
@@ -255,6 +255,13 @@ class VideoGenerator:
             'lip sync', 'mouth open', 'open mouth', 'lips moving',
             'mouth movement', 'forming words', 'mouth forming',
             'voice', 'vocal', 'saying', 'uttering'
+        ]
+
+        # Body movement keywords to remove (causes artifacts)
+        body_keywords = [
+            'hand', 'hands', 'arm', 'arms', 'leg', 'legs', 'foot', 'feet',
+            'walking', 'walk', 'steps', 'stepping', 'reaching', 'touching',
+            'waving', 'gesture', 'gestures', 'gesturing', 'pointing'
         ]
 
         filtered_prompt = prompt
@@ -275,6 +282,14 @@ class VideoGenerator:
                 removed_speech.append(keyword)
                 filtered_prompt = pattern.sub('', filtered_prompt)
 
+        # Remove body movement keywords (causes artifacts)
+        removed_body = []
+        for keyword in body_keywords:
+            pattern = re.compile(rf'\b{re.escape(keyword)}\b', re.IGNORECASE)
+            if pattern.search(filtered_prompt):
+                removed_body.append(keyword)
+                filtered_prompt = pattern.sub('', filtered_prompt)
+
         # Clean up extra spaces and punctuation
         filtered_prompt = re.sub(r'\s+', ' ', filtered_prompt).strip()
         filtered_prompt = re.sub(r'\s*,\s*,+', ',', filtered_prompt)
@@ -291,6 +306,9 @@ class VideoGenerator:
         if removed_camera:
             print(f"  [REMOVED CAMERA MOTION]: {', '.join(removed_camera)}")
 
+        if removed_body:
+            print(f"  [REMOVED BODY MOVEMENT]: {', '.join(removed_body)}")
+
         print(f"  Filtered: {enhanced_prompt[:250]}...")
         print(f"{'='*60}")
 
@@ -305,6 +323,20 @@ class VideoGenerator:
                 if term.lower() not in negative_prompt.lower():
                     negative_prompt += f", {term}"
             print(f"[SAFETY] Added {len(removed_speech)} speech terms to negative prompt")
+
+        # Strengthen negative prompt with detected camera motion terms (from safety filter)
+        if 'removed_camera' in locals() and removed_camera:
+            for term in removed_camera:
+                if term.lower() not in negative_prompt.lower():
+                    negative_prompt += f", {term}"
+            print(f"[SAFETY] Added {len(removed_camera)} camera motion terms to negative prompt")
+
+        # Strengthen negative prompt with detected body movement terms (from safety filter)
+        if 'removed_body' in locals() and removed_body:
+            for term in removed_body:
+                if term.lower() not in negative_prompt.lower():
+                    negative_prompt += f", {term}"
+            print(f"[SAFETY] Added {len(removed_body)} body movement terms to negative prompt")
 
         # 공식 권장 기준 (Official LTX-2 recommendations)
         # cfg_scale: 3.0 typical (2.0-5.0 range)

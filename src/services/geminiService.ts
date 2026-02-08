@@ -446,23 +446,28 @@ Reference image: "${imagePrompt}"
 CRITICAL: Do NOT describe character appearance (we already have the reference image).
 Focus ONLY on micro-motion + ambience.
 
-RULES:
-- Motion: blinking (every 3-5 sec), micro-nod (1-2 degrees), subtle breathing, tiny hand gesture only
-- Camera: STATIC (no pan/zoom/movement)
+HARD RULES (NO EXCEPTIONS):
+- Motion: ONLY blinking (every 3-5 sec), micro-nod (1-2 degrees), subtle breathing
+- NO hand/arm/leg/foot movement (causes artifacts)
+- NO walking, steps, gestures, reaching, touching, waving
+- Camera: STATIC LOCKED (no zoom/pan/tilt/dolly/tracking)
 - Mouth: ALWAYS CLOSED, NO speaking
 - Audio: Ambience only (wind / room tone / nature), NO narration/dialogue
 
+MANDATORY CONSTRAINTS (append to every output):
+"Static locked camera, fixed framing, NO zoom/pan/tilt, mouth closed"
+
 OUTPUT FORMAT (1 line):
-"Subtle motion: [micro-movements] | Ambience: [wind/room tone/nature] | Static camera | Mouth closed"
+"Subtle motion: [blinking + micro-nod + breathing ONLY] | Ambience: [wind/room tone/nature] | Static locked camera, fixed framing, NO zoom/pan/tilt | Mouth closed"
 
 EXAMPLES:
 Input: "I can't believe this happened..." (sad scene)
-Output: "Subtle motion: Slow blinking, micro-nod downward (1 degree), shoulders subtly rising and falling with breathing | Ambience: Quiet room tone with distant wind | Static camera | Mouth closed"
+Output: "Subtle motion: Slow blinking, micro-nod downward (1 degree), subtle breathing | Ambience: Quiet room tone with distant wind | Static locked camera, fixed framing, NO zoom/pan/tilt | Mouth closed"
 
 Input: "Hahaha! That's hilarious!" (happy scene)
-Output: "Subtle motion: Quick blinking, tiny head tilt (2 degrees), slight shoulder movement with silent laughter | Ambience: Light outdoor breeze, rustling leaves | Static camera | Mouth closed"
+Output: "Subtle motion: Quick blinking, tiny head tilt (2 degrees), subtle breathing | Ambience: Light outdoor breeze, rustling leaves | Static locked camera, fixed framing, NO zoom/pan/tilt | Mouth closed"
 
-Now generate for the input above. Return ONLY the single-line prompt, no explanation.`;
+Now generate for the input above. Return ONLY the single-line prompt, no explanation. DO NOT include hand/arm/leg/walking.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
