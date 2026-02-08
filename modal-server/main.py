@@ -509,9 +509,9 @@ class VideoGenerator:
             # Check if pipeline has vocoder for audio decoding
             if hasattr(self.pipe, 'vocoder') and self.pipe.vocoder is not None:
                 try:
-                    # Decode audio latent to waveform
+                    # Decode audio latent to waveform (try __call__ instead of decode)
                     print(f"  [VOCODER] Decoding audio latent...")
-                    audio_waveform = self.pipe.vocoder.decode(audio_latent)
+                    audio_waveform = self.pipe.vocoder(audio_latent)  # Use __call__
                     print(f"  Decoded waveform shape: {audio_waveform.shape}")
                     print(f"  Decoded waveform dtype: {audio_waveform.dtype}")
                     print(f"  Decoded waveform device: {audio_waveform.device}")
@@ -519,6 +519,8 @@ class VideoGenerator:
                     # Ensure correct shape: (channels, samples) or (batch, channels, samples)
                     if audio_waveform.dim() == 3:
                         audio_data = audio_waveform[0].float().cpu()  # Remove batch dim
+                    elif audio_waveform.dim() == 4:
+                        audio_data = audio_waveform[0, 0].float().cpu()  # Remove batch + extra dim
                     else:
                         audio_data = audio_waveform.float().cpu()
 
@@ -587,31 +589,36 @@ class VideoGenerator:
         print(f"[AUDIO VERIFICATION - FFprobe]")
         print(f"{'='*60}")
 
-        probe_cmd = [
-            "ffprobe", "-v", "error",
-            "-select_streams", "a:0",
-            "-show_entries", "stream=codec_name,sample_rate,channels",
-            "-of", "json",
-            output_path
-        ]
-
-        probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
         has_audio = False
+        try:
+            probe_cmd = [
+                "ffprobe", "-v", "error",
+                "-select_streams", "a:0",
+                "-show_entries", "stream=codec_name,sample_rate,channels",
+                "-of", "json",
+                output_path
+            ]
 
-        if probe_result.returncode == 0:
-            import json
-            probe_data = json.loads(probe_result.stdout)
-            if "streams" in probe_data and len(probe_data["streams"]) > 0:
-                stream = probe_data["streams"][0]
-                print(f"  ✓ Audio stream detected:")
-                print(f"    - Codec: {stream.get('codec_name', 'unknown')}")
-                print(f"    - Sample rate: {stream.get('sample_rate', 'unknown')}")
-                print(f"    - Channels: {stream.get('channels', 'unknown')}")
-                has_audio = True
+            probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
+
+            if probe_result.returncode == 0:
+                import json
+                probe_data = json.loads(probe_result.stdout)
+                if "streams" in probe_data and len(probe_data["streams"]) > 0:
+                    stream = probe_data["streams"][0]
+                    print(f"  ✓ Audio stream detected:")
+                    print(f"    - Codec: {stream.get('codec_name', 'unknown')}")
+                    print(f"    - Sample rate: {stream.get('sample_rate', 'unknown')}")
+                    print(f"    - Channels: {stream.get('channels', 'unknown')}")
+                    has_audio = True
+                else:
+                    print(f"  ✗ No audio streams found in MP4")
             else:
-                print(f"  ✗ No audio streams found in MP4")
-        else:
-            print(f"  ✗ FFprobe failed: {probe_result.stderr[:200]}")
+                print(f"  ✗ FFprobe failed: {probe_result.stderr[:200]}")
+        except Exception as e:
+            print(f"  [ERROR] FFprobe verification failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
         # ============================================================
         # FALLBACK: Generate ambient audio if missing
