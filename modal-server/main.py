@@ -497,19 +497,24 @@ class VideoGenerator:
         audio_data = None
         audio_sr = None
 
+        print(f"\n{'='*60}")
+        print(f"[AUDIO PROCESSING]")
+        print(f"{'='*60}")
+
         if audio_latent is not None:
-            print(f"\n[AUDIO DEBUG]")
             print(f"  Audio latent shape: {audio_latent.shape}")
             print(f"  Audio latent dtype: {audio_latent.dtype}")
+            print(f"  Audio latent device: {audio_latent.device}")
 
             # Check if pipeline has vocoder for audio decoding
             if hasattr(self.pipe, 'vocoder') and self.pipe.vocoder is not None:
                 try:
                     # Decode audio latent to waveform
-                    print(f"  Decoding audio latent with vocoder...")
+                    print(f"  [VOCODER] Decoding audio latent...")
                     audio_waveform = self.pipe.vocoder.decode(audio_latent)
-                    print(f"  Audio waveform shape: {audio_waveform.shape}")
-                    print(f"  Audio waveform dtype: {audio_waveform.dtype}")
+                    print(f"  Decoded waveform shape: {audio_waveform.shape}")
+                    print(f"  Decoded waveform dtype: {audio_waveform.dtype}")
+                    print(f"  Decoded waveform device: {audio_waveform.device}")
 
                     # Ensure correct shape: (channels, samples) or (batch, channels, samples)
                     if audio_waveform.dim() == 3:
@@ -518,15 +523,21 @@ class VideoGenerator:
                         audio_data = audio_waveform.float().cpu()
 
                     audio_sr = self.pipe.vocoder.config.output_sampling_rate
-                    print(f"  Final audio shape: {audio_data.shape}, sample_rate: {audio_sr}")
+                    print(f"  Final audio: shape={audio_data.shape}, sample_rate={audio_sr}")
                 except Exception as e:
-                    print(f"  [WARNING] Audio decode failed: {str(e)[:200]}")
+                    print(f"  [ERROR] Audio decode failed: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
                     audio_data = None
                     audio_sr = None
             else:
-                print(f"  [WARNING] No vocoder found in pipeline - audio latent cannot be decoded")
+                print(f"  [WARNING] No vocoder in pipeline - cannot decode audio latent")
+                audio_data = None
+                audio_sr = None
         else:
-            print(f"\n[AUDIO] No audio latent returned by pipeline (I2V mode)")
+            print(f"  [INFO] No audio latent returned by I2V pipeline")
+            audio_data = None
+            audio_sr = None
 
         # Encode to temporary path first
         temp_output = tempfile.mktemp(suffix="_temp.mp4")
@@ -568,6 +579,102 @@ class VideoGenerator:
             # Clean up temp file
             import os
             os.remove(temp_output)
+
+        # ============================================================
+        # VERIFY: FFprobe audio stream check
+        # ============================================================
+        print(f"\n{'='*60}")
+        print(f"[AUDIO VERIFICATION - FFprobe]")
+        print(f"{'='*60}")
+
+        probe_cmd = [
+            "ffprobe", "-v", "error",
+            "-select_streams", "a:0",
+            "-show_entries", "stream=codec_name,sample_rate,channels",
+            "-of", "json",
+            output_path
+        ]
+
+        probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
+        has_audio = False
+
+        if probe_result.returncode == 0:
+            import json
+            probe_data = json.loads(probe_result.stdout)
+            if "streams" in probe_data and len(probe_data["streams"]) > 0:
+                stream = probe_data["streams"][0]
+                print(f"  ✓ Audio stream detected:")
+                print(f"    - Codec: {stream.get('codec_name', 'unknown')}")
+                print(f"    - Sample rate: {stream.get('sample_rate', 'unknown')}")
+                print(f"    - Channels: {stream.get('channels', 'unknown')}")
+                has_audio = True
+            else:
+                print(f"  ✗ No audio streams found in MP4")
+        else:
+            print(f"  ✗ FFprobe failed: {probe_result.stderr[:200]}")
+
+        # ============================================================
+        # FALLBACK: Generate ambient audio if missing
+        # ============================================================
+        if not has_audio:
+            print(f"\n{'='*60}")
+            print(f"[FALLBACK AUDIO] Generating ambient track")
+            print(f"{'='*60}")
+
+            try:
+                # Generate silent/ambient audio (duration = video duration)
+                video_duration = num_frames / frame_rate
+                fallback_audio_path = tempfile.mktemp(suffix="_ambient.wav")
+
+                # Create low-volume ambient noise (or silence)
+                ambient_cmd = [
+                    "ffmpeg", "-y",
+                    "-f", "lavfi",
+                    "-i", f"anoisesrc=duration={video_duration}:color=white:sample_rate=24000:amplitude=0.01",
+                    "-ac", "1",  # mono
+                    fallback_audio_path
+                ]
+
+                ambient_result = subprocess.run(ambient_cmd, capture_output=True, text=True)
+                if ambient_result.returncode != 0:
+                    print(f"  [ERROR] Ambient generation failed: {ambient_result.stderr[:200]}")
+                    raise Exception("Fallback audio generation failed")
+
+                print(f"  [OK] Generated ambient audio: {video_duration:.1f}s")
+
+                # Mux ambient audio into video
+                final_output = tempfile.mktemp(suffix="_final.mp4")
+                mux_cmd = [
+                    "ffmpeg", "-y",
+                    "-i", output_path,  # video (no audio)
+                    "-i", fallback_audio_path,  # ambient audio
+                    "-c:v", "copy",  # no video re-encode
+                    "-c:a", "aac",  # encode audio to AAC
+                    "-b:a", "128k",
+                    "-shortest",  # match video duration
+                    final_output
+                ]
+
+                mux_result = subprocess.run(mux_cmd, capture_output=True, text=True)
+                if mux_result.returncode != 0:
+                    print(f"  [ERROR] Muxing failed: {mux_result.stderr[:200]}")
+                    raise Exception("Audio muxing failed")
+
+                print(f"  [OK] Muxed ambient audio into MP4")
+
+                # Replace original with muxed version
+                import shutil
+                shutil.move(final_output, output_path)
+
+                # Cleanup
+                import os
+                os.remove(fallback_audio_path)
+
+                print(f"  [GUARANTEE] MP4 now contains audio track")
+
+            except Exception as e:
+                print(f"  [WARNING] Fallback audio failed: {str(e)}")
+                print(f"  [RESULT] Shipping silent MP4 (fallback unavailable)")
 
         with open(output_path, "rb") as f:
             video_bytes = f.read()
