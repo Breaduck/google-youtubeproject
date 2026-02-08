@@ -528,14 +528,46 @@ class VideoGenerator:
         else:
             print(f"\n[AUDIO] No audio latent returned by pipeline (I2V mode)")
 
+        # Encode to temporary path first
+        temp_output = tempfile.mktemp(suffix="_temp.mp4")
         encode_video(
             video_tensor[0],        # (frames, H, W, C) torch tensor
             fps=frame_rate,
             audio=audio_data,
             audio_sample_rate=audio_sr,
-            output_path=output_path,
+            output_path=temp_output,
         )
-        print(f"  [OK] Video encoded to: {output_path}")
+        print(f"  [OK] Video encoded (temp): {temp_output}")
+
+        # Add color metadata with FFmpeg (BT.709, full range)
+        # Fixes washed-out colors by explicitly setting colorspace
+        import subprocess
+        print(f"  [COLOR METADATA] Adding BT.709 metadata...")
+
+        ffmpeg_cmd = [
+            "ffmpeg", "-y",
+            "-i", temp_output,
+            "-c:v", "copy",  # No re-encode
+            "-c:a", "copy",  # No re-encode
+            "-colorspace", "bt709",
+            "-color_primaries", "bt709",
+            "-color_trc", "bt709",
+            "-color_range", "pc",  # Full range (RGB 0-255)
+            output_path
+        ]
+
+        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"  [WARNING] FFmpeg metadata failed: {result.stderr[:200]}")
+            print(f"  [FALLBACK] Using original encode without metadata")
+            # Fallback: use original file
+            import shutil
+            shutil.move(temp_output, output_path)
+        else:
+            print(f"  [OK] Color metadata added: BT.709, full range")
+            # Clean up temp file
+            import os
+            os.remove(temp_output)
 
         with open(output_path, "rb") as f:
             video_bytes = f.read()
