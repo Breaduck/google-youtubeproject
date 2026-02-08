@@ -186,6 +186,14 @@ class VideoGenerator:
             reference_image = Image.open(BytesIO(response.content)).convert("RGB")
             print(f"[INPUT] Downloaded image from URL: {reference_image.size}")
 
+        # CRITICAL: Upper-body crop (eliminate hand artifacts by design)
+        # Keep top 50% of image (face + shoulders + upper torso)
+        # Hands/arms/legs are physically out of frame
+        img_width, img_height = reference_image.size
+        upper_body_height = int(img_height * 0.5)  # Top 50%
+        reference_image = reference_image.crop((0, 0, img_width, upper_body_height))
+        print(f"[PREPROCESSING] Upper-body crop: {img_width}x{img_height} -> {img_width}x{upper_body_height} (hands out of frame)")
+
         # OFFICIAL: 512p (768x512) Stage 1 → 2x upscale → 1024p (1536x1024)
         # For 1080p target: 512p → 2x → 1024p → crop to 1080p
         target_width = 768    # Official recommended
@@ -295,8 +303,8 @@ class VideoGenerator:
         filtered_prompt = re.sub(r'\s*,\s*,+', ',', filtered_prompt)
         filtered_prompt = re.sub(r'\s*\.\s*\.+', '.', filtered_prompt)
 
-        # Append ambient sound + closed mouth guidance
-        ambient_guide = "Ambient sound of subtle wind or room tone. Character's mouth remains closed with serene expression. No speaking or dialogue."
+        # Append ambient sound + closed mouth + framing guidance
+        ambient_guide = "Upper-body framing with hands out of frame. Ambient sound of subtle wind or room tone. Character's mouth remains closed with serene expression. No speaking or dialogue."
         enhanced_prompt = f"{filtered_prompt} {ambient_guide}"
 
         # Log removed terms
@@ -312,10 +320,10 @@ class VideoGenerator:
         print(f"  Filtered: {enhanced_prompt[:250]}...")
         print(f"{'='*60}")
 
-        # Negative prompt: Anti-distortion + No speech/voice
-        # Motion: blinking, micro-nod, subtle hand gestures only
+        # Negative prompt: Anti-distortion + No speech/voice + No hands/limbs
+        # Motion: blinking, micro-nod, breathing only
         # Audio: Ambience-only (Track A ~20%), TTS narration post-mux (Track B 100%)
-        negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, speaking, talking, dialogue, voice, narration, lip sync, open mouth, mouth movement, speech"
+        negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, speaking, talking, dialogue, voice, narration, lip sync, open mouth, mouth movement, speech, hands, fingers, arms, hand gesture, arm movement"
 
         # Strengthen negative prompt with detected speech terms (from safety filter)
         if 'removed_speech' in locals() and removed_speech:
