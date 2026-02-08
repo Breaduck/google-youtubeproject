@@ -417,6 +417,9 @@ class VideoGenerator:
 
         decode_start = time.time()
 
+        # Ensure latent matches VAE dtype (bfloat16)
+        refined_latent = refined_latent.to(dtype=self.pipe.vae.dtype)
+
         # VAE decode in chunks to avoid VRAM spike
         with torch.no_grad():
             # Decode latent to pixel space
