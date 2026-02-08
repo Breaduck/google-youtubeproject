@@ -348,13 +348,24 @@ class VideoGenerator:
         # ============================================================
         try:
             print(f"\n{'='*60}")
-            print(f"[STAGE 1] Low-res latent generation {target_width}x{target_height}")
+            print(f"[STAGE 1] Low-res latent generation")
+            print(f"  Resolution: {target_width}x{target_height}")
+            print(f"  Frames: {num_frames}")
             print(f"  Steps: {final_steps_stage1}, Guidance: {final_guidance_stage1}")
             print(f"  Sigmas: DISTILLED_SIGMA_VALUES ({len(self.stage1_sigmas)} values)")
+            print(f"  Precision: {self.pipe.transformer.dtype}")
+            print(f"  Offload: Sequential CPU offload enabled")
             print(f"{'='*60}")
+
+            # VRAM before Stage 1
+            torch.cuda.reset_peak_memory_stats()
+            vram_before = torch.cuda.memory_allocated() / 1024**3
+            print(f"  VRAM before: {vram_before:.2f} GiB")
 
             generator = torch.Generator(device="cuda").manual_seed(42)
             frame_rate = 24.0
+
+            stage1_start = time.time()  # Precise timing
 
             result = self.pipe(
                 image=reference_image,
@@ -372,6 +383,8 @@ class VideoGenerator:
                 return_dict=False,
             )
 
+            stage1_time = time.time() - stage1_start  # Precise timing
+
             # DEBUG: Inspect return structure
             print(f"  [DEBUG] Pipeline return type: {type(result)}")
             if isinstance(result, tuple):
@@ -388,10 +401,16 @@ class VideoGenerator:
                 video_latent = result
                 audio_latent = None
 
-            stage1_time = time.time() - gen_start
+            vram_after = torch.cuda.memory_allocated() / 1024**3
+            vram_peak = torch.cuda.max_memory_allocated() / 1024**3
+            vram_reserved = torch.cuda.memory_reserved() / 1024**3
+
             print(f"[STAGE 1 COMPLETE] Time: {stage1_time:.1f}s")
             print(f"  Latent shape: {video_latent.shape}")
-            print(f"  VRAM: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
+            print(f"  Latent dtype: {video_latent.dtype}")
+            print(f"  VRAM after: {vram_after:.2f} GiB")
+            print(f"  VRAM peak: {vram_peak:.2f} GiB")
+            print(f"  VRAM reserved: {vram_reserved:.2f} GiB")
 
         except Exception as e:
             stage1_time = time.time() - gen_start
@@ -450,12 +469,24 @@ class VideoGenerator:
 
         # ============================================================
         # STAGE 2b: Refine upscaled latent (4 steps, official distilled)
+        # OPTIONAL: Try-catch for stability (temporary safety net)
         # ============================================================
+        stage2b_success = False
         try:
             print(f"\n{'='*60}")
             print(f"[STAGE 2b] 4-step refinement at {target_width*2}x{target_height*2}")
             print(f"  Steps: {DEFAULT_STEPS_STAGE2}, Guidance: {DEFAULT_GUIDANCE_STAGE2}")
             print(f"  Sigmas: STAGE_2_DISTILLED_SIGMA_VALUES ({len(self.stage2_sigmas)} values)")
+            print(f"  Upscaled latent shape: {upscaled_latent.shape}")
+            print(f"  Upscaled latent dtype: {upscaled_latent.dtype}")
+
+            # VRAM diagnostics BEFORE Stage 2b
+            torch.cuda.reset_peak_memory_stats()
+            vram_before_2b = torch.cuda.memory_allocated() / 1024**3
+            vram_reserved_2b = torch.cuda.memory_reserved() / 1024**3
+            print(f"  VRAM before Stage 2b: {vram_before_2b:.2f} GiB")
+            print(f"  VRAM reserved: {vram_reserved_2b:.2f} GiB")
+            print(f"  VRAM available: {24 - vram_reserved_2b:.2f} GiB (A10G)")
             print(f"{'='*60}")
 
             refine_start = time.time()
@@ -496,17 +527,44 @@ class VideoGenerator:
                 refined_latent = result
 
             refine_time = time.time() - refine_start
+            vram_peak_2b = torch.cuda.max_memory_allocated() / 1024**3
+
             print(f"[STAGE 2b COMPLETE] Time: {refine_time:.1f}s")
             print(f"  Refined latent shape: {refined_latent.shape}")
-            print(f"  VRAM: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
+            print(f"  VRAM peak during Stage 2b: {vram_peak_2b:.2f} GiB")
+            stage2b_success = True
 
         except Exception as e:
-            print(f"\n[WARNING] STAGE 2b FAILED: {str(e)[:200]}")
+            refine_time = 0.0
+            print(f"\n{'='*60}")
+            print(f"[STAGE 2b FAILURE - FULL DIAGNOSTICS]")
+            print(f"{'='*60}")
+            print(f"  Exception type: {type(e).__name__}")
+            print(f"  Exception message: {str(e)}")
+            print(f"\n[FULL TRACEBACK]:")
             import traceback
             traceback.print_exc()
-            print("[FALLBACK] Using Stage 2a output (no refinement)")
+
+            # Write full error to temp file for inspection
+            import tempfile
+            error_log_path = tempfile.mktemp(suffix="_stage2b_error.log")
+            with open(error_log_path, "w") as f:
+                f.write(f"Stage 2b Failure Report\n")
+                f.write(f"=" * 60 + "\n")
+                f.write(f"Exception: {type(e).__name__}\n")
+                f.write(f"Message: {str(e)}\n\n")
+                f.write(f"Traceback:\n")
+                f.write(traceback.format_exc())
+                f.write(f"\nVRAM stats:\n")
+                f.write(f"  Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB\n")
+                f.write(f"  Reserved: {torch.cuda.memory_reserved()/1024**3:.2f} GiB\n")
+            print(f"  Full error log written to: {error_log_path}")
+
+            print(f"\n[FALLBACK] Using Stage 2a output (no refinement)")
+            print(f"  This is a TEMPORARY safety net - Stage 2b MUST be fixed")
+            print(f"{'='*60}\n")
+
             refined_latent = upscaled_latent
-            refine_time = 0.0
 
         # ============================================================
         # VAE DECODE: Latent → Pixels (official distilled pattern)
@@ -810,7 +868,7 @@ class VideoGenerator:
         cost_krw = cost_usd * 1450
 
         print(f"\n{'='*60}")
-        print(f"[COMPLETE - OFFICIAL DISTILLED 3-STAGE PATTERN]")
+        print(f"[COMPLETE - {'3-STAGE' if stage2b_success else '2-STAGE (Stage 2b failed)'} PATTERN]")
         print(f"{'='*60}")
         print(f"  Video frames: {num_frames}")
         print(f"  Resolution: {video_tensor.shape[3]}x{video_tensor.shape[2]}")
@@ -819,7 +877,10 @@ class VideoGenerator:
         print(f"\n[PERFORMANCE BREAKDOWN]")
         print(f"  Stage 1 (latent generation): {stage1_time:.1f}s")
         print(f"  Stage 2a (latent upsample): {upscale_time:.1f}s")
-        print(f"  Stage 2b (4-step refine): {refine_time:.1f}s")
+        if stage2b_success:
+            print(f"  Stage 2b (4-step refine): {refine_time:.1f}s ✓")
+        else:
+            print(f"  Stage 2b (4-step refine): FAILED (fallback to Stage 2a)")
         print(f"  VAE decode: {decode_time:.1f}s")
         print(f"  Total: {total_time:.1f}s")
         print(f"  Cost: ${cost_usd:.4f} (₩{cost_krw:.0f})")
@@ -830,7 +891,8 @@ class VideoGenerator:
             print(f"  [!] Exceeded by {total_time-90:.1f}s")
         print(f"\n[SIGMA SCHEDULES USED]")
         print(f"  Stage 1: DISTILLED_SIGMA_VALUES ({len(self.stage1_sigmas)} steps)")
-        print(f"  Stage 2b: STAGE_2_DISTILLED_SIGMA_VALUES ({len(self.stage2_sigmas)} steps)")
+        if stage2b_success:
+            print(f"  Stage 2b: STAGE_2_DISTILLED_SIGMA_VALUES ({len(self.stage2_sigmas)} steps)")
         print(f"{'='*60}\n")
         return video_bytes
 
