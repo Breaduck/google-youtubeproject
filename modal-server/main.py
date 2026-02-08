@@ -231,15 +231,72 @@ class VideoGenerator:
         # 4. Detail melting (facial features displaced)
         # 5. Background warping (ripple effect around character)
 
-        # EMOTION-DRIVEN MOTION - Frontend Gemini 5-step formula prompt
-        # + Ambient sound guidance (no speech, mouth closed)
+        # ============================================================
+        # SAFETY FILTER: Remove unsafe keywords before LTX
+        # ============================================================
+        import re
+
+        print(f"\n{'='*60}")
+        print(f"[PROMPT SAFETY FILTER]")
+        print(f"{'='*60}")
+        print(f"  Original: {prompt[:200]}...")
+
+        # Camera motion keywords to remove
+        camera_keywords = [
+            'zoom', 'pan', 'dolly', 'track', 'cinematic', 'camera movement',
+            'zoom-in', 'zoom-out', 'zoom in', 'zoom out',
+            'pan left', 'pan right', 'panning', 'tracking shot',
+            'camera motion', 'camera zoom', 'moving camera'
+        ]
+
+        # Speech/lip keywords to detect and remove
+        speech_keywords = [
+            'speaking', 'talking', 'speech', 'dialogue', 'conversation',
+            'lip sync', 'mouth open', 'open mouth', 'lips moving',
+            'mouth movement', 'forming words', 'mouth forming',
+            'voice', 'vocal', 'saying', 'uttering'
+        ]
+
+        filtered_prompt = prompt
+
+        # Remove camera motion keywords
+        removed_camera = []
+        for keyword in camera_keywords:
+            pattern = re.compile(rf'\b{re.escape(keyword)}\b', re.IGNORECASE)
+            if pattern.search(filtered_prompt):
+                removed_camera.append(keyword)
+                filtered_prompt = pattern.sub('', filtered_prompt)
+
+        # Check for speech keywords
+        removed_speech = []
+        for keyword in speech_keywords:
+            pattern = re.compile(rf'\b{re.escape(keyword)}\b', re.IGNORECASE)
+            if pattern.search(filtered_prompt):
+                removed_speech.append(keyword)
+                filtered_prompt = pattern.sub('', filtered_prompt)
+
+        # Clean up extra spaces and punctuation
+        filtered_prompt = re.sub(r'\s+', ' ', filtered_prompt).strip()
+        filtered_prompt = re.sub(r'\s*,\s*,+', ',', filtered_prompt)
+        filtered_prompt = re.sub(r'\s*\.\s*\.+', '.', filtered_prompt)
 
         # Append ambient sound + closed mouth guidance
         ambient_guide = "Ambient sound of subtle wind or room tone. Character's mouth remains closed with serene expression. No speaking or dialogue."
-        enhanced_prompt = f"{prompt} {ambient_guide}"
+        enhanced_prompt = f"{filtered_prompt} {ambient_guide}"
 
-        print(f"\n[FRONTEND PROMPT] Gemini 5-step + ambient guidance:")
-        print(f"  {enhanced_prompt[:250]}...")
+        # If speech keywords were found, strengthen negative prompt
+        if removed_speech:
+            print(f"  [REMOVED SPEECH TERMS]: {', '.join(removed_speech)}")
+            # Already in negative_prompt, but ensure they're there
+            for term in removed_speech:
+                if term.lower() not in negative_prompt.lower():
+                    negative_prompt += f", {term}"
+
+        if removed_camera:
+            print(f"  [REMOVED CAMERA MOTION]: {', '.join(removed_camera)}")
+
+        print(f"  Filtered: {enhanced_prompt[:250]}...")
+        print(f"{'='*60}")
 
         # Negative prompt: Anti-distortion + No speech/voice
         # Motion: blinking, micro-nod, subtle hand gestures only
