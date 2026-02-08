@@ -309,8 +309,22 @@ class VideoGenerator:
                 output_type="latent",   # LATENT output for Stage 2a upsample
                 return_dict=False,
             )
-            # Extract video latent only (audio not supported in I2V)
-            video_latent = result[0] if isinstance(result, tuple) else result
+
+            # DEBUG: Inspect return structure
+            print(f"  [DEBUG] Pipeline return type: {type(result)}")
+            if isinstance(result, tuple):
+                print(f"  [DEBUG] Tuple length: {len(result)}")
+                for i, item in enumerate(result):
+                    if item is not None:
+                        print(f"  [DEBUG] result[{i}] type: {type(item)}, shape: {item.shape if hasattr(item, 'shape') else 'N/A'}")
+                    else:
+                        print(f"  [DEBUG] result[{i}] is None")
+                video_latent = result[0]
+                audio_latent = result[1] if len(result) > 1 else None
+            else:
+                print(f"  [DEBUG] Single return, shape: {result.shape if hasattr(result, 'shape') else 'N/A'}")
+                video_latent = result
+                audio_latent = None
 
             stage1_time = time.time() - gen_start
             print(f"[STAGE 1 COMPLETE] Time: {stage1_time:.1f}s")
@@ -401,8 +415,23 @@ class VideoGenerator:
                 output_type="latent",  # Keep latent for VAE decode
                 return_dict=False,
             )
-            # Extract video latent only (audio not supported in I2V)
-            refined_latent = result[0] if isinstance(result, tuple) else result
+
+            # DEBUG: Inspect Stage 2b return structure
+            print(f"  [DEBUG] Stage 2b return type: {type(result)}")
+            if isinstance(result, tuple):
+                print(f"  [DEBUG] Tuple length: {len(result)}")
+                for i, item in enumerate(result):
+                    if item is not None:
+                        print(f"  [DEBUG] result[{i}] type: {type(item)}, shape: {item.shape if hasattr(item, 'shape') else 'N/A'}")
+                    else:
+                        print(f"  [DEBUG] result[{i}] is None")
+                refined_latent = result[0]
+                audio_latent_stage2 = result[1] if len(result) > 1 else None
+                # Use Stage 2b audio if available, else fallback to Stage 1
+                if audio_latent_stage2 is not None:
+                    audio_latent = audio_latent_stage2
+            else:
+                refined_latent = result
 
             refine_time = time.time() - refine_start
             print(f"[STAGE 2b COMPLETE] Time: {refine_time:.1f}s")
@@ -462,14 +491,48 @@ class VideoGenerator:
 
         output_path = tempfile.mktemp(suffix=".mp4")
 
-        # 공식 encode_video 호출 패턴 (no audio for I2V)
+        # Audio processing (if available from pipeline)
         from diffusers.pipelines.ltx2.export_utils import encode_video
+
+        audio_data = None
+        audio_sr = None
+
+        if audio_latent is not None:
+            print(f"\n[AUDIO DEBUG]")
+            print(f"  Audio latent shape: {audio_latent.shape}")
+            print(f"  Audio latent dtype: {audio_latent.dtype}")
+
+            # Check if pipeline has vocoder for audio decoding
+            if hasattr(self.pipe, 'vocoder') and self.pipe.vocoder is not None:
+                try:
+                    # Decode audio latent to waveform
+                    print(f"  Decoding audio latent with vocoder...")
+                    audio_waveform = self.pipe.vocoder.decode(audio_latent)
+                    print(f"  Audio waveform shape: {audio_waveform.shape}")
+                    print(f"  Audio waveform dtype: {audio_waveform.dtype}")
+
+                    # Ensure correct shape: (channels, samples) or (batch, channels, samples)
+                    if audio_waveform.dim() == 3:
+                        audio_data = audio_waveform[0].float().cpu()  # Remove batch dim
+                    else:
+                        audio_data = audio_waveform.float().cpu()
+
+                    audio_sr = self.pipe.vocoder.config.output_sampling_rate
+                    print(f"  Final audio shape: {audio_data.shape}, sample_rate: {audio_sr}")
+                except Exception as e:
+                    print(f"  [WARNING] Audio decode failed: {str(e)[:200]}")
+                    audio_data = None
+                    audio_sr = None
+            else:
+                print(f"  [WARNING] No vocoder found in pipeline - audio latent cannot be decoded")
+        else:
+            print(f"\n[AUDIO] No audio latent returned by pipeline (I2V mode)")
 
         encode_video(
             video_tensor[0],        # (frames, H, W, C) torch tensor
             fps=frame_rate,
-            audio=None,  # I2V does not generate audio
-            audio_sample_rate=None,
+            audio=audio_data,
+            audio_sample_rate=audio_sr,
             output_path=output_path,
         )
         print(f"  [OK] Video encoded to: {output_path}")
