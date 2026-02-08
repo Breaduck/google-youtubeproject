@@ -232,18 +232,19 @@ class VideoGenerator:
         # 5. Background warping (ripple effect around character)
 
         # EMOTION-DRIVEN MOTION - Frontend Gemini 5-step formula prompt
-        # Strategy: 100% respect frontend prompt (Gemini analyzed dialogue)
+        # + Ambient sound guidance (no speech, mouth closed)
 
-        # USE FRONTEND PROMPT DIRECTLY (no override!)
-        enhanced_prompt = prompt  # Gemini 5-step formula from frontend
+        # Append ambient sound + closed mouth guidance
+        ambient_guide = "Ambient sound of subtle wind or room tone. Character's mouth remains closed with serene expression. No speaking or dialogue."
+        enhanced_prompt = f"{prompt} {ambient_guide}"
 
-        print(f"\n[FRONTEND PROMPT] Gemini 5-step formula:")
-        print(f"  {enhanced_prompt[:200]}...")
+        print(f"\n[FRONTEND PROMPT] Gemini 5-step + ambient guidance:")
+        print(f"  {enhanced_prompt[:250]}...")
 
-        # Negative prompt: Anti-distortion + Closed mouth (no speaking)
+        # Negative prompt: Anti-distortion + No speech/voice
         # Motion: blinking, micro-nod, subtle hand gestures only
-        # Narration will be added via TTS/voiceover post-mux
-        negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, lip sync, talking mouth, open mouth, speaking, dialogue, conversation, mouth movement"
+        # Audio: Ambience-only (Track A ~20%), TTS narration post-mux (Track B 100%)
+        negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, speaking, talking, dialogue, voice, narration, lip sync, open mouth, mouth movement, speech"
 
         # 공식 권장 기준 (Official LTX-2 recommendations)
         # cfg_scale: 3.0 typical (2.0-5.0 range)
@@ -682,13 +683,17 @@ class VideoGenerator:
             try:
                 fallback_audio_path = tempfile.mktemp(suffix="_ambient.wav")
 
-                # Generate subtle pink noise ambience (-30dB range)
-                # Pink noise is more natural than white noise for room tone
+                # Generate natural ambience: low-freq room tone + subtle wind texture
+                # Mix of brown noise (low rumble) + filtered pink noise (wind)
+                # Volume: -20dB (~20% for Track A, leaving room for TTS Track B)
                 ambient_cmd = [
                     "ffmpeg", "-y",
                     "-f", "lavfi",
+                    "-i", f"anoisesrc=duration={video_duration}:color=brown:sample_rate=24000:amplitude=0.0005",
+                    "-f", "lavfi",
                     "-i", f"anoisesrc=duration={video_duration}:color=pink:sample_rate=24000:amplitude=0.0003",
-                    "-af", "volume=-30dB",  # Very subtle background
+                    "-filter_complex", "[0:a]highpass=f=20,lowpass=f=200[brown];[1:a]highpass=f=800,lowpass=f=4000[wind];[brown][wind]amix=inputs=2:duration=first,volume=-20dB[out]",
+                    "-map", "[out]",
                     "-ac", "1",  # mono
                     fallback_audio_path
                 ]
@@ -698,7 +703,7 @@ class VideoGenerator:
                     print(f"  [ERROR] Ambient generation failed: {ambient_result.stderr[:200]}")
                     raise Exception("Fallback audio generation failed")
 
-                print(f"  [OK] Generated pink noise ambience: {video_duration:.1f}s @ -30dB")
+                print(f"  [OK] Generated natural ambience: {video_duration:.1f}s @ -20dB")
 
                 # Mux ambient audio into video
                 final_output = tempfile.mktemp(suffix="_final.mp4")
