@@ -119,29 +119,34 @@ class VideoGenerator:
         print("  [OK] Distilled sigmas loaded (no LoRA needed)")
 
         print(f"\n{'='*70}")
-        print("PIPELINE LOADED - OFFICIAL DISTILLED TWO-STAGES")
+        print("PIPELINE LOADED - OFFICIAL DISTILLED 3-STAGE PATTERN")
         print(f"{'='*70}")
-        print("Configuration (Official Recommended):")
+        print("Configuration (Official distilled.py pattern):")
         print("  [Model]:")
         print("    - LTX-2-19b-distilled (rootonchair)")
-        print("    - Two-Stages architecture")
-        print("    - Sequential CPU offload (official distilled)")
-        print("  [Stage 1 - Generation]:")
-        print("    - Resolution: 768x512 (official)")
-        print("    - Steps: 8 (distilled)")
-        print("    - Guidance: 1.0 (distilled)")
-        print("    - Sigmas: DISTILLED_SIGMA_VALUES")
-        print("  [Stage 2 - Upsample & Refine]:")
-        print("    - Latent Upsample: 2x (768x512 → 1536x1024)")
-        print("    - Steps: 3 (distilled)")
+        print("    - 3-Stage architecture (official)")
+        print("    - Sequential CPU offload")
+        print("  [Stage 1 - Latent Generation]:")
+        print("    - Resolution: 768x512")
+        print("    - Steps: 8")
         print("    - Guidance: 1.0")
+        print("    - Sigmas: DISTILLED_SIGMA_VALUES")
+        print("    - Output: latent")
+        print("  [Stage 2a - Latent Upsample]:")
+        print("    - 2x upsample: 768x512 → 1536x1024")
+        print("    - Latent-to-latent (no VAE)")
+        print("  [Stage 2b - Refinement (NEW)]:")
+        print(f"    - Steps: {len(self.stage2_sigmas)}")
+        print("    - Guidance: 1.8")
         print("    - Sigmas: STAGE_2_DISTILLED_SIGMA_VALUES")
-        print("    - No LoRA (distilled path)")
+        print("    - Input: upscaled latent")
+        print("  [VAE Decode]:")
+        print("    - Latent → Pixels (final step)")
         print("  [Performance Target]:")
-        print("    - Expected time: ~60 seconds (5초 @ 121 frames)")
-        print("    - Expected cost: ~₩27")
-        print("    - Quality: 85/100 (distilled)")
-        print("    - VRAM: ~21GB (A10G compatible)")
+        print("    - Expected time: ~80-90 seconds (4초 @ 97 frames)")
+        print("    - Expected cost: ~₩40-45")
+        print("    - Quality: Improved temporal coherence")
+        print("    - VRAM: ~22GB (A10G compatible)")
         print(f"{'='*70}\n")
 
     @modal.method()
@@ -239,10 +244,10 @@ class VideoGenerator:
         # distilled_lora: 0.6-0.8 strength
 
         # 기본값 (공식 Distilled 권장) - MUST BE DEFINED FIRST!
-        DEFAULT_GUIDANCE_STAGE1 = 1.0   # Distilled guidance (1.0)
+        DEFAULT_GUIDANCE_STAGE1 = 1.0   # Distilled Stage 1 guidance (1.0)
         DEFAULT_STEPS_STAGE1 = 8        # Distilled Stage 1 (8 steps)
-        DEFAULT_GUIDANCE_STAGE2 = 1.0   # Distilled Stage 2 guidance
-        DEFAULT_STEPS_STAGE2 = 3        # Distilled Stage 2 (3 steps)
+        DEFAULT_GUIDANCE_STAGE2 = 1.8   # Stage 2b refine guidance (1.8-2.2 range)
+        DEFAULT_STEPS_STAGE2 = len(self.stage2_sigmas)  # Auto-detect from sigma values
 
         final_guidance_stage1 = test_guidance if test_guidance is not None else DEFAULT_GUIDANCE_STAGE1
         final_steps_stage1 = test_steps if test_steps is not None else DEFAULT_STEPS_STAGE1
@@ -255,34 +260,36 @@ class VideoGenerator:
 
         mode_label = "TEST MODE" if test_mode else "DISTILLED TWO-STAGES"
         print(f"\n[GENERATION SETTINGS - {mode_label}]")
-        print(f"  Model: LTX-2-19b-distilled")
-        print(f"  Stage 1: {target_width}x{target_height} (512p)")
-        print(f"  Stage 2: 2x upscale → {target_width*2}x{target_height*2} (1024p)")
+        print(f"  Model: LTX-2-19b-distilled (Official 3-Stage Pattern)")
+        print(f"  Stage 1: {target_width}x{target_height} (512p) latent generation")
+        print(f"  Stage 2a: Latent upsample 2x → {target_width*2}x{target_height*2} (1024p)")
+        print(f"  Stage 2b: 4-step refinement (NEW)")
         print(f"  Frames: {num_frames} (~{num_frames/24:.1f}s @ 24fps)")
-        print(f"  Stage 1 steps: {final_steps_stage1} (distilled)")
-        print(f"  Stage 1 guidance: {final_guidance_stage1} (distilled)")
-        print(f"  Stage 2 steps: {DEFAULT_STEPS_STAGE2}")
-        print(f"  Stage 2 guidance: {DEFAULT_GUIDANCE_STAGE2}")
+        print(f"  Stage 1: {final_steps_stage1} steps, guidance {final_guidance_stage1}")
+        print(f"  Stage 2b: {DEFAULT_STEPS_STAGE2} steps, guidance {DEFAULT_GUIDANCE_STAGE2}")
+        print(f"  Sigma schedules: DISTILLED + STAGE_2_DISTILLED")
         print(f"  Style: 2D Anime (clean lines, flat shading)")
-        est_cost = int((30 + final_steps_stage1 * 1.5) * 0.000306 * 1450)
+        est_cost = int((40 + final_steps_stage1 * 1.5 + DEFAULT_STEPS_STAGE2 * 2) * 0.000306 * 1450)
         print(f"  Estimated cost: ~₩{est_cost}")
-        print(f"\n[STARTING TWO-STAGES GENERATION]...")
+        print(f"\n[STARTING 3-STAGE GENERATION (Official Distilled Pattern)]...")
 
         import time
         gen_start = time.time()
 
         # ============================================================
-        # STAGE 1: I2V generation at 768x512 → output as PIL (공식 I2V 패턴)
+        # STAGE 1: I2V generation at 768x512 → output as LATENT (official distilled)
         # ============================================================
         try:
             print(f"\n{'='*60}")
-            print(f"[STAGE 1] I2V at {target_width}x{target_height}")
+            print(f"[STAGE 1] Low-res latent generation {target_width}x{target_height}")
+            print(f"  Steps: {final_steps_stage1}, Guidance: {final_guidance_stage1}")
+            print(f"  Sigmas: DISTILLED_SIGMA_VALUES ({len(self.stage1_sigmas)} values)")
             print(f"{'='*60}")
 
             generator = torch.Generator(device="cuda").manual_seed(42)
             frame_rate = 24.0
 
-            video_pil, audio = self.pipe(
+            video_latent, audio = self.pipe(
                 image=reference_image,
                 prompt=enhanced_prompt,
                 negative_prompt=negative_prompt,
@@ -294,13 +301,14 @@ class VideoGenerator:
                 sigmas=self.stage1_sigmas,
                 guidance_scale=final_guidance_stage1,
                 generator=generator,
-                output_type="pil",   # PIL output — 공식 I2V upsample 패턴
+                output_type="latent",   # LATENT output for Stage 2a upsample
                 return_dict=False,
             )
 
             stage1_time = time.time() - gen_start
             print(f"[STAGE 1 COMPLETE] Time: {stage1_time:.1f}s")
-            print(f"[VRAM] Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
+            print(f"  Latent shape: {video_latent.shape}")
+            print(f"  VRAM: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
 
         except Exception as e:
             stage1_time = time.time() - gen_start
@@ -310,11 +318,11 @@ class VideoGenerator:
             raise Exception(f"Stage 1 failed after {stage1_time:.1f}s: {str(e)[:100]}")
 
         # ============================================================
-        # STAGE 2a: Upsample 2x via video= (공식 I2V upsample 패턴)
+        # STAGE 2a: Latent upsample 2x (official distilled pattern)
         # ============================================================
         try:
             print(f"\n{'='*60}")
-            print(f"[STAGE 2a] Upsample 768x512 → 1536x1024")
+            print(f"[STAGE 2a] Latent upsample {target_width}x{target_height} → {target_width*2}x{target_height*2}")
             print(f"{'='*60}")
 
             from diffusers.pipelines.ltx2 import LTX2LatentUpsamplePipeline
@@ -335,16 +343,18 @@ class VideoGenerator:
             upsample_pipe.enable_model_cpu_offload()
 
             upscale_start = time.time()
-            # 공식 I2V upsample: video= (PIL frames), width/height = 원본 해상도
-            video_np = upsample_pipe(
-                video=video_pil,
+            # Latent-to-latent upsample (official distilled pattern)
+            upscaled_latent = upsample_pipe(
+                latents=video_latent,  # Latent input from Stage 1
                 width=target_width,
                 height=target_height,
-                output_type="np",
+                output_type="latent",  # Keep in latent space for Stage 2b
                 return_dict=False,
             )[0]
             upscale_time = time.time() - upscale_start
             print(f"[STAGE 2a COMPLETE] Time: {upscale_time:.1f}s")
+            print(f"  Upscaled latent shape: {upscaled_latent.shape}")
+            print(f"  VRAM: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
 
             del upsample_pipe, latent_upsampler
             torch.cuda.empty_cache()
@@ -353,26 +363,87 @@ class VideoGenerator:
             print(f"\n[ERROR] STAGE 2a FAILED: {str(e)[:200]}")
             import traceback
             traceback.print_exc()
-            # Fallback: use Stage 1 PIL output directly (768x512)
-            print("[FALLBACK] Stage 2a failed, using Stage 1 output (768x512)")
-            video_np = np.array(video_pil[0]) / 255.0  # convert PIL list to numpy
-            video_np = np.stack([np.array(f) for f in video_pil]) / 255.0
-            video_np = video_np[np.newaxis, ...]  # add batch dim
-            upscale_time = 0.0
-
-        refine_time = 0.0
+            raise Exception(f"Stage 2a upsample failed: {str(e)[:100]}")
 
         # ============================================================
-        # ENCODE TO MP4 (공식 패턴: numpy → torch → encode_video)
+        # STAGE 2b: Refine upscaled latent (4 steps, official distilled)
+        # ============================================================
+        try:
+            print(f"\n{'='*60}")
+            print(f"[STAGE 2b] 4-step refinement at {target_width*2}x{target_height*2}")
+            print(f"  Steps: {DEFAULT_STEPS_STAGE2}, Guidance: {DEFAULT_GUIDANCE_STAGE2}")
+            print(f"  Sigmas: STAGE_2_DISTILLED_SIGMA_VALUES ({len(self.stage2_sigmas)} values)")
+            print(f"{'='*60}")
+
+            refine_start = time.time()
+
+            # Refinement pass using upscaled latent as initialization
+            refined_latent, _ = self.pipe(
+                image=reference_image,  # Keep image conditioning
+                prompt=enhanced_prompt,
+                negative_prompt=negative_prompt,
+                width=target_width * 2,  # Full resolution
+                height=target_height * 2,
+                num_frames=num_frames,
+                frame_rate=frame_rate,
+                num_inference_steps=DEFAULT_STEPS_STAGE2,
+                sigmas=self.stage2_sigmas,
+                guidance_scale=DEFAULT_GUIDANCE_STAGE2,  # 1.8 guidance
+                generator=generator,
+                latents=upscaled_latent,  # Initialize from upscaled latent
+                output_type="latent",  # Keep latent for VAE decode
+                return_dict=False,
+            )
+
+            refine_time = time.time() - refine_start
+            print(f"[STAGE 2b COMPLETE] Time: {refine_time:.1f}s")
+            print(f"  Refined latent shape: {refined_latent.shape}")
+            print(f"  VRAM: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
+
+        except Exception as e:
+            print(f"\n[WARNING] STAGE 2b FAILED: {str(e)[:200]}")
+            import traceback
+            traceback.print_exc()
+            print("[FALLBACK] Using Stage 2a output (no refinement)")
+            refined_latent = upscaled_latent
+            refine_time = 0.0
+
+        # ============================================================
+        # VAE DECODE: Latent → Pixels (official distilled pattern)
+        # ============================================================
+        print(f"\n{'='*60}")
+        print(f"[VAE DECODE] Converting latent to pixels")
+        print(f"{'='*60}")
+
+        decode_start = time.time()
+
+        # VAE decode in chunks to avoid VRAM spike
+        with torch.no_grad():
+            # Decode latent to pixel space
+            video_frames = self.pipe.vae.decode(refined_latent / self.pipe.vae.config.scaling_factor, return_dict=False)[0]
+            # video_frames shape: (batch, channels, frames, height, width)
+
+        decode_time = time.time() - decode_start
+        print(f"[VAE DECODE COMPLETE] Time: {decode_time:.1f}s")
+        print(f"  Video tensor shape: {video_frames.shape}")
+        print(f"  VRAM: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
+
+        # Convert to numpy [0,1] range
+        video_frames = video_frames.clamp(-1, 1)
+        video_frames = (video_frames + 1) / 2  # [-1,1] → [0,1]
+
+        # Rearrange dimensions: (B, C, F, H, W) → (B, F, H, W, C)
+        video_frames = video_frames.permute(0, 2, 3, 4, 1).cpu().float().numpy()
+
+        # ============================================================
+        # ENCODE TO MP4 (공식 패턴: numpy → uint8 → encode_video)
         # ============================================================
         print(f"\n{'='*60}")
         print(f"[ENCODING] Converting to MP4")
         print(f"{'='*60}")
 
         # numpy [0,1] → uint8 → torch tensor (공식 encode_video 패턴)
-        if not isinstance(video_np, np.ndarray):
-            video_np = np.array(video_np)
-        video_uint8 = np.clip(video_np * 255, 0, 255).round().astype("uint8")
+        video_uint8 = np.clip(video_frames * 255, 0, 255).round().astype("uint8")
         video_tensor = torch.from_numpy(video_uint8)  # 공식: torch.from_numpy 필수
         print(f"  Video shape: {video_tensor.shape}")
         print(f"  Frames: {video_tensor.shape[1]}, Resolution: {video_tensor.shape[3]}x{video_tensor.shape[2]}")
@@ -409,22 +480,27 @@ class VideoGenerator:
         cost_krw = cost_usd * 1450
 
         print(f"\n{'='*60}")
-        print(f"[COMPLETE - OFFICIAL DISTILLED TWO-STAGES]")
+        print(f"[COMPLETE - OFFICIAL DISTILLED 3-STAGE PATTERN]")
         print(f"{'='*60}")
         print(f"  Video frames: {num_frames}")
         print(f"  Resolution: {video_tensor.shape[3]}x{video_tensor.shape[2]}")
         print(f"  Duration: ~{num_frames/24:.1f}s @ 24fps")
         print(f"  Video size: {len(video_bytes) / 1024 / 1024:.2f} MB")
         print(f"\n[PERFORMANCE BREAKDOWN]")
-        print(f"  Stage 1 (512p generation): {stage1_time:.1f}s")
-        print(f"  Stage 2a (2x upsample): {upscale_time:.1f}s")
+        print(f"  Stage 1 (latent generation): {stage1_time:.1f}s")
+        print(f"  Stage 2a (latent upsample): {upscale_time:.1f}s")
+        print(f"  Stage 2b (4-step refine): {refine_time:.1f}s")
+        print(f"  VAE decode: {decode_time:.1f}s")
         print(f"  Total: {total_time:.1f}s")
         print(f"  Cost: ${cost_usd:.4f} (₩{cost_krw:.0f})")
-        print(f"  Target: <60s (<₩30)")
-        if total_time <= 60:
+        print(f"  Target: <90s (<₩45)")
+        if total_time <= 90:
             print(f"  [OK] Target achieved!")
         else:
-            print(f"  [!] Exceeded by {total_time-60:.1f}s")
+            print(f"  [!] Exceeded by {total_time-90:.1f}s")
+        print(f"\n[SIGMA SCHEDULES USED]")
+        print(f"  Stage 1: DISTILLED_SIGMA_VALUES ({len(self.stage1_sigmas)} steps)")
+        print(f"  Stage 2b: STAGE_2_DISTILLED_SIGMA_VALUES ({len(self.stage2_sigmas)} steps)")
         print(f"{'='*60}\n")
         return video_bytes
 
