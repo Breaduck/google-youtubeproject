@@ -284,13 +284,9 @@ class VideoGenerator:
         ambient_guide = "Ambient sound of subtle wind or room tone. Character's mouth remains closed with serene expression. No speaking or dialogue."
         enhanced_prompt = f"{filtered_prompt} {ambient_guide}"
 
-        # If speech keywords were found, strengthen negative prompt
+        # Log removed terms
         if removed_speech:
             print(f"  [REMOVED SPEECH TERMS]: {', '.join(removed_speech)}")
-            # Already in negative_prompt, but ensure they're there
-            for term in removed_speech:
-                if term.lower() not in negative_prompt.lower():
-                    negative_prompt += f", {term}"
 
         if removed_camera:
             print(f"  [REMOVED CAMERA MOTION]: {', '.join(removed_camera)}")
@@ -302,6 +298,13 @@ class VideoGenerator:
         # Motion: blinking, micro-nod, subtle hand gestures only
         # Audio: Ambience-only (Track A ~20%), TTS narration post-mux (Track B 100%)
         negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, speaking, talking, dialogue, voice, narration, lip sync, open mouth, mouth movement, speech"
+
+        # Strengthen negative prompt with detected speech terms (from safety filter)
+        if 'removed_speech' in locals() and removed_speech:
+            for term in removed_speech:
+                if term.lower() not in negative_prompt.lower():
+                    negative_prompt += f", {term}"
+            print(f"[SAFETY] Added {len(removed_speech)} speech terms to negative prompt")
 
         # 공식 권장 기준 (Official LTX-2 recommendations)
         # cfg_scale: 3.0 typical (2.0-5.0 range)
