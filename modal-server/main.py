@@ -240,8 +240,10 @@ class VideoGenerator:
         print(f"\n[FRONTEND PROMPT] Gemini 5-step formula:")
         print(f"  {enhanced_prompt[:200]}...")
 
-        # Negative prompt: Anti-distortion + 2D Animation Style enforcement
-        negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic"
+        # Negative prompt: Anti-distortion + Closed mouth (no speaking)
+        # Motion: blinking, micro-nod, subtle hand gestures only
+        # Narration will be added via TTS/voiceover post-mux
+        negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, lip sync, talking mouth, open mouth, speaking, dialogue, conversation, mouth movement"
 
         # 공식 권장 기준 (Official LTX-2 recommendations)
         # cfg_scale: 3.0 typical (2.0-5.0 range)
@@ -274,6 +276,8 @@ class VideoGenerator:
         print(f"  Stage 2b: {DEFAULT_STEPS_STAGE2} steps, guidance {DEFAULT_GUIDANCE_STAGE2}")
         print(f"  Sigma schedules: DISTILLED + STAGE_2_DISTILLED")
         print(f"  Style: 2D Anime (clean lines, flat shading)")
+        print(f"  Motion: Closed mouth, blinking, micro-nod, subtle gestures")
+        print(f"  Audio: Ambience-only (narration via TTS post-mux)")
         est_cost = int((40 + final_steps_stage1 * 1.5 + DEFAULT_STEPS_STAGE2 * 2) * 0.000306 * 1450)
         print(f"  Estimated cost: ~₩{est_cost}")
         print(f"\n[STARTING 3-STAGE GENERATION (Official Distilled Pattern)]...")
