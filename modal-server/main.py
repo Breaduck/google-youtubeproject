@@ -289,7 +289,7 @@ class VideoGenerator:
             generator = torch.Generator(device="cuda").manual_seed(42)
             frame_rate = 24.0
 
-            video_latent, audio = self.pipe(
+            result = self.pipe(
                 image=reference_image,
                 prompt=enhanced_prompt,
                 negative_prompt=negative_prompt,
@@ -304,6 +304,8 @@ class VideoGenerator:
                 output_type="latent",   # LATENT output for Stage 2a upsample
                 return_dict=False,
             )
+            # Extract video latent only (audio not supported in I2V)
+            video_latent = result[0] if isinstance(result, tuple) else result
 
             stage1_time = time.time() - gen_start
             print(f"[STAGE 1 COMPLETE] Time: {stage1_time:.1f}s")
@@ -378,7 +380,7 @@ class VideoGenerator:
             refine_start = time.time()
 
             # Refinement pass using upscaled latent as initialization
-            refined_latent, _ = self.pipe(
+            result = self.pipe(
                 image=reference_image,  # Keep image conditioning
                 prompt=enhanced_prompt,
                 negative_prompt=negative_prompt,
@@ -394,6 +396,8 @@ class VideoGenerator:
                 output_type="latent",  # Keep latent for VAE decode
                 return_dict=False,
             )
+            # Extract video latent only (audio not supported in I2V)
+            refined_latent = result[0] if isinstance(result, tuple) else result
 
             refine_time = time.time() - refine_start
             print(f"[STAGE 2b COMPLETE] Time: {refine_time:.1f}s")
@@ -453,20 +457,14 @@ class VideoGenerator:
 
         output_path = tempfile.mktemp(suffix=".mp4")
 
-        # 공식 encode_video 호출 패턴
+        # 공식 encode_video 호출 패턴 (no audio for I2V)
         from diffusers.pipelines.ltx2.export_utils import encode_video
-        audio_data = None
-        audio_sr = None
-        if audio is not None and hasattr(self.pipe, 'vocoder') and self.pipe.vocoder is not None:
-            audio_data = audio[0].float().cpu()  # audio는 항상 torch tensor
-            audio_sr = self.pipe.vocoder.config.output_sampling_rate
-            print(f"  Audio: sample_rate={audio_sr}")
 
         encode_video(
             video_tensor[0],        # (frames, H, W, C) torch tensor
             fps=frame_rate,
-            audio=audio_data,
-            audio_sample_rate=audio_sr,
+            audio=None,  # I2V does not generate audio
+            audio_sample_rate=None,
             output_path=output_path,
         )
         print(f"  [OK] Video encoded to: {output_path}")
