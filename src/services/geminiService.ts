@@ -437,61 +437,53 @@ Return ONLY the new prompt text, no explanation or markdown.`;
   async generateMotionPrompt(dialogue: string, imagePrompt: string): Promise<string> {
     const ai = this.getClient();
 
-    const prompt = `Generate a video motion prompt using the OFFICIAL LTX-2 6-ELEMENT STRUCTURE.
+    const prompt = `Generate a SHORT I2V (image-to-video) motion prompt for subtle animation.
 
 INPUT:
-Dialogue: "${dialogue}"
-Character/Scene: "${imagePrompt}"
+Dialogue (for emotional context only): "${dialogue}"
+Reference image: "${imagePrompt}"
 
-MANDATORY PREFIX (MUST START WITH):
-"Cinematic 2D Anime style, clean lines, flat shading"
+CRITICAL: Do NOT describe character appearance (we already have the reference image).
+Focus ONLY on micro-motion + ambience.
 
-MANDATORY CAMERA MOVEMENT:
-MUST include "Slow camera zoom-in" (to prevent static frames)
+RULES:
+- Motion: blinking (every 3-5 sec), micro-nod (1-2 degrees), subtle breathing, tiny hand gesture only
+- Camera: STATIC (no pan/zoom/movement)
+- Mouth: ALWAYS CLOSED, NO speaking
+- Audio: Ambience only (wind / room tone / nature), NO narration/dialogue
 
-OFFICIAL LTX-2 STRUCTURE (6 Elements):
-1. Shot establishment: Cinematography terminology (medium shot, close-up, etc.)
-2. Scene setting: Lighting, color palette, textures, mood (2D anime style)
-3. Action sequence: Natural movements flowing from start to finish
-4. Character definition: Visual emotional cues through physicality (NOT labels like "sad")
-5. Camera movement: MUST be "Slow camera zoom-in"
-6. Audio/dialogue: Ambient sounds, dialogue in quotes, vocal style
-
-CRITICAL RULES:
-- MUST start with "Cinematic 2D Anime style, clean lines, flat shading"
-- Single flowing paragraph (4-8 sentences, present tense)
-- Show emotion through VISUAL CUES (posture, facial expressions, gestures) NOT labels
-- Match dialogue emotion to visual: crying → teary eyes, slumped posture
-- MANDATORY camera: "Slow camera zoom-in" (exact phrase required)
-- Action includes "lips moving with speech" or "mouth forming words"
-- Avoid: realistic, photorealistic, 3D render, complex physics, text/logos
+OUTPUT FORMAT (1 line):
+"Subtle motion: [micro-movements] | Ambience: [wind/room tone/nature] | Static camera | Mouth closed"
 
 EXAMPLES:
 Input: "I can't believe this happened..." (sad scene)
-Output: "Cinematic 2D Anime style, clean lines, flat shading. Medium shot in soft diffused lighting with muted color palette. Character's shoulders slumped forward, head tilting downward, eyes glistening with tears, lips trembling and forming words. Hands fidgeting nervously at sides, breathing visibly heavy. Slow camera zoom-in toward face as expression deepens. Ambient sound of quiet breathing, dialogue 'I can't believe this happened...' spoken in shaky, quiet voice."
+Output: "Subtle motion: Slow blinking, micro-nod downward (1 degree), shoulders subtly rising and falling with breathing | Ambience: Quiet room tone with distant wind | Static camera | Mouth closed"
 
 Input: "Hahaha! That's hilarious!" (happy scene)
-Output: "Cinematic 2D Anime style, clean lines, flat shading. Close-up shot with warm golden lighting and vibrant color palette. Character's face brightening with broad smile, eyes squinting with joy, head tilting back slightly as laughter erupts. Lips moving energetically with speech, shoulders shaking with mirth. Slow camera zoom-in following face movement. Ambient sound of cheerful atmosphere, dialogue 'Hahaha! That's hilarious!' spoken in enthusiastic, playful tone."
+Output: "Subtle motion: Quick blinking, tiny head tilt (2 degrees), slight shoulder movement with silent laughter | Ambience: Light outdoor breeze, rustling leaves | Static camera | Mouth closed"
 
-Now generate for the input above. MUST start with "Cinematic 2D Anime style, clean lines, flat shading" and include "Slow camera zoom-in". Write as a SINGLE FLOWING PARAGRAPH in present tense. Return ONLY the prompt text in English, no quotes, no explanation.`;
+Now generate for the input above. Return ONLY the single-line prompt, no explanation.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
       contents: prompt
     });
 
-    let generatedPrompt = response.text?.trim() || 'Cinematic 2D Anime style, clean lines, flat shading. Subtle natural movement, gentle expression change, lips moving according to dialogue. Slow camera zoom-in.';
+    let generatedPrompt = response.text?.trim() || 'Subtle motion: Blinking, micro-nod (1 degree), gentle breathing | Ambience: Soft room tone | Static camera | Mouth closed';
 
-    // Enforce mandatory prefix if missing
-    if (!generatedPrompt.toLowerCase().includes('cinematic 2d anime')) {
-      generatedPrompt = `Cinematic 2D Anime style, clean lines, flat shading. ${generatedPrompt}`;
+    // Enforce format if not followed
+    if (!generatedPrompt.toLowerCase().includes('|')) {
+      // Fallback to structured format
+      generatedPrompt = `Subtle motion: Blinking, micro-nod (1-2 degrees), subtle breathing | Ambience: Soft wind or room tone | Static camera | Mouth closed`;
     }
 
-    // Enforce mandatory camera movement if missing
-    if (!generatedPrompt.toLowerCase().includes('slow camera zoom-in') &&
-        !generatedPrompt.toLowerCase().includes('slow zoom-in') &&
-        !generatedPrompt.toLowerCase().includes('camera zoom')) {
-      generatedPrompt = generatedPrompt.replace(/\.$/, '') + '. Slow camera zoom-in.';
+    // Ensure critical constraints
+    if (!generatedPrompt.toLowerCase().includes('mouth closed')) {
+      generatedPrompt += ' | Mouth closed';
+    }
+
+    if (!generatedPrompt.toLowerCase().includes('static camera')) {
+      generatedPrompt = generatedPrompt.replace(/camera[^|]*\|/i, 'Static camera |');
     }
 
     return generatedPrompt;
