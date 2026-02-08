@@ -583,18 +583,24 @@ class VideoGenerator:
             os.remove(temp_output)
 
         # ============================================================
-        # VERIFY: FFprobe audio stream check
+        # VERIFY: Comprehensive audio quality check
         # ============================================================
         print(f"\n{'='*60}")
-        print(f"[AUDIO VERIFICATION - FFprobe]")
+        print(f"[AUDIO VERIFICATION]")
         print(f"{'='*60}")
 
+        video_duration = num_frames / frame_rate
+        print(f"  Video duration: {video_duration:.2f}s")
+
         has_audio = False
+        fallback_reason = None
+
         try:
+            # Check 1: Audio stream exists
             probe_cmd = [
                 "ffprobe", "-v", "error",
                 "-select_streams", "a:0",
-                "-show_entries", "stream=codec_name,sample_rate,channels",
+                "-show_entries", "stream=codec_name,sample_rate,channels:format=duration",
                 "-of", "json",
                 output_path
             ]
@@ -604,40 +610,81 @@ class VideoGenerator:
             if probe_result.returncode == 0:
                 import json
                 probe_data = json.loads(probe_result.stdout)
-                if "streams" in probe_data and len(probe_data["streams"]) > 0:
+
+                if "streams" not in probe_data or len(probe_data["streams"]) == 0:
+                    print(f"  ✗ No audio stream")
+                    fallback_reason = "no_stream"
+                else:
                     stream = probe_data["streams"][0]
-                    print(f"  ✓ Audio stream detected:")
+                    print(f"  ✓ Audio stream:")
                     print(f"    - Codec: {stream.get('codec_name', 'unknown')}")
                     print(f"    - Sample rate: {stream.get('sample_rate', 'unknown')}")
                     print(f"    - Channels: {stream.get('channels', 'unknown')}")
-                    has_audio = True
-                else:
-                    print(f"  ✗ No audio streams found in MP4")
+
+                    # Check 2: Audio duration
+                    audio_duration = float(probe_data.get("format", {}).get("duration", 0))
+                    print(f"  Audio duration: {audio_duration:.2f}s")
+
+                    if audio_duration < video_duration - 0.2:
+                        print(f"  ✗ Audio too short ({audio_duration:.2f}s < {video_duration - 0.2:.2f}s)")
+                        fallback_reason = "too_short"
+                    else:
+                        # Check 3: Loudness (RMS level)
+                        volume_cmd = [
+                            "ffmpeg", "-i", output_path,
+                            "-af", "volumedetect",
+                            "-f", "null", "-"
+                        ]
+                        volume_result = subprocess.run(volume_cmd, capture_output=True, text=True)
+
+                        # Parse mean_volume from stderr
+                        import re
+                        mean_volume_match = re.search(r"mean_volume:\s+([-\d.]+)\s+dB", volume_result.stderr)
+
+                        if mean_volume_match:
+                            mean_volume = float(mean_volume_match.group(1))
+                            print(f"  Mean volume: {mean_volume:.1f} dB")
+
+                            # Threshold: -60dB (extremely quiet = probably silent/broken)
+                            if mean_volume < -60.0:
+                                print(f"  ✗ Audio too quiet ({mean_volume:.1f} dB < -60 dB)")
+                                fallback_reason = "too_quiet"
+                            else:
+                                print(f"  ✓ Audio quality OK")
+                                has_audio = True
+                        else:
+                            print(f"  [WARNING] Could not detect volume level")
+                            # If we can't check volume, assume OK if duration is good
+                            has_audio = True
             else:
                 print(f"  ✗ FFprobe failed: {probe_result.stderr[:200]}")
+                fallback_reason = "ffprobe_failed"
+
         except Exception as e:
-            print(f"  [ERROR] FFprobe verification failed: {str(e)}")
+            print(f"  [ERROR] Verification failed: {str(e)}")
             import traceback
             traceback.print_exc()
+            fallback_reason = "verification_error"
 
         # ============================================================
-        # FALLBACK: Generate ambient audio if missing
+        # FALLBACK: Generate ambient audio if missing/bad
         # ============================================================
         if not has_audio:
             print(f"\n{'='*60}")
-            print(f"[FALLBACK AUDIO] Generating ambient track")
+            print(f"[FALLBACK AUDIO]")
+            print(f"  Reason: {fallback_reason}")
             print(f"{'='*60}")
 
             try:
-                # Generate silent/ambient audio (duration = video duration)
-                video_duration = num_frames / frame_rate
                 fallback_audio_path = tempfile.mktemp(suffix="_ambient.wav")
 
-                # Create low-volume ambient noise (or silence)
+                # Generate subtle pink noise ambience (-30dB range)
+                # Pink noise is more natural than white noise for room tone
                 ambient_cmd = [
                     "ffmpeg", "-y",
                     "-f", "lavfi",
-                    "-i", f"anoisesrc=duration={video_duration}:color=white:sample_rate=24000:amplitude=0.01",
+                    "-i", f"anoisesrc=duration={video_duration}:color=pink:sample_rate=24000:amplitude=0.0003",
+                    "-af", "volume=-30dB",  # Very subtle background
                     "-ac", "1",  # mono
                     fallback_audio_path
                 ]
@@ -647,7 +694,7 @@ class VideoGenerator:
                     print(f"  [ERROR] Ambient generation failed: {ambient_result.stderr[:200]}")
                     raise Exception("Fallback audio generation failed")
 
-                print(f"  [OK] Generated ambient audio: {video_duration:.1f}s")
+                print(f"  [OK] Generated pink noise ambience: {video_duration:.1f}s @ -30dB")
 
                 # Mux ambient audio into video
                 final_output = tempfile.mktemp(suffix="_final.mp4")
@@ -677,11 +724,13 @@ class VideoGenerator:
                 import os
                 os.remove(fallback_audio_path)
 
-                print(f"  [GUARANTEE] MP4 now contains audio track")
+                print(f"  [GUARANTEE] MP4 now contains ambient audio track")
+                print(f"  [FALLBACK APPLIED] Reason: {fallback_reason}")
 
             except Exception as e:
                 print(f"  [WARNING] Fallback audio failed: {str(e)}")
                 print(f"  [RESULT] Shipping silent MP4 (fallback unavailable)")
+                fallback_reason = f"{fallback_reason}_fallback_failed"
 
         with open(output_path, "rb") as f:
             video_bytes = f.read()
