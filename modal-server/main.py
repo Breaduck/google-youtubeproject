@@ -446,8 +446,12 @@ class VideoGenerator:
 
             stage1_start = time.time()  # Precise timing
 
+            # Strong image anchoring (reduce hallucination)
+            # Format: [(image, frame_index, strength)]
+            image_conditioning = [(reference_image, 0, 0.95)]
+
             result = self.pipe(
-                image=reference_image,
+                images=image_conditioning,  # Strong anchor
                 prompt=enhanced_prompt,
                 negative_prompt=negative_prompt,
                 width=target_width,
@@ -607,7 +611,7 @@ class VideoGenerator:
 
                 # Refinement pass using upscaled latent as initialization
                 result = self.pipe(
-                    image=reference_image,  # Keep image conditioning
+                    images=image_conditioning,  # Strong anchor
                     prompt=enhanced_prompt,
                     negative_prompt=negative_prompt,
                     width=target_width * 2,  # Full resolution
@@ -796,12 +800,12 @@ class VideoGenerator:
         import subprocess
         print(f"  [COLOR FIX] Converting PC range -> TV range (yuv420p, bt709)...")
         if tone_fix:
-            print(f"  [TONE FIX] Applying saturation=1.12, contrast=1.08, gamma=0.95")
+            print(f"  [TONE FIX] Applying contrast=1.12, saturation=1.10, gamma=1.00")
 
         # Build video filter chain: pc->tv conversion + optional tone adjustment
         vf_chain = "scale=in_range=pc:out_range=tv,format=yuv420p"
         if tone_fix:
-            vf_chain += ",eq=saturation=1.12:contrast=1.08:gamma=0.95"
+            vf_chain += ",eq=contrast=1.12:saturation=1.10:gamma=1.00"
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
