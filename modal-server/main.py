@@ -168,7 +168,7 @@ class VideoGenerator:
                  test_guidance: float = None,
                  test_steps: int = None,
                  enable_stage2b: bool = False,  # Stage 2b 품질 부스트 (기본값: OFF, 비용 2배)
-                 tone_fix: bool = True):  # Apply tone/contrast adjustment post-process
+                 tone_fix: bool = False):  # Neutral color (no EQ adjustment)
         import tempfile
         import torch
         import numpy as np
@@ -338,10 +338,16 @@ class VideoGenerator:
         filtered_prompt = re.sub(r'\s*,\s*,+', ',', filtered_prompt)
         filtered_prompt = re.sub(r'\s*\.\s*\.+', '.', filtered_prompt)
 
-        # CRITICAL: Force single subject + static camera + minimal motion + color preservation + NO NEW OBJECTS
-        composition_lock = "Use EXACT reference composition. Animate ONLY the existing character and existing background as-is. Static locked camera, fixed framing, no zoom/pan/tilt."
+        # CRITICAL: Force deterministic motion (blink only)
+        # Remove any head/breathing motion words from Gemini output
+        motion_words = ['head', 'breathing', 'breath', 'nod', 'tilt', 'rotation', 'sway']
+        for word in motion_words:
+            filtered_prompt = re.sub(rf'\b{word}\w*\b', '', filtered_prompt, flags=re.IGNORECASE)
+        filtered_prompt = re.sub(r'\s+', ' ', filtered_prompt).strip()
+
+        composition_lock = "Use EXACT reference composition. Static locked camera, fixed framing, no zoom/pan/tilt."
         object_lock = "No new objects, no added props, no added particles, no added text."
-        motion_lock = "Nearly still image, frozen pose, extremely subtle motion, minimal motion strength, preserve identity. Motion: blink once every 6-8 seconds, breathing only, head rotation <0.5°, NO nodding cycle, NO sway. Body/shoulders/arms/hands frozen. Mouth closed. Eyes can blink only."
+        motion_lock = "Still image, frozen pose, blink only. Body/shoulders/arms/hands frozen. Mouth closed."
         color_preserve = "Preserve original colors and contrast: same saturation, same brightness, same white balance as the reference image."
         lighting_guide = "Neutral natural lighting (avoid stylized grading)."
         ambient_guide = "Ambience only (wind or room tone)."
@@ -366,8 +372,8 @@ class VideoGenerator:
         print(f"  Filtered: {enhanced_prompt[:250]}...")
         print(f"{'='*60}")
 
-        # Negative prompt: anti-motion + anti-camera + anti-color-shift + anti-new-objects
-        negative_prompt = "micro-nod, head bobbing, body sway, exaggerated motion, dynamic motion, gestures, new object, new prop, added item, salt, crystals, tools, warehouse, workshop, factory, dust, particles, extra person, second character, text, watermark, strong movement, waving, walking, hand/arm/finger movement, camera movement, zoom, pan, tilt, dolly, tracking, reframing, cinematic, speaking, talking, lip sync, open mouth, washed out, desaturated, low contrast, flat lighting, grayish, faded colors, color shift, wrong white balance, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
+        # Negative prompt: anti-motion + anti-camera + anti-new-objects
+        negative_prompt = "any motion, head movement, body movement, gestures, micro-nod, head bobbing, body sway, breathing motion, exaggerated motion, dynamic motion, new object, new prop, added item, extra person, second character, salt, crystals, tools, warehouse, workshop, factory, dust, particles, text, watermark, strong movement, waving, walking, hand/arm/finger movement, camera movement, zoom, pan, tilt, dolly, tracking, reframing, cinematic, speaking, talking, lip sync, open mouth, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
 
         # Strengthen negative prompt with detected social/interaction terms (from safety filter)
         if 'removed_social' in locals() and removed_social:
@@ -826,28 +832,27 @@ class VideoGenerator:
         )
         print(f"  [OK] Video encoded (temp): {temp_output}")
 
-        # CRITICAL: Fix washed-out colors with pc->tv range conversion + optional tone adjustment
-        # Current output is yuvj420p(pc), re-encode to yuv420p(tv) for compatibility
+        # CRITICAL: Neutral color (no range compression, no EQ)
+        # Force yuv420p + bt709 metadata only
         import subprocess
-        print(f"  [COLOR FIX] Converting PC range -> TV range (yuv420p, bt709)...")
+        print(f"  [COLOR FIX] Neutral baseline: yuv420p + bt709 metadata only")
         if tone_fix:
-            print(f"  [TONE FIX] Reducing contrast=0.97, saturation=1.00, gamma=1.03")
+            print(f"  [TONE ADJUSTMENT] gamma=1.00 (neutral)")
 
-        # Build video filter chain: pc->tv conversion + optional tone adjustment
-        vf_chain = "scale=in_range=pc:out_range=tv,format=yuv420p"
+        # Neutral pipeline: format + metadata only (no range conversion, no EQ)
+        vf_chain = "format=yuv420p"
         if tone_fix:
-            # Reduce contrast/brightness to match original (avoid punchy output)
-            vf_chain += ",eq=contrast=0.97:saturation=1.00:gamma=1.03"
+            # Optional neutral gamma adjustment
+            vf_chain += ",eq=gamma=1.00"
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
             "-i", temp_output,
-            "-vf", vf_chain,  # PC->TV + optional tone adjustment
+            "-vf", vf_chain,  # Format only
             "-colorspace", "bt709",
             "-color_primaries", "bt709",
             "-color_trc", "bt709",
-            "-color_range", "tv",  # Limited range (16-235)
-            "-c:v", "libx264",  # Re-encode for proper color conversion
+            "-c:v", "libx264",  # Re-encode
             "-crf", "18",  # High quality
             "-preset", "medium",
             "-c:a", "copy",  # Keep audio as-is

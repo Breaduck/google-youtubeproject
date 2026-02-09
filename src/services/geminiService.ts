@@ -437,68 +437,36 @@ Return ONLY the new prompt text, no explanation or markdown.`;
   async generateMotionPrompt(dialogue: string, imagePrompt: string): Promise<string> {
     const ai = this.getClient();
 
-    const prompt = `Generate a SHORT I2V (image-to-video) motion prompt for subtle animation.
+    const prompt = `You must output ONLY one of these exact allowed motion templates (no scene description):
+
+A) "blink only"
+B) "blink + breathing"
+C) "blink + breathing + micro head <0.3°"
 
 INPUT:
-Dialogue (for emotional context only): "${dialogue}"
-Reference image: "${imagePrompt}"
+Dialogue: "${dialogue}"
 
-SYSTEM RULE (ABSOLUTE):
-- Describe ONLY micro-motion of what is already visible in the reference image.
-- DO NOT add any new objects, props, text, particles, weather, tools, or actions not explicitly visible.
-- DO NOT infer context (no salt, no workshop, no items).
-- Animate ONLY the existing character and existing background as-is.
-
-HARD RULES (NO EXCEPTIONS):
-- Motion: blink once every 6-8 seconds, breathing only, head rotation <0.5°, NO nodding cycle, NO sway
-- Body/shoulders/arms/hands: FROZEN, completely still
-- Mouth: ALWAYS CLOSED, NO speaking, NO lip movement
-- Eyes: can blink only
-- Camera: STATIC LOCKED (NO zoom/pan/tilt/dolly/tracking/reframing/shake/cinematic)
-- Scene: UNCHANGED, no new objects, no added props, no added particles, no added text
-
-OUTPUT FORMAT (1 line):
-"Motion: blink once every 6-8 seconds, breathing only, head rotation <0.5°, NO nodding cycle, NO sway. Body/shoulders/arms/hands frozen. Mouth closed. Eyes can blink only."
-
-EXAMPLES:
-Input: "I can't believe this happened..." (sad scene)
-Output: "Motion: blink once every 7 seconds, breathing only, head rotation <0.5°, NO nodding, NO sway. Body frozen. Mouth closed. Eyes blink only."
-
-Input: "Hahaha! That's hilarious!" (happy scene)
-Output: "Motion: blink once every 6 seconds, breathing only, head rotation <0.5°, NO nodding, NO sway. Body frozen. Mouth closed. Eyes blink only."
-
-Now generate for the input above. Return ONLY the single-line prompt, no explanation.`;
+Choose the template that best matches the emotional intensity (A for calm, B for neutral, C for slight emotion).
+Return ONLY one of the three strings above, nothing else.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
       contents: prompt
     });
 
-    let generatedPrompt = response.text?.trim() || 'Motion: blink once every 6-8 seconds, breathing only, head rotation <0.5°, NO nodding, NO sway. Body frozen. Mouth closed. Eyes blink only.';
+    let generatedPrompt = response.text?.trim().toLowerCase() || 'blink only';
 
-    // Noun blacklist: remove invented objects/props/settings
-    const bannedNouns = [
-      'salt', 'crystals', 'tool', 'tools', 'workshop', 'warehouse', 'factory', 'dust', 'particles',
-      'item', 'items', 'prop', 'props', 'object', 'watermark', 'text',
-      'setting', 'scene', 'environment', 'location', 'place',
-      'added', 'new', 'extra', 'second', 'another', 'additional'
-    ];
+    // Deterministic enforcement: ONLY allow exact templates
+    const allowedTemplates = ['blink only', 'blink + breathing', 'blink + breathing + micro head <0.3°'];
 
-    // Motion blacklist: remove excessive motion terms
-    const motionBlacklist = ['nod', 'tilt', 'gesture', 'sway', 'move', 'moving'];
+    // Check if output matches allowed templates
+    const matched = allowedTemplates.find(t => generatedPrompt.includes(t.toLowerCase()));
 
-    // Remove banned terms
-    for (const noun of [...bannedNouns, ...motionBlacklist]) {
-      const regex = new RegExp(`\\b${noun}\\w*\\b`, 'gi');
-      generatedPrompt = generatedPrompt.replace(regex, '');
-    }
-
-    // Clean up + force append
-    generatedPrompt = generatedPrompt.replace(/\s+/g, ' ').replace(/\s*,\s*,+/g, ',').trim();
-
-    // Enforce minimal motion
-    if (!generatedPrompt.toLowerCase().includes('blink') || !generatedPrompt.toLowerCase().includes('frozen')) {
-      generatedPrompt = 'Motion: blink once every 6-8 seconds, breathing only, head rotation <0.5°, NO nodding, NO sway. Body frozen. Mouth closed. Eyes blink only.';
+    if (!matched) {
+      // Any other output -> force "blink only"
+      generatedPrompt = 'blink only';
+    } else {
+      generatedPrompt = matched;
     }
 
     return generatedPrompt;
