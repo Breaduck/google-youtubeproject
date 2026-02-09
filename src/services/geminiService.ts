@@ -450,22 +450,22 @@ SYSTEM RULE (ABSOLUTE):
 - Animate ONLY the existing character and existing background as-is.
 
 HARD RULES (NO EXCEPTIONS):
-- Motion: ONLY blinking (every 4-6 sec), micro head tilt (<1 degree), gentle breathing
-- Hands/arms/torso: REMAIN STILL, completely frozen
+- Motion: blink once every 6-8 seconds, breathing only, head rotation <0.5°, NO nodding cycle, NO sway
+- Body/shoulders/arms/hands: FROZEN, completely still
 - Mouth: ALWAYS CLOSED, NO speaking, NO lip movement
+- Eyes: can blink only
 - Camera: STATIC LOCKED (NO zoom/pan/tilt/dolly/tracking/reframing/shake/cinematic)
 - Scene: UNCHANGED, no new objects, no added props, no added particles, no added text
-- Character: SINGLE SUBJECT ONLY, no extra people
 
 OUTPUT FORMAT (1 line):
-"Micro-motion ONLY: [blink/breath/micro head motion] | Scene: unchanged | Camera: locked | No new objects"
+"Motion: blink once every 6-8 seconds, breathing only, head rotation <0.5°, NO nodding cycle, NO sway. Body/shoulders/arms/hands frozen. Mouth closed. Eyes can blink only."
 
 EXAMPLES:
 Input: "I can't believe this happened..." (sad scene)
-Output: "Micro-motion ONLY: blink every 5 seconds, micro head tilt <1°, gentle breathing | Scene: unchanged | Camera: locked | No new objects"
+Output: "Motion: blink once every 7 seconds, breathing only, head rotation <0.5°, NO nodding, NO sway. Body frozen. Mouth closed. Eyes blink only."
 
 Input: "Hahaha! That's hilarious!" (happy scene)
-Output: "Micro-motion ONLY: blink every 4 seconds, micro head tilt <1°, gentle breathing | Scene: unchanged | Camera: locked | No new objects"
+Output: "Motion: blink once every 6 seconds, breathing only, head rotation <0.5°, NO nodding, NO sway. Body frozen. Mouth closed. Eyes blink only."
 
 Now generate for the input above. Return ONLY the single-line prompt, no explanation.`;
 
@@ -474,7 +474,7 @@ Now generate for the input above. Return ONLY the single-line prompt, no explana
       contents: prompt
     });
 
-    let generatedPrompt = response.text?.trim() || 'Micro-motion ONLY: blink every 4-6 seconds, micro head tilt <1°, gentle breathing | Scene: unchanged | Camera: locked | No new objects';
+    let generatedPrompt = response.text?.trim() || 'Motion: blink once every 6-8 seconds, breathing only, head rotation <0.5°, NO nodding, NO sway. Body frozen. Mouth closed. Eyes blink only.';
 
     // Noun blacklist: remove invented objects/props/settings
     const bannedNouns = [
@@ -484,18 +484,21 @@ Now generate for the input above. Return ONLY the single-line prompt, no explana
       'added', 'new', 'extra', 'second', 'another', 'additional'
     ];
 
-    // Remove banned nouns from prompt
-    for (const noun of bannedNouns) {
+    // Motion blacklist: remove excessive motion terms
+    const motionBlacklist = ['nod', 'tilt', 'gesture', 'sway', 'move', 'moving'];
+
+    // Remove banned terms
+    for (const noun of [...bannedNouns, ...motionBlacklist]) {
       const regex = new RegExp(`\\b${noun}\\w*\\b`, 'gi');
       generatedPrompt = generatedPrompt.replace(regex, '');
     }
 
-    // Clean up extra spaces/punctuation
+    // Clean up + force append
     generatedPrompt = generatedPrompt.replace(/\s+/g, ' ').replace(/\s*,\s*,+/g, ',').trim();
 
-    // Enforce format if not followed
-    if (!generatedPrompt.toLowerCase().includes('|') || !generatedPrompt.toLowerCase().includes('no new')) {
-      generatedPrompt = 'Micro-motion ONLY: blink every 4-6 seconds, micro head tilt <1°, gentle breathing | Scene: unchanged | Camera: locked | No new objects';
+    // Enforce minimal motion
+    if (!generatedPrompt.toLowerCase().includes('blink') || !generatedPrompt.toLowerCase().includes('frozen')) {
+      generatedPrompt = 'Motion: blink once every 6-8 seconds, breathing only, head rotation <0.5°, NO nodding, NO sway. Body frozen. Mouth closed. Eyes blink only.';
     }
 
     return generatedPrompt;
