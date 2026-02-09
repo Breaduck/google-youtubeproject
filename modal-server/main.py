@@ -285,6 +285,12 @@ class VideoGenerator:
             'waving', 'gesture', 'gestures', 'gesturing', 'pointing'
         ]
 
+        # Motion-intensifying keywords (causes exaggerated motion)
+        motion_keywords = [
+            'dynamic', 'energetic', 'action', 'dramatic', 'expressive',
+            'animated', 'lively', 'active', 'moving'
+        ]
+
         filtered_prompt = prompt
 
         # CRITICAL: Remove social/interaction keywords (prevents extra characters)
@@ -319,17 +325,26 @@ class VideoGenerator:
                 removed_body.append(keyword)
                 filtered_prompt = pattern.sub('', filtered_prompt)
 
+        # Remove motion-intensifying keywords
+        removed_motion = []
+        for keyword in motion_keywords:
+            pattern = re.compile(rf'\b{re.escape(keyword)}\b', re.IGNORECASE)
+            if pattern.search(filtered_prompt):
+                removed_motion.append(keyword)
+                filtered_prompt = pattern.sub('', filtered_prompt)
+
         # Clean up extra spaces and punctuation
         filtered_prompt = re.sub(r'\s+', ' ', filtered_prompt).strip()
         filtered_prompt = re.sub(r'\s*,\s*,+', ',', filtered_prompt)
         filtered_prompt = re.sub(r'\s*\.\s*\.+', '.', filtered_prompt)
 
-        # CRITICAL: Force single subject + static camera + full-frame + micro-motion only
-        composition_lock = "Full-frame, keep original composition. Single subject only, no other people, no crowd, no extra person, no second character. Static locked camera, fixed framing, NO zoom, NO pan, NO tilt, NO reframing, NO cut, NO shake."
-        motion_lock = "Micro-motion only: blinking every 3-5 seconds, micro head nod 1-2 degrees, subtle breathing. Hands/fingers remain still (no hand gesture), no arm movement, no leg movement, no walking."
-        lighting_guide = "Neutral natural lighting, consistent tone, stable exposure."
-        ambient_guide = "Ambience only (wind or room tone). Character's mouth remains closed. No speaking, no dialogue."
-        enhanced_prompt = f"{filtered_prompt} {composition_lock} {motion_lock} {lighting_guide} {ambient_guide}"
+        # CRITICAL: Force single subject + static camera + micro-motion + color preservation
+        composition_lock = "Keep original composition exactly. Static locked camera, fixed framing, no zoom/pan/tilt."
+        motion_lock = "EXTREMELY subtle motion only: blink once every 4-6 seconds, micro head tilt <1 degree, gentle breathing only. Arms/hands/torso remain still. No gestures. Mouth closed."
+        color_preserve = "Preserve original colors and contrast: same saturation, same brightness, same white balance as the reference image."
+        lighting_guide = "Neutral natural lighting (avoid stylized grading)."
+        ambient_guide = "Ambience only (wind or room tone)."
+        enhanced_prompt = f"{filtered_prompt} {composition_lock} {motion_lock} {color_preserve} {lighting_guide} {ambient_guide}"
 
         # Log removed terms
         if removed_social:
@@ -344,11 +359,14 @@ class VideoGenerator:
         if removed_body:
             print(f"  [REMOVED BODY MOVEMENT]: {', '.join(removed_body)}")
 
+        if removed_motion:
+            print(f"  [REMOVED MOTION KEYWORDS]: {', '.join(removed_motion)}")
+
         print(f"  Filtered: {enhanced_prompt[:250]}...")
         print(f"{'='*60}")
 
-        # Negative prompt: CRITICAL anti-extra-character + anti-camera-motion + anti-distortion + anti-limb-motion
-        negative_prompt = "extra person, second character, other people, crowd, background people, bystander, man, woman, multiple subjects, group, different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, changing facial features, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, zoom in, zoom out, close-up, camera movement, pan, tilt, dolly, tracking, reframing, cinematic, shake, cut, transition, hand gesture, finger movement, arm movement, walking, leg movement, steps, reaching, touching, waving, pointing, speaking, talking, dialogue, voice, narration, lip sync, open mouth, mouth movement, speech"
+        # Negative prompt: anti-motion + anti-camera + anti-color-shift
+        negative_prompt = "exaggerated motion, strong movement, gesturing, waving, walking, hand/arm/finger movement, camera movement, zoom, pan, tilt, dolly, tracking, reframing, cinematic, speaking, talking, lip sync, open mouth, washed out, desaturated, low contrast, flat lighting, grayish, faded colors, color shift, wrong white balance, extra person, second character, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
 
         # Strengthen negative prompt with detected social/interaction terms (from safety filter)
         if 'removed_social' in locals() and removed_social:
@@ -377,6 +395,13 @@ class VideoGenerator:
                 if term.lower() not in negative_prompt.lower():
                     negative_prompt += f", {term}"
             print(f"[SAFETY] Added {len(removed_body)} body movement terms to negative prompt")
+
+        # Strengthen negative prompt with detected motion-intensifying terms
+        if 'removed_motion' in locals() and removed_motion:
+            for term in removed_motion:
+                if term.lower() not in negative_prompt.lower():
+                    negative_prompt += f", {term}"
+            print(f"[SAFETY] Added {len(removed_motion)} motion keywords to negative prompt")
 
         # 공식 권장 기준 (Official LTX-2 recommendations)
         # cfg_scale: 3.0 typical (2.0-5.0 range)
@@ -800,12 +825,12 @@ class VideoGenerator:
         import subprocess
         print(f"  [COLOR FIX] Converting PC range -> TV range (yuv420p, bt709)...")
         if tone_fix:
-            print(f"  [TONE FIX] Applying contrast=1.12, saturation=1.10, gamma=1.00")
+            print(f"  [TONE FIX] Applying contrast=1.10, saturation=1.10, gamma=1.00")
 
         # Build video filter chain: pc->tv conversion + optional tone adjustment
         vf_chain = "scale=in_range=pc:out_range=tv,format=yuv420p"
         if tone_fix:
-            vf_chain += ",eq=contrast=1.12:saturation=1.10:gamma=1.00"
+            vf_chain += ",eq=contrast=1.10:saturation=1.10:gamma=1.00"
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
