@@ -100,8 +100,15 @@ class VideoGenerator:
         print("[2/4] Stage 2 Upsampler: deferred loading (VRAM optimization)")
 
         print("[3/4] Applying memory optimizations...")
-        print("  - Sequential CPU offload (official distilled)...")
-        self.pipe.enable_sequential_cpu_offload()
+
+        # Conditional CPU offload: only if VRAM < 20GB (A10G has 24GB)
+        vram_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        if vram_total < 20:
+            print(f"  - Sequential CPU offload (low VRAM: {vram_total:.1f}GB)...")
+            self.pipe.enable_sequential_cpu_offload()
+        else:
+            print(f"  - GPU direct (VRAM: {vram_total:.1f}GB, no offload)...")
+            self.pipe.to("cuda")
 
         print("  - VAE tiling...")
         self.pipe.vae.enable_tiling()
@@ -477,6 +484,11 @@ class VideoGenerator:
             vram_peak = torch.cuda.max_memory_allocated() / 1024**3
             vram_reserved = torch.cuda.memory_reserved() / 1024**3
 
+            # Force bf16 dtype (critical for performance)
+            if video_latent.dtype != torch.bfloat16:
+                print(f"  [WARNING] Latent dtype mismatch: {video_latent.dtype} → bf16")
+                video_latent = video_latent.to(torch.bfloat16)
+
             print(f"[STAGE 1 COMPLETE] Time: {stage1_time:.1f}s")
             print(f"  Latent shape: {video_latent.shape}")
             print(f"  Latent dtype: {video_latent.dtype}")
@@ -540,8 +552,15 @@ class VideoGenerator:
                 return_dict=False,
             )[0]
             upscale_time = time.time() - upscale_start
+
+            # Force bf16 dtype
+            if upscaled_latent.dtype != torch.bfloat16:
+                print(f"  [WARNING] Upscaled latent dtype mismatch: {upscaled_latent.dtype} → bf16")
+                upscaled_latent = upscaled_latent.to(torch.bfloat16)
+
             print(f"[STAGE 2a COMPLETE] Time: {upscale_time:.1f}s")
             print(f"  Upscaled latent shape: {upscaled_latent.shape}")
+            print(f"  Upscaled latent dtype: {upscaled_latent.dtype}")
             print(f"  VRAM: {torch.cuda.memory_allocated()/1024**3:.2f} GiB")
 
             del upsample_pipe, latent_upsampler
