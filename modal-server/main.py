@@ -249,12 +249,20 @@ class VideoGenerator:
         print(f"{'='*60}")
         print(f"  Original: {prompt[:200]}...")
 
-        # Camera motion keywords to remove (causes instability)
+        # Social/interaction keywords (CRITICAL: prevents extra characters)
+        social_keywords = [
+            'talking to', 'conversation', 'two people', 'someone', 'another person',
+            'other person', 'others', 'group', 'crowd', 'meeting', 'chatting',
+            'discussing', 'with friend', 'with someone', 'together', 'gathering'
+        ]
+
+        # Camera motion keywords to remove (causes instability + reframing)
         camera_keywords = [
             'zoom', 'pan', 'dolly', 'track', 'cinematic', 'camera movement',
             'zoom-in', 'zoom-out', 'zoom in', 'zoom out', 'close-up', 'closeup',
             'pan left', 'pan right', 'panning', 'tracking shot', 'tilt',
-            'camera motion', 'camera zoom', 'moving camera', 'reframing'
+            'camera motion', 'camera zoom', 'moving camera', 'reframing',
+            'cut', 'transition', 'shot change'
         ]
 
         # Speech/lip keywords to detect and remove
@@ -273,6 +281,14 @@ class VideoGenerator:
         ]
 
         filtered_prompt = prompt
+
+        # CRITICAL: Remove social/interaction keywords (prevents extra characters)
+        removed_social = []
+        for keyword in social_keywords:
+            pattern = re.compile(rf'\b{re.escape(keyword)}\b', re.IGNORECASE)
+            if pattern.search(filtered_prompt):
+                removed_social.append(keyword)
+                filtered_prompt = pattern.sub('', filtered_prompt)
 
         # Remove camera motion keywords
         removed_camera = []
@@ -303,11 +319,15 @@ class VideoGenerator:
         filtered_prompt = re.sub(r'\s*,\s*,+', ',', filtered_prompt)
         filtered_prompt = re.sub(r'\s*\.\s*\.+', '.', filtered_prompt)
 
-        # Append ambient sound + closed mouth + framing guidance
-        ambient_guide = "Upper-body framing with hands out of frame. Ambient sound of subtle wind or room tone. Character's mouth remains closed with serene expression. No speaking or dialogue."
-        enhanced_prompt = f"{filtered_prompt} {ambient_guide}"
+        # CRITICAL: Force single subject + static camera + upper-body framing
+        composition_lock = "Single subject only, no other people, no crowd, keep original composition. Static locked camera, fixed framing, no zoom, no pan, no tilt, no cut. Upper-body only, hands out of frame."
+        ambient_guide = "Ambient sound of subtle wind or room tone. Character's mouth remains closed with serene expression. No speaking or dialogue."
+        enhanced_prompt = f"{filtered_prompt} {composition_lock} {ambient_guide}"
 
         # Log removed terms
+        if removed_social:
+            print(f"  [REMOVED SOCIAL/INTERACTION]: {', '.join(removed_social)}")
+
         if removed_speech:
             print(f"  [REMOVED SPEECH TERMS]: {', '.join(removed_speech)}")
 
@@ -320,10 +340,15 @@ class VideoGenerator:
         print(f"  Filtered: {enhanced_prompt[:250]}...")
         print(f"{'='*60}")
 
-        # Negative prompt: Anti-distortion + No speech/voice + No hands/limbs
-        # Motion: blinking, micro-nod, breathing only
-        # Audio: Ambience-only (Track A ~20%), TTS narration post-mux (Track B 100%)
-        negative_prompt = "different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, speaking, talking, dialogue, voice, narration, lip sync, open mouth, mouth movement, speech, hands, fingers, arms, hand gesture, arm movement"
+        # Negative prompt: CRITICAL anti-extra-character + anti-camera-motion + anti-distortion
+        negative_prompt = "extra person, second character, other people, crowd, background people, bystander, man, woman, multiple subjects, group, different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, zoom in, zoom out, close-up, camera movement, pan, tilt, dolly, tracking, reframing, cinematic, cut, transition, speaking, talking, dialogue, voice, narration, lip sync, open mouth, mouth movement, speech, hands, fingers, arms, hand gesture, arm movement"
+
+        # Strengthen negative prompt with detected social/interaction terms (from safety filter)
+        if 'removed_social' in locals() and removed_social:
+            for term in removed_social:
+                if term.lower() not in negative_prompt.lower():
+                    negative_prompt += f", {term}"
+            print(f"[SAFETY] Added {len(removed_social)} social/interaction terms to negative prompt")
 
         # Strengthen negative prompt with detected speech terms (from safety filter)
         if 'removed_speech' in locals() and removed_speech:
@@ -715,32 +740,35 @@ class VideoGenerator:
         )
         print(f"  [OK] Video encoded (temp): {temp_output}")
 
-        # Add color metadata with FFmpeg (BT.709, full range)
-        # Fixes washed-out colors by explicitly setting colorspace
+        # CRITICAL: Fix washed-out colors with pc->tv range conversion
+        # Current output is yuvj420p(pc), re-encode to yuv420p(tv) for compatibility
         import subprocess
-        print(f"  [COLOR METADATA] Adding BT.709 metadata...")
+        print(f"  [COLOR FIX] Converting PC range -> TV range (yuv420p, bt709)...")
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
             "-i", temp_output,
-            "-c:v", "copy",  # No re-encode
-            "-c:a", "copy",  # No re-encode
+            "-vf", "scale=in_range=pc:out_range=tv,format=yuv420p",  # PC->TV range conversion
             "-colorspace", "bt709",
             "-color_primaries", "bt709",
             "-color_trc", "bt709",
-            "-color_range", "pc",  # Full range (RGB 0-255)
+            "-color_range", "tv",  # Limited range (16-235)
+            "-c:v", "libx264",  # Re-encode for proper color conversion
+            "-crf", "18",  # High quality
+            "-preset", "medium",
+            "-c:a", "copy",  # Keep audio as-is
             output_path
         ]
 
         result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            print(f"  [WARNING] FFmpeg metadata failed: {result.stderr[:200]}")
-            print(f"  [FALLBACK] Using original encode without metadata")
+            print(f"  [WARNING] FFmpeg color fix failed: {result.stderr[:200]}")
+            print(f"  [FALLBACK] Using original encode without color fix")
             # Fallback: use original file
             import shutil
             shutil.move(temp_output, output_path)
         else:
-            print(f"  [OK] Color metadata added: BT.709, full range")
+            print(f"  [OK] Color fixed: yuv420p(tv), BT.709, limited range")
             # Clean up temp file
             import os
             os.remove(temp_output)
