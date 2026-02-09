@@ -448,52 +448,56 @@ Focus ONLY on micro-motion + ambience.
 
 HARD RULES (NO EXCEPTIONS):
 - Motion: ONLY blinking (every 3-5 sec), micro-nod (1-2 degrees), subtle breathing
-- NO hand/arm/leg/foot movement (causes artifacts)
-- NO walking, steps, gestures, reaching, touching, waving
-- Framing: UPPER-BODY ONLY, hands out of frame (face + shoulders + upper torso)
-- Camera: STATIC LOCKED (no zoom/pan/tilt/dolly/tracking)
+- Hands/fingers: REMAIN STILL, no hand gesture, no finger movement
+- NO arm/leg/foot movement, NO walking, steps, reaching, touching, waving
+- Framing: FULL-FRAME, keep original composition
+- Camera: STATIC LOCKED (NO zoom/pan/tilt/dolly/tracking/reframing/shake/cinematic)
 - Mouth: ALWAYS CLOSED, NO speaking
 - Audio: Ambience only (wind / room tone / nature), NO narration/dialogue
+- Character: SINGLE SUBJECT ONLY, no extra people, no crowd, no bystander
 
 MANDATORY CONSTRAINTS (append to every output):
-"Upper-body framing, hands out of frame, static locked camera, fixed framing, NO zoom/pan/tilt, mouth closed"
+"Full-frame, keep original composition. Static locked camera, fixed framing, NO zoom/pan/tilt/reframing. Mouth closed. Hands/fingers remain still (no hand gesture), no arm movement."
 
 OUTPUT FORMAT (1 line):
-"Subtle motion: [blinking + micro-nod + breathing ONLY] | Ambience: [wind/room tone/nature] | Upper-body framing, hands out of frame | Static locked camera, fixed framing, NO zoom/pan/tilt | Mouth closed"
+"Micro-motion only: blinking every 3-5 seconds, micro head nod 1-2 degrees, subtle breathing | Ambience: [wind/room tone/nature] | Full-frame, keep original composition | Static locked camera, fixed framing, NO zoom/pan/tilt/reframing | Mouth closed | Hands/fingers remain still (no hand gesture), no arm movement"
 
 EXAMPLES:
 Input: "I can't believe this happened..." (sad scene)
-Output: "Subtle motion: Slow blinking, micro-nod downward (1 degree), subtle breathing | Ambience: Quiet room tone with distant wind | Upper-body framing, hands out of frame | Static locked camera, fixed framing, NO zoom/pan/tilt | Mouth closed"
+Output: "Micro-motion only: Slow blinking, micro-nod downward (1 degree), subtle breathing | Ambience: Quiet room tone with distant wind | Full-frame, keep original composition | Static locked camera, fixed framing, NO zoom/pan/tilt/reframing | Mouth closed | Hands/fingers remain still (no hand gesture), no arm movement"
 
 Input: "Hahaha! That's hilarious!" (happy scene)
-Output: "Subtle motion: Quick blinking, tiny head tilt (2 degrees), subtle breathing | Ambience: Light outdoor breeze, rustling leaves | Upper-body framing, hands out of frame | Static locked camera, fixed framing, NO zoom/pan/tilt | Mouth closed"
+Output: "Micro-motion only: Quick blinking, tiny head tilt (2 degrees), subtle breathing | Ambience: Light outdoor breeze, rustling leaves | Full-frame, keep original composition | Static locked camera, fixed framing, NO zoom/pan/tilt/reframing | Mouth closed | Hands/fingers remain still (no hand gesture), no arm movement"
 
-Now generate for the input above. Return ONLY the single-line prompt, no explanation. DO NOT include hand/arm/leg/walking.`;
+Now generate for the input above. Return ONLY the single-line prompt, no explanation. DO NOT include hand/arm/leg movement.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
       contents: prompt
     });
 
-    let generatedPrompt = response.text?.trim() || 'Subtle motion: Blinking, micro-nod (1 degree), gentle breathing | Ambience: Soft room tone | Upper-body framing, hands out of frame | Static camera | Mouth closed';
+    let generatedPrompt = response.text?.trim() || 'Micro-motion only: Blinking every 3-5 seconds, micro-nod 1-2 degrees, subtle breathing | Ambience: Soft room tone | Full-frame, keep original composition | Static locked camera, fixed framing, NO zoom/pan/tilt | Mouth closed | Hands/fingers remain still, no arm movement';
 
     // Enforce format if not followed
     if (!generatedPrompt.toLowerCase().includes('|')) {
-      // Fallback to structured format
-      generatedPrompt = `Subtle motion: Blinking, micro-nod (1-2 degrees), subtle breathing | Ambience: Soft wind or room tone | Upper-body framing, hands out of frame | Static camera | Mouth closed`;
+      generatedPrompt = `Micro-motion only: Blinking every 3-5 seconds, micro-nod 1-2 degrees, subtle breathing | Ambience: Soft wind or room tone | Full-frame, keep original composition | Static locked camera, fixed framing, NO zoom/pan/tilt | Mouth closed | Hands/fingers remain still, no arm movement`;
     }
 
     // Ensure critical constraints
-    if (!generatedPrompt.toLowerCase().includes('upper-body') && !generatedPrompt.toLowerCase().includes('hands out of frame')) {
-      generatedPrompt += ' | Upper-body framing, hands out of frame';
+    if (!generatedPrompt.toLowerCase().includes('full-frame') && !generatedPrompt.toLowerCase().includes('original composition')) {
+      generatedPrompt += ' | Full-frame, keep original composition';
     }
 
     if (!generatedPrompt.toLowerCase().includes('mouth closed')) {
       generatedPrompt += ' | Mouth closed';
     }
 
-    if (!generatedPrompt.toLowerCase().includes('static camera')) {
-      generatedPrompt = generatedPrompt.replace(/camera[^|]*\|/i, 'Static camera |');
+    if (!generatedPrompt.toLowerCase().includes('static') && !generatedPrompt.toLowerCase().includes('no zoom')) {
+      generatedPrompt += ' | Static locked camera, NO zoom/pan/tilt';
+    }
+
+    if (!generatedPrompt.toLowerCase().includes('hands') && !generatedPrompt.toLowerCase().includes('no arm')) {
+      generatedPrompt += ' | Hands/fingers remain still, no arm movement';
     }
 
     return generatedPrompt;

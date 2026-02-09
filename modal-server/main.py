@@ -186,13 +186,9 @@ class VideoGenerator:
             reference_image = Image.open(BytesIO(response.content)).convert("RGB")
             print(f"[INPUT] Downloaded image from URL: {reference_image.size}")
 
-        # CRITICAL: Upper-body crop (eliminate hand artifacts by design)
-        # Keep top 50% of image (face + shoulders + upper torso)
-        # Hands/arms/legs are physically out of frame
+        # Use FULL FRAME (no crop) - preserve original composition
         img_width, img_height = reference_image.size
-        upper_body_height = int(img_height * 0.5)  # Top 50%
-        reference_image = reference_image.crop((0, 0, img_width, upper_body_height))
-        print(f"[PREPROCESSING] Upper-body crop: {img_width}x{img_height} -> {img_width}x{upper_body_height} (hands out of frame)")
+        print(f"[PREPROCESSING] Full-frame input: {img_width}x{img_height} (no crop, original composition)")
 
         # OFFICIAL: 512p (768x512) Stage 1 → 2x upscale → 1024p (1536x1024)
         # For 1080p target: 512p → 2x → 1024p → crop to 1080p
@@ -319,10 +315,11 @@ class VideoGenerator:
         filtered_prompt = re.sub(r'\s*,\s*,+', ',', filtered_prompt)
         filtered_prompt = re.sub(r'\s*\.\s*\.+', '.', filtered_prompt)
 
-        # CRITICAL: Force single subject + static camera + upper-body framing
-        composition_lock = "Single subject only, no other people, no crowd, keep original composition. Static locked camera, fixed framing, no zoom, no pan, no tilt, no cut. Upper-body only, hands out of frame."
-        ambient_guide = "Ambient sound of subtle wind or room tone. Character's mouth remains closed with serene expression. No speaking or dialogue."
-        enhanced_prompt = f"{filtered_prompt} {composition_lock} {ambient_guide}"
+        # CRITICAL: Force single subject + static camera + full-frame + micro-motion only
+        composition_lock = "Full-frame, keep original composition. Single subject only, no other people, no crowd, no extra person, no second character. Static locked camera, fixed framing, NO zoom, NO pan, NO tilt, NO reframing, NO cut, NO shake."
+        motion_lock = "Micro-motion only: blinking every 3-5 seconds, micro head nod 1-2 degrees, subtle breathing. Hands/fingers remain still (no hand gesture), no arm movement, no leg movement, no walking."
+        ambient_guide = "Ambience only (wind or room tone). Character's mouth remains closed. No speaking, no dialogue."
+        enhanced_prompt = f"{filtered_prompt} {composition_lock} {motion_lock} {ambient_guide}"
 
         # Log removed terms
         if removed_social:
@@ -340,8 +337,8 @@ class VideoGenerator:
         print(f"  Filtered: {enhanced_prompt[:250]}...")
         print(f"{'='*60}")
 
-        # Negative prompt: CRITICAL anti-extra-character + anti-camera-motion + anti-distortion
-        negative_prompt = "extra person, second character, other people, crowd, background people, bystander, man, woman, multiple subjects, group, different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, zoom in, zoom out, close-up, camera movement, pan, tilt, dolly, tracking, reframing, cinematic, cut, transition, speaking, talking, dialogue, voice, narration, lip sync, open mouth, mouth movement, speech, hands, fingers, arms, hand gesture, arm movement"
+        # Negative prompt: CRITICAL anti-extra-character + anti-camera-motion + anti-distortion + anti-limb-motion
+        negative_prompt = "extra person, second character, other people, crowd, background people, bystander, man, woman, multiple subjects, group, different person, different face, morphing, warping, distortion, wobbling, melting, ripple effect, face collapse, global motion, jelly effect, unstable, inconsistent, deformed face, displaced features, changing appearance, changing facial features, liquid effect, wave distortion, plastic skin, cartoonish, low quality, oversaturated, blurry, artificial, fake, synthetic, CG, rendered, realistic, 3d render, photo, photorealistic, zoom in, zoom out, close-up, camera movement, pan, tilt, dolly, tracking, reframing, cinematic, shake, cut, transition, hand gesture, finger movement, arm movement, walking, leg movement, steps, reaching, touching, waving, pointing, speaking, talking, dialogue, voice, narration, lip sync, open mouth, mouth movement, speech"
 
         # Strengthen negative prompt with detected social/interaction terms (from safety filter)
         if 'removed_social' in locals() and removed_social:
