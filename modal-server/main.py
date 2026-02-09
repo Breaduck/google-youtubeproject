@@ -340,7 +340,7 @@ class VideoGenerator:
 
         # CRITICAL: Force single subject + static camera + micro-motion + color preservation
         composition_lock = "Keep original composition exactly. Static locked camera, fixed framing, no zoom/pan/tilt."
-        motion_lock = "EXTREMELY subtle motion only: blink once every 4-6 seconds, micro head tilt <1 degree, gentle breathing only. Arms/hands/torso remain still. No gestures. Mouth closed."
+        motion_lock = "Static pose, frozen, still image. EXTREMELY subtle motion only: blink once every 4-6 seconds, micro head tilt <1 degree, gentle breathing only. Arms/hands/torso remain still. No gestures. Mouth closed."
         color_preserve = "Preserve original colors and contrast: same saturation, same brightness, same white balance as the reference image."
         lighting_guide = "Neutral natural lighting (avoid stylized grading)."
         ambient_guide = "Ambience only (wind or room tone)."
@@ -471,9 +471,9 @@ class VideoGenerator:
 
             stage1_start = time.time()  # Precise timing
 
-            # Strong image anchoring (reduce hallucination)
+            # Strong image anchoring (reduce hallucination + minimize motion)
             # Format: [(image, frame_index, strength)]
-            image_conditioning = [(reference_image, 0, 0.95)]
+            image_conditioning = [(reference_image, 0, 0.98)]
 
             result = self.pipe(
                 images=image_conditioning,  # Strong anchor
@@ -825,12 +825,13 @@ class VideoGenerator:
         import subprocess
         print(f"  [COLOR FIX] Converting PC range -> TV range (yuv420p, bt709)...")
         if tone_fix:
-            print(f"  [TONE FIX] Applying contrast=1.10, saturation=1.10, gamma=1.00")
+            print(f"  [TONE FIX] Lowering contrast=0.98, saturation=1.00, gamma=1.02")
 
         # Build video filter chain: pc->tv conversion + optional tone adjustment
         vf_chain = "scale=in_range=pc:out_range=tv,format=yuv420p"
         if tone_fix:
-            vf_chain += ",eq=contrast=1.10:saturation=1.10:gamma=1.00"
+            # Lower contrast to match original (LTX-2 tends to boost it)
+            vf_chain += ",eq=contrast=0.98:saturation=1.00:gamma=1.02"
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
