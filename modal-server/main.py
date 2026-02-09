@@ -338,13 +338,14 @@ class VideoGenerator:
         filtered_prompt = re.sub(r'\s*,\s*,+', ',', filtered_prompt)
         filtered_prompt = re.sub(r'\s*\.\s*\.+', '.', filtered_prompt)
 
-        # CRITICAL: Force single subject + static camera + micro-motion + color preservation
-        composition_lock = "Keep original composition exactly. Static locked camera, fixed framing, no zoom/pan/tilt."
+        # CRITICAL: Force single subject + static camera + micro-motion + color preservation + NO NEW OBJECTS
+        composition_lock = "Use EXACT reference composition. Animate ONLY the existing character and existing background as-is. Static locked camera, fixed framing, no zoom/pan/tilt."
+        object_lock = "No new objects, no added props, no added particles, no added text."
         motion_lock = "Static pose, frozen, still image. EXTREMELY subtle motion only: blink once every 4-6 seconds, micro head tilt <1 degree, gentle breathing only. Arms/hands/torso remain still. No gestures. Mouth closed."
         color_preserve = "Preserve original colors and contrast: same saturation, same brightness, same white balance as the reference image."
         lighting_guide = "Neutral natural lighting (avoid stylized grading)."
         ambient_guide = "Ambience only (wind or room tone)."
-        enhanced_prompt = f"{filtered_prompt} {composition_lock} {motion_lock} {color_preserve} {lighting_guide} {ambient_guide}"
+        enhanced_prompt = f"{filtered_prompt} {composition_lock} {object_lock} {motion_lock} {color_preserve} {lighting_guide} {ambient_guide}"
 
         # Log removed terms
         if removed_social:
@@ -365,8 +366,8 @@ class VideoGenerator:
         print(f"  Filtered: {enhanced_prompt[:250]}...")
         print(f"{'='*60}")
 
-        # Negative prompt: anti-motion + anti-camera + anti-color-shift
-        negative_prompt = "exaggerated motion, strong movement, gesturing, waving, walking, hand/arm/finger movement, camera movement, zoom, pan, tilt, dolly, tracking, reframing, cinematic, speaking, talking, lip sync, open mouth, washed out, desaturated, low contrast, flat lighting, grayish, faded colors, color shift, wrong white balance, extra person, second character, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
+        # Negative prompt: anti-motion + anti-camera + anti-color-shift + anti-new-objects
+        negative_prompt = "new object, new prop, added item, extra person, second character, text, watermark, salt, crystals, tools, workshop items, dust, particles, exaggerated motion, strong movement, gesturing, waving, walking, hand/arm/finger movement, camera movement, zoom, pan, tilt, dolly, tracking, reframing, cinematic, speaking, talking, lip sync, open mouth, washed out, desaturated, low contrast, flat lighting, grayish, faded colors, color shift, wrong white balance, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
 
         # Strengthen negative prompt with detected social/interaction terms (from safety filter)
         if 'removed_social' in locals() and removed_social:

@@ -443,61 +443,58 @@ INPUT:
 Dialogue (for emotional context only): "${dialogue}"
 Reference image: "${imagePrompt}"
 
-CRITICAL: Do NOT describe character appearance (we already have the reference image).
-Focus ONLY on micro-motion + ambience.
+SYSTEM RULE (ABSOLUTE):
+- Describe ONLY micro-motion of what is already visible in the reference image.
+- DO NOT add any new objects, props, text, particles, weather, tools, or actions not explicitly visible.
+- DO NOT infer context (no salt, no workshop, no items).
+- Animate ONLY the existing character and existing background as-is.
 
 HARD RULES (NO EXCEPTIONS):
-- Motion: ONLY blinking (every 3-5 sec), micro-nod (1-2 degrees), subtle breathing
-- Hands/fingers: REMAIN STILL, no hand gesture, no finger movement
-- NO arm/leg/foot movement, NO walking, steps, reaching, touching, waving
-- Framing: FULL-FRAME, keep original composition
+- Motion: ONLY blinking (every 4-6 sec), micro head tilt (<1 degree), gentle breathing
+- Hands/arms/torso: REMAIN STILL, completely frozen
+- Mouth: ALWAYS CLOSED, NO speaking, NO lip movement
 - Camera: STATIC LOCKED (NO zoom/pan/tilt/dolly/tracking/reframing/shake/cinematic)
-- Mouth: ALWAYS CLOSED, NO speaking
-- Audio: Ambience only (wind / room tone / nature), NO narration/dialogue
-- Character: SINGLE SUBJECT ONLY, no extra people, no crowd, no bystander
-
-MANDATORY CONSTRAINTS (append to every output):
-"Full-frame, keep original composition. Static locked camera, fixed framing, NO zoom/pan/tilt/reframing. Mouth closed. Hands/fingers remain still (no hand gesture), no arm movement."
+- Scene: UNCHANGED, no new objects, no added props, no added particles, no added text
+- Character: SINGLE SUBJECT ONLY, no extra people
 
 OUTPUT FORMAT (1 line):
-"Micro-motion only: blinking every 3-5 seconds, micro head nod 1-2 degrees, subtle breathing | Ambience: [wind/room tone/nature] | Full-frame, keep original composition | Static locked camera, fixed framing, NO zoom/pan/tilt/reframing | Mouth closed | Hands/fingers remain still (no hand gesture), no arm movement"
+"Micro-motion ONLY: [blink/breath/micro head motion] | Scene: unchanged | Camera: locked | No new objects"
 
 EXAMPLES:
 Input: "I can't believe this happened..." (sad scene)
-Output: "Micro-motion only: Slow blinking, micro-nod downward (1 degree), subtle breathing | Ambience: Quiet room tone with distant wind | Full-frame, keep original composition | Static locked camera, fixed framing, NO zoom/pan/tilt/reframing | Mouth closed | Hands/fingers remain still (no hand gesture), no arm movement"
+Output: "Micro-motion ONLY: blink every 5 seconds, micro head tilt <1°, gentle breathing | Scene: unchanged | Camera: locked | No new objects"
 
 Input: "Hahaha! That's hilarious!" (happy scene)
-Output: "Micro-motion only: Quick blinking, tiny head tilt (2 degrees), subtle breathing | Ambience: Light outdoor breeze, rustling leaves | Full-frame, keep original composition | Static locked camera, fixed framing, NO zoom/pan/tilt/reframing | Mouth closed | Hands/fingers remain still (no hand gesture), no arm movement"
+Output: "Micro-motion ONLY: blink every 4 seconds, micro head tilt <1°, gentle breathing | Scene: unchanged | Camera: locked | No new objects"
 
-Now generate for the input above. Return ONLY the single-line prompt, no explanation. DO NOT include hand/arm/leg movement.`;
+Now generate for the input above. Return ONLY the single-line prompt, no explanation.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
       contents: prompt
     });
 
-    let generatedPrompt = response.text?.trim() || 'Micro-motion only: Blinking every 3-5 seconds, micro-nod 1-2 degrees, subtle breathing | Ambience: Soft room tone | Full-frame, keep original composition | Static locked camera, fixed framing, NO zoom/pan/tilt | Mouth closed | Hands/fingers remain still, no arm movement';
+    let generatedPrompt = response.text?.trim() || 'Micro-motion ONLY: blink every 4-6 seconds, micro head tilt <1°, gentle breathing | Scene: unchanged | Camera: locked | No new objects';
+
+    // Noun blacklist: remove invented objects/props
+    const bannedNouns = [
+      'salt', 'crystals', 'tool', 'tools', 'workshop', 'dust', 'particles',
+      'item', 'items', 'prop', 'props', 'object', 'watermark', 'text',
+      'added', 'new', 'extra', 'second', 'another'
+    ];
+
+    // Remove banned nouns from prompt
+    for (const noun of bannedNouns) {
+      const regex = new RegExp(`\\b${noun}\\w*\\b`, 'gi');
+      generatedPrompt = generatedPrompt.replace(regex, '');
+    }
+
+    // Clean up extra spaces/punctuation
+    generatedPrompt = generatedPrompt.replace(/\s+/g, ' ').replace(/\s*,\s*,+/g, ',').trim();
 
     // Enforce format if not followed
-    if (!generatedPrompt.toLowerCase().includes('|')) {
-      generatedPrompt = `Micro-motion only: Blinking every 3-5 seconds, micro-nod 1-2 degrees, subtle breathing | Ambience: Soft wind or room tone | Full-frame, keep original composition | Static locked camera, fixed framing, NO zoom/pan/tilt | Mouth closed | Hands/fingers remain still, no arm movement`;
-    }
-
-    // Ensure critical constraints
-    if (!generatedPrompt.toLowerCase().includes('full-frame') && !generatedPrompt.toLowerCase().includes('original composition')) {
-      generatedPrompt += ' | Full-frame, keep original composition';
-    }
-
-    if (!generatedPrompt.toLowerCase().includes('mouth closed')) {
-      generatedPrompt += ' | Mouth closed';
-    }
-
-    if (!generatedPrompt.toLowerCase().includes('static') && !generatedPrompt.toLowerCase().includes('no zoom')) {
-      generatedPrompt += ' | Static locked camera, NO zoom/pan/tilt';
-    }
-
-    if (!generatedPrompt.toLowerCase().includes('hands') && !generatedPrompt.toLowerCase().includes('no arm')) {
-      generatedPrompt += ' | Hands/fingers remain still, no arm movement';
+    if (!generatedPrompt.toLowerCase().includes('|') || !generatedPrompt.toLowerCase().includes('no new')) {
+      generatedPrompt = 'Micro-motion ONLY: blink every 4-6 seconds, micro head tilt <1°, gentle breathing | Scene: unchanged | Camera: locked | No new objects';
     }
 
     return generatedPrompt;
