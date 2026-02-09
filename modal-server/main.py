@@ -338,10 +338,10 @@ class VideoGenerator:
         filtered_prompt = re.sub(r'\s*,\s*,+', ',', filtered_prompt)
         filtered_prompt = re.sub(r'\s*\.\s*\.+', '.', filtered_prompt)
 
-        # CRITICAL: Force single subject + static camera + micro-motion + color preservation + NO NEW OBJECTS
+        # CRITICAL: Force single subject + static camera + minimal motion + color preservation + NO NEW OBJECTS
         composition_lock = "Use EXACT reference composition. Animate ONLY the existing character and existing background as-is. Static locked camera, fixed framing, no zoom/pan/tilt."
         object_lock = "No new objects, no added props, no added particles, no added text."
-        motion_lock = "Static pose, frozen, still image. EXTREMELY subtle motion only: blink once every 4-6 seconds, micro head tilt <1 degree, gentle breathing only. Arms/hands/torso remain still. No gestures. Mouth closed."
+        motion_lock = "Nearly still image, frozen pose, extremely subtle motion, minimal motion strength, preserve identity. Motion: blink once every 6-8 seconds, breathing only, head rotation <0.5°, NO nodding cycle, NO sway. Body/shoulders/arms/hands frozen. Mouth closed. Eyes can blink only."
         color_preserve = "Preserve original colors and contrast: same saturation, same brightness, same white balance as the reference image."
         lighting_guide = "Neutral natural lighting (avoid stylized grading)."
         ambient_guide = "Ambience only (wind or room tone)."
@@ -367,7 +367,7 @@ class VideoGenerator:
         print(f"{'='*60}")
 
         # Negative prompt: anti-motion + anti-camera + anti-color-shift + anti-new-objects
-        negative_prompt = "new object, new prop, added item, salt, crystals, tools, warehouse, workshop, factory, dust, particles, extra person, second character, text, watermark, exaggerated motion, strong movement, gesturing, waving, walking, hand/arm/finger movement, camera movement, zoom, pan, tilt, dolly, tracking, reframing, cinematic, speaking, talking, lip sync, open mouth, washed out, desaturated, low contrast, flat lighting, grayish, faded colors, color shift, wrong white balance, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
+        negative_prompt = "micro-nod, head bobbing, body sway, exaggerated motion, dynamic motion, gestures, new object, new prop, added item, salt, crystals, tools, warehouse, workshop, factory, dust, particles, extra person, second character, text, watermark, strong movement, waving, walking, hand/arm/finger movement, camera movement, zoom, pan, tilt, dolly, tracking, reframing, cinematic, speaking, talking, lip sync, open mouth, washed out, desaturated, low contrast, flat lighting, grayish, faded colors, color shift, wrong white balance, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
 
         # Strengthen negative prompt with detected social/interaction terms (from safety filter)
         if 'removed_social' in locals() and removed_social:
@@ -472,9 +472,9 @@ class VideoGenerator:
 
             stage1_start = time.time()  # Precise timing
 
-            # Strong image anchoring (reduce hallucination + minimize motion)
+            # Maximum image anchoring (freeze motion + preserve identity)
             # Format: [(image, frame_index, strength)]
-            image_conditioning = [(reference_image, 0, 0.98)]
+            image_conditioning = [(reference_image, 0, 0.99)]
 
             # Force bf16 computation (critical for performance)
             with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
@@ -831,13 +831,13 @@ class VideoGenerator:
         import subprocess
         print(f"  [COLOR FIX] Converting PC range -> TV range (yuv420p, bt709)...")
         if tone_fix:
-            print(f"  [TONE FIX] Lowering contrast=0.98, saturation=1.00, gamma=1.02")
+            print(f"  [TONE FIX] Reducing contrast=0.97, saturation=1.00, gamma=1.03")
 
         # Build video filter chain: pc->tv conversion + optional tone adjustment
         vf_chain = "scale=in_range=pc:out_range=tv,format=yuv420p"
         if tone_fix:
-            # Lower contrast to match original (LTX-2 tends to boost it)
-            vf_chain += ",eq=contrast=0.98:saturation=1.00:gamma=1.02"
+            # Reduce contrast/brightness to match original (avoid punchy output)
+            vf_chain += ",eq=contrast=0.97:saturation=1.00:gamma=1.03"
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
