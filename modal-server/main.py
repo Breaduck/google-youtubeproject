@@ -1006,6 +1006,31 @@ class VideoGenerator:
         if stage2b_success:
             print(f"  Stage 2b: STAGE_2_DISTILLED_SIGMA_VALUES ({len(self.stage2_sigmas)} steps)")
         print(f"{'='*60}\n")
+
+        # COLOR VERIFICATION: Run ffprobe on final output
+        try:
+            import subprocess
+            print(f"\n{'='*60}")
+            print(f"[COLOR VERIFICATION] Running ffprobe in Modal container")
+            print(f"{'='*60}")
+
+            ffprobe_cmd = [
+                "ffprobe", "-v", "error",
+                "-select_streams", "v:0",
+                "-show_entries", "stream=pix_fmt,color_range,color_space,color_primaries,color_transfer",
+                "-of", "default=noprint_wrappers=1",
+                output_path
+            ]
+
+            result = subprocess.run(ffprobe_cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                print(result.stdout)
+            else:
+                print(f"[WARNING] ffprobe failed: {result.stderr}")
+            print(f"{'='*60}\n")
+        except Exception as e:
+            print(f"[WARNING] ffprobe verification failed: {str(e)}")
+
         return video_bytes
 
 # 3. Web API
