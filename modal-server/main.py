@@ -367,7 +367,7 @@ class VideoGenerator:
         print(f"{'='*60}")
 
         # Negative prompt: anti-motion + anti-camera + anti-color-shift + anti-new-objects
-        negative_prompt = "new object, new prop, added item, extra person, second character, text, watermark, salt, crystals, tools, workshop items, dust, particles, exaggerated motion, strong movement, gesturing, waving, walking, hand/arm/finger movement, camera movement, zoom, pan, tilt, dolly, tracking, reframing, cinematic, speaking, talking, lip sync, open mouth, washed out, desaturated, low contrast, flat lighting, grayish, faded colors, color shift, wrong white balance, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
+        negative_prompt = "new object, new prop, added item, salt, crystals, tools, warehouse, workshop, factory, dust, particles, extra person, second character, text, watermark, exaggerated motion, strong movement, gesturing, waving, walking, hand/arm/finger movement, camera movement, zoom, pan, tilt, dolly, tracking, reframing, cinematic, speaking, talking, lip sync, open mouth, washed out, desaturated, low contrast, flat lighting, grayish, faded colors, color shift, wrong white balance, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
 
         # Strengthen negative prompt with detected social/interaction terms (from safety filter)
         if 'removed_social' in locals() and removed_social:
@@ -476,21 +476,23 @@ class VideoGenerator:
             # Format: [(image, frame_index, strength)]
             image_conditioning = [(reference_image, 0, 0.98)]
 
-            result = self.pipe(
-                images=image_conditioning,  # Strong anchor
-                prompt=enhanced_prompt,
-                negative_prompt=negative_prompt,
-                width=target_width,
-                height=target_height,
-                num_frames=num_frames,
-                frame_rate=frame_rate,
-                num_inference_steps=final_steps_stage1,
-                sigmas=self.stage1_sigmas,
-                guidance_scale=final_guidance_stage1,
-                generator=generator,
-                output_type="latent",   # LATENT output for Stage 2a upsample
-                return_dict=False,
-            )
+            # Force bf16 computation (critical for performance)
+            with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
+                result = self.pipe(
+                    images=image_conditioning,  # Strong anchor
+                    prompt=enhanced_prompt,
+                    negative_prompt=negative_prompt,
+                    width=target_width,
+                    height=target_height,
+                    num_frames=num_frames,
+                    frame_rate=frame_rate,
+                    num_inference_steps=final_steps_stage1,
+                    sigmas=self.stage1_sigmas,
+                    guidance_scale=final_guidance_stage1,
+                    generator=generator,
+                    output_type="latent",   # LATENT output for Stage 2a upsample
+                    return_dict=False,
+                )
 
             stage1_time = time.time() - stage1_start  # Precise timing
 
@@ -510,6 +512,9 @@ class VideoGenerator:
                 video_latent = result
                 audio_latent = None
 
+            # CRITICAL: Force bf16 immediately (perf: float32 is 2x slower)
+            video_latent = video_latent.to(torch.bfloat16)
+
             vram_after = torch.cuda.memory_allocated() / 1024**3
             vram_peak = torch.cuda.max_memory_allocated() / 1024**3
             vram_reserved = torch.cuda.memory_reserved() / 1024**3
@@ -528,7 +533,7 @@ class VideoGenerator:
 
             # BUDGET CHECK: Hard time limit (strict cost control)
             HARD_TIME_BUDGET = 90  # 90초 예산 (목표 <90s)
-            STAGE1_TIMEOUT = 75    # Stage 1이 75초 초과 시 Stage 2b 스킵
+            STAGE1_TIMEOUT = 70    # Stage 1이 70초 초과 시 Stage 2b 스킵
             MIN_STAGE2B_BUDGET = 15  # Stage 2b 실행을 위한 최소 남은 시간
 
             time_budget_ok = stage1_time <= STAGE1_TIMEOUT

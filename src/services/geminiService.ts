@@ -476,11 +476,12 @@ Now generate for the input above. Return ONLY the single-line prompt, no explana
 
     let generatedPrompt = response.text?.trim() || 'Micro-motion ONLY: blink every 4-6 seconds, micro head tilt <1°, gentle breathing | Scene: unchanged | Camera: locked | No new objects';
 
-    // Noun blacklist: remove invented objects/props
+    // Noun blacklist: remove invented objects/props/settings
     const bannedNouns = [
-      'salt', 'crystals', 'tool', 'tools', 'workshop', 'dust', 'particles',
+      'salt', 'crystals', 'tool', 'tools', 'workshop', 'warehouse', 'factory', 'dust', 'particles',
       'item', 'items', 'prop', 'props', 'object', 'watermark', 'text',
-      'added', 'new', 'extra', 'second', 'another'
+      'setting', 'scene', 'environment', 'location', 'place',
+      'added', 'new', 'extra', 'second', 'another', 'additional'
     ];
 
     // Remove banned nouns from prompt
