@@ -159,7 +159,8 @@ class VideoGenerator:
                  # 테스트용 파라미터 (품질 실험)
                  test_conditioning: float = None,
                  test_guidance: float = None,
-                 test_steps: int = None):
+                 test_steps: int = None,
+                 enable_stage2b: bool = False):  # Stage 2b 품질 부스트 (기본값: OFF, 비용 2배)
         import tempfile
         import torch
         import numpy as np
@@ -420,12 +421,16 @@ class VideoGenerator:
             print(f"  Sigmas: DISTILLED_SIGMA_VALUES ({len(self.stage1_sigmas)} values)")
             print(f"  Precision: {self.pipe.transformer.dtype}")
             print(f"  Offload: Sequential CPU offload enabled")
+            print(f"  VAE tiling: Enabled")
+            print(f"  Attention slicing: Enabled")
+            print(f"  GPU: {torch.cuda.get_device_name(0)}")
             print(f"{'='*60}")
 
             # VRAM before Stage 1
             torch.cuda.reset_peak_memory_stats()
             vram_before = torch.cuda.memory_allocated() / 1024**3
-            print(f"  VRAM before: {vram_before:.2f} GiB")
+            vram_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+            print(f"  VRAM before: {vram_before:.2f} GiB / {vram_total:.2f} GiB total")
 
             generator = torch.Generator(device="cuda").manual_seed(42)
             frame_rate = 24.0
@@ -476,6 +481,19 @@ class VideoGenerator:
             print(f"  VRAM after: {vram_after:.2f} GiB")
             print(f"  VRAM peak: {vram_peak:.2f} GiB")
             print(f"  VRAM reserved: {vram_reserved:.2f} GiB")
+
+            # BUDGET CHECK: Hard time limit
+            HARD_TIME_BUDGET = 95  # 95초 예산 (목표 <90s + 5s 버퍼)
+            STAGE1_TIMEOUT = 70    # Stage 1이 70초 초과 시 Stage 2b 스킵
+
+            time_budget_ok = stage1_time <= STAGE1_TIMEOUT
+            remaining_budget = HARD_TIME_BUDGET - stage1_time
+
+            print(f"\n[TIME BUDGET CHECK]")
+            print(f"  Stage 1 time: {stage1_time:.1f}s / {STAGE1_TIMEOUT}s limit")
+            print(f"  Remaining budget: {remaining_budget:.1f}s / {HARD_TIME_BUDGET}s total")
+            print(f"  Stage 2b requested: {enable_stage2b}")
+            print(f"  Stage 2b feasible: {time_budget_ok and remaining_budget > 20}")
 
         except Exception as e:
             stage1_time = time.time() - gen_start
@@ -534,99 +552,125 @@ class VideoGenerator:
 
         # ============================================================
         # STAGE 2b: Refine upscaled latent (4 steps, official distilled)
-        # OPTIONAL: Try-catch for stability (temporary safety net)
+        # CONDITIONAL: Only if enabled AND within time budget
         # ============================================================
         stage2b_success = False
-        try:
-            print(f"\n{'='*60}")
-            print(f"[STAGE 2b] 4-step refinement at {target_width*2}x{target_height*2}")
-            print(f"  Steps: {DEFAULT_STEPS_STAGE2}, Guidance: {DEFAULT_GUIDANCE_STAGE2}")
-            print(f"  Sigmas: STAGE_2_DISTILLED_SIGMA_VALUES ({len(self.stage2_sigmas)} values)")
-            print(f"  Upscaled latent shape: {upscaled_latent.shape}")
-            print(f"  Upscaled latent dtype: {upscaled_latent.dtype}")
+        run_stage2b = enable_stage2b and time_budget_ok and remaining_budget > 20
 
-            # VRAM diagnostics BEFORE Stage 2b
-            torch.cuda.reset_peak_memory_stats()
-            vram_before_2b = torch.cuda.memory_allocated() / 1024**3
-            vram_reserved_2b = torch.cuda.memory_reserved() / 1024**3
-            print(f"  VRAM before Stage 2b: {vram_before_2b:.2f} GiB")
-            print(f"  VRAM reserved: {vram_reserved_2b:.2f} GiB")
-            print(f"  VRAM available: {24 - vram_reserved_2b:.2f} GiB (A10G)")
-            print(f"{'='*60}")
+        if run_stage2b:
+            try:
+                print(f"\n{'='*60}")
+                print(f"[STAGE 2b] 4-step refinement at {target_width*2}x{target_height*2}")
+                print(f"  Steps: {DEFAULT_STEPS_STAGE2}, Guidance: {DEFAULT_GUIDANCE_STAGE2}")
+                print(f"  Sigmas: STAGE_2_DISTILLED_SIGMA_VALUES ({len(self.stage2_sigmas)} values)")
+                print(f"  Resolution: {target_width*2}x{target_height*2}")
+                print(f"  Upscaled latent shape: {upscaled_latent.shape}")
+                print(f"  Upscaled latent dtype: {upscaled_latent.dtype}")
+                print(f"  Precision: {self.pipe.transformer.dtype}")
+                print(f"  Offload: Sequential CPU offload")
+                print(f"  VAE tiling: Enabled")
 
-            refine_start = time.time()
+                # VRAM diagnostics BEFORE Stage 2b
+                torch.cuda.reset_peak_memory_stats()
+                vram_before_2b = torch.cuda.memory_allocated() / 1024**3
+                vram_reserved_2b = torch.cuda.memory_reserved() / 1024**3
+                vram_total_2b = torch.cuda.get_device_properties(0).total_memory / 1024**3
+                print(f"  VRAM before: {vram_before_2b:.2f} GiB")
+                print(f"  VRAM reserved: {vram_reserved_2b:.2f} GiB")
+                print(f"  VRAM available: {vram_total_2b - vram_reserved_2b:.2f} GiB")
+                print(f"  GPU: {torch.cuda.get_device_name(0)}")
+                print(f"{'='*60}")
 
-            # Refinement pass using upscaled latent as initialization
-            result = self.pipe(
-                image=reference_image,  # Keep image conditioning
-                prompt=enhanced_prompt,
-                negative_prompt=negative_prompt,
-                width=target_width * 2,  # Full resolution
-                height=target_height * 2,
-                num_frames=num_frames,
-                frame_rate=frame_rate,
-                num_inference_steps=DEFAULT_STEPS_STAGE2,
-                sigmas=self.stage2_sigmas,
-                guidance_scale=DEFAULT_GUIDANCE_STAGE2,  # 1.8 guidance
-                generator=generator,
-                latents=upscaled_latent,  # Initialize from upscaled latent
-                output_type="latent",  # Keep latent for VAE decode
-                return_dict=False,
-            )
+                refine_start = time.time()
 
-            # DEBUG: Inspect Stage 2b return structure
-            print(f"  [DEBUG] Stage 2b return type: {type(result)}")
-            if isinstance(result, tuple):
-                print(f"  [DEBUG] Tuple length: {len(result)}")
-                for i, item in enumerate(result):
-                    if item is not None:
-                        print(f"  [DEBUG] result[{i}] type: {type(item)}, shape: {item.shape if hasattr(item, 'shape') else 'N/A'}")
-                    else:
-                        print(f"  [DEBUG] result[{i}] is None")
-                refined_latent = result[0]
-                audio_latent_stage2 = result[1] if len(result) > 1 else None
-                # Use Stage 2b audio if available, else fallback to Stage 1
-                if audio_latent_stage2 is not None:
-                    audio_latent = audio_latent_stage2
-            else:
-                refined_latent = result
+                # Refinement pass using upscaled latent as initialization
+                result = self.pipe(
+                    image=reference_image,  # Keep image conditioning
+                    prompt=enhanced_prompt,
+                    negative_prompt=negative_prompt,
+                    width=target_width * 2,  # Full resolution
+                    height=target_height * 2,
+                    num_frames=num_frames,
+                    frame_rate=frame_rate,
+                    num_inference_steps=DEFAULT_STEPS_STAGE2,
+                    sigmas=self.stage2_sigmas,
+                    guidance_scale=DEFAULT_GUIDANCE_STAGE2,  # 1.8 guidance
+                    generator=generator,
+                    latents=upscaled_latent,  # Initialize from upscaled latent
+                    output_type="latent",  # Keep latent for VAE decode
+                    return_dict=False,
+                )
 
-            refine_time = time.time() - refine_start
-            vram_peak_2b = torch.cuda.max_memory_allocated() / 1024**3
+                # DEBUG: Inspect Stage 2b return structure
+                print(f"  [DEBUG] Stage 2b return type: {type(result)}")
+                if isinstance(result, tuple):
+                    print(f"  [DEBUG] Tuple length: {len(result)}")
+                    for i, item in enumerate(result):
+                        if item is not None:
+                            print(f"  [DEBUG] result[{i}] type: {type(item)}, shape: {item.shape if hasattr(item, 'shape') else 'N/A'}")
+                        else:
+                            print(f"  [DEBUG] result[{i}] is None")
+                    refined_latent = result[0]
+                    audio_latent_stage2 = result[1] if len(result) > 1 else None
+                    # Use Stage 2b audio if available, else fallback to Stage 1
+                    if audio_latent_stage2 is not None:
+                        audio_latent = audio_latent_stage2
+                else:
+                    refined_latent = result
 
-            print(f"[STAGE 2b COMPLETE] Time: {refine_time:.1f}s")
-            print(f"  Refined latent shape: {refined_latent.shape}")
-            print(f"  VRAM peak during Stage 2b: {vram_peak_2b:.2f} GiB")
-            stage2b_success = True
+                refine_time = time.time() - refine_start
+                vram_peak_2b = torch.cuda.max_memory_allocated() / 1024**3
 
-        except Exception as e:
+                print(f"[STAGE 2b COMPLETE] Time: {refine_time:.1f}s")
+                print(f"  Refined latent shape: {refined_latent.shape}")
+                print(f"  VRAM peak during Stage 2b: {vram_peak_2b:.2f} GiB")
+                stage2b_success = True
+
+            except Exception as e:
+                refine_time = 0.0
+                print(f"\n{'='*60}")
+                print(f"[STAGE 2b FAILURE - FULL DIAGNOSTICS]")
+                print(f"{'='*60}")
+                print(f"  Exception type: {type(e).__name__}")
+                print(f"  Exception message: {str(e)}")
+                print(f"\n[FULL TRACEBACK]:")
+                import traceback
+                traceback.print_exc()
+
+                # Write full error to temp file for inspection
+                import tempfile
+                error_log_path = tempfile.mktemp(suffix="_stage2b_error.log")
+                with open(error_log_path, "w") as f:
+                    f.write(f"Stage 2b Failure Report\n")
+                    f.write(f"=" * 60 + "\n")
+                    f.write(f"Exception: {type(e).__name__}\n")
+                    f.write(f"Message: {str(e)}\n\n")
+                    f.write(f"Traceback:\n")
+                    f.write(traceback.format_exc())
+                    f.write(f"\nVRAM stats:\n")
+                    f.write(f"  Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB\n")
+                    f.write(f"  Reserved: {torch.cuda.memory_reserved()/1024**3:.2f} GiB\n")
+                print(f"  Full error log written to: {error_log_path}")
+
+                print(f"\n[FALLBACK] Using Stage 2a output (no refinement)")
+                print(f"  This is a TEMPORARY safety net - Stage 2b MUST be fixed")
+                print(f"{'='*60}\n")
+
+                refined_latent = upscaled_latent
+        else:
+            # Stage 2b SKIPPED (not enabled or budget exceeded)
             refine_time = 0.0
             print(f"\n{'='*60}")
-            print(f"[STAGE 2b FAILURE - FULL DIAGNOSTICS]")
+            print(f"[STAGE 2b SKIPPED]")
             print(f"{'='*60}")
-            print(f"  Exception type: {type(e).__name__}")
-            print(f"  Exception message: {str(e)}")
-            print(f"\n[FULL TRACEBACK]:")
-            import traceback
-            traceback.print_exc()
-
-            # Write full error to temp file for inspection
-            import tempfile
-            error_log_path = tempfile.mktemp(suffix="_stage2b_error.log")
-            with open(error_log_path, "w") as f:
-                f.write(f"Stage 2b Failure Report\n")
-                f.write(f"=" * 60 + "\n")
-                f.write(f"Exception: {type(e).__name__}\n")
-                f.write(f"Message: {str(e)}\n\n")
-                f.write(f"Traceback:\n")
-                f.write(traceback.format_exc())
-                f.write(f"\nVRAM stats:\n")
-                f.write(f"  Allocated: {torch.cuda.memory_allocated()/1024**3:.2f} GiB\n")
-                f.write(f"  Reserved: {torch.cuda.memory_reserved()/1024**3:.2f} GiB\n")
-            print(f"  Full error log written to: {error_log_path}")
-
-            print(f"\n[FALLBACK] Using Stage 2a output (no refinement)")
-            print(f"  This is a TEMPORARY safety net - Stage 2b MUST be fixed")
+            if not enable_stage2b:
+                print(f"  Reason: Quality Boost disabled (default mode)")
+            elif not time_budget_ok:
+                print(f"  Reason: Stage 1 exceeded timeout ({stage1_time:.1f}s > {STAGE1_TIMEOUT}s)")
+            else:
+                print(f"  Reason: Insufficient remaining budget ({remaining_budget:.1f}s < 20s)")
+            print(f"  Using Stage 2a output (fast path)")
+            print(f"  Cost savings: ~₩{int(191 * 0.000306 * 1450)} (Stage 2b avoided)")
             print(f"{'='*60}\n")
 
             refined_latent = upscaled_latent
