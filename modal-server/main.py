@@ -1,7 +1,7 @@
 import modal
 
-BUILD_VERSION = "1.7.0-cfg-1.25"
-GIT_COMMIT    = "5ba623f"
+BUILD_VERSION = "1.8.0-multiface"
+GIT_COMMIT    = "pending"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
@@ -226,7 +226,7 @@ class VideoGenerator:
                  test_conditioning: float = None,
                  test_guidance: float = None,
                  test_steps: int = None,
-                 enable_stage2b: bool = False,  # Stage 2b 품질 부스트 (기본값: OFF, 비용 2배)
+                 multi_face_mode: bool = False,  # 다인물 모드: Stage2b 활성화 → 얼굴 디테일 향상
                  tone_fix: bool = False):  # Neutral color (no EQ adjustment)
         import tempfile
         import torch
@@ -238,6 +238,10 @@ class VideoGenerator:
         print(f"\n{'='*60}")
         print(f"[IMAGE-TO-VIDEO] Starting generation")
         print(f"{'='*60}")
+
+        # multi_face_mode → enable_stage2b
+        enable_stage2b = multi_face_mode
+        print(f"[MODE] multi_face_mode={multi_face_mode}  →  Stage2b={'ON (face detail boost)' if enable_stage2b else 'OFF (fast path)'}")
 
         # Item 1: Server-side whitelist enforcement (safety net)
         MOTION_WHITELIST = ['blink only', 'blink + breathing', 'blink + breathing + micro head <0.3°']
@@ -1262,7 +1266,9 @@ class VideoGenerator:
         cost_krw = cost_usd * 1450
 
         print(f"\n{'='*60}")
-        print(f"[COMPLETE - {'3-STAGE' if stage2b_success else '2-STAGE (Stage 2b failed)'} PATTERN]")
+        stage2b_label = "3-STAGE (Stage2b OK)" if stage2b_success else ("2-STAGE+SKIP (Stage2b budget exceeded)" if enable_stage2b else "2-STAGE (Stage2b OFF)")
+        print(f"[COMPLETE - {stage2b_label}]")
+        print(f"  multi_face_mode: {multi_face_mode}  |  Stage2b executed: {stage2b_success}")
         print(f"{'='*60}")
         print(f"  Video frames: {num_frames}")
         print(f"  Resolution: {video_tensor.shape[3]}x{video_tensor.shape[2]}")
@@ -1384,6 +1390,7 @@ def web_app():
         image_url: str
         character_description: str = ""
         num_frames: int = 97
+        multi_face_mode: bool = False  # True → Stage2b ON for face detail
         # Test parameters (optional)
         test_conditioning: float = None
         test_guidance: float = None
@@ -1396,13 +1403,13 @@ def web_app():
     jobs = {}  # {job_id: {"status", "result", "error"}}
 
     async def _run_job(job_id, prompt, image_url, character_description, num_frames,
-                       test_conditioning, test_guidance, test_steps):
+                       test_conditioning, test_guidance, test_steps, multi_face_mode=False):
         try:
-            print(f"[JOB {job_id}] Starting generation...")
+            print(f"[JOB {job_id}] Starting generation... multi_face_mode={multi_face_mode}")
             generator = VideoGenerator()
             video_bytes = await generator.generate.remote.aio(
                 prompt, image_url, character_description, num_frames,
-                test_conditioning, test_guidance, test_steps
+                test_conditioning, test_guidance, test_steps, multi_face_mode
             )
             jobs[job_id]["status"] = "complete"
             jobs[job_id]["result"] = video_bytes
@@ -1422,7 +1429,8 @@ def web_app():
         jobs[job_id] = {"status": "running", "result": None, "error": None}
         asyncio.create_task(_run_job(
             job_id, req.prompt, req.image_url, req.character_description,
-            req.num_frames, req.test_conditioning, req.test_guidance, req.test_steps
+            req.num_frames, req.test_conditioning, req.test_guidance, req.test_steps,
+            req.multi_face_mode
         ))
         print(f"[JOB {job_id}] Started")
         return Response(
@@ -1496,7 +1504,8 @@ def web_app():
                 req.num_frames,
                 req.test_conditioning,
                 req.test_guidance,
-                req.test_steps
+                req.test_steps,
+                req.multi_face_mode,
             )
 
             print(f"[API] Video generated successfully: {len(video_bytes)} bytes")
