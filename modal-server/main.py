@@ -356,6 +356,15 @@ class VideoGenerator:
             'animated', 'lively', 'active', 'moving'
         ]
 
+        # Text artifact keywords (causes on-screen text/UI in output)
+        text_keywords = [
+            'text', 'caption', 'subtitle', 'subtitles', 'watermark', 'logo',
+            'signage', 'label', 'labels', 'letters', 'numbers', 'typography',
+            'ui overlay', 'overlay', 'credits', 'title card', 'title',
+            'speech bubble', 'manga text', 'on-screen', 'sign', 'poster',
+            'banner', 'inscription', 'writing', 'written',
+        ]
+
         filtered_prompt = prompt
 
         # CRITICAL: Remove social/interaction keywords (prevents extra characters)
@@ -398,6 +407,14 @@ class VideoGenerator:
                 removed_motion.append(keyword)
                 filtered_prompt = pattern.sub('', filtered_prompt)
 
+        # Remove text artifact keywords
+        removed_text = []
+        for keyword in text_keywords:
+            pattern = re.compile(rf'\b{re.escape(keyword)}\b', re.IGNORECASE)
+            if pattern.search(filtered_prompt):
+                removed_text.append(keyword)
+                filtered_prompt = pattern.sub('', filtered_prompt)
+
         # Clean up extra spaces and punctuation
         filtered_prompt = re.sub(r'\s+', ' ', filtered_prompt).strip()
         filtered_prompt = re.sub(r'\s*,\s*,+', ',', filtered_prompt)
@@ -412,34 +429,50 @@ class VideoGenerator:
 
         # Layer 1: Camera lock prefix (ALWAYS prepended - hard requirement)
         CAMERA_LOCK_PREFIX = "Static locked camera, fixed framing, tripod shot. No camera movement. No zoom. No pan. No tilt. No dolly. No tracking. No reframing."
-        object_lock = "No new objects, no added props, no added particles, no added text."
+        TEXT_BAN = "No text anywhere in the frame."
+        object_lock = "No new objects, no added props, no added particles, no added text, no signs, no labels, no UI."
         motion_lock = "Still image, frozen pose, blink only. Body/shoulders/arms/hands frozen. Mouth closed."
         color_preserve = "Preserve original colors and contrast: same saturation, same brightness, same white balance as the reference image."
         lighting_guide = "Neutral natural lighting (avoid stylized grading)."
         ambient_guide = "Ambience only (wind or room tone)."
-        enhanced_prompt = f"{CAMERA_LOCK_PREFIX} {filtered_prompt} {object_lock} {motion_lock} {color_preserve} {lighting_guide} {ambient_guide}"
+        enhanced_prompt = f"{CAMERA_LOCK_PREFIX} {TEXT_BAN} {filtered_prompt} {object_lock} {motion_lock} {color_preserve} {lighting_guide} {ambient_guide}"
 
         # Log removed terms
         if removed_social:
-            print(f"  [REMOVED SOCIAL/INTERACTION]: {', '.join(removed_social)}")
-
+            print(f"  [REMOVED SOCIAL]: {', '.join(removed_social)}")
         if removed_speech:
-            print(f"  [REMOVED SPEECH TERMS]: {', '.join(removed_speech)}")
-
+            print(f"  [REMOVED SPEECH]: {', '.join(removed_speech)}")
         if removed_camera:
-            print(f"  [REMOVED CAMERA MOTION]: {', '.join(removed_camera)}")
-
+            print(f"  [REMOVED CAMERA]: {', '.join(removed_camera)}")
         if removed_body:
-            print(f"  [REMOVED BODY MOVEMENT]: {', '.join(removed_body)}")
-
+            print(f"  [REMOVED BODY]: {', '.join(removed_body)}")
         if removed_motion:
-            print(f"  [REMOVED MOTION KEYWORDS]: {', '.join(removed_motion)}")
+            print(f"  [REMOVED MOTION]: {', '.join(removed_motion)}")
+        if removed_text:
+            print(f"  [REMOVED TEXT]: {', '.join(removed_text)}")
 
         print(f"  Filtered: {enhanced_prompt[:250]}...")
         print(f"{'='*60}")
 
-        # Negative prompt: anti-motion + anti-camera (Layer 1 negative, hard requirement)
-        negative_prompt = "camera movement, zoom in, zoom out, pan, tilt, dolly, tracking, handheld, shaky, cinematic, reframe, push-in, pull-out, rotation, wide shot, medium shot, any motion, head movement, body movement, gestures, micro-nod, head bobbing, body sway, breathing motion, exaggerated motion, dynamic motion, new object, new prop, added item, extra person, second character, salt, crystals, tools, warehouse, workshop, factory, dust, particles, text, watermark, strong movement, waving, walking, hand/arm/finger movement, speaking, talking, lip sync, open mouth, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
+        # Negative prompt: anti-text + anti-camera + anti-motion (hard requirement)
+        negative_prompt = (
+            # Text ban (prepended — highest priority)
+            "text, caption, subtitle, watermark, logo, signage, label, letters, numbers, "
+            "typography, UI overlay, credits, title card, speech bubble, manga text, on-screen text, "
+            "sign, poster, banner, inscription, writing, "
+            # Camera
+            "camera movement, zoom in, zoom out, pan, tilt, dolly, tracking, handheld, shaky, "
+            "cinematic, reframe, push-in, pull-out, rotation, wide shot, medium shot, "
+            # Motion
+            "any motion, head movement, body movement, gestures, micro-nod, head bobbing, body sway, "
+            "breathing motion, exaggerated motion, dynamic motion, new object, new prop, added item, "
+            "extra person, second character, salt, crystals, tools, warehouse, workshop, factory, "
+            "dust, particles, strong movement, waving, walking, hand/arm/finger movement, "
+            "speaking, talking, lip sync, open mouth, other people, crowd, morphing, warping, "
+            "distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, "
+            "deformed face, displaced features, changing appearance, plastic skin, cartoonish, "
+            "low quality, blurry, artificial, fake, synthetic"
+        )
 
         # Strengthen negative prompt with detected social/interaction terms (from safety filter)
         if 'removed_social' in locals() and removed_social:
@@ -475,6 +508,19 @@ class VideoGenerator:
                 if term.lower() not in negative_prompt.lower():
                     negative_prompt += f", {term}"
             print(f"[SAFETY] Added {len(removed_motion)} motion keywords to negative prompt")
+
+        # Strengthen negative prompt with detected text artifact terms
+        if 'removed_text' in locals() and removed_text:
+            for term in removed_text:
+                if term.lower() not in negative_prompt.lower():
+                    negative_prompt += f", {term}"
+            print(f"[SAFETY] Added {len(removed_text)} text artifact terms to negative prompt")
+
+        # Debug: log final prompt + negative_prompt sent to LTX
+        print(f"\n[FINAL PROMPT DEBUG]")
+        print(f"  POSITIVE ({len(enhanced_prompt)} chars): {enhanced_prompt}")
+        print(f"  NEGATIVE ({len(negative_prompt)} chars): {negative_prompt[:300]}...")
+        print(f"  ffmpeg drawtext/overlay: NONE (verified)")
 
         # 공식 권장 기준 (Official LTX-2 recommendations)
         # cfg_scale: 3.0 typical (2.0-5.0 range)
