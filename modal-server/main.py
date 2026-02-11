@@ -1,7 +1,7 @@
 import modal
 
-BUILD_VERSION = "1.8.0-multiface"
-GIT_COMMIT    = "55d1253"
+BUILD_VERSION = "1.9.2-ocr-blur-only"
+GIT_COMMIT    = "pending"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
@@ -26,7 +26,8 @@ image = (
         "imageio",
         "imageio-ffmpeg",
         "numpy",
-        "torchao",  # FP8 quantization fast path
+        "torchao",   # FP8 quantization fast path
+        "easyocr",   # Post-decode text detection
     )
     .run_commands(
         "pip install git+https://github.com/huggingface/diffusers.git"
@@ -39,6 +40,52 @@ image = (
 
 app = modal.App("ltx-video-service-distilled-1080p", image=image)
 model_cache = modal.Volume.from_name("model-cache-distilled", create_if_missing=True)
+
+# ── OCR helpers (module level) ──
+def _ocr_check_frames(video_frames, ocr_reader):
+    """Sample 3 frames, run OCR, return (all_boxes, per_frame_counts) tuple."""
+    import cv2, numpy as np
+    n_frames = video_frames.shape[1]
+    sample_idxs = sorted(set([0, n_frames // 2, n_frames - 1]))
+    all_boxes = []
+    per_frame_counts = {}
+    for idx in sample_idxs:
+        frame_uint8 = (video_frames[0, idx] * 255).clip(0, 255).astype(np.uint8)
+        h, w = frame_uint8.shape[:2]
+        scale = min(1.0, 640 / w)
+        small = cv2.resize(frame_uint8, (int(w * scale), int(h * scale)))
+        frame_boxes = []
+        try:
+            results = ocr_reader.readtext(small, detail=1)
+            for bbox, text, conf in results:
+                if conf > 0.4 and text.strip():
+                    orig_bbox = [[int(p[0] / scale), int(p[1] / scale)] for p in bbox]
+                    all_boxes.append(orig_bbox)
+                    frame_boxes.append(orig_bbox)
+        except Exception:
+            pass
+        per_frame_counts[idx] = len(frame_boxes)
+    return all_boxes, per_frame_counts
+
+def _blur_text_boxes(video_frames, boxes):
+    """Apply 9px Gaussian blur on detected text regions across all frames."""
+    import cv2, numpy as np
+    result = video_frames.copy()
+    H, W = result.shape[2], result.shape[3]
+    for bbox in boxes:
+        xs = [p[0] for p in bbox]
+        ys = [p[1] for p in bbox]
+        x1 = max(0, int(min(xs)) - 8)
+        x2 = min(W, int(max(xs)) + 8)
+        y1 = max(0, int(min(ys)) - 8)
+        y2 = min(H, int(max(ys)) + 8)
+        if x2 <= x1 or y2 <= y1:
+            continue
+        for f in range(result.shape[1]):
+            roi = (result[0, f, y1:y2, x1:x2] * 255).clip(0, 255).astype(np.uint8)
+            blurred = cv2.GaussianBlur(roi, (9, 9), 0)
+            result[0, f, y1:y2, x1:x2] = blurred.astype(np.float32) / 255.0
+    return result
 
 # 2. Model class
 @app.cls(
@@ -188,6 +235,22 @@ class VideoGenerator:
         print(f"  - Stage 1 sigmas: {len(self.stage1_sigmas)} values")
         print(f"  - Stage 2 sigmas: {len(self.stage2_sigmas)} values (official 4-step)")
         print("  [OK] Distilled sigmas loaded (8+4 official schedule)")
+
+        # OCR reader for post-decode text detection (models cached in /models/easyocr)
+        print("[OCR] Initializing easyocr reader (ch_sim, ch_tra, en)...")
+        try:
+            import easyocr
+            self.ocr_reader = easyocr.Reader(
+                ['ch_sim', 'ch_tra', 'en'],
+                gpu=False,
+                verbose=False,
+                model_storage_directory='/models/easyocr',
+                download_enabled=True,
+            )
+            print("[OCR] Reader ready")
+        except Exception as _ocr_e:
+            print(f"[OCR] Init failed: {type(_ocr_e).__name__}: {_ocr_e} — text detection disabled")
+            self.ocr_reader = None
 
         print(f"\n{'='*70}")
         print("PIPELINE LOADED - OFFICIAL DISTILLED 3-STAGE PATTERN")
@@ -578,7 +641,7 @@ class VideoGenerator:
         # distilled_lora: 0.6-0.8 strength
 
         # 기본값 (공식 Distilled 권장) - MUST BE DEFINED FIRST!
-        DEFAULT_GUIDANCE_STAGE1 = 1.25  # CFG 1.25: minimal negative activation, preserves face fidelity
+        DEFAULT_GUIDANCE_STAGE1 = 1.35  # CFG 1.35: stronger negative (text ban) while preserving faces
         DEFAULT_GUIDANCE_RESCALE = 0.5  # guidance_rescale (supported per API VERIFY signature)
         DEFAULT_STEPS_STAGE1 = 8        # Distilled Stage 1 (8 steps)
         DEFAULT_GUIDANCE_STAGE2 = 1.0   # Stage 2b guidance
@@ -1003,6 +1066,28 @@ class VideoGenerator:
             print(f"  {ch}: out({out_means[c]:.1f}±{out_stds[c]:.1f}) → ref({ref_means[c]:.1f}±{ref_stds[c]:.1f})")
         video_frames = np.clip(video_float / 255.0, 0.0, 1.0).astype(np.float32)
         print(f"  [OK] Color stats matched to reference image")
+
+        # ============================================================
+        # OCR GUARD: Detect text → blur only (no regen, BUILD 1.9.2)
+        # ============================================================
+        _ocr_t0 = time.time()
+        detected_boxes, per_frame_counts = _ocr_check_frames(video_frames, self.ocr_reader)
+        _ocr_detect_time = time.time() - _ocr_t0
+
+        print(f"\n[OCR GUARD] Detection: {_ocr_detect_time:.2f}s")
+        for fidx, cnt in per_frame_counts.items():
+            print(f"  frame[{fidx:02d}]: {cnt} box(es)")
+        print(f"  Total boxes: {len(detected_boxes)}")
+
+        if detected_boxes:
+            _blur_t0 = time.time()
+            video_frames = _blur_text_boxes(video_frames, detected_boxes)
+            _blur_time = time.time() - _blur_t0
+            print(f"[OCR BLUR] Applied Gaussian blur to {len(detected_boxes)} box(es) — {_blur_time:.2f}s")
+        else:
+            print(f"[OCR GUARD] Clean — no text detected")
+
+        print(f"[OCR TOTAL] {time.time() - _ocr_t0:.2f}s added")
 
         # ============================================================
         # ENCODE TO MP4 (공식 패턴: numpy → uint8 → encode_video)
