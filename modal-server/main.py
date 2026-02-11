@@ -1,7 +1,7 @@
 import modal
 
 BUILD_VERSION = "1.3.0-fp8-fallback-fix"
-GIT_COMMIT    = "COMMIT_HASH_PLACEHOLDER"  # replaced at deploy time
+GIT_COMMIT    = "7f1b4b0"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
