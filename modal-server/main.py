@@ -1,7 +1,7 @@
 import modal
 
 BUILD_VERSION = "1.8.0-multiface"
-GIT_COMMIT    = "pending"
+GIT_COMMIT    = "55d1253"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
