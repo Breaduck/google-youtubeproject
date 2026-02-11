@@ -1,7 +1,7 @@
 import modal
 
-BUILD_VERSION = "1.3.1-api-fix"
-GIT_COMMIT    = "7de5b2e"
+BUILD_VERSION = "1.3.2-param-fix"
+GIT_COMMIT    = "pending"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
@@ -72,7 +72,7 @@ class VideoGenerator:
         # Use official Distilled checkpoint
         model_id = "rootonchair/LTX-2-19b-distilled"
         cache_dir = "/models/ltx2-distilled-cache"
-        USE_FP8 = True  # FP8 optional fast path (not guaranteed to succeed on A10G)
+        USE_FP8 = False  # torchao float8_weight_only not available in current env
 
         print(f"\n[1/4] Loading LTX-2 Distilled from {model_id}...")
         print(f"  Build:  {BUILD_VERSION} @ {GIT_COMMIT}")
@@ -547,8 +547,7 @@ class VideoGenerator:
             # Force bf16 computation (critical for performance)
             with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
                 result = self.pipe(
-                    image=reference_image,       # I2V conditioning image
-                    image_cond_noise_scale=0.05, # low = strong anchor (official default 0.15)
+                    image=reference_image,
                     prompt=enhanced_prompt,
                     negative_prompt=negative_prompt,
                     width=target_width,
