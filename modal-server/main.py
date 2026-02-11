@@ -1,7 +1,7 @@
 import modal
 
-BUILD_VERSION = "1.5.0-hard-text-ban"
-GIT_COMMIT    = "feb44cf"
+BUILD_VERSION = "1.6.0-cfg-1.5"
+GIT_COMMIT    = "pending"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
@@ -574,17 +574,18 @@ class VideoGenerator:
         # distilled_lora: 0.6-0.8 strength
 
         # 기본값 (공식 Distilled 권장) - MUST BE DEFINED FIRST!
-        DEFAULT_GUIDANCE_STAGE1 = 1.0   # Distilled Stage 1 guidance (1.0)
+        DEFAULT_GUIDANCE_STAGE1 = 1.5   # CFG 1.5: activates negative prompt without artifacts
+        DEFAULT_GUIDANCE_RESCALE = 0.5  # guidance_rescale (supported per API VERIFY signature)
         DEFAULT_STEPS_STAGE1 = 8        # Distilled Stage 1 (8 steps)
-        DEFAULT_GUIDANCE_STAGE2 = 1.0   # Stage 2b guidance (distilled official: 1.0)
+        DEFAULT_GUIDANCE_STAGE2 = 1.0   # Stage 2b guidance
         DEFAULT_STEPS_STAGE2 = len(self.stage2_sigmas)  # Auto-detect from sigma values
 
         final_guidance_stage1 = test_guidance if test_guidance is not None else DEFAULT_GUIDANCE_STAGE1
         final_steps_stage1 = test_steps if test_steps is not None else DEFAULT_STEPS_STAGE1
 
-        # 파라미터 검증 (극단값 방지)
-        final_guidance_stage1 = max(1.0, min(5.0, final_guidance_stage1))  # 1.0-5.0 범위
-        final_steps_stage1 = max(8, min(50, final_steps_stage1))           # 8-50 범위
+        # 파라미터 검증 (극단값 방지, test range 1.3–1.7)
+        final_guidance_stage1 = max(1.0, min(5.0, final_guidance_stage1))
+        final_steps_stage1 = max(8, min(50, final_steps_stage1))
 
         test_mode = test_guidance is not None or test_steps is not None
 
@@ -649,6 +650,14 @@ class VideoGenerator:
 
                 stage1_start = time.time()
 
+                # ── Pre-call debug log (req #3) ──
+                print(f"\n[PRE-CALL DEBUG]")
+                print(f"  Pipeline: {type(self.pipe).__name__}")
+                print(f"  guidance_scale:   {final_guidance_stage1}")
+                print(f"  guidance_rescale: {DEFAULT_GUIDANCE_RESCALE}")
+                print(f"  noise_scale:      0.0 (unchanged)")
+                print(f"  NEGATIVE (first 200 chars): {negative_prompt[:200]}")
+
                 with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
                     _result = self.pipe(
                         image=reference_image,
@@ -661,6 +670,7 @@ class VideoGenerator:
                         num_inference_steps=final_steps_stage1,
                         sigmas=self.stage1_sigmas,
                         guidance_scale=final_guidance_stage1,
+                        guidance_rescale=DEFAULT_GUIDANCE_RESCALE,
                         generator=generator,
                         output_type="latent",
                         return_dict=False,
