@@ -1,7 +1,7 @@
 import modal
 
-BUILD_VERSION = "1.4.0-5point-fix"
-GIT_COMMIT    = "9e0e17a"
+BUILD_VERSION = "1.5.0-hard-text-ban"
+GIT_COMMIT    = "pending"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
@@ -436,15 +436,22 @@ class VideoGenerator:
             filtered_prompt = re.sub(rf'\b{word}\w*\b', '', filtered_prompt, flags=re.IGNORECASE)
         filtered_prompt = re.sub(r'\s+', ' ', filtered_prompt).strip()
 
-        # Layer 1: Camera lock prefix (ALWAYS prepended - hard requirement)
+        # ── Layer A: ABSOLUTE TEXT BAN (MUST be first line of positive) ──
+        ABSOLUTE_TEXT_BAN = (
+            "ABSOLUTE NO TEXT. No writing, no characters, no letters, no numbers, no symbols. "
+            "No Chinese, no Hanzi, no Japanese Kanji, no Korean Hangul. "
+            "No subtitles, no captions, no watermark, no signage, no labels, no UI."
+        )
+        SAFE_FALLBACK_PROMPT = (
+            "Static locked camera, fixed framing, tripod shot. "
+            "Still image, frozen pose. Blink only once. No new objects. "
+            "ABSOLUTE NO TEXT anywhere."
+        )
         CAMERA_LOCK_PREFIX = "Static locked camera, fixed framing, tripod shot. No camera movement. No zoom. No pan. No tilt. No dolly. No tracking. No reframing."
-        TEXT_BAN = "No text anywhere in the frame."
         object_lock = "No new objects, no added props, no added particles, no added text, no signs, no labels, no UI."
         motion_lock = "Still image, frozen pose, blink only. Body/shoulders/arms/hands frozen. Mouth closed."
         color_preserve = "Preserve original colors and contrast: same saturation, same brightness, same white balance as the reference image."
-        lighting_guide = "Neutral natural lighting (avoid stylized grading)."
-        ambient_guide = "Ambience only (wind or room tone)."
-        enhanced_prompt = f"{CAMERA_LOCK_PREFIX} {TEXT_BAN} {filtered_prompt} {object_lock} {motion_lock} {color_preserve} {lighting_guide} {ambient_guide}"
+        enhanced_prompt = f"{ABSOLUTE_TEXT_BAN} {CAMERA_LOCK_PREFIX} {filtered_prompt} {object_lock} {motion_lock} {color_preserve}"
 
         # Log removed terms
         if removed_social:
@@ -463,20 +470,23 @@ class VideoGenerator:
         print(f"  Filtered: {enhanced_prompt[:250]}...")
         print(f"{'='*60}")
 
-        # Negative prompt: anti-text + anti-camera + anti-motion (hard requirement)
+        # ── Layer B: NEGATIVE — CJK + all text types at VERY FRONT (highest weight) ──
         negative_prompt = (
-            # Text ban (prepended — highest priority)
-            "text, caption, subtitle, watermark, logo, signage, label, letters, numbers, "
-            "typography, UI overlay, credits, title card, speech bubble, manga text, on-screen text, "
-            "sign, poster, banner, inscription, writing, "
-            # Camera
+            # ① TEXT (highest priority — must be first tokens)
+            "text, writing, words, letters, characters, alphabet, numbers, digits, symbols, "
+            "Chinese text, Hanzi, Mandarin, simplified Chinese, traditional Chinese, "
+            "Japanese text, Kanji, Kana, Korean text, Hangul, "
+            "subtitles, caption, watermark, logo, brand, signage, signboard, poster, banner, "
+            "label, UI, interface, overlay, credits, title card, speech bubble, on-screen text, "
+            "inscription, typography, glyph, scribble, writing on wall, written, "
+            # ② Camera
             "camera movement, zoom in, zoom out, pan, tilt, dolly, tracking, handheld, shaky, "
-            "cinematic, reframe, push-in, pull-out, rotation, wide shot, medium shot, "
-            # Motion
-            "any motion, head movement, body movement, gestures, micro-nod, head bobbing, body sway, "
-            "breathing motion, exaggerated motion, dynamic motion, new object, new prop, added item, "
+            "reframe, push-in, pull-out, rotation, wide shot, medium shot, "
+            # ③ Motion / artifacts
+            "head movement, body movement, gestures, micro-nod, head bobbing, body sway, "
+            "breathing motion, exaggerated motion, new object, new prop, added item, "
             "extra person, second character, salt, crystals, tools, warehouse, workshop, factory, "
-            "dust, particles, strong movement, waving, walking, hand/arm/finger movement, "
+            "dust, particles, waving, walking, hand/arm/finger movement, "
             "speaking, talking, lip sync, open mouth, other people, crowd, morphing, warping, "
             "distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, "
             "deformed face, displaced features, changing appearance, plastic skin, cartoonish, "
@@ -525,28 +535,38 @@ class VideoGenerator:
                     negative_prompt += f", {term}"
             print(f"[SAFETY] Added {len(removed_text)} text artifact terms to negative prompt")
 
-        # C) Post-filter enforcement: if any text token survives → full fallback
-        TEXT_BLACKLIST = [
+        # ── Layer C: HARD SAFETY FILTER — CJK + text detection → SAFE_FALLBACK ──
+        # Triggers on: text/sign/label/subtitle OR any CJK Unicode codepoints
+        TEXT_TRIGGER_WORDS = [
             'text','caption','captions','subtitle','subtitles','letters','lettering',
             'typography','logo','watermark','sign','signage','label','poster','banner',
             'ui','hud','credits','title','quote','speech bubble','comic text','overlay',
             'inscription','writing','written','glyph','scribble',
+            'chinese','hanzi','mandarin','kanji','hangul','kana',
         ]
-        surviving = [t for t in TEXT_BLACKLIST if re.search(rf'\b{re.escape(t)}\b', enhanced_prompt, re.IGNORECASE)]
-        if surviving:
-            print(f"  [FALLBACK TRIGGERED] Surviving text tokens: {surviving}")
-            enhanced_prompt = (
-                "Static locked camera. Single subject only. Clean background. "
-                "No text anywhere in the frame. No captions. No subtitles. "
-                "No letters. No symbols. No signage. No watermark. Blink only."
-            )
-            print(f"  [FALLBACK] Positive replaced with safe fallback.")
+        CJK_PATTERN = re.compile(
+            r'[\u4e00-\u9fff'   # CJK Unified Ideographs
+            r'\u3400-\u4dbf'   # CJK Extension A
+            r'\uf900-\ufaff'   # CJK Compatibility
+            r'\u3040-\u309f'   # Hiragana
+            r'\u30a0-\u30ff'   # Katakana
+            r'\uac00-\ud7af'   # Hangul syllables
+            r'\u1100-\u11ff]'  # Hangul Jamo
+        )
+        surviving_words = [t for t in TEXT_TRIGGER_WORDS if re.search(rf'\b{re.escape(t)}\b', enhanced_prompt, re.IGNORECASE)]
+        has_cjk = bool(CJK_PATTERN.search(enhanced_prompt))
+        if surviving_words or has_cjk:
+            print(f"  [FALLBACK TRIGGERED] text tokens={surviving_words}, CJK={has_cjk}")
+            enhanced_prompt = SAFE_FALLBACK_PROMPT
+            print(f"  [FALLBACK] Replaced with SAFE_FALLBACK_PROMPT")
 
-        # Debug: log final prompt + negative_prompt sent to LTX
-        print(f"\n[FINAL PROMPT DEBUG]")
-        print(f"  POSITIVE ({len(enhanced_prompt)} chars): {enhanced_prompt}")
-        print(f"  NEGATIVE ({len(negative_prompt)} chars): {negative_prompt[:300]}...")
-        print(f"  ffmpeg drawtext/overlay: NONE (verified)")
+        # Final log right before LTX call
+        print(f"\n[FINAL PROMPT → LTX]")
+        print(f"  POSITIVE ({len(enhanced_prompt)} chars):")
+        print(f"    {enhanced_prompt}")
+        print(f"  NEGATIVE ({len(negative_prompt)} chars, first 400):")
+        print(f"    {negative_prompt[:400]}")
+        print(f"  ffmpeg: NO drawtext / NO subtitles / NO overlay filters (verified)")
 
         # 공식 권장 기준 (Official LTX-2 recommendations)
         # cfg_scale: 3.0 typical (2.0-5.0 range)
