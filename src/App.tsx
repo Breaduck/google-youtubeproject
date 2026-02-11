@@ -1037,8 +1037,9 @@ const App: React.FC = () => {
       const videoBlob = await generateSceneVideo(
         scene.imageUrl,
         scene.imagePrompt,
-        scene.scriptSegment, // Pass dialogue for motion generation
-        characterDesc
+        scene.scriptSegment,
+        characterDesc,
+        project.characters.length > 1,
       );
 
       const videoUrl = URL.createObjectURL(videoBlob);
@@ -1099,7 +1100,8 @@ const App: React.FC = () => {
             scene.imageUrl!,
             scene.imagePrompt,
             scene.scriptSegment,
-            characterDesc
+            characterDesc,
+            project.characters.length > 1,
           );
 
           const videoUrl = URL.createObjectURL(videoBlob);
@@ -1201,7 +1203,8 @@ const App: React.FC = () => {
           scene.imageUrl!,
           scene.imagePrompt,
           scene.scriptSegment,
-          characterDesc
+          characterDesc,
+          project.characters.length > 1,
         );
         console.log(`[DEBUG] Scene ${i + 1} - Video blob size:`, (videoBlob.size / 1024 / 1024).toFixed(2), 'MB');
         videoBlobs.push(videoBlob);
