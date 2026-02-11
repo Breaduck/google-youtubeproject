@@ -1,5 +1,4 @@
 // LTX Video Service
-import { GeminiService } from './geminiService';
 
 const MODAL_API = 'https://hiyoonsh1--ltx-video-service-distilled-1080p-web-app.modal.run';
 
@@ -29,14 +28,11 @@ export async function generateSceneVideo(
   console.log('[LTX] generateSceneVideo called');
   console.log('[LTX] Dialogue:', dialogue.substring(0, 50));
 
-  // Gemini 감정 분석 → 5단계 공식 모션 프롬프트 생성
-  console.log('[LTX] Generating emotion-based motion prompt via Gemini...');
-  const gemini = new GeminiService();
-  const motionDescription = await gemini.generateMotionPrompt(dialogue, imagePrompt);
-  console.log('[LTX] Gemini motion prompt:', motionDescription);
-
-  // 최종 프롬프트 = Gemini가 생성한 감정 기반 모션
-  const enhancedPrompt = motionDescription;
+  // Item 1+3: Hard-lock motion to "blink only" — deterministic, no Gemini free-form
+  // Whitelist: A="blink only" | B="blink + breathing" | C="blink + breathing + micro head <0.3°"
+  // Default = A (minimum motion, prevents artifacts)
+  const enhancedPrompt = 'blink only';
+  console.log('[LTX] Motion prompt (hardcoded):', enhancedPrompt);
 
   console.log('[LTX] Calling Modal API:', MODAL_API);
   console.log('[LTX] Final prompt:', enhancedPrompt.substring(0, 100));
