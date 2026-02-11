@@ -18,6 +18,7 @@ export async function generateSceneVideo(
   imagePrompt: string,
   dialogue: string,
   characterDescription: string = '',
+  multiFaceMode: boolean = false,
   // 테스트용 파라미터 (품질 실험)
   testParams?: {
     conditioning?: number;
@@ -38,11 +39,13 @@ export async function generateSceneVideo(
   console.log('[LTX] Final prompt:', enhancedPrompt.substring(0, 100));
   const startTime = Date.now();
 
+  console.log('[LTX] multi_face_mode:', multiFaceMode);
   const requestBody: any = {
     prompt: enhancedPrompt,
     image_url: imageUrl,
     character_description: characterDescription,
     num_frames: 97, // ~4 seconds @ 24fps
+    multi_face_mode: multiFaceMode,
   };
 
   // 테스트 파라미터 추가 (있으면)
