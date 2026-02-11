@@ -1,6 +1,7 @@
 import modal
 
-BUILD_VERSION = "1.2.0-fp8-vram-fix"
+BUILD_VERSION = "1.3.0-fp8-fallback-fix"
+GIT_COMMIT    = "COMMIT_HASH_PLACEHOLDER"  # replaced at deploy time
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
@@ -65,18 +66,18 @@ class VideoGenerator:
         from diffusers.pipelines.ltx2.export_utils import encode_video
 
         print("=" * 70)
-        print(f"LTX-2 DISTILLED TWO-STAGES  |  BUILD: {BUILD_VERSION}")
+        print(f"LTX-2 DISTILLED  |  BUILD: {BUILD_VERSION}  |  COMMIT: {GIT_COMMIT}")
         print("=" * 70)
 
         # Use official Distilled checkpoint
         model_id = "rootonchair/LTX-2-19b-distilled"
         cache_dir = "/models/ltx2-distilled-cache"
-        USE_FP8 = True  # FP8 fast path config flag
+        USE_FP8 = True  # FP8 optional fast path (not guaranteed to succeed on A10G)
 
         print(f"\n[1/4] Loading LTX-2 Distilled from {model_id}...")
-        print(f"  Build version: {BUILD_VERSION}")
-        print(f"  Cache directory: {cache_dir}")
-        print(f"  USE_FP8: {USE_FP8}")
+        print(f"  Build:  {BUILD_VERSION} @ {GIT_COMMIT}")
+        print(f"  Cache:  {cache_dir}")
+        print(f"  USE_FP8 (optional fast path): {USE_FP8}")
 
         # Load Image-to-Video Distilled pipeline
         # Get HF_TOKEN from Modal Secret (safe handling)
@@ -85,13 +86,28 @@ class VideoGenerator:
             raise ValueError("HF_TOKEN not found in Modal Secret 'huggingface-secret'")
         print(f"  HF_TOKEN: ✓ Loaded from Secret")
 
-        self.pipe = LTX2ImageToVideoPipeline.from_pretrained(
-            model_id,
-            torch_dtype=torch.bfloat16,
-            cache_dir=cache_dir,
-            token=hf_token,
-            low_cpu_mem_usage=True  # Load on CPU first, prevent GPU OOM
-        )
+        def _load_pipeline():
+            return LTX2ImageToVideoPipeline.from_pretrained(
+                model_id,
+                torch_dtype=torch.bfloat16,
+                cache_dir=cache_dir,
+                token=hf_token,
+                low_cpu_mem_usage=True,
+            )
+
+        try:
+            self.pipe = _load_pipeline()
+        except Exception as load_err:
+            print(f"  [LOAD FAILED] {type(load_err).__name__}: {str(load_err)[:200]}")
+            print(f"  [CACHE PURGE] Removing {cache_dir} and retrying...")
+            import shutil
+            if os.path.exists(cache_dir):
+                shutil.rmtree(cache_dir)
+                print(f"  [CACHE PURGE] Done. Retrying download...")
+            else:
+                print(f"  [CACHE PURGE] Cache dir not found, retry anyway.")
+            self.pipe = _load_pipeline()  # raises if still fails
+
         print("  [OK] Distilled Image-to-Video Pipeline loaded")
 
         # Save for dynamic Stage 2 loading
@@ -128,15 +144,15 @@ class VideoGenerator:
                 self.dtype_path = "FP8_QUANTIZED"
             except Exception as e:
                 print(f"  [FP8 FAILED] {type(e).__name__}: {str(e)[:120]}")
-                print(f"  [FALLBACK] enable_model_cpu_offload()")
-                self.pipe.enable_model_cpu_offload()
-                self.dtype_path = "BF16_CPU_OFFLOAD"
+                print(f"  [FALLBACK] enable_sequential_cpu_offload()")
+                self.pipe.enable_sequential_cpu_offload()
+                self.dtype_path = "BF16_SEQUENTIAL_OFFLOAD"
 
         else:
             # Default safe path for limited VRAM
-            print(f"  [VRAM < 40GB, FP8 off] enable_model_cpu_offload()")
-            self.pipe.enable_model_cpu_offload()
-            self.dtype_path = "BF16_CPU_OFFLOAD"
+            print(f"  [VRAM < 40GB, FP8 off] enable_sequential_cpu_offload()")
+            self.pipe.enable_sequential_cpu_offload()
+            self.dtype_path = "BF16_SEQUENTIAL_OFFLOAD"
 
         print(f"  [DTYPE PATH] {self.dtype_path}")
 
