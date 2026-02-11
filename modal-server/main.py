@@ -516,6 +516,23 @@ class VideoGenerator:
                     negative_prompt += f", {term}"
             print(f"[SAFETY] Added {len(removed_text)} text artifact terms to negative prompt")
 
+        # C) Post-filter enforcement: if any text token survives → full fallback
+        TEXT_BLACKLIST = [
+            'text','caption','captions','subtitle','subtitles','letters','lettering',
+            'typography','logo','watermark','sign','signage','label','poster','banner',
+            'ui','hud','credits','title','quote','speech bubble','comic text','overlay',
+            'inscription','writing','written','glyph','scribble',
+        ]
+        surviving = [t for t in TEXT_BLACKLIST if re.search(rf'\b{re.escape(t)}\b', enhanced_prompt, re.IGNORECASE)]
+        if surviving:
+            print(f"  [FALLBACK TRIGGERED] Surviving text tokens: {surviving}")
+            enhanced_prompt = (
+                "Static locked camera. Single subject only. Clean background. "
+                "No text anywhere in the frame. No captions. No subtitles. "
+                "No letters. No symbols. No signage. No watermark. Blink only."
+            )
+            print(f"  [FALLBACK] Positive replaced with safe fallback.")
+
         # Debug: log final prompt + negative_prompt sent to LTX
         print(f"\n[FINAL PROMPT DEBUG]")
         print(f"  POSITIVE ({len(enhanced_prompt)} chars): {enhanced_prompt}")
