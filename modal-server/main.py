@@ -261,13 +261,17 @@ class VideoGenerator:
             'discussing', 'with friend', 'with someone', 'together', 'gathering'
         ]
 
-        # Camera motion keywords to remove (causes instability + reframing)
+        # Camera motion + shot-type keywords to remove (Layer 2 camera lock)
         camera_keywords = [
             'zoom', 'pan', 'dolly', 'track', 'cinematic', 'camera movement',
             'zoom-in', 'zoom-out', 'zoom in', 'zoom out', 'close-up', 'closeup',
             'pan left', 'pan right', 'panning', 'tracking shot', 'tilt',
             'camera motion', 'camera zoom', 'moving camera', 'reframing',
-            'cut', 'transition', 'shot change'
+            'cut', 'transition', 'shot change',
+            # Layer 2 additions (hard requirement)
+            'handheld', 'shaky', 'push in', 'pull out', 'push-in', 'pull-out',
+            'rotation', 'reframe', 'wide shot', 'medium shot', 'long shot',
+            'full shot', 'establishing shot', 'extreme close-up', 'close up',
         ]
 
         # Speech/lip keywords to detect and remove
@@ -345,13 +349,14 @@ class VideoGenerator:
             filtered_prompt = re.sub(rf'\b{word}\w*\b', '', filtered_prompt, flags=re.IGNORECASE)
         filtered_prompt = re.sub(r'\s+', ' ', filtered_prompt).strip()
 
-        composition_lock = "Use EXACT reference composition. Static locked camera, fixed framing, no zoom/pan/tilt."
+        # Layer 1: Camera lock prefix (ALWAYS prepended - hard requirement)
+        CAMERA_LOCK_PREFIX = "Static locked camera, fixed framing, tripod shot. No camera movement. No zoom. No pan. No tilt. No dolly. No tracking. No reframing."
         object_lock = "No new objects, no added props, no added particles, no added text."
         motion_lock = "Still image, frozen pose, blink only. Body/shoulders/arms/hands frozen. Mouth closed."
         color_preserve = "Preserve original colors and contrast: same saturation, same brightness, same white balance as the reference image."
         lighting_guide = "Neutral natural lighting (avoid stylized grading)."
         ambient_guide = "Ambience only (wind or room tone)."
-        enhanced_prompt = f"{filtered_prompt} {composition_lock} {object_lock} {motion_lock} {color_preserve} {lighting_guide} {ambient_guide}"
+        enhanced_prompt = f"{CAMERA_LOCK_PREFIX} {filtered_prompt} {object_lock} {motion_lock} {color_preserve} {lighting_guide} {ambient_guide}"
 
         # Log removed terms
         if removed_social:
@@ -372,8 +377,8 @@ class VideoGenerator:
         print(f"  Filtered: {enhanced_prompt[:250]}...")
         print(f"{'='*60}")
 
-        # Negative prompt: anti-motion + anti-camera + anti-new-objects
-        negative_prompt = "any motion, head movement, body movement, gestures, micro-nod, head bobbing, body sway, breathing motion, exaggerated motion, dynamic motion, new object, new prop, added item, extra person, second character, salt, crystals, tools, warehouse, workshop, factory, dust, particles, text, watermark, strong movement, waving, walking, hand/arm/finger movement, camera movement, zoom, pan, tilt, dolly, tracking, reframing, cinematic, speaking, talking, lip sync, open mouth, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
+        # Negative prompt: anti-motion + anti-camera (Layer 1 negative, hard requirement)
+        negative_prompt = "camera movement, zoom in, zoom out, pan, tilt, dolly, tracking, handheld, shaky, cinematic, reframe, push-in, pull-out, rotation, wide shot, medium shot, any motion, head movement, body movement, gestures, micro-nod, head bobbing, body sway, breathing motion, exaggerated motion, dynamic motion, new object, new prop, added item, extra person, second character, salt, crystals, tools, warehouse, workshop, factory, dust, particles, text, watermark, strong movement, waving, walking, hand/arm/finger movement, speaking, talking, lip sync, open mouth, other people, crowd, morphing, warping, distortion, wobbling, melting, face collapse, global motion, jelly effect, unstable, deformed face, displaced features, changing appearance, plastic skin, cartoonish, low quality, blurry, artificial, fake, synthetic"
 
         # Strengthen negative prompt with detected social/interaction terms (from safety filter)
         if 'removed_social' in locals() and removed_social:

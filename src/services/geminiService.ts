@@ -1,6 +1,26 @@
 import { GoogleGenAI } from "@google/genai";
 import { CharacterProfile, StoryProject, VisualStyle, Scene, SceneEffect } from "../types";
 
+// Layer 2: Client-side camera/shot-type token strip
+const CAMERA_STRIP_TERMS = [
+  'cinematic', 'zoom', 'pan', 'tilt', 'dolly', 'tracking', 'reframe', 'reframing',
+  'push in', 'pull out', 'push-in', 'pull-out', 'handheld', 'shaky',
+  'camera movement', 'close-up', 'closeup', 'wide shot', 'medium shot', 'long shot',
+  'full shot', 'establishing shot', 'extreme close-up', 'zoom in', 'zoom out',
+  'panning', 'close up',
+];
+
+function stripCameraTerms(text: string): string {
+  let result = text;
+  for (const term of CAMERA_STRIP_TERMS) {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(escaped, 'gi'), '');
+  }
+  result = result.replace(/\s{2,}/g, ' ').replace(/,\s*,+/g, ',').trim();
+  if (result.length > 0 && result.startsWith(',')) result = result.slice(1).trim();
+  return result;
+}
+
 export class GeminiService {
   private getApiKey(): string {
     return localStorage.getItem('gemini_api_key') || '';
@@ -82,7 +102,7 @@ Return ONLY valid JSON, no markdown or explanation.`;
     if (isPortrait) {
       enhancedPrompt = `Portrait shot, centered composition, square 1:1 aspect ratio, ${prompt}, high quality, detailed, professional lighting`;
     } else {
-      enhancedPrompt = `Widescreen 16:9 aspect ratio, ${prompt}, cinematic composition, high quality, detailed, professional lighting`;
+      enhancedPrompt = `Widescreen 16:9 aspect ratio, ${stripCameraTerms(prompt)}, static locked framing, high quality, detailed, professional lighting`;
     }
 
     // Check if using Imagen models
@@ -226,8 +246,8 @@ ${chunks.map((chunk, i) => `[${i + 1}] ${chunk}`).join('\n\n')}
 
 For EACH numbered segment, provide:
 1. "segment_number": The segment number (1 to ${chunks.length})
-2. "imagePrompt": A detailed English prompt for image generation including scene composition, character positions, background, lighting, mood
-3. "effect_type": One of "3d_parallax", "zoom_in_slow", "zoom_in_fast", "zoom_out_slow", "pan_left", "pan_right", "static_subtle"
+2. "imagePrompt": A detailed English prompt describing subject, background, lighting, and mood. NEVER mention shot types (no close-up/medium shot/wide shot/long shot). NEVER mention camera movement (no zoom/pan/tilt/dolly/tracking/cinematic/handheld).
+3. "effect_type": Always use "static_subtle" (no camera movement allowed)
 4. "intensity": 1-10 emotional intensity
 
 IMPORTANT: You MUST generate exactly ${chunks.length} scene objects, one for each segment number.
@@ -257,14 +277,14 @@ Return ONLY valid JSON array, no markdown.`;
     return chunks.map((chunk, index) => {
       const segNum = index + 1;
       const aiScene = sceneMap.get(segNum) || {};
-      const effectType = aiScene.effect_type || aiScene.effectType || '3d_parallax';
+      const effectType = 'static_subtle'; // Layer 3: always static, ignore Gemini suggestion
       const intensity = aiScene.intensity || 5;
       const motionParams = this.generateMotionParams(effectType, intensity);
 
       return {
         id: crypto.randomUUID(),
         scriptSegment: chunk,
-        imagePrompt: aiScene.imagePrompt || `Scene depicting: ${chunk.substring(0, 100)}`,
+        imagePrompt: stripCameraTerms(aiScene.imagePrompt || `Scene depicting: ${chunk.substring(0, 100)}`),
         imageUrl: null,
         audioUrl: null,
         videoUrl: null,
@@ -347,7 +367,7 @@ Return ONLY the new prompt text, no explanation or markdown.`;
       contents: prompt
     });
 
-    return response.text || currentPrompt;
+    return stripCameraTerms(response.text || currentPrompt);
   }
 
   async generateGoogleTTS(text: string, voice: string, apiKey?: string): Promise<string> {
