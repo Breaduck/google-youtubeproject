@@ -1,7 +1,7 @@
 import modal
 
 BUILD_VERSION = "1.5.0-hard-text-ban"
-GIT_COMMIT    = "pending"
+GIT_COMMIT    = "feb44cf"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
