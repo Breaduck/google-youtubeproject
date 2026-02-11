@@ -135,7 +135,10 @@ class VideoGenerator:
             # FP8 fast path: quantize transformer → ~19GB → fits A10G (22GB)
             print(f"  [FP8 fast path] Attempting torchao FP8 quantization...")
             try:
-                from torchao.quantization import quantize_, float8_weight_only
+                try:
+                    from torchao.quantization import quantize_, float8_weight_only
+                except ImportError:
+                    from torchao.quantization.quant_api import quantize_, float8_weight_only
                 quantize_(self.pipe.transformer, float8_weight_only())
                 self.pipe.to("cuda")
                 vram_after = torch.cuda.memory_allocated() / 1024**3
@@ -541,14 +544,11 @@ class VideoGenerator:
 
             stage1_start = time.time()  # Precise timing
 
-            # Maximum image anchoring (freeze motion + preserve identity)
-            # Format: [(image, frame_index, strength)]
-            image_conditioning = [(reference_image, 0, 0.999)]  # Item 3: max anchor
-
             # Force bf16 computation (critical for performance)
             with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
                 result = self.pipe(
-                    images=image_conditioning,  # Strong anchor
+                    image=reference_image,       # I2V conditioning image
+                    image_cond_noise_scale=0.05, # low = strong anchor (official default 0.15)
                     prompt=enhanced_prompt,
                     negative_prompt=negative_prompt,
                     width=target_width,
@@ -711,7 +711,8 @@ class VideoGenerator:
 
                 # Refinement pass using upscaled latent as initialization
                 result = self.pipe(
-                    images=image_conditioning,  # Strong anchor
+                    image=reference_image,
+                    image_cond_noise_scale=0.05,
                     prompt=enhanced_prompt,
                     negative_prompt=negative_prompt,
                     width=target_width * 2,  # Full resolution
