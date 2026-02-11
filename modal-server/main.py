@@ -1,7 +1,7 @@
 import modal
 
-BUILD_VERSION = "1.3.3-text-ban"
-GIT_COMMIT    = "7fdfc30"
+BUILD_VERSION = "1.3.4-no-text-ever"
+GIT_COMMIT    = "2cd07e8"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
