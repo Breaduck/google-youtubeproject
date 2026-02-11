@@ -22,6 +22,7 @@
 - **Cloudflare Pages:** `https://google-youtubeproject.pages.dev`
 - **Sync Rule:** 유의미한 코드 수정이나 최적화 작업이 끝나면, 작업 내역을 요약하여 위 레포지토리로 반드시 `git push` 할 것.
 - **Auto Deploy:** GitHub push → Cloudflare Pages 자동 배포 (1-2분)
+- **Modal Deploy 필수:** `modal-server/main.py` 수정 시 git push와 동시에 반드시 `python -m modal deploy modal-server/main.py` 실행할 것. (deploy.ps1 사용: `powershell -ExecutionPolicy Bypass -File modal-server/deploy.ps1`)
 - **Structure:** 로컬 `video-saas` 폴더의 작업물을 레포지토리 구조에 맞춰 일관성 있게 관리할 것.
 
 AI Self-Reflection & Auto-Fix Protocol
