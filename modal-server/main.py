@@ -1,5 +1,7 @@
 import modal
 
+BUILD_VERSION = "1.2.0-fp8-vram-fix"
+
 # 1. Image setup (Modal Official Example Standard)
 image = (
     modal.Image.debian_slim()
@@ -19,10 +21,11 @@ image = (
         "fastapi[standard]",
         "av",
         "opencv-python-headless",
-        "opencv-contrib-python-headless",  # OpenCV DNN Super Resolution
+        "opencv-contrib-python-headless",
         "imageio",
         "imageio-ffmpeg",
-        "numpy"
+        "numpy",
+        "torchao",  # FP8 quantization fast path
     )
     .run_commands(
         "pip install git+https://github.com/huggingface/diffusers.git"
@@ -62,17 +65,18 @@ class VideoGenerator:
         from diffusers.pipelines.ltx2.export_utils import encode_video
 
         print("=" * 70)
-        print("LTX-2 DISTILLED TWO-STAGES (OFFICIAL)")
+        print(f"LTX-2 DISTILLED TWO-STAGES  |  BUILD: {BUILD_VERSION}")
         print("=" * 70)
 
         # Use official Distilled checkpoint
         model_id = "rootonchair/LTX-2-19b-distilled"
         cache_dir = "/models/ltx2-distilled-cache"
+        USE_FP8 = True  # FP8 fast path config flag
 
         print(f"\n[1/4] Loading LTX-2 Distilled from {model_id}...")
-        print(f"  Precision: bfloat16")
+        print(f"  Build version: {BUILD_VERSION}")
         print(f"  Cache directory: {cache_dir}")
-        print(f"  Note: Distilled = 8 steps Stage 1, no LoRA")
+        print(f"  USE_FP8: {USE_FP8}")
 
         # Load Image-to-Video Distilled pipeline
         # Get HF_TOKEN from Modal Secret (safe handling)
@@ -101,14 +105,40 @@ class VideoGenerator:
 
         print("[3/4] Applying memory optimizations...")
 
-        # Conditional CPU offload: only if VRAM < 20GB (A10G has 24GB)
         vram_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
-        if vram_total < 20:
-            print(f"  - Sequential CPU offload (low VRAM: {vram_total:.1f}GB)...")
-            self.pipe.enable_sequential_cpu_offload()
-        else:
-            print(f"  - GPU direct (VRAM: {vram_total:.1f}GB, no offload)...")
+        print(f"  GPU VRAM total: {vram_total:.1f} GB")
+        self.dtype_path = "UNKNOWN"
+
+        if vram_total >= 40:
+            # Large VRAM (A100/H100): full CUDA, no offload
+            print(f"  [VRAM >= 40GB] pipe.to('cuda') direct")
             self.pipe.to("cuda")
+            self.dtype_path = "BF16_FULL_CUDA"
+
+        elif USE_FP8:
+            # FP8 fast path: quantize transformer → ~19GB → fits A10G (22GB)
+            print(f"  [FP8 fast path] Attempting torchao FP8 quantization...")
+            try:
+                from torchao.quantization import quantize_, float8_weight_only
+                quantize_(self.pipe.transformer, float8_weight_only())
+                self.pipe.to("cuda")
+                vram_after = torch.cuda.memory_allocated() / 1024**3
+                print(f"  [FP8 OK] pipe.to('cuda') after quantization")
+                print(f"  [FP8 OK] VRAM used: {vram_after:.2f} GB / {vram_total:.1f} GB")
+                self.dtype_path = "FP8_QUANTIZED"
+            except Exception as e:
+                print(f"  [FP8 FAILED] {type(e).__name__}: {str(e)[:120]}")
+                print(f"  [FALLBACK] enable_model_cpu_offload()")
+                self.pipe.enable_model_cpu_offload()
+                self.dtype_path = "BF16_CPU_OFFLOAD"
+
+        else:
+            # Default safe path for limited VRAM
+            print(f"  [VRAM < 40GB, FP8 off] enable_model_cpu_offload()")
+            self.pipe.enable_model_cpu_offload()
+            self.dtype_path = "BF16_CPU_OFFLOAD"
+
+        print(f"  [DTYPE PATH] {self.dtype_path}")
 
         print("  - VAE tiling...")
         self.pipe.vae.enable_tiling()
