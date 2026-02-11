@@ -1,7 +1,7 @@
 import modal
 
-BUILD_VERSION = "1.6.0-cfg-1.5"
-GIT_COMMIT    = "e8529a4"
+BUILD_VERSION = "1.7.0-cfg-1.25"
+GIT_COMMIT    = "pending"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
@@ -574,7 +574,7 @@ class VideoGenerator:
         # distilled_lora: 0.6-0.8 strength
 
         # 기본값 (공식 Distilled 권장) - MUST BE DEFINED FIRST!
-        DEFAULT_GUIDANCE_STAGE1 = 1.5   # CFG 1.5: activates negative prompt without artifacts
+        DEFAULT_GUIDANCE_STAGE1 = 1.25  # CFG 1.25: minimal negative activation, preserves face fidelity
         DEFAULT_GUIDANCE_RESCALE = 0.5  # guidance_rescale (supported per API VERIFY signature)
         DEFAULT_STEPS_STAGE1 = 8        # Distilled Stage 1 (8 steps)
         DEFAULT_GUIDANCE_STAGE2 = 1.0   # Stage 2b guidance
@@ -650,13 +650,19 @@ class VideoGenerator:
 
                 stage1_start = time.time()
 
-                # ── Pre-call debug log (req #3) ──
+                # ── Pre-call debug: image conditioning + params ──
                 print(f"\n[PRE-CALL DEBUG]")
                 print(f"  Pipeline: {type(self.pipe).__name__}")
                 print(f"  guidance_scale:   {final_guidance_stage1}")
                 print(f"  guidance_rescale: {DEFAULT_GUIDANCE_RESCALE}")
                 print(f"  noise_scale:      0.0 (unchanged)")
                 print(f"  NEGATIVE (first 200 chars): {negative_prompt[:200]}")
+                # Image conditioning verification
+                _img_arr = np.array(reference_image).astype(np.float32)
+                print(f"  [COND IMAGE] type={type(reference_image).__name__}, size={reference_image.size}, mode={reference_image.mode}")
+                print(f"  [COND IMAGE] dtype=float32(after cast), range=[{_img_arr.min():.1f},{_img_arr.max():.1f}], mean={_img_arr.mean():.2f}, std={_img_arr.std():.2f}")
+                reference_image.save("/tmp/cond_input.png")
+                print(f"  [COND IMAGE] Saved to /tmp/cond_input.png for verification")
 
                 with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
                     _result = self.pipe(
@@ -956,6 +962,23 @@ class VideoGenerator:
             print(f"[CROP] 1920x1088 → 1920x1080 (8px cropped from bottom)")
         else:
             print(f"[CROP] Skipped (decoded: {decoded_w}x{decoded_h}, expected 1920x1088)")
+
+        # ── Frame0 similarity guard (D) ──
+        _THUMB = 256  # resize to 256px max for fast L1
+        from PIL import Image as _PILImage
+        _ref_thumb = np.array(reference_image.resize((_THUMB, _THUMB), _PILImage.LANCZOS)).astype(np.float32) / 255.0
+        _frame0_full = video_frames[0, 0]  # (H, W, C) in [0,1]
+        _f0h, _f0w = _frame0_full.shape[:2]
+        _f0_pil = _PILImage.fromarray((_frame0_full * 255).clip(0, 255).astype(np.uint8)).resize((_THUMB, _THUMB), _PILImage.LANCZOS)
+        _frame0_thumb = np.array(_f0_pil).astype(np.float32) / 255.0
+        _l1 = float(np.abs(_ref_thumb - _frame0_thumb).mean())
+        _SIM_FAIL_THRESH = 0.20  # >20% avg per-pixel drift = identity lost
+        print(f"\n[FRAME0 SIMILARITY] L1={_l1:.4f} (threshold {_SIM_FAIL_THRESH})")
+        if _l1 > _SIM_FAIL_THRESH:
+            print(f"  [!] DRIFT DETECTED — face/scene diverged from input image")
+            print(f"  [!] Consider reducing guidance_scale or checking input image quality")
+        else:
+            print(f"  [OK] Frame0 matches input (within threshold)")
 
         # ============================================================
         # Item 4: Per-channel color transfer (eliminate color drift)
