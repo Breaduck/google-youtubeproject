@@ -1,7 +1,7 @@
 import modal
 
-BUILD_VERSION = "1.3.4-no-text-ever"
-GIT_COMMIT    = "2cd07e8"
+BUILD_VERSION = "1.4.0-5point-fix"
+GIT_COMMIT    = "pending"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
@@ -110,6 +110,16 @@ class VideoGenerator:
 
         print("  [OK] Distilled Image-to-Video Pipeline loaded")
 
+        # 0) API Signature Verification (must run once to confirm params)
+        import inspect
+        print(f"\n[API VERIFY] type(self.pipe) = {type(self.pipe)}")
+        try:
+            sig = str(inspect.signature(self.pipe.__call__))
+            print(f"[API VERIFY] __call__ signature (first 600 chars):")
+            print(f"  {sig[:600]}")
+        except Exception as sig_e:
+            print(f"[API VERIFY] signature error: {sig_e}")
+
         # Save for dynamic Stage 2 loading
         self.model_id = model_id
         self.cache_dir = cache_dir
@@ -188,17 +198,17 @@ class VideoGenerator:
         print("    - 3-Stage architecture (official)")
         print("    - Sequential CPU offload")
         print("  [Stage 1 - Latent Generation]:")
-        print("    - Resolution: 768x512")
+        print("    - Resolution: 960x544")
         print("    - Steps: 8")
         print("    - Guidance: 1.0")
         print("    - Sigmas: DISTILLED_SIGMA_VALUES")
         print("    - Output: latent")
         print("  [Stage 2a - Latent Upsample]:")
-        print("    - 2x upsample: 768x512 → 1536x1024")
+        print("    - 2x upsample: 960x544 → 1920x1088 → crop → 1920x1080")
         print("    - Latent-to-latent (no VAE)")
-        print("  [Stage 2b - Refinement (NEW)]:")
+        print("  [Stage 2b - Refinement (OFF by default)]:")
         print(f"    - Steps: {len(self.stage2_sigmas)} (official 4-step schedule)")
-        print("    - Guidance: 1.8")
+        print("    - Guidance: 1.0")
         print("    - Sigmas: STAGE_2_DISTILLED_SIGMA_VALUES (official)")
         print("    - Input: upscaled latent")
         print("  [VAE Decode]:")
@@ -260,13 +270,12 @@ class VideoGenerator:
         img_width, img_height = reference_image.size
         print(f"[PREPROCESSING] Full-frame input: {img_width}x{img_height} (no crop, original composition)")
 
-        # OFFICIAL: 512p (768x512) Stage 1 → 2x upscale → 1024p (1536x1024)
-        # For 1080p target: 512p → 2x → 1024p → crop to 1080p
-        target_width = 768    # Official recommended
-        target_height = 512   # Official recommended
+        # 960x544 Stage 1 → 2x upsample → 1920x1088 → crop 8px → 1920x1080
+        target_width = 960    # multiples of 32
+        target_height = 544   # multiples of 32
 
-        print(f"[PREPROCESSING] Target resolution: {target_width}x{target_height} (512p, official)")
-        print(f"[PREPROCESSING] Stage 1 (512p) → Stage 2 Upsample (2x) → 1024p → Crop to 1080p")
+        print(f"[PREPROCESSING] Target resolution: {target_width}x{target_height}")
+        print(f"[PREPROCESSING] Stage 1 ({target_width}x{target_height}) → Stage 2a 2x → {target_width*2}x{target_height*2} → crop 8px → 1920x1080")
 
         # Center crop and resize for best quality
         img_width, img_height = reference_image.size
@@ -547,7 +556,7 @@ class VideoGenerator:
         # 기본값 (공식 Distilled 권장) - MUST BE DEFINED FIRST!
         DEFAULT_GUIDANCE_STAGE1 = 1.0   # Distilled Stage 1 guidance (1.0)
         DEFAULT_STEPS_STAGE1 = 8        # Distilled Stage 1 (8 steps)
-        DEFAULT_GUIDANCE_STAGE2 = 1.8   # Stage 2b refine guidance (1.8-2.2 range)
+        DEFAULT_GUIDANCE_STAGE2 = 1.0   # Stage 2b guidance (distilled official: 1.0)
         DEFAULT_STEPS_STAGE2 = len(self.stage2_sigmas)  # Auto-detect from sigma values
 
         final_guidance_stage1 = test_guidance if test_guidance is not None else DEFAULT_GUIDANCE_STAGE1
@@ -577,10 +586,17 @@ class VideoGenerator:
         print(f"\n[STARTING 3-STAGE GENERATION (Official Distilled Pattern)]...")
 
         import time
+        import random as _random
         gen_start = time.time()
 
+        MAX_RETRIES = 2  # Total attempts = 1 + MAX_RETRIES
+
+        def _new_seed():
+            return _random.randint(0, 2**32 - 1)
+
         # ============================================================
-        # STAGE 1: I2V generation at 768x512 → output as LATENT (official distilled)
+        # STAGE 1: I2V generation at 960x544 → output as LATENT
+        # Retry up to MAX_RETRIES times with new seed on failure
         # ============================================================
         try:
             print(f"\n{'='*60}")
@@ -602,28 +618,37 @@ class VideoGenerator:
             vram_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
             print(f"  VRAM before: {vram_before:.2f} GiB / {vram_total:.2f} GiB total")
 
-            generator = torch.Generator(device="cuda").manual_seed(42)
             frame_rate = 24.0
+            video_latent = None
+            audio_latent = None
 
-            stage1_start = time.time()  # Precise timing
+            for attempt in range(1 + MAX_RETRIES):
+                seed = _new_seed()
+                generator = torch.Generator(device="cuda").manual_seed(seed)
+                print(f"  [SEED] Attempt {attempt+1}/{1+MAX_RETRIES}, seed: {seed}")
 
-            # Force bf16 computation (critical for performance)
-            with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
-                result = self.pipe(
-                    image=reference_image,
-                    prompt=enhanced_prompt,
-                    negative_prompt=negative_prompt,
-                    width=target_width,
-                    height=target_height,
-                    num_frames=num_frames,
-                    frame_rate=frame_rate,
-                    num_inference_steps=final_steps_stage1,
-                    sigmas=self.stage1_sigmas,
-                    guidance_scale=final_guidance_stage1,
-                    generator=generator,
-                    output_type="latent",   # LATENT output for Stage 2a upsample
-                    return_dict=False,
-                )
+                stage1_start = time.time()
+
+                with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
+                    _result = self.pipe(
+                        image=reference_image,
+                        prompt=enhanced_prompt,
+                        negative_prompt=negative_prompt,
+                        width=target_width,
+                        height=target_height,
+                        num_frames=num_frames,
+                        frame_rate=frame_rate,
+                        num_inference_steps=final_steps_stage1,
+                        sigmas=self.stage1_sigmas,
+                        guidance_scale=final_guidance_stage1,
+                        generator=generator,
+                        output_type="latent",
+                        return_dict=False,
+                    )
+
+                # Accept result (retry on exception only)
+                result = _result
+                break  # Success — no retry needed
 
             stage1_time = time.time() - stage1_start  # Precise timing
 
@@ -678,7 +703,7 @@ class VideoGenerator:
 
         except Exception as e:
             stage1_time = time.time() - gen_start
-            print(f"\n[ERROR] STAGE 1 FAILED: {str(e)[:200]}")
+            print(f"\n[ERROR] STAGE 1 FAILED (all {1+MAX_RETRIES} attempts): {str(e)[:200]}")
             import traceback
             traceback.print_exc()
             raise Exception(f"Stage 1 failed after {stage1_time:.1f}s: {str(e)[:100]}")
@@ -774,7 +799,6 @@ class VideoGenerator:
                 # Refinement pass using upscaled latent as initialization
                 result = self.pipe(
                     image=reference_image,
-                    image_cond_noise_scale=0.05,
                     prompt=enhanced_prompt,
                     negative_prompt=negative_prompt,
                     width=target_width * 2,  # Full resolution
@@ -893,6 +917,15 @@ class VideoGenerator:
 
         # Rearrange dimensions: (B, C, F, H, W) → (B, F, H, W, C)
         video_frames = video_frames.permute(0, 2, 3, 4, 1).cpu().float().numpy()
+
+        # Crop 1920x1088 → 1920x1080 (remove 8px from bottom)
+        decoded_h = video_frames.shape[2]
+        decoded_w = video_frames.shape[3]
+        if decoded_h == 1088 and decoded_w == 1920:
+            video_frames = video_frames[:, :, :1080, :, :]
+            print(f"[CROP] 1920x1088 → 1920x1080 (8px cropped from bottom)")
+        else:
+            print(f"[CROP] Skipped (decoded: {decoded_w}x{decoded_h}, expected 1920x1088)")
 
         # ============================================================
         # Item 4: Per-channel color transfer (eliminate color drift)
