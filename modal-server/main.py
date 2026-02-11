@@ -1,7 +1,7 @@
 import modal
 
-BUILD_VERSION = "1.3.0-fp8-fallback-fix"
-GIT_COMMIT    = "7f1b4b0"
+BUILD_VERSION = "1.3.1-api-fix"
+GIT_COMMIT    = "7de5b2e"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
