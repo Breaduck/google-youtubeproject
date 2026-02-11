@@ -1,7 +1,7 @@
 import modal
 
 BUILD_VERSION = "1.4.0-5point-fix"
-GIT_COMMIT    = "pending"
+GIT_COMMIT    = "9e0e17a"
 
 # 1. Image setup (Modal Official Example Standard)
 image = (
