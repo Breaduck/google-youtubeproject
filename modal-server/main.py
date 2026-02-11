@@ -179,6 +179,18 @@ class VideoGenerator:
         print(f"\n{'='*60}")
         print(f"[IMAGE-TO-VIDEO] Starting generation")
         print(f"{'='*60}")
+
+        # Item 1: Server-side whitelist enforcement (safety net)
+        MOTION_WHITELIST = ['blink only', 'blink + breathing', 'blink + breathing + micro head <0.3°']
+        prompt_lower = prompt.strip().lower()
+        matched_template = next((t for t in MOTION_WHITELIST if t.lower() in prompt_lower), None)
+        if matched_template:
+            prompt = matched_template
+            print(f"[WHITELIST] Matched: '{prompt}'")
+        else:
+            print(f"[WHITELIST] Unknown prompt '{prompt[:50]}' → forced 'blink only'")
+            prompt = 'blink only'
+
         print(f"User prompt: {prompt[:100]}...")
 
         # Handle both HTTP URLs and base64 data URLs
@@ -485,7 +497,7 @@ class VideoGenerator:
 
             # Maximum image anchoring (freeze motion + preserve identity)
             # Format: [(image, frame_index, strength)]
-            image_conditioning = [(reference_image, 0, 0.99)]
+            image_conditioning = [(reference_image, 0, 0.999)]  # Item 3: max anchor
 
             # Force bf16 computation (critical for performance)
             with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
@@ -774,6 +786,26 @@ class VideoGenerator:
         video_frames = video_frames.permute(0, 2, 3, 4, 1).cpu().float().numpy()
 
         # ============================================================
+        # Item 4: Per-channel color transfer (eliminate color drift)
+        # Match each output frame's RGB mean/std to reference image stats
+        # ============================================================
+        ref_np = np.array(reference_image).astype(np.float32)  # HxWxC [0,255]
+        video_float = video_frames * 255.0  # [0,1] → [0,255]
+        ref_means = [ref_np[:, :, c].mean() for c in range(3)]
+        ref_stds  = [ref_np[:, :, c].std() + 1e-6 for c in range(3)]
+        out_means = [video_float[:, :, :, :, c].mean() for c in range(3)]
+        out_stds  = [video_float[:, :, :, :, c].std() + 1e-6 for c in range(3)]
+        print(f"\n[COLOR TRANSFER]")
+        for c, ch in enumerate(['R', 'G', 'B']):
+            video_float[:, :, :, :, c] = (
+                (video_float[:, :, :, :, c] - out_means[c]) / out_stds[c]
+                * ref_stds[c] + ref_means[c]
+            )
+            print(f"  {ch}: out({out_means[c]:.1f}±{out_stds[c]:.1f}) → ref({ref_means[c]:.1f}±{ref_stds[c]:.1f})")
+        video_frames = np.clip(video_float / 255.0, 0.0, 1.0).astype(np.float32)
+        print(f"  [OK] Color stats matched to reference image")
+
+        # ============================================================
         # ENCODE TO MP4 (공식 패턴: numpy → uint8 → encode_video)
         # ============================================================
         print(f"\n{'='*60}")
@@ -837,18 +869,10 @@ class VideoGenerator:
         )
         print(f"  [OK] Video encoded (temp): {temp_output}")
 
-        # CRITICAL: Neutral color (no range compression, no EQ)
-        # Force yuv420p + bt709 metadata only
+        # Format + BT.709 metadata only (color drift fixed via color transfer above)
         import subprocess
-        print(f"  [COLOR FIX] Neutral baseline: yuv420p + bt709 metadata only")
-        if tone_fix:
-            print(f"  [TONE ADJUSTMENT] gamma=1.00 (neutral)")
-
-        # Neutral pipeline: format + metadata only (no range conversion, no EQ)
+        print(f"  [ENCODE] yuv420p + bt709 (color drift corrected by RGB transfer)")
         vf_chain = "format=yuv420p"
-        if tone_fix:
-            # Optional neutral gamma adjustment
-            vf_chain += ",eq=gamma=1.00"
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
