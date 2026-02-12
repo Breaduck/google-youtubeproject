@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom';
 import { GoogleGenAI } from "@google/genai";
 import { GeminiService } from './services/geminiService';
-import { generateSceneVideo, generateBatchVideos } from './services/videoService';
+import { generateSceneVideo, generateBatchVideos, VideoEngine } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect } from './types';
 
 // 특징(태그) 한국어 번역 맵 (확장됨)
@@ -18,6 +18,7 @@ const TAG_MAP: Record<string, string> = {
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>('dashboard');
+  const [videoEngine, setVideoEngine] = useState<VideoEngine>('diffusers'); // exp: 'official'
   const [projects, setProjects] = useState<StoryProject[]>(() => {
     try {
       const stored = localStorage.getItem('user_projects_v1');
@@ -1040,6 +1041,8 @@ const App: React.FC = () => {
         scene.scriptSegment,
         characterDesc,
         project.characters.length > 1,
+        undefined,
+        videoEngine,
       );
 
       const videoUrl = URL.createObjectURL(videoBlob);
@@ -1102,6 +1105,8 @@ const App: React.FC = () => {
             scene.scriptSegment,
             characterDesc,
             project.characters.length > 1,
+            undefined,
+            videoEngine,
           );
 
           const videoUrl = URL.createObjectURL(videoBlob);
@@ -1205,6 +1210,8 @@ const App: React.FC = () => {
           scene.scriptSegment,
           characterDesc,
           project.characters.length > 1,
+          undefined,
+          videoEngine,
         );
         console.log(`[DEBUG] Scene ${i + 1} - Video blob size:`, (videoBlob.size / 1024 / 1024).toFixed(2), 'MB');
         videoBlobs.push(videoBlob);
@@ -1678,6 +1685,24 @@ Generate a detailed English prompt for image generation including scene composit
                 </div>
               ) : (
               <>
+              {/* [EXP] 엔진 토글 */}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3 mb-4 flex items-center gap-4">
+                <span className="text-amber-700 text-sm font-semibold">🧪 실험 모드</span>
+                <button
+                  onClick={() => setVideoEngine(e => e === 'diffusers' ? 'official' : 'diffusers')}
+                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors ${
+                    videoEngine === 'official'
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-white border border-amber-300 text-amber-700'
+                  }`}
+                >
+                  {videoEngine === 'official' ? '공식 SDK (Official)' : 'Diffusers (현재)'}
+                </button>
+                <span className="text-amber-600 text-xs">
+                  {videoEngine === 'official' ? 'A100-40GB · STG 활성 · 8초 클립' : 'A10G · 4초 클립 · 현재 프로덕션'}
+                </span>
+              </div>
+
               {/* 상단바 - 토스 스타일 */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 sm:p-10 mb-8">
                 <div className="flex flex-col gap-6">

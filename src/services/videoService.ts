@@ -2,6 +2,12 @@
 
 const MODAL_API = 'https://hiyoonsh1--ltx-video-service-distilled-1080p-web-app.modal.run';
 
+// exp/official-sdk: 공식 TI2VidTwoStagesPipeline 엔드포인트
+// Modal 대시보드에서 generate_official URL 복사 후 여기 입력
+const OFFICIAL_API = 'REPLACE_WITH_OFFICIAL_URL';
+
+export type VideoEngine = 'diffusers' | 'official';
+
 export interface VideoGenerationRequest {
   prompt: string;
   image_url: string;
@@ -19,15 +25,45 @@ export async function generateSceneVideo(
   dialogue: string,
   characterDescription: string = '',
   multiFaceMode: boolean = false,
-  // 테스트용 파라미터 (품질 실험)
   testParams?: {
     conditioning?: number;
     guidance?: number;
     steps?: number;
-  }
+  },
+  engine: VideoEngine = 'diffusers'
 ): Promise<Blob> {
-  console.log('[LTX] generateSceneVideo called');
+  console.log(`[LTX] generateSceneVideo called | engine=${engine}`);
   console.log('[LTX] Dialogue:', dialogue.substring(0, 50));
+
+  // ── 공식 SDK 경로 ─────────────────────────────────────────────
+  if (engine === 'official') {
+    console.log('[LTX] [OFFICIAL] Calling TI2VidTwoStagesPipeline...');
+    const startTime = Date.now();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 600_000); // 10분
+    try {
+      const res = await fetch(OFFICIAL_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: imageUrl, num_frames: 192, seed: 42 }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`Official API error: ${res.status} ${await res.text()}`);
+      const data = await res.json();
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`[LTX] [OFFICIAL] Done: ${elapsed}s | cost ₩${data.cost_krw}`);
+      const binary = atob(data.video_base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return new Blob([bytes], { type: 'video/mp4' });
+    } catch (e) {
+      clearTimeout(timeout);
+      throw e;
+    }
+  }
+
+  // ── 기존 diffusers 경로 (unchanged) ──────────────────────────
 
   // Item 1+3: Hard-lock motion to "blink only" — deterministic, no Gemini free-form
   // Whitelist: A="blink only" | B="blink + breathing" | C="blink + breathing + micro head <0.3°"
