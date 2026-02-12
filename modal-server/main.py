@@ -204,15 +204,15 @@ class VideoGenerator:
                 self.dtype_path = "FP8_QUANTIZED"
             except Exception as e:
                 print(f"  [FP8 FAILED] {type(e).__name__}: {str(e)[:120]}")
-                print(f"  [FALLBACK] enable_sequential_cpu_offload()")
-                self.pipe.enable_sequential_cpu_offload()
-                self.dtype_path = "BF16_SEQUENTIAL_OFFLOAD"
+                print(f"  [FALLBACK] enable_model_cpu_offload()")
+                self.pipe.enable_model_cpu_offload()
+                self.dtype_path = "BF16_MODEL_OFFLOAD"
 
         else:
-            # Default safe path for limited VRAM
-            print(f"  [VRAM < 40GB, FP8 off] enable_sequential_cpu_offload()")
-            self.pipe.enable_sequential_cpu_offload()
-            self.dtype_path = "BF16_SEQUENTIAL_OFFLOAD"
+            # Model-level CPU offload: submodule 단위 이동 (sequential보다 ~3-5x 빠름)
+            print(f"  [VRAM < 40GB, FP8 off] enable_model_cpu_offload()")
+            self.pipe.enable_model_cpu_offload()
+            self.dtype_path = "BF16_MODEL_OFFLOAD"
 
         print(f"  [DTYPE PATH] {self.dtype_path}")
 
@@ -237,11 +237,11 @@ class VideoGenerator:
         print("  [OK] Distilled sigmas loaded (8+4 official schedule)")
 
         # OCR reader for post-decode text detection (models cached in /models/easyocr)
-        print("[OCR] Initializing easyocr reader (ch_sim, ch_tra, en)...")
+        print("[OCR] Initializing easyocr reader (ch_sim, en)...")
         try:
             import easyocr
             self.ocr_reader = easyocr.Reader(
-                ['ch_sim', 'ch_tra', 'en'],
+                ['ch_sim', 'en'],
                 gpu=False,
                 verbose=False,
                 model_storage_directory='/models/easyocr',
@@ -1119,24 +1119,23 @@ class VideoGenerator:
             print(f"  Audio latent dtype: {audio_latent.dtype}")
             print(f"  Audio latent device: {audio_latent.device}")
 
-            # DISABLED: LTX native audio decode (dtype mismatch: float vs bf16)
-            # RuntimeError: Input type (torch.FloatTensor) and bias type (torch.cuda.BFloat16Tensor) should be the same
-            # Fallback to ambience-only audio for now (stable, cost-effective)
-            print(f"  [AUDIO] Skipping LTX vocoder decode (dtype mismatch)")
-            print(f"  [AUDIO] Using fallback ambience only")
-            audio_data = None
-            audio_sr = None
-
-            # FUTURE FIX: Cast both to bf16 before vocoder call
-            # if hasattr(self.pipe, 'vocoder') and self.pipe.vocoder is not None:
-            #     try:
-            #         audio_latent = audio_latent.to(torch.bfloat16)
-            #         self.pipe.vocoder = self.pipe.vocoder.to(torch.bfloat16)
-            #         audio_waveform = self.pipe.vocoder(audio_latent)
-            #         ...
-            #     except Exception as e:
-            #         audio_data = None
-            #         audio_sr = None
+            if hasattr(self.pipe, 'vocoder') and self.pipe.vocoder is not None:
+                try:
+                    audio_latent_bf16 = audio_latent.to(torch.bfloat16)
+                    self.pipe.vocoder = self.pipe.vocoder.to(torch.bfloat16)
+                    with torch.no_grad():
+                        audio_waveform = self.pipe.vocoder(audio_latent_bf16)
+                    audio_data = audio_waveform.squeeze().float().cpu().numpy()
+                    audio_sr = 24000
+                    print(f"  [AUDIO] Vocoder decode OK: shape={audio_data.shape}, sr={audio_sr}")
+                except Exception as _ae:
+                    print(f"  [AUDIO] Vocoder failed: {_ae} → fallback ambience")
+                    audio_data = None
+                    audio_sr = None
+            else:
+                print(f"  [AUDIO] No vocoder → fallback ambience")
+                audio_data = None
+                audio_sr = None
         else:
             print(f"  [INFO] No audio latent returned by I2V pipeline")
             audio_data = None
