@@ -344,6 +344,33 @@ const App: React.FC = () => {
     alert('로그아웃되었습니다.');
   };
 
+  // [EXP] 빠른 테스트: 이미지 URL 받아 씬 1개짜리 프로젝트 생성 → 스토리보드 직행
+  const quickTestStart = (imageUrl: string) => {
+    const pid = crypto.randomUUID();
+    const testProject: StoryProject = {
+      id: pid,
+      title: '[EXP] 빠른 테스트',
+      script: '테스트 씬',
+      style: 'realistic',
+      characters: [],
+      scenes: [{
+        id: crypto.randomUUID(),
+        scriptSegment: '테스트',
+        imagePrompt: 'test',
+        imageUrl,
+        audioUrl: null,
+        videoUrl: null,
+        status: 'done',
+        audioStatus: 'idle',
+        videoStatus: 'idle',
+      }],
+      updatedAt: Date.now(),
+    };
+    setProjects(prev => [testProject, ...prev]);
+    setCurrentProjectId(pid);
+    setStep('storyboard');
+  };
+
   const updateCurrentProject = useCallback((updates: Partial<StoryProject>) => {
     if (!currentProjectId) return;
     setProjects(prev => {
@@ -1509,6 +1536,25 @@ Generate a detailed English prompt for image generation including scene composit
 
       {step === 'dashboard' && (
         <div className="max-w-[1400px] mx-auto px-4 sm:px-10 py-10 sm:py-20 animate-in fade-in">
+
+          {/* [EXP] 빠른 테스트 패널 */}
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div>
+              <p className="font-bold text-amber-800 text-sm mb-1">🧪 실험 모드 — 이미지 투 비디오 빠른 테스트</p>
+              <p className="text-amber-600 text-xs">이미지 1장 업로드 → 바로 스토리보드에서 영상 생성 테스트</p>
+            </div>
+            <label className="shrink-0 cursor-pointer bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-2xl font-semibold text-sm transition-colors">
+              이미지 선택 후 테스트 시작
+              <input type="file" accept="image/*" className="hidden" onChange={e => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => quickTestStart(ev.target?.result as string);
+                reader.readAsDataURL(file);
+              }} />
+            </label>
+          </div>
+
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 sm:mb-16 gap-6">
             <div className="space-y-2 sm:space-y-4">
               <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900">내 프로젝트</h1>
