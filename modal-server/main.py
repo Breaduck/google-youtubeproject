@@ -33,8 +33,9 @@ image = (
         "pip install git+https://github.com/huggingface/diffusers.git"
     )
     .env({
-        "HF_HOME": "/models",  # Official Modal standard: Set HF cache location
-        "HF_HUB_DISABLE_PROGRESS_BARS": "1"  # Fix cp949 encoding error on Windows
+        "HF_HOME": "/models",
+        "HF_HUB_DISABLE_PROGRESS_BARS": "1",
+        "PYTORCH_ALLOC_CONF": "expandable_segments:True"  # OOM 단편화 방지
     })
 )
 
@@ -204,15 +205,16 @@ class VideoGenerator:
                 self.dtype_path = "FP8_QUANTIZED"
             except Exception as e:
                 print(f"  [FP8 FAILED] {type(e).__name__}: {str(e)[:120]}")
-                print(f"  [FALLBACK] enable_model_cpu_offload()")
-                self.pipe.enable_model_cpu_offload()
-                self.dtype_path = "BF16_MODEL_OFFLOAD"
+                print(f"  [FALLBACK] enable_sequential_cpu_offload()")
+                self.pipe.enable_sequential_cpu_offload()
+                self.dtype_path = "BF16_SEQUENTIAL_OFFLOAD"
 
         else:
-            # Model-level CPU offload: submodule 단위 이동 (sequential보다 ~3-5x 빠름)
-            print(f"  [VRAM < 40GB, FP8 off] enable_model_cpu_offload()")
-            self.pipe.enable_model_cpu_offload()
-            self.dtype_path = "BF16_MODEL_OFFLOAD"
+            # A10G 22GB: 모델 전체 BF16 ~22GB → model_cpu_offload OOM 발생
+            # sequential_cpu_offload만 안전 (레이어 단위, VRAM 5GB peak)
+            print(f"  [VRAM < 40GB, FP8 off] enable_sequential_cpu_offload()")
+            self.pipe.enable_sequential_cpu_offload()
+            self.dtype_path = "BF16_SEQUENTIAL_OFFLOAD"
 
         print(f"  [DTYPE PATH] {self.dtype_path}")
 
