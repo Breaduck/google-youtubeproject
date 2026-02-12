@@ -1127,7 +1127,7 @@ class VideoGenerator:
                     self.pipe.vocoder = self.pipe.vocoder.to(torch.bfloat16)
                     with torch.no_grad():
                         audio_waveform = self.pipe.vocoder(audio_latent_bf16)
-                    audio_data = audio_waveform.squeeze().float().cpu().numpy()
+                    audio_data = audio_waveform.squeeze().float().cpu()  # keep as Tensor
                     audio_sr = 24000
                     print(f"  [AUDIO] Vocoder decode OK: shape={audio_data.shape}, sr={audio_sr}")
                 except Exception as _ae:
