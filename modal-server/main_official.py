@@ -223,6 +223,8 @@ class OfficialVideoGenerator:
             stg_blocks=[29],
         )
 
+        vram_before_pipeline = torch.cuda.memory_allocated() / 1024**3
+        print(f"[OFFICIAL] VRAM before pipeline(): {vram_before_pipeline:.1f} GB")
         print(f"[OFFICIAL] Stage1: {W}x{H}, {num_frames}frames, 40steps, cfg=3.0, stg=1.0")
         t_gen_start = time.time()
 
