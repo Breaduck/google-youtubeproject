@@ -33,7 +33,7 @@ image = (
         "pip install /tmp/ltx2/packages/ltx-core --quiet",
         "pip install /tmp/ltx2/packages/ltx-pipelines --quiet",
         # ltx-core는 transformers 4.x 기준 빌드 → 5.x에서 ROPE_INIT_FUNCTIONS 호환 안됨
-        "pip install 'transformers>=4.50,<5.0' --quiet",
+        "pip install 'transformers>=4.52,<5.0' --quiet",
         "python -c \"import transformers; print('transformers version:', transformers.__version__)\"",
     )
     .env({
