@@ -16,16 +16,32 @@ const TAG_MAP: Record<string, string> = {
   'bright': '밝은', 'dark': '어두운', 'clear': '선명한', 'raspy': '허스키한'
 };
 
+const EXP_TEST_PROJECT_ID = 'exp-official-sdk-test-pid';
+const EXP_TEST_PROJECT: StoryProject = {
+  id: EXP_TEST_PROJECT_ID,
+  title: '[EXP] 공식 SDK 테스트',
+  script: '아버님! 그건 아버님이 만든 소금이 아니잖아요!',
+  style: 'realistic',
+  characters: [],
+  scenes: [{
+    id: 'exp-scene-1',
+    scriptSegment: '아버님! 그건 아버님이 만든 소금이 아니잖아요!',
+    imagePrompt: '한국 드라마 실내 장면, 감정적인 대화',
+    imageUrl: null,
+    audioUrl: null,
+    videoUrl: null,
+    status: 'idle',
+    audioStatus: 'idle',
+    videoStatus: 'idle',
+  }],
+  updatedAt: Date.now(),
+};
+
 const App: React.FC = () => {
-  const [step, setStep] = useState<AppStep>('dashboard');
-  const [videoEngine, setVideoEngine] = useState<VideoEngine>('diffusers'); // exp: 'official'
-  const [projects, setProjects] = useState<StoryProject[]>(() => {
-    try {
-      const stored = localStorage.getItem('user_projects_v1');
-      return stored ? JSON.parse(stored) : [];
-    } catch { return []; }
-  });
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [step, setStep] = useState<AppStep>('storyboard');
+  const [videoEngine, setVideoEngine] = useState<VideoEngine>('official');
+  const [projects, setProjects] = useState<StoryProject[]>([EXP_TEST_PROJECT]);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(EXP_TEST_PROJECT_ID);
 
   const project = useMemo(() => {
     return projects.find(p => p.id === currentProjectId) || null;
@@ -136,36 +152,6 @@ const App: React.FC = () => {
   const charPortraitUploadRef = useRef<HTMLInputElement>(null);
   const activeCharId = useRef<string | null>(null);
   const activeSceneId = useRef<string | null>(null);
-
-  // [EXP/OFFICIAL-SDK] 앱 시작 시 테스트 씬으로 스토리보드 직행
-  useEffect(() => {
-    const EXP_KEY = 'exp_official_sdk_init';
-    if (localStorage.getItem(EXP_KEY)) return;
-    localStorage.setItem(EXP_KEY, '1');
-    const pid = crypto.randomUUID();
-    const testProject: StoryProject = {
-      id: pid,
-      title: '[EXP] 공식 SDK 테스트',
-      script: '아버님! 그건 아버님이 만든 소금이 아니잖아요!',
-      style: 'realistic',
-      characters: [],
-      scenes: [{
-        id: crypto.randomUUID(),
-        scriptSegment: '아버님! 그건 아버님이 만든 소금이 아니잖아요!',
-        imagePrompt: '한국 드라마 실내 장면, 감정적인 대화',
-        imageUrl: null,
-        audioUrl: null,
-        videoUrl: null,
-        status: 'idle',
-        audioStatus: 'idle',
-        videoStatus: 'idle',
-      }],
-      updatedAt: Date.now(),
-    };
-    setProjects(prev => [testProject, ...prev]);
-    setCurrentProjectId(pid);
-    setStep('storyboard');
-  }, []);
 
   // 기존 프로젝트 마이그레이션: videoUrl, videoStatus 필드 추가
   useEffect(() => {
