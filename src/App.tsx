@@ -208,6 +208,14 @@ const App: React.FC = () => {
     }
   }, []); // 한 번만 실행
 
+  // [EXP] 항상 소금 장인 프로젝트 + 스토리보드로 강제 이동
+  useEffect(() => {
+    setProjects(prev => prev.some(p => p.id === EXP_TEST_PROJECT_ID)
+      ? prev : [EXP_TEST_PROJECT, ...prev]);
+    setCurrentProjectId(EXP_TEST_PROJECT_ID);
+    setStep('storyboard');
+  }, []);
+
   useEffect(() => {
     try {
       // 이미지/오디오 데이터 완전 제외 (용량 문제 방지)
