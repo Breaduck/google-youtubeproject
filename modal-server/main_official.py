@@ -136,18 +136,19 @@ class OfficialVideoGenerator:
 
         # ── 2. 공식 파이프라인 로드 ────────────────────────────────
         from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
+        from ltx_core.quantization import QuantizationPolicy
 
         print("[OFFICIAL] Loading TI2VidTwoStagesPipeline...")
         vram_before = torch.cuda.memory_allocated() / 1024**3
 
         self.pipeline = TI2VidTwoStagesPipeline(
             checkpoint_path=ckpt_path,
-            distilled_lora=[],   # FP8 distilled 체크포인트 자체가 이미 distilled → LoRA 생략으로 7.67GB 절약
+            distilled_lora=[],
             spatial_upsampler_path=upscaler_path,
             gemma_root=gemma_root,
             loras=[],
             device="cuda",
-            quantization=None,
+            quantization=QuantizationPolicy.fp8_cast(),  # FP8 유지 → 38GB→19GB 절약
         )
 
         vram_after = torch.cuda.memory_allocated() / 1024**3
