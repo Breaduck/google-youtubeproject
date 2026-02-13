@@ -12,8 +12,7 @@ image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("git", "libgl1", "libglib2.0-0", "ffmpeg")
     .pip_install(
-        "torch==2.4.0",
-        "torchvision",
+        "torch",
         "torchao",
         "transformers",
         "accelerate",
@@ -137,11 +136,11 @@ class OfficialVideoGenerator:
         )
 
         vram_after = torch.cuda.memory_allocated() / 1024**3
-        print(f"[OFFICIAL] Pipeline loaded ✓")
+        print(f"[OFFICIAL] Pipeline loaded OK")
         print(f"[OFFICIAL] VRAM used: {vram_after:.1f} GB / {vram_gb:.1f} GB")
         print(f"{'='*70}\n")
 
-    @modal.web_endpoint(method="POST")
+    @modal.fastapi_endpoint(method="POST")
     def generate_official(self, request: dict):
         import time, tempfile, os, base64
         import torch, numpy as np
@@ -312,6 +311,6 @@ def _encode_to_mp4(frames, out_path: str, fps: int = 24, crop_to_1080: bool = Tr
 
 # ── 헬스체크 ──────────────────────────────────────────────────────────
 @app.function(image=image)
-@modal.web_endpoint(method="GET")
+@modal.fastapi_endpoint(method="GET")
 def health():
     return {"status": "ok", "build": BUILD_VERSION, "engine": "official"}

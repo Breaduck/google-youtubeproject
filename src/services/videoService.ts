@@ -3,8 +3,7 @@
 const MODAL_API = 'https://hiyoonsh1--ltx-video-service-distilled-1080p-web-app.modal.run';
 
 // exp/official-sdk: 공식 TI2VidTwoStagesPipeline 엔드포인트
-// Modal 대시보드에서 generate_official URL 복사 후 여기 입력
-const OFFICIAL_API = 'REPLACE_WITH_OFFICIAL_URL';
+const OFFICIAL_API = 'https://hiyoonsh1--ltx-official-exp-officialvideogenerator-gener-c5d2a6.modal.run';
 
 export type VideoEngine = 'diffusers' | 'official';
 
