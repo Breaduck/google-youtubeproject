@@ -14,7 +14,7 @@ image = (
     .pip_install(
         "torch",
         "torchao",
-        "transformers",
+        "transformers==4.49.0",
         "accelerate",
         "sentencepiece",
         "huggingface_hub",
