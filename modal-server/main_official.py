@@ -72,6 +72,20 @@ class OfficialVideoGenerator:
         import os, torch
         from huggingface_hub import hf_hub_download, snapshot_download
 
+        # Gemma3TextConfig에 rope_local_base_freq 없는 버전 대응
+        try:
+            from transformers import Gemma3TextConfig
+            if not hasattr(Gemma3TextConfig, 'rope_local_base_freq'):
+                _orig_init = Gemma3TextConfig.__init__
+                def _patched_init(self, *a, **kw):
+                    _orig_init(self, *a, **kw)
+                    if not hasattr(self, 'rope_local_base_freq'):
+                        self.rope_local_base_freq = getattr(self, 'rope_theta', 10000.0)
+                Gemma3TextConfig.__init__ = _patched_init
+                print("[OFFICIAL] Gemma3TextConfig.rope_local_base_freq patched OK")
+        except Exception as e:
+            print(f"[OFFICIAL] Gemma3 patch skipped: {e}")
+
         hf_token = os.environ.get("HF_TOKEN")
         if not hf_token:
             raise ValueError("HF_TOKEN not found")
