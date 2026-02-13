@@ -188,8 +188,7 @@ const App: React.FC = () => {
 
   // [EXP] 항상 소금 장인 프로젝트 + 스토리보드로 강제 이동
   useEffect(() => {
-    setProjects(prev => prev.some(p => p.id === EXP_TEST_PROJECT_ID)
-      ? prev : [EXP_TEST_PROJECT, ...prev]);
+    setProjects(prev => [EXP_TEST_PROJECT, ...prev.filter(p => p.id !== EXP_TEST_PROJECT_ID)]);
     setCurrentProjectId(EXP_TEST_PROJECT_ID);
     setStep('storyboard');
   }, []);
