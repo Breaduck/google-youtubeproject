@@ -2121,6 +2121,17 @@ Generate a detailed English prompt for image generation including scene composit
                    </div>
                  </div>
                )}
+               {/* [EXP] 소금 장인 테스트 직행 버튼 */}
+               <button
+                 onClick={() => {
+                   setProjects(prev => prev.some(p => p.id === EXP_TEST_PROJECT_ID) ? prev : [EXP_TEST_PROJECT, ...prev]);
+                   setCurrentProjectId(EXP_TEST_PROJECT_ID);
+                   setStep('storyboard');
+                 }}
+                 className="w-full py-5 bg-amber-500 text-white rounded-[24px] font-bold text-lg shadow-lg hover:bg-amber-600 transition-all"
+               >
+                 소금 장인의 숨겨진 진실 → 스토리보드 바로 이동
+               </button>
                <div className="bg-white p-2 sm:p-3 rounded-[32px] sm:rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-200 relative">
                  <textarea className="w-full h-64 sm:h-80 bg-slate-50/50 border-none rounded-[24px] sm:rounded-[36px] p-6 sm:p-10 text-base sm:text-xl focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
