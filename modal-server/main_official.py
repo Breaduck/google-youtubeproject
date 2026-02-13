@@ -14,7 +14,6 @@ image = (
     .pip_install(
         "torch",
         "torchao",
-        "transformers==4.49.0",
         "accelerate",
         "sentencepiece",
         "huggingface_hub",
@@ -29,9 +28,11 @@ image = (
     )
     .run_commands(
         # 공식 SDK 설치 (ltx-core → ltx-pipelines 순서 필수)
+        # transformers는 ltx-core dependency로 자동 설치됨
         "git clone --depth 1 https://github.com/Lightricks/LTX-2.git /tmp/ltx2 2>&1 | tail -3",
         "pip install /tmp/ltx2/packages/ltx-core --quiet",
         "pip install /tmp/ltx2/packages/ltx-pipelines --quiet",
+        "python -c \"import transformers; print('transformers version:', transformers.__version__)\"",
     )
     .env({
         "HF_HOME": "/models",
