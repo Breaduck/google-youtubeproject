@@ -123,15 +123,9 @@ class OfficialVideoGenerator:
         )
         print(f"  upscaler:   {upscaler_path}")
 
-        print("[OFFICIAL][3/4] Downloading distilled LoRA (7.67GB)...")
-        lora_path = hf_hub_download(
-            repo_id=REPO_ID,
-            filename="ltx-2-19b-distilled-lora-384.safetensors",
-            cache_dir=CACHE, token=hf_token,
-        )
-        print(f"  lora:       {lora_path}")
-
-        print("[OFFICIAL][4/4] Downloading text_encoder / tokenizer (Gemma)...")
+        print("[OFFICIAL][3/4] Downloading text_encoder / tokenizer (Gemma)...")
+        # distilled_lora는 Stage2 refinement 전용이나 생략 가능
+        # ltx-2-19b-distilled-fp8는 이미 distilled → LoRA 없이 40GB에서 동작
         # gemma_root = snapshot root containing text_encoder/ and tokenizer/
         gemma_root = snapshot_download(
             repo_id=REPO_ID,
@@ -148,12 +142,12 @@ class OfficialVideoGenerator:
 
         self.pipeline = TI2VidTwoStagesPipeline(
             checkpoint_path=ckpt_path,
-            distilled_lora=[(lora_path, 1.0, None)],   # Stage2 distilled refinement
+            distilled_lora=[],   # FP8 distilled 체크포인트 자체가 이미 distilled → LoRA 생략으로 7.67GB 절약
             spatial_upsampler_path=upscaler_path,
             gemma_root=gemma_root,
             loras=[],
             device="cuda",
-            quantization=None,   # FP8 checkpoint은 이미 양자화됨
+            quantization=None,
         )
 
         vram_after = torch.cuda.memory_allocated() / 1024**3
