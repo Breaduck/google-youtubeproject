@@ -72,17 +72,21 @@ class OfficialVideoGenerator:
         import os, torch
         from huggingface_hub import hf_hub_download, snapshot_download
 
-        # Gemma3TextConfig에 rope_local_base_freq 없는 버전 대응
+        # Gemma3TextConfig transformers 5.x 호환 패치
         try:
             from transformers import Gemma3TextConfig
-            if not hasattr(Gemma3TextConfig, 'rope_local_base_freq'):
-                _orig_init = Gemma3TextConfig.__init__
-                def _patched_init(self, *a, **kw):
-                    _orig_init(self, *a, **kw)
-                    if not hasattr(self, 'rope_local_base_freq'):
-                        self.rope_local_base_freq = getattr(self, 'rope_theta', 10000.0)
-                Gemma3TextConfig.__init__ = _patched_init
-                print("[OFFICIAL] Gemma3TextConfig.rope_local_base_freq patched OK")
+            _orig_init = Gemma3TextConfig.__init__
+            def _patched_init(self, *a, **kw):
+                _orig_init(self, *a, **kw)
+                # rope_local_base_freq 누락 대응
+                if not hasattr(self, 'rope_local_base_freq'):
+                    self.rope_local_base_freq = getattr(self, 'rope_theta', 10000.0)
+                # rope_scaling에 rope_type 누락 대응
+                if hasattr(self, 'rope_scaling') and isinstance(self.rope_scaling, dict):
+                    if 'rope_type' not in self.rope_scaling:
+                        self.rope_scaling['rope_type'] = self.rope_scaling.get('type', 'default')
+            Gemma3TextConfig.__init__ = _patched_init
+            print("[OFFICIAL] Gemma3TextConfig patched OK (rope_local_base_freq + rope_type)")
         except Exception as e:
             print(f"[OFFICIAL] Gemma3 patch skipped: {e}")
 
