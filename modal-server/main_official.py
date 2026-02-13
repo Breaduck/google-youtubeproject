@@ -169,7 +169,7 @@ class OfficialVideoGenerator:
             ref_img = Image.open(BytesIO(_req.get(image_url, timeout=30).content)).convert("RGB")
 
         # 960x544 (16:9, 32배수) → Stage2 후 1920x1088 → crop → 1920x1080
-        W, H = 960, 544
+        W, H = 960, 576
         # center-crop to 960/544 aspect
         iw, ih = ref_img.size
         target_ar = W / H
@@ -287,7 +287,7 @@ def _encode_to_mp4(frames, out_path: str, fps: int = 24, crop_to_1080: bool = Tr
             f = f.cpu().float().numpy()
         img = (np.clip(f, 0, 1) * 255).astype(np.uint8)
         # crop 1920x1088 → 1920x1080 (8px bottom)
-        if crop_to_1080 and img.shape[0] == 1088:
+        if crop_to_1080 and img.shape[0] > 1080:
             img = img[:1080]
         Image.fromarray(img).save(os.path.join(frame_dir, f"frame_{i:05d}.png"))
 
