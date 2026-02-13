@@ -199,7 +199,9 @@ const App: React.FC = () => {
 
       if (needsMigration) {
         console.log('🔧 프로젝트 마이그레이션: videoUrl, videoStatus 필드 추가됨');
-        setProjects(migratedProjects);
+        setProjects([EXP_TEST_PROJECT, ...migratedProjects.filter((p: any) => p.id !== EXP_TEST_PROJECT_ID)]);
+      } else {
+        setProjects([EXP_TEST_PROJECT, ...oldProjects.filter((p: any) => p.id !== EXP_TEST_PROJECT_ID)]);
       }
     } catch (e) {
       console.error('Migration failed:', e);
