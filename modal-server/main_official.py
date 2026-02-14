@@ -234,7 +234,8 @@ class OfficialVideoGenerator:
         )
 
         # 프레임 수집
-        frames = list(video_iter)   # Iterator[Tensor] → list
+        with torch.no_grad():
+            frames = list(video_iter)   # Iterator[Tensor] → list
         t_gen_end = time.time()
         gen_time = t_gen_end - t_gen_start
         print(f"[OFFICIAL] Generation done: {gen_time:.1f}s")
