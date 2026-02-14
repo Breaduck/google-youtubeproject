@@ -5,7 +5,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.1"
+BUILD_VERSION = "exp/official-sdk-1.2"
 
 # Python 3.11 (torchao FP8 호환)
 image = (
@@ -103,15 +103,23 @@ class OfficialVideoGenerator:
         print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        print("[OFFICIAL][1/3] Downloading FP8 checkpoint (dev, non-distilled)...")
+        print("[OFFICIAL][1/4] Downloading distilled FP8 checkpoint (27.1GB)...")
         ckpt_path = hf_hub_download(
             repo_id=REPO_ID,
-            filename="ltx-2-19b-dev-fp8.safetensors",
+            filename="ltx-2-19b-distilled-fp8.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  checkpoint: {ckpt_path}")
 
-        print("[OFFICIAL][2/3] Downloading spatial upscaler (996MB)...")
+        print("[OFFICIAL][2/4] Downloading distilled LoRA rank-384 (7.67GB)...")
+        lora_path = hf_hub_download(
+            repo_id=REPO_ID,
+            filename="ltx-2-19b-distilled-lora-384.safetensors",
+            cache_dir=CACHE, token=hf_token,
+        )
+        print(f"  lora:       {lora_path}")
+
+        print("[OFFICIAL][3/4] Downloading spatial upscaler (996MB)...")
         upscaler_path = hf_hub_download(
             repo_id=REPO_ID,
             filename="ltx-2-spatial-upscaler-x2-1.0.safetensors",
@@ -119,7 +127,7 @@ class OfficialVideoGenerator:
         )
         print(f"  upscaler:   {upscaler_path}")
 
-        print("[OFFICIAL][3/3] Downloading text_encoder / tokenizer (Gemma)...")
+        print("[OFFICIAL][4/4] Downloading text_encoder / tokenizer (Gemma)...")
         gemma_root = snapshot_download(
             repo_id=REPO_ID,
             allow_patterns=["text_encoder/*", "tokenizer/*", "model_index.json"],
@@ -129,11 +137,12 @@ class OfficialVideoGenerator:
 
         from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
         from ltx_core.quantization import QuantizationPolicy
+        from ltx_core.loader import LTXV_LORA_COMFY_RENAMING_MAP, LoraPathStrengthAndSDOps
 
-        print("[OFFICIAL] Loading TI2VidTwoStagesPipeline...")
+        print("[OFFICIAL] Loading TI2VidTwoStagesPipeline (distilled + LoRA-384)...")
         self.pipeline = TI2VidTwoStagesPipeline(
             checkpoint_path=ckpt_path,
-            distilled_lora=[],
+            distilled_lora=[LoraPathStrengthAndSDOps(lora_path, 0.6, LTXV_LORA_COMFY_RENAMING_MAP)],
             spatial_upsampler_path=upscaler_path,
             gemma_root=gemma_root,
             loras=[],
@@ -205,7 +214,7 @@ class OfficialVideoGenerator:
             negative_prompt=NEGATIVE_PROMPT,
             seed=seed, height=H, width=W,
             num_frames=num_frames, frame_rate=24.0,
-            num_inference_steps=40,
+            num_inference_steps=20,
             video_guider_params=video_guider,
             audio_guider_params=audio_guider,
             images=[(img_path, 0, 1.0)],
@@ -246,7 +255,7 @@ class OfficialVideoGenerator:
             "total_time_sec": round(total_time, 1),
             "cost_usd": round(cost_usd, 4),
             "cost_krw": cost_krw,
-            "engine": "official-TI2VidTwoStagesPipeline",
+            "engine": "official-TI2VidTwoStagesPipeline-distilled",
             "resolution": "1920x1080",
             "frames": num_frames,
         }
