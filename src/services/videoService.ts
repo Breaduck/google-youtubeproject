@@ -34,32 +34,42 @@ export async function generateSceneVideo(
   console.log(`[LTX] generateSceneVideo called | engine=${engine}`);
   console.log('[LTX] Dialogue:', dialogue.substring(0, 50));
 
-  // ── 공식 SDK 경로 ─────────────────────────────────────────────
+  // ── 공식 SDK 경로 (비동기 job queue) ──────────────────────────
   if (engine === 'official') {
     console.log('[LTX] [OFFICIAL] Calling TI2VidTwoStagesPipeline...');
     const startTime = Date.now();
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 600_000); // 10분
-    try {
-      const res = await fetch(OFFICIAL_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_url: imageUrl, num_frames: 192, seed: 42 }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      if (!res.ok) throw new Error(`Official API error: ${res.status} ${await res.text()}`);
-      const data = await res.json();
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.log(`[LTX] [OFFICIAL] Done: ${elapsed}s | cost ₩${data.cost_krw}`);
-      const binary = atob(data.video_base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      return new Blob([bytes], { type: 'video/mp4' });
-    } catch (e) {
-      clearTimeout(timeout);
-      throw e;
+
+    // 1. 생성 시작 → job_id 즉시 반환
+    const startRes = await fetch(`${OFFICIAL_API}/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url: imageUrl, num_frames: 192, seed: 42 }),
+    });
+    if (!startRes.ok) throw new Error(`Official API start failed: ${startRes.status} ${await startRes.text()}`);
+    const { job_id } = await startRes.json();
+    console.log(`[LTX] [OFFICIAL] Job started: ${job_id}`);
+
+    // 2. 폴링으로 완료 대기
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      const statusRes = await fetch(`${OFFICIAL_API}/status/${job_id}`);
+      const statusData = await statusRes.json();
+      console.log(`[LTX] [OFFICIAL] Job ${job_id} status: ${statusData.status}`);
+      if (statusData.status === 'complete') break;
+      if (statusData.status === 'error') throw new Error(`Official generation failed: ${statusData.error}`);
+      if (statusData.status === 'not_found') throw new Error('Job not found');
     }
+
+    // 3. 결과 다운로드
+    const resultRes = await fetch(`${OFFICIAL_API}/result/${job_id}`);
+    if (!resultRes.ok) throw new Error(`Official result fetch failed: ${resultRes.status}`);
+    const data = await resultRes.json();
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[LTX] [OFFICIAL] Done: ${elapsed}s | cost ₩${data.cost_krw}`);
+    const binary = atob(data.video_base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: 'video/mp4' });
   }
 
   // ── 기존 diffusers 경로 (unchanged) ──────────────────────────
