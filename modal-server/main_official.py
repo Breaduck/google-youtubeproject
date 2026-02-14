@@ -4,7 +4,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.7"
+BUILD_VERSION = "exp/official-sdk-1.8"
 
 # Python 3.11 (torchao FP8 호환)
 image = (
@@ -37,6 +37,7 @@ image = (
         "HF_HOME": "/models",
         "HF_HUB_DISABLE_PROGRESS_BARS": "1",
         "PYTORCH_ALLOC_CONF": "expandable_segments:True",
+        "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
         "PYTHONIOENCODING": "utf-8",
     })
 )
