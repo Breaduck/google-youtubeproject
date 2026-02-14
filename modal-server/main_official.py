@@ -1,11 +1,10 @@
 """
 exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
-비교 대상: diffusers distilled (main) vs official TI2VidTwoStagesPipeline (this)
-목적: 다인물 얼굴 안정성 검증
+파이프라인: DistilledPipeline (distilled-fp8 + Gemma 3 12B QAT)
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.5"
+BUILD_VERSION = "exp/official-sdk-1.6"
 
 # Python 3.11 (torchao FP8 호환)
 image = (
@@ -31,7 +30,6 @@ image = (
         "git clone --depth 1 https://github.com/Lightricks/LTX-2.git /tmp/ltx2 2>&1 | tail -3",
         "pip install /tmp/ltx2/packages/ltx-core --quiet",
         "pip install /tmp/ltx2/packages/ltx-pipelines --quiet",
-        # ltx-core는 transformers 4.x 기준 빌드 → 5.x에서 ROPE_INIT_FUNCTIONS 호환 안됨
         "pip install 'transformers>=4.52,<5.0' --quiet",
         "python -c \"import transformers; print('transformers version:', transformers.__version__)\"",
     )
@@ -46,17 +44,8 @@ image = (
 app = modal.App("ltx-official-exp", image=image)
 model_cache = modal.Volume.from_name("model-cache-official-exp", create_if_missing=True)
 
-SAFE_PROMPT = (
-    "Static locked camera, fixed tripod. Person blinks once slowly. "
-    "No mouth movement. No body movement. No new objects appear. "
-    "Photorealistic, high detail, natural skin texture."
-)
-NEGATIVE_PROMPT = (
-    "text, watermark, subtitle, caption, logo, writing, letters, "
-    "Chinese, Japanese, Korean, CJK, Hangul, Kanji, "
-    "camera movement, pan, zoom, tilt, dolly, "
-    "blurry, deformed, distorted, melting, morphing, "
-    "multiple faces, face swap, identity change"
+PROMPT = (
+    "Cinematic motion, natural character movement, high dynamic range, subtle motion"
 )
 
 
@@ -73,22 +62,6 @@ class OfficialVideoGenerator:
         import os, torch
         from huggingface_hub import hf_hub_download, snapshot_download
 
-        # Gemma3TextConfig transformers 5.x 호환 패치
-        try:
-            from transformers import Gemma3TextConfig
-            _orig_init = Gemma3TextConfig.__init__
-            def _patched_init(self, *a, **kw):
-                _orig_init(self, *a, **kw)
-                if not hasattr(self, 'rope_local_base_freq'):
-                    self.rope_local_base_freq = getattr(self, 'rope_theta', 10000.0)
-                if hasattr(self, 'rope_scaling') and isinstance(self.rope_scaling, dict):
-                    if 'rope_type' not in self.rope_scaling:
-                        self.rope_scaling['rope_type'] = self.rope_scaling.get('type', 'default')
-            Gemma3TextConfig.__init__ = _patched_init
-            print("[OFFICIAL] Gemma3TextConfig patched OK")
-        except Exception as e:
-            print(f"[OFFICIAL] Gemma3 patch skipped: {e}")
-
         hf_token = os.environ.get("HF_TOKEN")
         if not hf_token:
             raise ValueError("HF_TOKEN not found")
@@ -96,30 +69,22 @@ class OfficialVideoGenerator:
         REPO_ID = "Lightricks/LTX-2"
         CACHE   = "/models/ltx2-official-cache"
 
-        vram_gb = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        vram_gb  = torch.cuda.get_device_properties(0).total_memory / 1024**3
         gpu_name = torch.cuda.get_device_name(0)
         print(f"\n{'='*70}")
         print(f"[OFFICIAL] BUILD: {BUILD_VERSION}")
         print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        print("[OFFICIAL][1/4] Downloading dev FP8 checkpoint (27.1GB)...")
+        print("[OFFICIAL][1/3] Downloading distilled-fp8 checkpoint (27.1GB)...")
         ckpt_path = hf_hub_download(
             repo_id=REPO_ID,
-            filename="ltx-2-19b-dev-fp8.safetensors",
+            filename="ltx-2-19b-distilled-fp8.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  checkpoint: {ckpt_path}")
 
-        print("[OFFICIAL][2/4] Downloading distilled LoRA rank-384 (7.67GB)...")
-        lora_path = hf_hub_download(
-            repo_id=REPO_ID,
-            filename="ltx-2-19b-distilled-lora-384.safetensors",
-            cache_dir=CACHE, token=hf_token,
-        )
-        print(f"  lora:       {lora_path}")
-
-        print("[OFFICIAL][3/4] Downloading spatial upscaler (996MB)...")
+        print("[OFFICIAL][2/3] Downloading spatial upscaler (996MB)...")
         upscaler_path = hf_hub_download(
             repo_id=REPO_ID,
             filename="ltx-2-spatial-upscaler-x2-1.0.safetensors",
@@ -127,23 +92,21 @@ class OfficialVideoGenerator:
         )
         print(f"  upscaler:   {upscaler_path}")
 
-        print("[OFFICIAL][4/4] Downloading google/gemma-3-12b-it-qat-q4_0-unquantized...")
+        print("[OFFICIAL][3/3] Downloading google/gemma-3-12b-it-qat-q4_0-unquantized (24.4GB)...")
         gemma_root = snapshot_download(
             repo_id="google/gemma-3-12b-it-qat-q4_0-unquantized",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  gemma_root: {gemma_root}")
 
-        from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
+        from ltx_pipelines.distilled import DistilledPipeline
         from ltx_core.quantization import QuantizationPolicy
-        from ltx_core.loader import LTXV_LORA_COMFY_RENAMING_MAP, LoraPathStrengthAndSDOps
 
-        print("[OFFICIAL] Loading TI2VidTwoStagesPipeline (distilled + LoRA-384)...")
-        self.pipeline = TI2VidTwoStagesPipeline(
+        print("[OFFICIAL] Loading DistilledPipeline...")
+        self.pipeline = DistilledPipeline(
             checkpoint_path=ckpt_path,
-            distilled_lora=[LoraPathStrengthAndSDOps(lora_path, 0.6, LTXV_LORA_COMFY_RENAMING_MAP)],
-            spatial_upsampler_path=upscaler_path,
             gemma_root=gemma_root,
+            spatial_upsampler_path=upscaler_path,
             loras=[],
             device="cuda",
             quantization=QuantizationPolicy.fp8_cast(),
@@ -155,10 +118,9 @@ class OfficialVideoGenerator:
     @modal.method()
     def generate(self, data: dict) -> dict:
         import time, tempfile, os, base64
-        import torch, numpy as np
+        import torch
         from PIL import Image
         from io import BytesIO
-        from ltx_core.components.guiders import MultiModalGuiderParams
         from ltx_pipelines.utils.media_io import encode_video
 
         t_total_start = time.time()
@@ -167,7 +129,7 @@ class OfficialVideoGenerator:
         num_frames = data.get("num_frames", 192)   # 8초 @ 24fps
         seed       = data.get("seed", 42)
 
-        W, H = 1920, 1088  # 64의 배수 필수 (1080 → 1088)
+        W, H = 1920, 1088  # 64의 배수 필수
 
         print(f"\n{'='*60}")
         print(f"[OFFICIAL] generate() called")
@@ -197,25 +159,14 @@ class OfficialVideoGenerator:
             ref_img.save(f.name)
             img_path = f.name
 
-        # ── 파이프라인 호출 ───────────────────────────────────────
-        video_guider = MultiModalGuiderParams(
-            cfg_scale=3.0, stg_scale=1.0, rescale_scale=0.7,
-            modality_scale=3.0, skip_step=0, stg_blocks=[29],
-        )
-        audio_guider = MultiModalGuiderParams(
-            cfg_scale=7.0, stg_scale=1.0, rescale_scale=0.7,
-            modality_scale=3.0, skip_step=0, stg_blocks=[29],
-        )
-
+        # ── 파이프라인 호출 (DistilledPipeline) ──────────────────
         t_gen_start = time.time()
         video_iter, _ = self.pipeline(
-            prompt=SAFE_PROMPT,
-            negative_prompt=NEGATIVE_PROMPT,
-            seed=seed, height=H, width=W,
-            num_frames=num_frames, frame_rate=24.0,
-            num_inference_steps=20,
-            video_guider_params=video_guider,
-            audio_guider_params=audio_guider,
+            prompt=PROMPT,
+            seed=seed,
+            height=H, width=W,
+            num_frames=num_frames,
+            frame_rate=24.0,
             images=[(img_path, 0, 1.0)],
             enhance_prompt=False,
         )
@@ -254,7 +205,7 @@ class OfficialVideoGenerator:
             "total_time_sec": round(total_time, 1),
             "cost_usd": round(cost_usd, 4),
             "cost_krw": cost_krw,
-            "engine": "official-TI2VidTwoStagesPipeline-distilled",
+            "engine": "official-DistilledPipeline",
             "resolution": "1920x1080",
             "frames": num_frames,
         }
