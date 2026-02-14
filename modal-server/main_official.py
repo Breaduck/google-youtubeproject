@@ -5,7 +5,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.4"
+BUILD_VERSION = "exp/official-sdk-1.5"
 
 # Python 3.11 (torchao FP8 호환)
 image = (
@@ -103,10 +103,10 @@ class OfficialVideoGenerator:
         print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        print("[OFFICIAL][1/4] Downloading distilled FP8 checkpoint (27.1GB)...")
+        print("[OFFICIAL][1/4] Downloading dev FP8 checkpoint (27.1GB)...")
         ckpt_path = hf_hub_download(
             repo_id=REPO_ID,
-            filename="ltx-2-19b-distilled-fp8.safetensors",
+            filename="ltx-2-19b-dev-fp8.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  checkpoint: {ckpt_path}")
