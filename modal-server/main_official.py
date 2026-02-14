@@ -5,7 +5,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.3"
+BUILD_VERSION = "exp/official-sdk-1.4"
 
 # Python 3.11 (torchao FP8 호환)
 image = (
@@ -127,9 +127,9 @@ class OfficialVideoGenerator:
         )
         print(f"  upscaler:   {upscaler_path}")
 
-        print("[OFFICIAL][4/4] Downloading google/gemma-3-12b-it (24.4GB)...")
+        print("[OFFICIAL][4/4] Downloading google/gemma-3-12b-it-qat-q4_0-unquantized...")
         gemma_root = snapshot_download(
-            repo_id="google/gemma-3-12b-it",
+            repo_id="google/gemma-3-12b-it-qat-q4_0-unquantized",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  gemma_root: {gemma_root}")
