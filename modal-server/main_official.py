@@ -205,7 +205,7 @@ class OfficialVideoGenerator:
             negative_prompt=NEGATIVE_PROMPT,
             seed=seed, height=H, width=W,
             num_frames=num_frames, frame_rate=24.0,
-            num_inference_steps=30,
+            num_inference_steps=20,
             video_guider_params=video_guider,
             audio_guider_params=audio_guider,
             images=[(img_path, 0, 1.0)],
