@@ -95,7 +95,7 @@ const App: React.FC = () => {
 
   const [expandedSetting, setExpandedSetting] = useState<string | null>(null);
   // localStorage 구버전 모델명 마이그레이션
-  if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'].includes(localStorage.getItem('gemini_model') || '')) {
+  if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3-flash'].includes(localStorage.getItem('gemini_model') || '')) {
     localStorage.setItem('gemini_model', 'gemini-3-flash-preview');
   }
   const [geminiModel, setGeminiModel] = useState(localStorage.getItem('gemini_model') || 'gemini-3-flash-preview');
