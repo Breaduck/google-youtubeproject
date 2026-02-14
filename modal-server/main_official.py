@@ -159,7 +159,7 @@ class OfficialVideoGenerator:
         num_frames = data.get("num_frames", 192)   # 8초 @ 24fps
         seed       = data.get("seed", 42)
 
-        W, H = 1920, 1080
+        W, H = 1920, 1088  # 64의 배수 필수 (1080 → 1088)
 
         print(f"\n{'='*60}")
         print(f"[OFFICIAL] generate() called")
