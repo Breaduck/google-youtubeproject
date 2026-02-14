@@ -62,7 +62,7 @@ NEGATIVE_PROMPT = (
 
 
 @app.cls(
-    gpu="A100-40GB",          # 공식 FP8 checkpoint 27.1GB → A100 40GB 필요
+    gpu="A100-80GB",          # text encoder ~39GB(BF16) + transformer 19GB(FP8) → 80GB 필요
     timeout=3600,
     volumes={"/models": model_cache},
     secrets=[modal.Secret.from_name("huggingface-secret")],
@@ -104,31 +104,45 @@ class OfficialVideoGenerator:
         print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        # ── 모델 파일만 다운로드 (파이프라인 생성 X → 순차 로딩 보장) ──
         print("[OFFICIAL][1/3] Downloading FP8 checkpoint (27.1GB)...")
-        self.ckpt_path = hf_hub_download(
+        ckpt_path = hf_hub_download(
             repo_id=REPO_ID,
             filename="ltx-2-19b-distilled-fp8.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
-        print(f"  checkpoint: {self.ckpt_path}")
+        print(f"  checkpoint: {ckpt_path}")
 
         print("[OFFICIAL][2/3] Downloading spatial upscaler (996MB)...")
-        self.upscaler_path = hf_hub_download(
+        upscaler_path = hf_hub_download(
             repo_id=REPO_ID,
             filename="ltx-2-spatial-upscaler-x2-1.0.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
-        print(f"  upscaler:   {self.upscaler_path}")
+        print(f"  upscaler:   {upscaler_path}")
 
         print("[OFFICIAL][3/3] Downloading text_encoder / tokenizer (Gemma)...")
-        self.gemma_root = snapshot_download(
+        gemma_root = snapshot_download(
             repo_id=REPO_ID,
             allow_patterns=["text_encoder/*", "tokenizer/*", "model_index.json"],
             cache_dir=CACHE, token=hf_token,
         )
-        print(f"  gemma_root: {self.gemma_root}")
-        print(f"[OFFICIAL] Model files ready. Pipeline will be built per-request.")
+        print(f"  gemma_root: {gemma_root}")
+
+        from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
+        from ltx_core.quantization import QuantizationPolicy
+
+        print("[OFFICIAL] Loading TI2VidTwoStagesPipeline...")
+        self.pipeline = TI2VidTwoStagesPipeline(
+            checkpoint_path=ckpt_path,
+            distilled_lora=[],
+            spatial_upsampler_path=upscaler_path,
+            gemma_root=gemma_root,
+            loras=[],
+            device="cuda",
+            quantization=QuantizationPolicy.fp8_cast(),
+        )
+        vram_after = torch.cuda.memory_allocated() / 1024**3
+        print(f"[OFFICIAL] Pipeline loaded OK | VRAM: {vram_after:.1f} GB / {vram_gb:.1f} GB")
         print(f"{'='*70}\n")
 
     @modal.fastapi_endpoint(method="POST")
@@ -199,29 +213,12 @@ class OfficialVideoGenerator:
             stg_blocks=[29],
         )
 
-        # ── 파이프라인 요청마다 생성 (순차 로딩: text_encoder→free→transformer→free) ──
-        from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
-        from ltx_core.quantization import QuantizationPolicy
-
         vram_before = torch.cuda.memory_allocated() / 1024**3
-        print(f"[OFFICIAL] VRAM before pipeline build: {vram_before:.1f} GB")
-        import time as _t; t0 = _t.time()
-        pipeline = TI2VidTwoStagesPipeline(
-            checkpoint_path=self.ckpt_path,
-            distilled_lora=[],
-            spatial_upsampler_path=self.upscaler_path,
-            gemma_root=self.gemma_root,
-            loras=[],
-            device="cuda",
-            quantization=QuantizationPolicy.fp8_cast(),
-        )
-        torch.cuda.synchronize()
-        vram_after_init = torch.cuda.memory_allocated() / 1024**3
-        print(f"[DEBUG] pipeline init time: {_t.time()-t0:.1f}s | VRAM after sync: {vram_after_init:.2f} GB")
-        print(f"[OFFICIAL] Stage1: {W}x{H}, {num_frames}frames, 40steps, cfg=3.0, stg=1.0")
+        print(f"[OFFICIAL] VRAM before generation: {vram_before:.1f} GB")
+        print(f"[OFFICIAL] Stage1: {W}x{H}, {num_frames}frames, 30steps, cfg=3.0, stg=1.0")
         t_gen_start = time.time()
 
-        video_iter, audio_latent = pipeline(
+        video_iter, audio_latent = self.pipeline(
             prompt=SAFE_PROMPT,
             negative_prompt=NEGATIVE_PROMPT,
             seed=seed,
@@ -229,7 +226,7 @@ class OfficialVideoGenerator:
             width=W,
             num_frames=num_frames,
             frame_rate=24.0,
-            num_inference_steps=40,
+            num_inference_steps=30,
             video_guider_params=video_guider,
             audio_guider_params=audio_guider,
             images=[(img_path, 0, 1.0)],
@@ -241,8 +238,6 @@ class OfficialVideoGenerator:
         t_gen_end = time.time()
         gen_time = t_gen_end - t_gen_start
         print(f"[OFFICIAL] Generation done: {gen_time:.1f}s")
-        del pipeline
-        torch.cuda.empty_cache()
         os.unlink(img_path)
 
         # ── 1920x1080 크롭 및 MP4 인코딩 ─────────────────────────
@@ -260,7 +255,7 @@ class OfficialVideoGenerator:
         os.unlink(out_path)
 
         total_time = time.time() - t_total_start
-        cost_usd   = total_time * 0.000583    # A100-40GB
+        cost_usd   = total_time * 0.001104    # A100-80GB
         cost_krw   = int(cost_usd * 1470)
 
         # ── 비교 테이블 출력 ──────────────────────────────────────
