@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Workers
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
     permissions:
       contents: read
       deployments: write
-    name: Deploy to Cloudflare Pages
+    name: Deploy to Cloudflare Workers
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,11 +29,16 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: google-youtubeproject
-          directory: dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Deploy (main)
+        if: github.ref == 'refs/heads/main'
+        run: npx wrangler deploy --name google-youtubeproject
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy (exp/official-sdk)
+        if: github.ref == 'refs/heads/exp/official-sdk'
+        run: npx wrangler deploy --name exp-official-sdk-google-youtubeproject
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
