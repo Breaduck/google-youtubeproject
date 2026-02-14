@@ -284,7 +284,7 @@ def web():
         async def _run():
             try:
                 gen = OfficialVideoGenerator()
-                result = await gen.generate.aio(data)
+                result = await gen.generate.remote.aio(data)
                 jobs[job_id]["result"] = result
                 jobs[job_id]["status"] = "complete"
                 print(f"[JOB {job_id}] complete")
