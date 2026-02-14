@@ -3,7 +3,7 @@
 const MODAL_API = 'https://hiyoonsh1--ltx-video-service-distilled-1080p-web-app.modal.run';
 
 // exp/official-sdk: 공식 TI2VidTwoStagesPipeline 엔드포인트
-const OFFICIAL_API = 'https://hiyoonsh1--ltx-official-exp-officialvideogenerator-gener-c5d2a6.modal.run';
+const OFFICIAL_API = 'https://hiyoonsh1--ltx-official-exp-web.modal.run';
 
 export type VideoEngine = 'diffusers' | 'official';
 
