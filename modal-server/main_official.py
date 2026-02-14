@@ -5,7 +5,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.2"
+BUILD_VERSION = "exp/official-sdk-1.3"
 
 # Python 3.11 (torchao FP8 호환)
 image = (
@@ -61,7 +61,7 @@ NEGATIVE_PROMPT = (
 
 
 @app.cls(
-    gpu="A100-80GB",
+    gpu="L40S",
     timeout=3600,
     volumes={"/models": model_cache},
     secrets=[modal.Secret.from_name("huggingface-secret")],
@@ -127,10 +127,9 @@ class OfficialVideoGenerator:
         )
         print(f"  upscaler:   {upscaler_path}")
 
-        print("[OFFICIAL][4/4] Downloading text_encoder / tokenizer (Gemma)...")
+        print("[OFFICIAL][4/4] Downloading google/gemma-3-12b-it (24.4GB)...")
         gemma_root = snapshot_download(
-            repo_id=REPO_ID,
-            allow_patterns=["text_encoder/*", "tokenizer/*", "model_index.json"],
+            repo_id="google/gemma-3-12b-it",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  gemma_root: {gemma_root}")
