@@ -195,6 +195,7 @@ class OfficialVideoGenerator:
         # ── 파이프라인 호출 ───────────────────────────────────────
         from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
         from ltx_core.components.guiders import MultiModalGuiderParams
+        from ltx_pipelines.utils.media_io import encode_video
 
         video_guider = MultiModalGuiderParams(
             cfg_scale=3.0,
@@ -232,21 +233,35 @@ class OfficialVideoGenerator:
             images=[(img_path, 0, 1.0)],
             enhance_prompt=False,
         )
-
-        # 프레임 수집
-        with torch.no_grad():
-            frames = list(video_iter)   # Iterator[Tensor] → list
         t_gen_end = time.time()
         gen_time = t_gen_end - t_gen_start
         print(f"[OFFICIAL] Generation done: {gen_time:.1f}s")
         os.unlink(img_path)
 
         # ── 1920x1080 크롭 및 MP4 인코딩 ─────────────────────────
+        # official encode_video expects Iterator[Tensor(batch, H, W, C)]
+        # Stage2 output: 1920x1088 → crop 8px bottom → 1920x1080
+        def _crop_iter(it):
+            for chunk in it:
+                # chunk shape: (batch, H, W, C)
+                if chunk.shape[1] > 1080:
+                    yield chunk[:, :1080, :, :]
+                else:
+                    yield chunk
+
         t_enc_start = time.time()
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
             out_path = f.name
 
-        _encode_to_mp4(frames, out_path, fps=24, crop_to_1080=True)
+        with torch.no_grad():
+            encode_video(
+                video=_crop_iter(video_iter),
+                fps=24,
+                audio=None,
+                audio_sample_rate=None,
+                output_path=out_path,
+                video_chunks_number=num_frames,
+            )
         enc_time = time.time() - t_enc_start
         print(f"[OFFICIAL] Encoding done: {enc_time:.1f}s")
 
@@ -282,39 +297,6 @@ class OfficialVideoGenerator:
             "resolution": "1920x1080",
             "frames": num_frames,
         }
-
-
-def _encode_to_mp4(frames, out_path: str, fps: int = 24, crop_to_1080: bool = True):
-    """frames: list of Tensor [H, W, C] float32 0-1 → MP4 bt709 yuv420p"""
-    import subprocess, tempfile, os, numpy as np
-    from PIL import Image
-
-    frame_dir = tempfile.mkdtemp()
-    for i, f in enumerate(frames):
-        if hasattr(f, "cpu"):
-            f = f.cpu().float().numpy()
-        img = (np.clip(f, 0, 1) * 255).astype(np.uint8)
-        # crop 1920x1088 → 1920x1080 (8px bottom)
-        if crop_to_1080 and img.shape[0] > 1080:
-            img = img[:1080]
-        Image.fromarray(img).save(os.path.join(frame_dir, f"frame_{i:05d}.png"))
-
-    subprocess.run([
-        "ffmpeg", "-y",
-        "-framerate", str(fps),
-        "-i", os.path.join(frame_dir, "frame_%05d.png"),
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-colorspace", "bt709",
-        "-color_primaries", "bt709",
-        "-color_trc", "bt709",
-        "-color_range", "tv",
-        "-crf", "18",
-        out_path,
-    ], check=True, capture_output=True)
-
-    import shutil
-    shutil.rmtree(frame_dir, ignore_errors=True)
 
 
 # ── 헬스체크 ──────────────────────────────────────────────────────────
