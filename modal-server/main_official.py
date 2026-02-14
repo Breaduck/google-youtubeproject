@@ -252,11 +252,11 @@ class OfficialVideoGenerator:
         }
 
 
-# ── ASGI 웹 앱 (CORS 포함) ──────────────────────────────────────────────
+# ── ASGI 웹 앱 (CORS + 비동기 job queue) ─────────────────────────────────
 @app.function(image=image, timeout=600)
 @modal.asgi_app()
 def web():
-    import asyncio
+    import asyncio, uuid
     from fastapi import FastAPI, Request
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse
@@ -269,16 +269,52 @@ def web():
         allow_headers=["*"],
     )
 
+    jobs: dict = {}  # {job_id: {"status", "result", "error"}}
+
     @fast_app.get("/health")
     def health():
         return {"status": "ok", "build": BUILD_VERSION, "engine": "official"}
 
-    @fast_app.post("/")
-    async def generate_endpoint(request: Request):
+    @fast_app.post("/start")
+    async def start_generation(request: Request):
         data = await request.json()
-        result = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: OfficialVideoGenerator().generate.remote(data)
-        )
+        job_id = uuid.uuid4().hex[:8]
+        jobs[job_id] = {"status": "running", "result": None, "error": None}
+
+        async def _run():
+            try:
+                gen = OfficialVideoGenerator()
+                result = await gen.generate.aio(data)
+                jobs[job_id]["result"] = result
+                jobs[job_id]["status"] = "complete"
+                print(f"[JOB {job_id}] complete")
+            except Exception as e:
+                jobs[job_id]["error"] = str(e)
+                jobs[job_id]["status"] = "error"
+                print(f"[JOB {job_id}] error: {e}")
+
+        asyncio.create_task(_run())
+        print(f"[JOB {job_id}] started")
+        return JSONResponse({"job_id": job_id})
+
+    @fast_app.get("/status/{job_id}")
+    def job_status(job_id: str):
+        if job_id not in jobs:
+            return JSONResponse({"status": "not_found"}, status_code=404)
+        job = jobs[job_id]
+        if job["status"] == "error":
+            return JSONResponse({"status": "error", "error": job["error"]})
+        return JSONResponse({"status": job["status"]})
+
+    @fast_app.get("/result/{job_id}")
+    def job_result(job_id: str):
+        if job_id not in jobs:
+            return JSONResponse({"status": "not_found"}, status_code=404)
+        job = jobs[job_id]
+        if job["status"] != "complete":
+            return JSONResponse({"status": job["status"]}, status_code=400)
+        result = job["result"]
+        del jobs[job_id]
         return JSONResponse(result)
 
     return fast_app
