@@ -80,15 +80,13 @@ class OfficialVideoGenerator:
             _orig_init = Gemma3TextConfig.__init__
             def _patched_init(self, *a, **kw):
                 _orig_init(self, *a, **kw)
-                # rope_local_base_freq 누락 대응
                 if not hasattr(self, 'rope_local_base_freq'):
                     self.rope_local_base_freq = getattr(self, 'rope_theta', 10000.0)
-                # rope_scaling에 rope_type 누락 대응
                 if hasattr(self, 'rope_scaling') and isinstance(self.rope_scaling, dict):
                     if 'rope_type' not in self.rope_scaling:
                         self.rope_scaling['rope_type'] = self.rope_scaling.get('type', 'default')
             Gemma3TextConfig.__init__ = _patched_init
-            print("[OFFICIAL] Gemma3TextConfig patched OK (rope_local_base_freq + rope_type)")
+            print("[OFFICIAL] Gemma3TextConfig patched OK")
         except Exception as e:
             print(f"[OFFICIAL] Gemma3 patch skipped: {e}")
 
@@ -106,54 +104,31 @@ class OfficialVideoGenerator:
         print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        # ── 1. 모델 파일 다운로드 ──────────────────────────────────
-        print("[OFFICIAL][1/4] Downloading FP8 checkpoint (27.1GB)...")
-        ckpt_path = hf_hub_download(
+        # ── 모델 파일만 다운로드 (파이프라인 생성 X → 순차 로딩 보장) ──
+        print("[OFFICIAL][1/3] Downloading FP8 checkpoint (27.1GB)...")
+        self.ckpt_path = hf_hub_download(
             repo_id=REPO_ID,
             filename="ltx-2-19b-distilled-fp8.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
-        print(f"  checkpoint: {ckpt_path}")
+        print(f"  checkpoint: {self.ckpt_path}")
 
-        print("[OFFICIAL][2/4] Downloading spatial upscaler (996MB)...")
-        upscaler_path = hf_hub_download(
+        print("[OFFICIAL][2/3] Downloading spatial upscaler (996MB)...")
+        self.upscaler_path = hf_hub_download(
             repo_id=REPO_ID,
             filename="ltx-2-spatial-upscaler-x2-1.0.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
-        print(f"  upscaler:   {upscaler_path}")
+        print(f"  upscaler:   {self.upscaler_path}")
 
-        print("[OFFICIAL][3/4] Downloading text_encoder / tokenizer (Gemma)...")
-        # distilled_lora는 Stage2 refinement 전용이나 생략 가능
-        # ltx-2-19b-distilled-fp8는 이미 distilled → LoRA 없이 40GB에서 동작
-        # gemma_root = snapshot root containing text_encoder/ and tokenizer/
-        gemma_root = snapshot_download(
+        print("[OFFICIAL][3/3] Downloading text_encoder / tokenizer (Gemma)...")
+        self.gemma_root = snapshot_download(
             repo_id=REPO_ID,
             allow_patterns=["text_encoder/*", "tokenizer/*", "model_index.json"],
             cache_dir=CACHE, token=hf_token,
         )
-        print(f"  gemma_root: {gemma_root}")
-
-        # ── 2. 공식 파이프라인 로드 ────────────────────────────────
-        from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
-        from ltx_core.quantization import QuantizationPolicy
-
-        print("[OFFICIAL] Loading TI2VidTwoStagesPipeline...")
-        vram_before = torch.cuda.memory_allocated() / 1024**3
-
-        self.pipeline = TI2VidTwoStagesPipeline(
-            checkpoint_path=ckpt_path,
-            distilled_lora=[],
-            spatial_upsampler_path=upscaler_path,
-            gemma_root=gemma_root,
-            loras=[],
-            device="cuda",
-            quantization=QuantizationPolicy.fp8_cast(),  # FP8 유지 → 38GB→19GB 절약
-        )
-
-        vram_after = torch.cuda.memory_allocated() / 1024**3
-        print(f"[OFFICIAL] Pipeline loaded OK")
-        print(f"[OFFICIAL] VRAM used: {vram_after:.1f} GB / {vram_gb:.1f} GB")
+        print(f"  gemma_root: {self.gemma_root}")
+        print(f"[OFFICIAL] Model files ready. Pipeline will be built per-request.")
         print(f"{'='*70}\n")
 
     @modal.fastapi_endpoint(method="POST")
@@ -224,12 +199,25 @@ class OfficialVideoGenerator:
             stg_blocks=[29],
         )
 
-        vram_before_pipeline = torch.cuda.memory_allocated() / 1024**3
-        print(f"[OFFICIAL] VRAM before pipeline(): {vram_before_pipeline:.1f} GB")
+        # ── 파이프라인 요청마다 생성 (순차 로딩: text_encoder→free→transformer→free) ──
+        from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
+        from ltx_core.quantization import QuantizationPolicy
+
+        vram_before = torch.cuda.memory_allocated() / 1024**3
+        print(f"[OFFICIAL] VRAM before pipeline build: {vram_before:.1f} GB")
+        pipeline = TI2VidTwoStagesPipeline(
+            checkpoint_path=self.ckpt_path,
+            distilled_lora=[],
+            spatial_upsampler_path=self.upscaler_path,
+            gemma_root=self.gemma_root,
+            loras=[],
+            device="cuda",
+            quantization=QuantizationPolicy.fp8_cast(),
+        )
         print(f"[OFFICIAL] Stage1: {W}x{H}, {num_frames}frames, 40steps, cfg=3.0, stg=1.0")
         t_gen_start = time.time()
 
-        video_iter, audio_latent = self.pipeline(
+        video_iter, audio_latent = pipeline(
             prompt=SAFE_PROMPT,
             negative_prompt=NEGATIVE_PROMPT,
             seed=seed,
@@ -249,6 +237,8 @@ class OfficialVideoGenerator:
         t_gen_end = time.time()
         gen_time = t_gen_end - t_gen_start
         print(f"[OFFICIAL] Generation done: {gen_time:.1f}s")
+        del pipeline
+        torch.cuda.empty_cache()
         os.unlink(img_path)
 
         # ── 1920x1080 크롭 및 MP4 인코딩 ─────────────────────────
