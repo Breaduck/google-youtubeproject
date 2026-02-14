@@ -205,6 +205,7 @@ class OfficialVideoGenerator:
 
         vram_before = torch.cuda.memory_allocated() / 1024**3
         print(f"[OFFICIAL] VRAM before pipeline build: {vram_before:.1f} GB")
+        import time as _t; t0 = _t.time()
         pipeline = TI2VidTwoStagesPipeline(
             checkpoint_path=self.ckpt_path,
             distilled_lora=[],
@@ -214,6 +215,9 @@ class OfficialVideoGenerator:
             device="cuda",
             quantization=QuantizationPolicy.fp8_cast(),
         )
+        torch.cuda.synchronize()
+        vram_after_init = torch.cuda.memory_allocated() / 1024**3
+        print(f"[DEBUG] pipeline init time: {_t.time()-t0:.1f}s | VRAM after sync: {vram_after_init:.2f} GB")
         print(f"[OFFICIAL] Stage1: {W}x{H}, {num_frames}frames, 40steps, cfg=3.0, stg=1.0")
         t_gen_start = time.time()
 
