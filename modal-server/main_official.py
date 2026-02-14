@@ -103,10 +103,10 @@ class OfficialVideoGenerator:
         print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        print("[OFFICIAL][1/3] Downloading FP8 checkpoint (27.1GB)...")
+        print("[OFFICIAL][1/3] Downloading FP8 checkpoint (dev, non-distilled)...")
         ckpt_path = hf_hub_download(
             repo_id=REPO_ID,
-            filename="ltx-2-19b-distilled-fp8.safetensors",
+            filename="ltx-2-19b-dev-fp8.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  checkpoint: {ckpt_path}")
@@ -133,7 +133,6 @@ class OfficialVideoGenerator:
         print("[OFFICIAL] Loading TI2VidTwoStagesPipeline...")
         self.pipeline = TI2VidTwoStagesPipeline(
             checkpoint_path=ckpt_path,
-            distilled_lora=[],
             spatial_upsampler_path=upscaler_path,
             gemma_root=gemma_root,
             loras=[],
@@ -205,7 +204,7 @@ class OfficialVideoGenerator:
             negative_prompt=NEGATIVE_PROMPT,
             seed=seed, height=H, width=W,
             num_frames=num_frames, frame_rate=24.0,
-            num_inference_steps=20,
+            num_inference_steps=40,
             video_guider_params=video_guider,
             audio_guider_params=audio_guider,
             images=[(img_path, 0, 1.0)],
