@@ -133,6 +133,7 @@ class OfficialVideoGenerator:
         print("[OFFICIAL] Loading TI2VidTwoStagesPipeline...")
         self.pipeline = TI2VidTwoStagesPipeline(
             checkpoint_path=ckpt_path,
+            distilled_lora=[],
             spatial_upsampler_path=upscaler_path,
             gemma_root=gemma_root,
             loras=[],
@@ -158,7 +159,7 @@ class OfficialVideoGenerator:
         num_frames = data.get("num_frames", 192)   # 8초 @ 24fps
         seed       = data.get("seed", 42)
 
-        W, H = 960, 576
+        W, H = 1920, 1080
 
         print(f"\n{'='*60}")
         print(f"[OFFICIAL] generate() called")
