@@ -4,7 +4,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.6"
+BUILD_VERSION = "exp/official-sdk-1.7"
 
 # Python 3.11 (torchao FP8 호환)
 image = (
@@ -84,7 +84,15 @@ class OfficialVideoGenerator:
         )
         print(f"  checkpoint: {ckpt_path}")
 
-        print("[OFFICIAL][2/3] Downloading spatial upscaler (996MB)...")
+        print("[OFFICIAL][2/4] Downloading distilled LoRA rank-384 (7.67GB)...")
+        lora_path = hf_hub_download(
+            repo_id=REPO_ID,
+            filename="ltx-2-19b-distilled-lora-384.safetensors",
+            cache_dir=CACHE, token=hf_token,
+        )
+        print(f"  lora:       {lora_path}")
+
+        print("[OFFICIAL][3/4] Downloading spatial upscaler (996MB)...")
         upscaler_path = hf_hub_download(
             repo_id=REPO_ID,
             filename="ltx-2-spatial-upscaler-x2-1.0.safetensors",
@@ -92,7 +100,7 @@ class OfficialVideoGenerator:
         )
         print(f"  upscaler:   {upscaler_path}")
 
-        print("[OFFICIAL][3/3] Downloading google/gemma-3-12b-it-qat-q4_0-unquantized (24.4GB)...")
+        print("[OFFICIAL][4/4] Downloading google/gemma-3-12b-it-qat-q4_0-unquantized (24.4GB)...")
         gemma_root = snapshot_download(
             repo_id="google/gemma-3-12b-it-qat-q4_0-unquantized",
             cache_dir=CACHE, token=hf_token,
@@ -101,13 +109,14 @@ class OfficialVideoGenerator:
 
         from ltx_pipelines.distilled import DistilledPipeline
         from ltx_core.quantization import QuantizationPolicy
+        from ltx_core.loader import LTXV_LORA_COMFY_RENAMING_MAP, LoraPathStrengthAndSDOps
 
-        print("[OFFICIAL] Loading DistilledPipeline...")
+        print("[OFFICIAL] Loading DistilledPipeline (distilled-fp8 + LoRA-384)...")
         self.pipeline = DistilledPipeline(
             checkpoint_path=ckpt_path,
             gemma_root=gemma_root,
             spatial_upsampler_path=upscaler_path,
-            loras=[],
+            loras=[LoraPathStrengthAndSDOps(lora_path, 0.6, LTXV_LORA_COMFY_RENAMING_MAP)],
             device="cuda",
             quantization=QuantizationPolicy.fp8_cast(),
         )
