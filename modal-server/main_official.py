@@ -61,7 +61,7 @@ NEGATIVE_PROMPT = (
 
 
 @app.cls(
-    gpu="L40S",               # 48GB VRAM, 모델 ~36GB → 충분, A100-80GB 대비 51% 절감
+    gpu="A100-80GB",
     timeout=3600,
     volumes={"/models": model_cache},
     secrets=[modal.Secret.from_name("huggingface-secret")],
