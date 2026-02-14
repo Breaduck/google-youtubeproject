@@ -36,7 +36,7 @@ export class GeminiService {
   }
 
   private getModel(): string {
-    return localStorage.getItem('gemini_model') || 'gemini-2.0-flash';
+    return localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
   }
 
   private getClient(): GoogleGenAI {
