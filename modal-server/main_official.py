@@ -5,7 +5,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.0"
+BUILD_VERSION = "exp/official-sdk-1.1"
 
 # Python 3.11 (torchao FP8 호환)
 image = (
@@ -28,7 +28,6 @@ image = (
     )
     .run_commands(
         # 공식 SDK 설치 (ltx-core → ltx-pipelines 순서 필수)
-        # transformers는 ltx-core dependency로 자동 설치됨
         "git clone --depth 1 https://github.com/Lightricks/LTX-2.git /tmp/ltx2 2>&1 | tail -3",
         "pip install /tmp/ltx2/packages/ltx-core --quiet",
         "pip install /tmp/ltx2/packages/ltx-pipelines --quiet",
@@ -145,24 +144,26 @@ class OfficialVideoGenerator:
         print(f"[OFFICIAL] Pipeline loaded OK | VRAM: {vram_after:.1f} GB / {vram_gb:.1f} GB")
         print(f"{'='*70}\n")
 
-    @modal.fastapi_endpoint(method="POST")
-    def generate_official(self, request: dict):
+    @modal.method()
+    def generate(self, data: dict) -> dict:
         import time, tempfile, os, base64
         import torch, numpy as np
         from PIL import Image
         from io import BytesIO
+        from ltx_core.components.guiders import MultiModalGuiderParams
+        from ltx_pipelines.utils.media_io import encode_video
 
         t_total_start = time.time()
 
-        prompt     = request.get("prompt", SAFE_PROMPT)
-        image_url  = request.get("image_url", "")
-        num_frames = request.get("num_frames", 192)   # 8초 @ 24fps
-        seed       = request.get("seed", 42)
+        image_url  = data.get("image_url", "")
+        num_frames = data.get("num_frames", 192)   # 8초 @ 24fps
+        seed       = data.get("seed", 42)
+
+        W, H = 960, 576
 
         print(f"\n{'='*60}")
-        print(f"[OFFICIAL] generate_official() called")
-        print(f"  frames={num_frames} ({num_frames/24:.1f}s @ 24fps)")
-        print(f"  seed={seed}")
+        print(f"[OFFICIAL] generate() called")
+        print(f"  frames={num_frames} ({num_frames/24:.1f}s @ 24fps), seed={seed}")
         print(f"{'='*60}")
 
         # ── 이미지 로드 ──────────────────────────────────────────
@@ -173,9 +174,6 @@ class OfficialVideoGenerator:
             import requests as _req
             ref_img = Image.open(BytesIO(_req.get(image_url, timeout=30).content)).convert("RGB")
 
-        # 960x544 (16:9, 32배수) → Stage2 후 1920x1088 → crop → 1920x1080
-        W, H = 960, 576
-        # center-crop to 960/544 aspect
         iw, ih = ref_img.size
         target_ar = W / H
         if iw / ih > target_ar:
@@ -187,105 +185,60 @@ class OfficialVideoGenerator:
         ref_img = ref_img.resize((W, H), Image.Resampling.LANCZOS)
         print(f"[OFFICIAL] Input resized to {W}x{H}")
 
-        # 임시 파일로 저장 (official API는 파일 경로를 받음)
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             ref_img.save(f.name)
             img_path = f.name
 
         # ── 파이프라인 호출 ───────────────────────────────────────
-        from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
-        from ltx_core.components.guiders import MultiModalGuiderParams
-        from ltx_pipelines.utils.media_io import encode_video
-
         video_guider = MultiModalGuiderParams(
-            cfg_scale=3.0,
-            stg_scale=1.0,
-            rescale_scale=0.7,
-            modality_scale=3.0,
-            skip_step=0,
-            stg_blocks=[29],
+            cfg_scale=3.0, stg_scale=1.0, rescale_scale=0.7,
+            modality_scale=3.0, skip_step=0, stg_blocks=[29],
         )
         audio_guider = MultiModalGuiderParams(
-            cfg_scale=7.0,
-            stg_scale=1.0,
-            rescale_scale=0.7,
-            modality_scale=3.0,
-            skip_step=0,
-            stg_blocks=[29],
+            cfg_scale=7.0, stg_scale=1.0, rescale_scale=0.7,
+            modality_scale=3.0, skip_step=0, stg_blocks=[29],
         )
 
-        vram_before = torch.cuda.memory_allocated() / 1024**3
-        print(f"[OFFICIAL] VRAM before generation: {vram_before:.1f} GB")
-        print(f"[OFFICIAL] Stage1: {W}x{H}, {num_frames}frames, 30steps, cfg=3.0, stg=1.0")
         t_gen_start = time.time()
-
-        video_iter, audio_latent = self.pipeline(
+        video_iter, _ = self.pipeline(
             prompt=SAFE_PROMPT,
             negative_prompt=NEGATIVE_PROMPT,
-            seed=seed,
-            height=H,
-            width=W,
-            num_frames=num_frames,
-            frame_rate=24.0,
+            seed=seed, height=H, width=W,
+            num_frames=num_frames, frame_rate=24.0,
             num_inference_steps=30,
             video_guider_params=video_guider,
             audio_guider_params=audio_guider,
             images=[(img_path, 0, 1.0)],
             enhance_prompt=False,
         )
-        t_gen_end = time.time()
-        gen_time = t_gen_end - t_gen_start
-        print(f"[OFFICIAL] Generation done: {gen_time:.1f}s")
+        print(f"[OFFICIAL] Generation done: {time.time()-t_gen_start:.1f}s")
         os.unlink(img_path)
 
-        # ── 1920x1080 크롭 및 MP4 인코딩 ─────────────────────────
-        # official encode_video expects Iterator[Tensor(batch, H, W, C)]
-        # Stage2 output: 1920x1088 → crop 8px bottom → 1920x1080
+        # ── 인코딩 ────────────────────────────────────────────────
         def _crop_iter(it):
             for chunk in it:
-                # chunk shape: (batch, H, W, C)
-                if chunk.shape[1] > 1080:
-                    yield chunk[:, :1080, :, :]
-                else:
-                    yield chunk
+                yield chunk[:, :1080, :, :] if chunk.shape[1] > 1080 else chunk
 
-        t_enc_start = time.time()
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
             out_path = f.name
 
+        t_enc_start = time.time()
         with torch.no_grad():
             encode_video(
                 video=_crop_iter(video_iter),
-                fps=24,
-                audio=None,
-                audio_sample_rate=None,
-                output_path=out_path,
-                video_chunks_number=num_frames,
+                fps=24, audio=None, audio_sample_rate=None,
+                output_path=out_path, video_chunks_number=num_frames,
             )
-        enc_time = time.time() - t_enc_start
-        print(f"[OFFICIAL] Encoding done: {enc_time:.1f}s")
+        print(f"[OFFICIAL] Encoding done: {time.time()-t_enc_start:.1f}s")
 
-        # ── 결과 반환 ─────────────────────────────────────────────
         with open(out_path, "rb") as f:
             video_bytes = f.read()
         os.unlink(out_path)
 
         total_time = time.time() - t_total_start
-        cost_usd   = total_time * 0.001104    # A100-80GB
+        cost_usd   = total_time * 0.001104
         cost_krw   = int(cost_usd * 1470)
-
-        # ── 비교 테이블 출력 ──────────────────────────────────────
-        print(f"\n{'='*60}")
-        print(f"[COMPARISON TABLE]")
-        print(f"{'Metric':<30} {'diffusers-distilled':>20} {'official':>20}")
-        print(f"{'-'*70}")
-        print(f"{'total_time_sec':<30} {'~274s (seq-offload)':>20} {total_time:>19.1f}s")
-        print(f"{'estimated_cost_usd':<30} {'~$0.084':>20} ${cost_usd:>19.4f}")
-        print(f"{'estimated_cost_krw':<30} {'~₩123':>20} {'₩'+str(cost_krw):>20}")
-        print(f"{'multi_face_stability':<30} {'POOR (melting)':>20} {'TBD (check video)':>20}")
-        print(f"{'STG guidance':<30} {'None':>20} {'stg_scale=1.0':>20}")
-        print(f"{'upscaler':<30} {'bilinear interp':>20} {'official model':>20}")
-        print(f"{'='*60}\n")
+        print(f"[OFFICIAL] Total: {total_time:.1f}s | ₩{cost_krw}")
 
         import base64 as _b64
         return {
@@ -299,8 +252,33 @@ class OfficialVideoGenerator:
         }
 
 
-# ── 헬스체크 ──────────────────────────────────────────────────────────
-@app.function(image=image)
-@modal.fastapi_endpoint(method="GET")
-def health():
-    return {"status": "ok", "build": BUILD_VERSION, "engine": "official"}
+# ── ASGI 웹 앱 (CORS 포함) ──────────────────────────────────────────────
+@app.function(image=image, timeout=600)
+@modal.asgi_app()
+def web():
+    import asyncio
+    from fastapi import FastAPI, Request
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import JSONResponse
+
+    fast_app = FastAPI()
+    fast_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @fast_app.get("/health")
+    def health():
+        return {"status": "ok", "build": BUILD_VERSION, "engine": "official"}
+
+    @fast_app.post("/")
+    async def generate_endpoint(request: Request):
+        data = await request.json()
+        result = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: OfficialVideoGenerator().generate.remote(data)
+        )
+        return JSONResponse(result)
+
+    return fast_app
