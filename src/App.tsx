@@ -94,7 +94,7 @@ const App: React.FC = () => {
   const [isManualCharAdding, setIsManualCharAdding] = useState(false);
 
   const [expandedSetting, setExpandedSetting] = useState<string | null>(null);
-  const [geminiModel, setGeminiModel] = useState(localStorage.getItem('gemini_model') || 'gemini-1.5-flash');
+  const [geminiModel, setGeminiModel] = useState(localStorage.getItem('gemini_model') || 'gemini-2.0-flash');
   const [geminiImageModel, setGeminiImageModel] = useState(localStorage.getItem('gemini_image_model') || 'gemini-2.5-flash-image');
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [isGeminiValid, setIsGeminiValid] = useState(false);
@@ -312,7 +312,7 @@ const App: React.FC = () => {
     setIsValidatingGemini(true);
     try {
       const ai = new GoogleGenAI({ apiKey: key });
-      const model = localStorage.getItem('gemini_model') || 'gemini-1.5-flash';
+      const model = localStorage.getItem('gemini_model') || 'gemini-2.0-flash';
       const response = await ai.models.generateContent({
         model: model,
         contents: 'test'
@@ -1421,7 +1421,7 @@ ${combinedScript}
 Generate a detailed English prompt for image generation including scene composition, character positions, background, lighting, mood. Return ONLY the prompt text, no explanation.`;
 
       const apiKey = localStorage.getItem('gemini_api_key') || '';
-      const model = localStorage.getItem('gemini_model') || 'gemini-1.5-flash';
+      const model = localStorage.getItem('gemini_model') || 'gemini-2.0-flash';
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: model,
