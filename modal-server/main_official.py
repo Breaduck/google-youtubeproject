@@ -5,7 +5,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.14"
+BUILD_VERSION = "exp/official-sdk-1.15"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -81,10 +81,10 @@ class OfficialVideoGenerator:
         print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        print("[OFFICIAL][1/4] Downloading dev-fp8 checkpoint (27.1GB)...")
+        print("[OFFICIAL][1/4] Downloading dev BF16 checkpoint (43.3GB)...")
         ckpt_path = hf_hub_download(
             repo_id=REPO_ID,
-            filename="ltx-2-19b-dev-fp8.safetensors",
+            filename="ltx-2-19b-dev.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  checkpoint: {ckpt_path}")
