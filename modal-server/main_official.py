@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.2-diffusers"
+BUILD_VERSION = "exp/official-sdk-2.3-diffusers-a100"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -55,7 +55,7 @@ W1, H1 = 960, 544
 
 
 @app.cls(
-    gpu="H100",
+    gpu="A100-80GB",
     timeout=3600,
     volumes={"/models": model_cache},
     secrets=[modal.Secret.from_name("huggingface-secret")],
@@ -242,7 +242,7 @@ class OfficialVideoGenerator:
         os.unlink(out_path)
 
         total_time = time.time() - t_total_start
-        cost_usd   = total_time * 0.001097
+        cost_usd   = total_time * 0.000694  # A100-80GB 단가
         cost_krw   = int(cost_usd * 1470)
         print(f"[DIFFUSERS] Total: {total_time:.1f}s | ₩{cost_krw}")
 
