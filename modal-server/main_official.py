@@ -5,7 +5,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.16"
+BUILD_VERSION = "exp/official-sdk-1.17"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -31,6 +31,9 @@ image = (
         "pip install /tmp/ltx2/packages/ltx-pipelines --quiet",
         "pip install 'transformers>=4.52,<5.0' --quiet",
         "python -c \"import transformers; print('transformers version:', transformers.__version__)\"",
+        # SDK bug patch: _fuse_delta_with_scaled_fp8 차원 불일치 수정
+        # weight.t() → [2048,8192], deltas → [8192,2048] → deltas.t() 필요
+        "python -c \"\nimport ltx_core.loader.fuse_loras as m, inspect, pathlib\np = pathlib.Path(inspect.getfile(m))\nt = p.read_text()\nassert 'new_weight = original_weight + deltas.to(torch.float32)' in t, 'SDK patch target not found - check SDK version'\np.write_text(t.replace('new_weight = original_weight + deltas.to(torch.float32)', 'new_weight = original_weight + deltas.t().to(torch.float32)'))\nprint('SDK patch applied:', p)\n\"",
     )
     .env({
         "HF_HOME": "/models",
@@ -81,10 +84,10 @@ class OfficialVideoGenerator:
         print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        print("[OFFICIAL][1/4] Downloading dev BF16 checkpoint (43.3GB)...")
+        print("[OFFICIAL][1/4] Downloading dev-fp8 checkpoint (27.1GB)...")
         ckpt_path = hf_hub_download(
             repo_id=REPO_ID,
-            filename="ltx-2-19b-dev.safetensors",
+            filename="ltx-2-19b-dev-fp8.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  checkpoint: {ckpt_path}")
@@ -123,7 +126,7 @@ class OfficialVideoGenerator:
             gemma_root=gemma_root,
             loras=[],
             device="cuda",
-            quantization=None,  # fp8_cast() 사용 시 LoRA fuse 오류 발생
+            fp8transformer=True,  # SDK bug patched → FP8 가속 사용
         )
         vram_after = torch.cuda.memory_allocated() / 1024**3
         print(f"[OFFICIAL] Pipeline loaded OK | VRAM: {vram_after:.1f} GB / {vram_gb:.1f} GB")
