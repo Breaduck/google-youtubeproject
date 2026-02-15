@@ -1,12 +1,12 @@
 """
-exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
-파이프라인: DistilledPipeline (distilled-fp8 + Gemma 3 12B QAT)
+exp/official-sdk — Lightricks 공식 ltx-pipelines SDK
+파이프라인: TI2VidTwoStagesPipeline (dev-fp8 + distilled_lora-384 + Gemma 3 12B)
+참조: https://github.com/Lightricks/LTX-2
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.12"
+BUILD_VERSION = "exp/official-sdk-1.13"
 
-# Python 3.11 (torchao FP8 호환)
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("git", "libgl1", "libglib2.0-0", "ffmpeg")
@@ -26,7 +26,6 @@ image = (
         "soundfile",
     )
     .run_commands(
-        # 공식 SDK 설치 (ltx-core → ltx-pipelines 순서 필수)
         "git clone --depth 1 https://github.com/Lightricks/LTX-2.git /tmp/ltx2 2>&1 | tail -3",
         "pip install /tmp/ltx2/packages/ltx-core --quiet",
         "pip install /tmp/ltx2/packages/ltx-pipelines --quiet",
@@ -47,6 +46,11 @@ model_cache = modal.Volume.from_name("model-cache-official-exp", create_if_missi
 
 PROMPT = (
     "Cinematic motion, natural character movement, high dynamic range, subtle motion"
+)
+NEGATIVE_PROMPT = (
+    "text, watermark, subtitle, caption, logo, "
+    "camera movement, pan, zoom, tilt, dolly, "
+    "blurry, deformed, distorted, melting, morphing"
 )
 
 
@@ -77,10 +81,10 @@ class OfficialVideoGenerator:
         print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        print("[OFFICIAL][1/4] Downloading distilled BF16 checkpoint (43.3GB)...")
+        print("[OFFICIAL][1/4] Downloading dev-fp8 checkpoint (27.1GB)...")
         ckpt_path = hf_hub_download(
             repo_id=REPO_ID,
-            filename="ltx-2-19b-distilled.safetensors",
+            filename="ltx-2-19b-dev-fp8.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  checkpoint: {ckpt_path}")
@@ -108,18 +112,18 @@ class OfficialVideoGenerator:
         )
         print(f"  gemma_root: {gemma_root}")
 
-        from ltx_pipelines.distilled import DistilledPipeline
-        from ltx_core.quantization import QuantizationPolicy
+        from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
         from ltx_core.loader import LTXV_LORA_COMFY_RENAMING_MAP, LoraPathStrengthAndSDOps
 
-        print("[OFFICIAL] Loading DistilledPipeline (distilled-BF16 + LoRA-384)...")
-        self.pipeline = DistilledPipeline(
+        print("[OFFICIAL] Loading TI2VidTwoStagesPipeline (dev-fp8 + distilled_lora-384)...")
+        self.pipeline = TI2VidTwoStagesPipeline(
             checkpoint_path=ckpt_path,
-            gemma_root=gemma_root,
+            distilled_lora=[LoraPathStrengthAndSDOps(lora_path, 0.6, LTXV_LORA_COMFY_RENAMING_MAP)],
             spatial_upsampler_path=upscaler_path,
-            loras=[LoraPathStrengthAndSDOps(lora_path, 0.6, LTXV_LORA_COMFY_RENAMING_MAP)],
+            gemma_root=gemma_root,
+            loras=[],
             device="cuda",
-            quantization=None,
+            quantization=None,  # fp8_cast() 사용 시 LoRA fuse 오류 발생
         )
         vram_after = torch.cuda.memory_allocated() / 1024**3
         print(f"[OFFICIAL] Pipeline loaded OK | VRAM: {vram_after:.1f} GB / {vram_gb:.1f} GB")
@@ -131,6 +135,7 @@ class OfficialVideoGenerator:
         import torch
         from PIL import Image
         from io import BytesIO
+        from ltx_core.components.guiders import MultiModalGuiderParams
         from ltx_pipelines.utils.media_io import encode_video
 
         t_total_start = time.time()
@@ -169,14 +174,27 @@ class OfficialVideoGenerator:
             ref_img.save(f.name)
             img_path = f.name
 
-        # ── 파이프라인 호출 (DistilledPipeline) ──────────────────
+        # ── 파이프라인 호출 (TI2VidTwoStagesPipeline) ────────────
+        video_guider = MultiModalGuiderParams(
+            cfg_scale=3.0, stg_scale=1.0, rescale_scale=0.7,
+            modality_scale=3.0, skip_step=0, stg_blocks=[29],
+        )
+        audio_guider = MultiModalGuiderParams(
+            cfg_scale=7.0, stg_scale=1.0, rescale_scale=0.7,
+            modality_scale=3.0, skip_step=0, stg_blocks=[29],
+        )
+
         t_gen_start = time.time()
         video_iter, _ = self.pipeline(
             prompt=PROMPT,
+            negative_prompt=NEGATIVE_PROMPT,
             seed=seed,
             height=H, width=W,
             num_frames=num_frames,
             frame_rate=24.0,
+            num_inference_steps=40,
+            video_guider_params=video_guider,
+            audio_guider_params=audio_guider,
             images=[(img_path, 0, 1.0)],
             enhance_prompt=False,
         )
@@ -205,7 +223,7 @@ class OfficialVideoGenerator:
         os.unlink(out_path)
 
         total_time = time.time() - t_total_start
-        cost_usd   = total_time * 0.001104
+        cost_usd   = total_time * 0.001097  # H100 단가
         cost_krw   = int(cost_usd * 1470)
         print(f"[OFFICIAL] Total: {total_time:.1f}s | ₩{cost_krw}")
 
@@ -215,13 +233,13 @@ class OfficialVideoGenerator:
             "total_time_sec": round(total_time, 1),
             "cost_usd": round(cost_usd, 4),
             "cost_krw": cost_krw,
-            "engine": "official-DistilledPipeline",
+            "engine": "official-TI2VidTwoStagesPipeline",
             "resolution": "1920x1080",
             "frames": num_frames,
         }
 
 
-# ── ASGI 웹 앱 (CORS + 비동기 job queue) ─────────────────────────────────
+# ── ASGI 웹 앱 ────────────────────────────────────────────────────────────
 @app.function(image=image, timeout=600)
 @modal.asgi_app()
 def web():
@@ -238,7 +256,7 @@ def web():
         allow_headers=["*"],
     )
 
-    jobs: dict = {}  # {job_id: {"status", "result", "error"}}
+    jobs: dict = {}
 
     @fast_app.get("/health")
     def health():
