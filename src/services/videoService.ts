@@ -39,11 +39,29 @@ export async function generateSceneVideo(
     console.log('[LTX] [OFFICIAL] Calling TI2VidTwoStagesPipeline...');
     const startTime = Date.now();
 
+    // 대사 길이/강도 기반 motion 선택 (서버 whitelist 호환)
+    const dialogueLen = (dialogue || '').trim().length;
+    let motionDesc: string;
+    if (dialogueLen === 0) {
+      motionDesc = 'subtle breathing, slow blink once';
+    } else if (dialogueLen < 15) {
+      motionDesc = 'subtle breathing, slow blink twice';
+    } else {
+      // 대사가 있을 때: 호흡 + 두 번 깜빡 + 미세 고개 끄덕
+      motionDesc = 'subtle breathing, slow blink twice, micro nod';
+    }
+    console.log(`[LTX] [OFFICIAL] motion_desc="${motionDesc}" (dialogue len=${dialogueLen})`);
+
     // 1. 생성 시작 → job_id 즉시 반환
     const startRes = await fetch(`${OFFICIAL_API}/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url: imageUrl, num_frames: 192, seed: 42 }),
+      body: JSON.stringify({
+        image_url: imageUrl,
+        num_frames: 73,   // ~3초 @ 24fps (wobble 감소)
+        seed: 42,
+        motion_desc: motionDesc,
+      }),
     });
     if (!startRes.ok) throw new Error(`Official API start failed: ${startRes.status} ${await startRes.text()}`);
     const { job_id } = await startRes.json();
