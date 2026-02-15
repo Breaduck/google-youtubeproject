@@ -5,7 +5,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.17"
+BUILD_VERSION = "exp/official-sdk-1.18"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -125,7 +125,7 @@ class OfficialVideoGenerator:
             gemma_root=gemma_root,
             loras=[],
             device="cuda",
-            fp8transformer=True,  # SDK bug patched → FP8 가속 사용
+            quantization=None,  # dev-fp8 체크포인트 자체가 FP8, 별도 quantization 불필요
         )
         vram_after = torch.cuda.memory_allocated() / 1024**3
         print(f"[OFFICIAL] Pipeline loaded OK | VRAM: {vram_after:.1f} GB / {vram_gb:.1f} GB")
