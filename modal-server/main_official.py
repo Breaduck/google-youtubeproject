@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.8-diffusers-a100"
+BUILD_VERSION = "exp/official-sdk-2.9-diffusers-a100"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -209,11 +209,27 @@ class OfficialVideoGenerator:
             shift_terminal=None,
         )
 
+        # upscaled_latent shape에서 직접 h/w/nf 역산 → conditioning_mask 불일치 방지
+        T_lat = upscaled_latent.shape[2]
+        H_lat = upscaled_latent.shape[3]
+        W_lat = upscaled_latent.shape[4]
+        vr_s = self.pipe.vae_spatial_compression_ratio
+        vr_t = self.pipe.vae_temporal_compression_ratio
+        h_s2 = H_lat * vr_s
+        w_s2 = W_lat * vr_s
+        nf_s2 = (T_lat - 1) * vr_t + 1
+        print(f"[DEBUG] upscaled_latent.shape={upscaled_latent.shape}  vr_s={vr_s}  vr_t={vr_t}")
+        print(f"[DEBUG] Stage2 h={h_s2}  w={w_s2}  nf={nf_s2}")
+
         video, audio = self.pipe(
             latents=upscaled_latent,
             audio_latents=audio_latent,
             prompt=PROMPT,
             negative_prompt=NEGATIVE_PROMPT,
+            height=h_s2,
+            width=w_s2,
+            num_frames=nf_s2,
+            frame_rate=24.0,
             num_inference_steps=3,
             noise_scale=STAGE_2_DISTILLED_SIGMA_VALUES[0],
             sigmas=STAGE_2_DISTILLED_SIGMA_VALUES,
