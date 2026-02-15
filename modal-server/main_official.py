@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.7-diffusers-a100"
+BUILD_VERSION = "exp/official-sdk-2.8-diffusers-a100"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -214,10 +214,6 @@ class OfficialVideoGenerator:
             audio_latents=audio_latent,
             prompt=PROMPT,
             negative_prompt=NEGATIVE_PROMPT,
-            height=H2,
-            width=W2,
-            num_frames=num_frames,
-            frame_rate=24.0,
             num_inference_steps=3,
             noise_scale=STAGE_2_DISTILLED_SIGMA_VALUES[0],
             sigmas=STAGE_2_DISTILLED_SIGMA_VALUES,
