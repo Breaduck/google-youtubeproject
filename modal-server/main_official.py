@@ -32,8 +32,7 @@ image = (
         "pip install 'transformers>=4.52,<5.0' --quiet",
         "python -c \"import transformers; print('transformers version:', transformers.__version__)\"",
         # SDK bug patch: _fuse_delta_with_scaled_fp8 차원 불일치 수정
-        # weight.t() → [2048,8192], deltas → [8192,2048] → deltas.t() 필요
-        "python -c \"\nimport ltx_core.loader.fuse_loras as m, inspect, pathlib\np = pathlib.Path(inspect.getfile(m))\nt = p.read_text()\nassert 'new_weight = original_weight + deltas.to(torch.float32)' in t, 'SDK patch target not found - check SDK version'\np.write_text(t.replace('new_weight = original_weight + deltas.to(torch.float32)', 'new_weight = original_weight + deltas.t().to(torch.float32)'))\nprint('SDK patch applied:', p)\n\"",
+        "python -c \"import ltx_core.loader.fuse_loras as m, inspect, pathlib; p = pathlib.Path(inspect.getfile(m)); t = p.read_text(); assert 'new_weight = original_weight + deltas.to(torch.float32)' in t; p.write_text(t.replace('new_weight = original_weight + deltas.to(torch.float32)', 'new_weight = original_weight + deltas.t().to(torch.float32)')); print('SDK patch applied:', p)\"",
     )
     .env({
         "HF_HOME": "/models",
