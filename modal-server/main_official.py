@@ -1,18 +1,16 @@
 """
-exp/official-sdk — Lightricks 공식 ltx-pipelines SDK
-파이프라인: TI2VidTwoStagesPipeline (dev-fp8 + distilled_lora-384 + Gemma 3 12B)
-참조: https://github.com/Lightricks/LTX-2
+exp/official-sdk — Diffusers LTX-2 공식 파이프라인
+참조: https://huggingface.co/docs/diffusers/main/api/pipelines/ltx2
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.19"
+BUILD_VERSION = "exp/official-sdk-2.0-diffusers"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("git", "libgl1", "libglib2.0-0", "ffmpeg")
     .pip_install(
         "torch",
-        "torchao",
         "accelerate",
         "sentencepiece",
         "huggingface_hub",
@@ -20,24 +18,20 @@ image = (
         "fastapi[standard]",
         "av",
         "numpy",
-        "einops",
         "safetensors",
         "scipy",
         "soundfile",
+        "einops",
     )
     .run_commands(
-        "git clone --depth 1 https://github.com/Lightricks/LTX-2.git /tmp/ltx2 2>&1 | tail -3",
-        "pip install /tmp/ltx2/packages/ltx-core --quiet",
-        "pip install /tmp/ltx2/packages/ltx-pipelines --quiet",
+        # LTX-2 지원은 diffusers main 브랜치
+        "pip install git+https://github.com/huggingface/diffusers.git --quiet",
         "pip install 'transformers>=4.52,<5.0' --quiet",
-        "python -c \"import transformers; print('transformers version:', transformers.__version__)\"",
-        # SDK bug patch: _fuse_delta_with_scaled_fp8 shape-aware robust fix
-        "python -c \"import ltx_core.loader.fuse_loras as m, inspect, pathlib; p = pathlib.Path(inspect.getfile(m)); t = p.read_text(); old = 'new_weight = original_weight + deltas.to(torch.float32)'; new = 'delta_f32 = deltas.to(torch.float32); delta_f32 = delta_f32.t() if original_weight.shape != delta_f32.shape else delta_f32; new_weight = original_weight + delta_f32'; src = t.replace(old, new) if old in t else t.replace('new_weight = original_weight + deltas.t().to(torch.float32)', new); p.write_text(src); print('SDK patch applied:', p)\"",
+        "python -c \"from diffusers.pipelines.ltx2 import LTX2ImageToVideoPipeline; print('Diffusers LTX-2 import OK')\"",
     )
     .env({
         "HF_HOME": "/models",
         "HF_HUB_DISABLE_PROGRESS_BARS": "1",
-        "PYTORCH_ALLOC_CONF": "expandable_segments:True",
         "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
         "PYTHONIOENCODING": "utf-8",
     })
@@ -55,6 +49,9 @@ NEGATIVE_PROMPT = (
     "blurry, deformed, distorted, melting, morphing"
 )
 
+# Stage 1 해상도 → Latent Upsampler 2x → Stage 2 출력 1920x1088
+W1, H1 = 960, 544
+
 
 @app.cls(
     gpu="H100",
@@ -67,68 +64,58 @@ class OfficialVideoGenerator:
     @modal.enter()
     def load_model(self):
         import os, torch
-        from huggingface_hub import hf_hub_download, snapshot_download
+        from diffusers.pipelines.ltx2 import LTX2ImageToVideoPipeline, LTX2LatentUpsamplePipeline
+        from diffusers.pipelines.ltx2.latent_upsampler import LTX2LatentUpsamplerModel
 
         hf_token = os.environ.get("HF_TOKEN")
         if not hf_token:
             raise ValueError("HF_TOKEN not found")
 
         REPO_ID = "Lightricks/LTX-2"
-        CACHE   = "/models/ltx2-official-cache"
-
-        vram_gb  = torch.cuda.get_device_properties(0).total_memory / 1024**3
         gpu_name = torch.cuda.get_device_name(0)
+        vram_gb = torch.cuda.get_device_properties(0).total_memory / 1024**3
         print(f"\n{'='*70}")
-        print(f"[OFFICIAL] BUILD: {BUILD_VERSION}")
-        print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
+        print(f"[DIFFUSERS] BUILD: {BUILD_VERSION}")
+        print(f"[DIFFUSERS] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        print("[OFFICIAL][1/4] Downloading dev-fp8 checkpoint (27.1GB)...")
-        ckpt_path = hf_hub_download(
-            repo_id=REPO_ID,
-            filename="ltx-2-19b-dev-fp8.safetensors",
-            cache_dir=CACHE, token=hf_token,
+        print("[DIFFUSERS][1/3] Loading LTX2ImageToVideoPipeline (BF16)...")
+        self.pipe = LTX2ImageToVideoPipeline.from_pretrained(
+            REPO_ID,
+            torch_dtype=torch.bfloat16,
+            token=hf_token,
         )
-        print(f"  checkpoint: {ckpt_path}")
+        self.pipe.to("cuda")
+        self.pipe.vae.enable_tiling()
 
-        print("[OFFICIAL][2/4] Downloading distilled LoRA rank-384 (7.67GB)...")
-        lora_path = hf_hub_download(
-            repo_id=REPO_ID,
-            filename="ltx-2-19b-distilled-lora-384.safetensors",
-            cache_dir=CACHE, token=hf_token,
+        print("[DIFFUSERS][2/3] Loading distilled LoRA rank-384...")
+        self.pipe.load_lora_weights(
+            REPO_ID,
+            adapter_name="stage_2_distilled",
+            weight_name="ltx-2-19b-distilled-lora-384.safetensors",
+            token=hf_token,
         )
-        print(f"  lora:       {lora_path}")
+        self.pipe.disable_lora()  # Stage 1에서는 비활성화
 
-        print("[OFFICIAL][3/4] Downloading spatial upscaler (996MB)...")
-        upscaler_path = hf_hub_download(
-            repo_id=REPO_ID,
-            filename="ltx-2-spatial-upscaler-x2-1.0.safetensors",
-            cache_dir=CACHE, token=hf_token,
+        print("[DIFFUSERS][3/3] Loading Latent Upsampler...")
+        latent_upsampler = LTX2LatentUpsamplerModel.from_pretrained(
+            REPO_ID,
+            subfolder="latent_upsampler",
+            torch_dtype=torch.bfloat16,
+            token=hf_token,
         )
-        print(f"  upscaler:   {upscaler_path}")
-
-        print("[OFFICIAL][4/4] Downloading google/gemma-3-12b-it (24.4GB)...")
-        gemma_root = snapshot_download(
-            repo_id="google/gemma-3-12b-it",
-            cache_dir=CACHE, token=hf_token,
+        self.upsample_pipe = LTX2LatentUpsamplePipeline(
+            vae=self.pipe.vae,
+            latent_upsampler=latent_upsampler,
         )
-        print(f"  gemma_root: {gemma_root}")
+        self.upsample_pipe.to("cuda")
 
-        from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
-        from ltx_core.loader import LTXV_LORA_COMFY_RENAMING_MAP, LoraPathStrengthAndSDOps
+        # 원본 스케줄러 저장 (Stage 2에서 교체 후 복원용)
+        import copy
+        self.original_scheduler_config = copy.deepcopy(self.pipe.scheduler.config)
 
-        print("[OFFICIAL] Loading TI2VidTwoStagesPipeline (dev-fp8 + distilled_lora-384)...")
-        self.pipeline = TI2VidTwoStagesPipeline(
-            checkpoint_path=ckpt_path,
-            distilled_lora=[LoraPathStrengthAndSDOps(lora_path, 0.6, LTXV_LORA_COMFY_RENAMING_MAP)],
-            spatial_upsampler_path=upscaler_path,
-            gemma_root=gemma_root,
-            loras=[],
-            device="cuda",
-            quantization=None,  # dev-fp8 체크포인트 자체가 FP8, 별도 quantization 불필요
-        )
-        vram_after = torch.cuda.memory_allocated() / 1024**3
-        print(f"[OFFICIAL] Pipeline loaded OK | VRAM: {vram_after:.1f} GB / {vram_gb:.1f} GB")
+        vram_used = torch.cuda.memory_allocated() / 1024**3
+        print(f"[DIFFUSERS] All loaded | VRAM: {vram_used:.1f} GB / {vram_gb:.1f} GB")
         print(f"{'='*70}\n")
 
     @modal.method()
@@ -137,24 +124,22 @@ class OfficialVideoGenerator:
         import torch
         from PIL import Image
         from io import BytesIO
-        from ltx_core.components.guiders import MultiModalGuiderParams
-        from ltx_pipelines.utils.media_io import encode_video
-        from ltx_core.model.video_vae import TilingConfig
+        from diffusers import FlowMatchEulerDiscreteScheduler
+        from diffusers.pipelines.ltx2.utils import STAGE_2_DISTILLED_SIGMA_VALUES
+        from diffusers.pipelines.ltx2.export_utils import encode_video
 
         t_total_start = time.time()
 
         image_url  = data.get("image_url", "")
-        num_frames = data.get("num_frames", 192)   # 8초 @ 24fps
+        num_frames = data.get("num_frames", 192)
         seed       = data.get("seed", 42)
 
-        W, H = 1920, 1088  # 64의 배수 필수
-
         print(f"\n{'='*60}")
-        print(f"[OFFICIAL] generate() called")
+        print(f"[DIFFUSERS] generate() called")
         print(f"  frames={num_frames} ({num_frames/24:.1f}s @ 24fps), seed={seed}")
         print(f"{'='*60}")
 
-        # ── 이미지 로드 ──────────────────────────────────────────
+        # 이미지 로드
         if image_url.startswith("data:"):
             _, encoded = image_url.split(",", 1)
             ref_img = Image.open(BytesIO(base64.b64decode(encoded))).convert("RGB")
@@ -162,76 +147,103 @@ class OfficialVideoGenerator:
             import requests as _req
             ref_img = Image.open(BytesIO(_req.get(image_url, timeout=30).content)).convert("RGB")
 
+        # Stage 1 해상도로 크롭 + 리사이즈
         iw, ih = ref_img.size
-        target_ar = W / H
+        target_ar = W1 / H1
         if iw / ih > target_ar:
             new_w = int(ih * target_ar)
             ref_img = ref_img.crop(((iw - new_w) // 2, 0, (iw + new_w) // 2, ih))
         else:
             new_h = int(iw / target_ar)
             ref_img = ref_img.crop((0, (ih - new_h) // 2, iw, (ih + new_h) // 2))
-        ref_img = ref_img.resize((W, H), Image.Resampling.LANCZOS)
-        print(f"[OFFICIAL] Input resized to {W}x{H}")
+        ref_img = ref_img.resize((W1, H1), Image.Resampling.LANCZOS)
+        print(f"[DIFFUSERS] Input resized to {W1}x{H1}")
 
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            ref_img.save(f.name)
-            img_path = f.name
+        generator = torch.Generator("cpu").manual_seed(seed)
 
-        # ── 파이프라인 호출 (TI2VidTwoStagesPipeline) ────────────
-        video_guider = MultiModalGuiderParams(
-            cfg_scale=3.0, stg_scale=1.0, rescale_scale=0.7,
-            modality_scale=3.0, skip_step=0, stg_blocks=[29],
+        # Stage 1 스케줄러 복원
+        self.pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(
+            self.original_scheduler_config
         )
-        audio_guider = MultiModalGuiderParams(
-            cfg_scale=7.0, stg_scale=1.0, rescale_scale=0.7,
-            modality_scale=3.0, skip_step=0, stg_blocks=[29],
-        )
+        self.pipe.disable_lora()
 
-        tiling_config = TilingConfig.default()  # 512px tiles + 64-frame chunks
-
-        t_gen_start = time.time()
-        video_iter, _ = self.pipeline(
+        # ── Stage 1 ──────────────────────────────────────────────
+        print("[DIFFUSERS] Stage 1: generating...")
+        t1 = time.time()
+        video_latent, audio_latent = self.pipe(
+            image=ref_img,
             prompt=PROMPT,
             negative_prompt=NEGATIVE_PROMPT,
-            seed=seed,
-            height=H, width=W,
+            width=W1,
+            height=H1,
             num_frames=num_frames,
             frame_rate=24.0,
             num_inference_steps=20,
-            video_guider_params=video_guider,
-            audio_guider_params=audio_guider,
-            images=[(img_path, 0, 1.0)],
-            tiling_config=tiling_config,
-            enhance_prompt=False,
+            guidance_scale=3.0,
+            generator=generator,
+            output_type="latent",
+            return_dict=False,
         )
-        print(f"[OFFICIAL] Generation done: {time.time()-t_gen_start:.1f}s")
-        os.unlink(img_path)
+        print(f"[DIFFUSERS] Stage 1 done: {time.time()-t1:.1f}s")
+
+        # ── Latent Upscale 2x ────────────────────────────────────
+        print("[DIFFUSERS] Upscaling latents (2x)...")
+        t2 = time.time()
+        upscaled_latent = self.upsample_pipe(
+            latents=video_latent,
+            output_type="latent",
+            return_dict=False,
+        )[0]
+        print(f"[DIFFUSERS] Upscale done: {time.time()-t2:.1f}s")
+
+        # ── Stage 2 (distilled LoRA) ─────────────────────────────
+        print("[DIFFUSERS] Stage 2: LoRA refinement...")
+        t3 = time.time()
+        self.pipe.enable_lora()
+        self.pipe.set_adapters("stage_2_distilled", 1.0)
+        self.pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(
+            self.original_scheduler_config,
+            use_dynamic_shifting=False,
+            shift_terminal=None,
+        )
+
+        video, audio = self.pipe(
+            latents=upscaled_latent,
+            audio_latents=audio_latent,
+            prompt=PROMPT,
+            negative_prompt=NEGATIVE_PROMPT,
+            num_inference_steps=3,
+            noise_scale=STAGE_2_DISTILLED_SIGMA_VALUES[0],
+            sigmas=STAGE_2_DISTILLED_SIGMA_VALUES,
+            guidance_scale=1.0,
+            generator=generator,
+            output_type="np",
+            return_dict=False,
+        )
+        print(f"[DIFFUSERS] Stage 2 done: {time.time()-t3:.1f}s")
 
         # ── 인코딩 ────────────────────────────────────────────────
-        def _crop_iter(it):
-            for chunk in it:
-                yield chunk[:, :1080, :, :] if chunk.shape[1] > 1080 else chunk
-
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
             out_path = f.name
 
-        t_enc_start = time.time()
-        with torch.no_grad():
-            encode_video(
-                video=_crop_iter(video_iter),
-                fps=24, audio=None, audio_sample_rate=None,
-                output_path=out_path, video_chunks_number=num_frames,
-            )
-        print(f"[OFFICIAL] Encoding done: {time.time()-t_enc_start:.1f}s")
+        t_enc = time.time()
+        encode_video(
+            video[0],
+            fps=24.0,
+            audio=audio[0].float().cpu(),
+            audio_sample_rate=self.pipe.vocoder.config.output_sampling_rate,
+            output_path=out_path,
+        )
+        print(f"[DIFFUSERS] Encoding done: {time.time()-t_enc:.1f}s")
 
         with open(out_path, "rb") as f:
             video_bytes = f.read()
         os.unlink(out_path)
 
         total_time = time.time() - t_total_start
-        cost_usd   = total_time * 0.001097  # H100 단가
+        cost_usd   = total_time * 0.001097
         cost_krw   = int(cost_usd * 1470)
-        print(f"[OFFICIAL] Total: {total_time:.1f}s | ₩{cost_krw}")
+        print(f"[DIFFUSERS] Total: {total_time:.1f}s | ₩{cost_krw}")
 
         import base64 as _b64
         return {
@@ -239,8 +251,8 @@ class OfficialVideoGenerator:
             "total_time_sec": round(total_time, 1),
             "cost_usd": round(cost_usd, 4),
             "cost_krw": cost_krw,
-            "engine": "official-TI2VidTwoStagesPipeline",
-            "resolution": "1920x1080",
+            "engine": "diffusers-LTX2ImageToVideoPipeline",
+            "resolution": "1920x1088",
             "frames": num_frames,
         }
 
@@ -266,7 +278,7 @@ def web():
 
     @fast_app.get("/health")
     def health():
-        return {"status": "ok", "build": BUILD_VERSION, "engine": "official"}
+        return {"status": "ok", "build": BUILD_VERSION, "engine": "diffusers"}
 
     @fast_app.post("/start")
     async def start_generation(request: Request):
