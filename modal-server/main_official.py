@@ -125,6 +125,14 @@ class OfficialVideoGenerator:
         image_url    = data.get("image_url", "")
         num_frames   = data.get("num_frames", 121)
         seed         = data.get("seed", 42)
+
+        # ── DEBUG: request body 키 확인 ───────────────────────────────
+        MOTION_CANDIDATES = ["motion_desc", "motion", "motions", "motionDesc"]
+        for _k in MOTION_CANDIDATES:
+            _v = data.get(_k)
+            print(f"[DEBUG] key='{_k}' value={repr(_v)}")
+        print(f"[DEBUG] data keys={list(data.keys())}")
+
         raw_motion   = data.get("motion_desc", "")
 
         # ── v3.1 Motion Guardrails ────────────────────────────────────
@@ -169,7 +177,8 @@ class OfficialVideoGenerator:
 
         # 뼈대(고정) + 동작(가드레일 통과)
         PROMPT = f"{PROMPT_BASE}, {motion_desc}"
-        print(f"[GUARDRAIL] final prompt[:120]: '{PROMPT[:120]}'")
+        print(f"[GUARDRAIL] motion_desc_final='{motion_desc}'")
+        print(f"[GUARDRAIL] prompt[-200:]='{PROMPT[-200:]}'")
 
         print(f"\n{'='*60}")
         print(f"[DIFFUSERS] generate() called")
