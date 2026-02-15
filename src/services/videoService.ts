@@ -60,16 +60,13 @@ export async function generateSceneVideo(
       if (statusData.status === 'not_found') throw new Error('Job not found');
     }
 
-    // 3. 결과 다운로드
-    const resultRes = await fetch(`${OFFICIAL_API}/result/${job_id}`);
-    if (!resultRes.ok) throw new Error(`Official result fetch failed: ${resultRes.status}`);
-    const data = await resultRes.json();
+    // 3. MP4 다운로드
+    const resultRes = await fetch(`${OFFICIAL_API}/download/${job_id}`);
+    if (!resultRes.ok) throw new Error(`Official download failed: ${resultRes.status}`);
+    const blob = await resultRes.blob();
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[LTX] [OFFICIAL] Done: ${elapsed}s | cost ₩${data.cost_krw}`);
-    const binary = atob(data.video_base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return new Blob([bytes], { type: 'video/mp4' });
+    console.log(`[LTX] [OFFICIAL] Done: ${elapsed}s | ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+    return new Blob([blob], { type: 'video/mp4' });
   }
 
   // ── 기존 diffusers 경로 (unchanged) ──────────────────────────
