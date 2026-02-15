@@ -4,7 +4,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.10"
+BUILD_VERSION = "exp/official-sdk-1.11"
 
 # Python 3.11 (torchao FP8 호환)
 image = (
@@ -51,7 +51,7 @@ PROMPT = (
 
 
 @app.cls(
-    gpu="A100-80GB",
+    gpu="H100",
     timeout=3600,
     volumes={"/models": model_cache},
     secrets=[modal.Secret.from_name("huggingface-secret")],
