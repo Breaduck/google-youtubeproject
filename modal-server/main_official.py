@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.4-diffusers-a100"
+BUILD_VERSION = "exp/official-sdk-2.5-diffusers-a100"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -86,7 +86,7 @@ class OfficialVideoGenerator:
             torch_dtype=torch.bfloat16,
             token=hf_token,
         )
-        self.pipe.enable_sequential_cpu_offload(device="cuda:0")
+        self.pipe.enable_model_cpu_offload(device="cuda:0")
         self.pipe.vae.enable_tiling()
 
         print("[DIFFUSERS][2/3] Loading distilled LoRA rank-384...")
