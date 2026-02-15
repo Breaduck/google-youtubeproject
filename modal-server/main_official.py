@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "v3.0-1stage-only"
+BUILD_VERSION = "v3.1-motion-guardrails"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -125,10 +125,51 @@ class OfficialVideoGenerator:
         image_url    = data.get("image_url", "")
         num_frames   = data.get("num_frames", 121)
         seed         = data.get("seed", 42)
-        motion_desc  = data.get("motion_desc", PROMPT_DEFAULT_MOTION)
+        raw_motion   = data.get("motion_desc", "")
 
-        # 뼈대(고정) + 동작 1개(가변) 조합
+        # ── v3.1 Motion Guardrails ────────────────────────────────────
+        MOTION_WHITELIST = {
+            "subtle breathing",
+            "slow blink once",
+            "slow blink twice",
+            "slight head tilt",
+            "micro nod",
+        }
+        MOTION_FORBIDDEN = [
+            "mouth", "talk", "speak", "lip", "smile", "laugh", "cry", "frown",
+            "eye wide", "eyebrow", "look around", "turn head", "shake",
+            "zoom", "pan", "camera", "walk", "run", "jump", "wave",
+            "hand", "arm", "body", "torso",
+        ]
+
+        if raw_motion:
+            # motions 배열(쉼표 구분) 또는 단일 문자열 모두 처리
+            parts = [p.strip().lower() for p in raw_motion.split(",") if p.strip()]
+            filtered = []
+            for p in parts:
+                # 금지 키워드 포함 여부 체크
+                if any(kw in p for kw in MOTION_FORBIDDEN):
+                    print(f"[GUARDRAIL] blocked: '{p}'")
+                    continue
+                # whitelist 매칭 (부분 포함도 허용)
+                matched = next((w for w in MOTION_WHITELIST if w in p or p in w), None)
+                if matched:
+                    filtered.append(matched)
+                else:
+                    print(f"[GUARDRAIL] not in whitelist, skipped: '{p}'")
+            motion_desc = ", ".join(dict.fromkeys(filtered))  # 중복 제거
+        else:
+            motion_desc = ""
+
+        if not motion_desc:
+            motion_desc = PROMPT_DEFAULT_MOTION
+            print(f"[GUARDRAIL] fallback to default: '{motion_desc}'")
+        else:
+            print(f"[GUARDRAIL] motion_desc (after guardrail): '{motion_desc}'")
+
+        # 뼈대(고정) + 동작(가드레일 통과)
         PROMPT = f"{PROMPT_BASE}, {motion_desc}"
+        print(f"[GUARDRAIL] final prompt[:120]: '{PROMPT[:120]}'")
 
         print(f"\n{'='*60}")
         print(f"[DIFFUSERS] generate() called")
