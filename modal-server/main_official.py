@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.0-diffusers"
+BUILD_VERSION = "exp/official-sdk-2.1-diffusers"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -22,6 +22,7 @@ image = (
         "scipy",
         "soundfile",
         "einops",
+        "peft",
     )
     .run_commands(
         # LTX-2 지원은 diffusers main 브랜치
