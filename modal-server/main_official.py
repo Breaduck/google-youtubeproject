@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "v3.1-motion-guardrails"
+BUILD_VERSION = "v3.1-env-steps-cfg"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -198,7 +198,13 @@ class OfficialVideoGenerator:
 
         generator = torch.Generator("cpu").manual_seed(seed)
 
-        # ── Stage 1 (그대로 유지) ─────────────────────────────────
+        # ── ENV 오버라이드 (실험용) ───────────────────────────────
+        import os as _os
+        steps = int(_os.environ.get("LTX_STEPS", "8"))
+        cfg   = float(_os.environ.get("LTX_CFG", "3.0"))
+        print(f"[DIFFUSERS] steps={steps}  cfg={cfg}  (LTX_STEPS/LTX_CFG)")
+
+        # ── Stage 1 ──────────────────────────────────────────────
         print("[DIFFUSERS] Stage 1: generating...")
         t1 = time.time()
         video_latent, audio_latent = self.pipe(
@@ -209,8 +215,8 @@ class OfficialVideoGenerator:
             height=H1,
             num_frames=num_frames,
             frame_rate=24.0,
-            num_inference_steps=8,
-            guidance_scale=3.0,
+            num_inference_steps=steps,
+            guidance_scale=cfg,
             generator=generator,
             output_type="latent",
             return_dict=False,
