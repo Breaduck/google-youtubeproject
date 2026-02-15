@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.9-diffusers-a100"
+BUILD_VERSION = "exp/official-sdk-2.10-diffusers-a100"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -209,26 +209,57 @@ class OfficialVideoGenerator:
             shift_terminal=None,
         )
 
-        # upscaled_latent shape에서 직접 h/w/nf 역산 → conditioning_mask 불일치 방지
-        T_lat = upscaled_latent.shape[2]
-        H_lat = upscaled_latent.shape[3]
-        W_lat = upscaled_latent.shape[4]
-        vr_s = self.pipe.vae_spatial_compression_ratio
-        vr_t = self.pipe.vae_temporal_compression_ratio
-        h_s2 = H_lat * vr_s
-        w_s2 = W_lat * vr_s
-        nf_s2 = (T_lat - 1) * vr_t + 1
-        print(f"[DEBUG] upscaled_latent.shape={upscaled_latent.shape}  vr_s={vr_s}  vr_t={vr_t}")
-        print(f"[DEBUG] Stage2 h={h_s2}  w={w_s2}  nf={nf_s2}")
+        # prepare_latents monkey patch:
+        # conditioning_mask를 항상 upscaled_latent.shape에서 직접 생성
+        # → height/width/num_frames 역산 오차로 인한 shape 불일치 근본 차단
+        import types as _types
+
+        def _patched_prepare_latents(
+            _self, image, batch_size, num_channels_latents,
+            height, width, num_frames, noise_scale, dtype, device, generator, latents=None
+        ):
+            if latents is not None and latents.ndim == 5:
+                B, C, T, H, W = latents.shape
+                print(f"[PATCH] latent 5D: B={B} C={C} T={T} H={H} W={W}")
+                mask_shape = (B, 1, T, H, W)
+                conditioning_mask = latents.new_zeros(mask_shape)
+                conditioning_mask[:, :, 0] = 1.0
+                latents = _self._normalize_latents(
+                    latents, _self.vae.latents_mean,
+                    _self.vae.latents_std, _self.vae.config.scaling_factor
+                )
+                latents = _self._create_noised_state(
+                    latents, noise_scale * (1 - conditioning_mask), generator
+                )
+                latents = _self._pack_latents(
+                    latents,
+                    _self.transformer_spatial_patch_size,
+                    _self.transformer_temporal_patch_size,
+                )
+                conditioning_mask = _self._pack_latents(
+                    conditioning_mask,
+                    _self.transformer_spatial_patch_size,
+                    _self.transformer_temporal_patch_size,
+                ).squeeze(-1)
+                return latents.to(device=device, dtype=dtype), conditioning_mask
+            # 나머지 경로(image encode 등)는 원본 호출
+            return _patched_prepare_latents._orig(_self, image, batch_size, num_channels_latents,
+                                                   height, width, num_frames, noise_scale,
+                                                   dtype, device, generator, latents)
+
+        _patched_prepare_latents._orig = self.pipe.__class__.prepare_latents
+        self.pipe.prepare_latents = _types.MethodType(_patched_prepare_latents, self.pipe)
+
+        print(f"[DEBUG] upscaled_latent.shape={upscaled_latent.shape}")
 
         video, audio = self.pipe(
             latents=upscaled_latent,
             audio_latents=audio_latent,
             prompt=PROMPT,
             negative_prompt=NEGATIVE_PROMPT,
-            height=h_s2,
-            width=w_s2,
-            num_frames=nf_s2,
+            height=H2,
+            width=W2,
+            num_frames=num_frames,
             frame_rate=24.0,
             num_inference_steps=3,
             noise_scale=STAGE_2_DISTILLED_SIGMA_VALUES[0],
@@ -238,6 +269,9 @@ class OfficialVideoGenerator:
             output_type="np",
             return_dict=False,
         )
+
+        # patch 해제 (다음 generate 호출에서 Stage 1이 영향 받지 않도록)
+        del self.pipe.prepare_latents
         print(f"[DIFFUSERS] Stage 2 done: {time.time()-t3:.1f}s")
 
         # ── 인코딩 ────────────────────────────────────────────────
