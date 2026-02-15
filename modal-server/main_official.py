@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.12-spawn-volume"
+BUILD_VERSION = "exp/official-sdk-2.13-gpu-resident-8steps"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -88,10 +88,11 @@ class OfficialVideoGenerator:
             torch_dtype=torch.bfloat16,
             token=hf_token,
         )
-        self.pipe.enable_model_cpu_offload(device="cuda:0")
+        # A100-80GB: 모델 전체(~21GB)가 VRAM에 상주 → cpu_offload 제거
+        self.pipe.to("cuda")
         self.pipe.vae.enable_tiling()
 
-        print("[DIFFUSERS][2/3] Loading distilled LoRA rank-384...")
+        print("[DIFFUSERS][2/3] Loading distilled LoRA...")
         self.pipe.load_lora_weights(
             REPO_ID,
             adapter_name="stage_2_distilled",
@@ -99,6 +100,27 @@ class OfficialVideoGenerator:
             token=hf_token,
         )
         self.pipe.disable_lora()  # Stage 1에서는 비활성화
+
+        # LoRA 실제 rank 확인
+        try:
+            from safetensors.torch import safe_open
+            import os
+            lora_path = os.path.join(os.environ.get("HF_HOME", "/models"),
+                "models--Lightricks--LTX-2/snapshots")
+            # 캐시에서 safetensors 찾기
+            for root, dirs, files in os.walk(lora_path):
+                for fn in files:
+                    if "distilled-lora" in fn and fn.endswith(".safetensors"):
+                        fp = os.path.join(root, fn)
+                        with safe_open(fp, framework="pt", device="cpu") as f:
+                            keys = [k for k in f.keys() if "lora_A" in k]
+                            if keys:
+                                t = f.get_tensor(keys[0])
+                                actual_rank = t.shape[0]
+                                print(f"[LORA] Actual rank = {actual_rank}  (file: {fn})")
+                        break
+        except Exception as e:
+            print(f"[LORA] rank 확인 스킵: {e}")
 
         print("[DIFFUSERS][3/3] Loading Latent Upsampler...")
         latent_upsampler = LTX2LatentUpsamplerModel.from_pretrained(
@@ -111,7 +133,7 @@ class OfficialVideoGenerator:
             vae=self.pipe.vae,
             latent_upsampler=latent_upsampler,
         )
-        self.upsample_pipe.enable_model_cpu_offload(device="cuda:0")
+        self.upsample_pipe.to("cuda")
 
         # 원본 스케줄러 저장 (Stage 2에서 교체 후 복원용)
         import copy
@@ -181,7 +203,7 @@ class OfficialVideoGenerator:
             height=H1,
             num_frames=num_frames,
             frame_rate=24.0,
-            num_inference_steps=20,
+            num_inference_steps=8,  # distilled 최적값 (20은 과잉)
             guidance_scale=3.0,
             generator=generator,
             output_type="latent",
