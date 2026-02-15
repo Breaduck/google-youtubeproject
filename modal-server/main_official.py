@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.13-gpu-resident-8steps"
+BUILD_VERSION = "v3.0-1stage-only"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -51,9 +51,7 @@ NEGATIVE_PROMPT = (
     "blurry, deformed, distorted, melting, morphing"
 )
 
-# Stage 1 해상도 → Latent Upsampler 2x → Stage 2 출력
 W1, H1 = 960, 544
-W2, H2 = 1920, 1088
 
 
 @app.cls(
@@ -67,8 +65,7 @@ class OfficialVideoGenerator:
     @modal.enter()
     def load_model(self):
         import os, torch
-        from diffusers.pipelines.ltx2 import LTX2ImageToVideoPipeline, LTX2LatentUpsamplePipeline
-        from diffusers.pipelines.ltx2.latent_upsampler import LTX2LatentUpsamplerModel
+        from diffusers.pipelines.ltx2 import LTX2ImageToVideoPipeline
 
         hf_token = os.environ.get("HF_TOKEN")
         if not hf_token:
@@ -92,52 +89,14 @@ class OfficialVideoGenerator:
         self.pipe.to("cuda")
         self.pipe.vae.enable_tiling()
 
-        print("[DIFFUSERS][2/3] Loading distilled LoRA...")
-        self.pipe.load_lora_weights(
-            REPO_ID,
-            adapter_name="stage_2_distilled",
-            weight_name="ltx-2-19b-distilled-lora-384.safetensors",
-            token=hf_token,
-        )
-        self.pipe.disable_lora()  # Stage 1에서는 비활성화
-
-        # LoRA 실제 rank 확인
-        try:
-            from safetensors.torch import safe_open
-            import os
-            lora_path = os.path.join(os.environ.get("HF_HOME", "/models"),
-                "models--Lightricks--LTX-2/snapshots")
-            # 캐시에서 safetensors 찾기
-            for root, dirs, files in os.walk(lora_path):
-                for fn in files:
-                    if "distilled-lora" in fn and fn.endswith(".safetensors"):
-                        fp = os.path.join(root, fn)
-                        with safe_open(fp, framework="pt", device="cpu") as f:
-                            keys = [k for k in f.keys() if "lora_A" in k]
-                            if keys:
-                                t = f.get_tensor(keys[0])
-                                actual_rank = t.shape[0]
-                                print(f"[LORA] Actual rank = {actual_rank}  (file: {fn})")
-                        break
-        except Exception as e:
-            print(f"[LORA] rank 확인 스킵: {e}")
-
-        print("[DIFFUSERS][3/3] Loading Latent Upsampler...")
-        latent_upsampler = LTX2LatentUpsamplerModel.from_pretrained(
-            REPO_ID,
-            subfolder="latent_upsampler",
-            torch_dtype=torch.bfloat16,
-            token=hf_token,
-        )
-        self.upsample_pipe = LTX2LatentUpsamplePipeline(
-            vae=self.pipe.vae,
-            latent_upsampler=latent_upsampler,
-        )
-        self.upsample_pipe.to("cuda")
-
-        # 원본 스케줄러 저장 (Stage 2에서 교체 후 복원용)
-        import copy
-        self.original_scheduler_config = copy.deepcopy(self.pipe.scheduler.config)
+        # ── LoRA 로딩 (v3.0: 비활성화 — 커스텀 LoRA 훅 재활용 시 주석 해제) ──
+        # self.pipe.load_lora_weights(
+        #     REPO_ID,
+        #     adapter_name="stage_2_distilled",
+        #     weight_name="ltx-2-19b-distilled-lora-384.safetensors",
+        #     token=hf_token,
+        # )
+        # self.pipe.disable_lora()
 
         vram_used = torch.cuda.memory_allocated() / 1024**3
         print(f"[DIFFUSERS] All loaded | VRAM: {vram_used:.1f} GB / {vram_gb:.1f} GB")
@@ -149,8 +108,6 @@ class OfficialVideoGenerator:
         import torch
         from PIL import Image
         from io import BytesIO
-        from diffusers import FlowMatchEulerDiscreteScheduler
-        from diffusers.pipelines.ltx2.utils import STAGE_2_DISTILLED_SIGMA_VALUES
         from diffusers.pipelines.ltx2.export_utils import encode_video
 
         t_total_start = time.time()
@@ -186,13 +143,7 @@ class OfficialVideoGenerator:
 
         generator = torch.Generator("cpu").manual_seed(seed)
 
-        # Stage 1 스케줄러 복원
-        self.pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(
-            self.original_scheduler_config
-        )
-        self.pipe.disable_lora()
-
-        # ── Stage 1 ──────────────────────────────────────────────
+        # ── Stage 1 (그대로 유지) ─────────────────────────────────
         print("[DIFFUSERS] Stage 1: generating...")
         t1 = time.time()
         video_latent, audio_latent = self.pipe(
@@ -203,7 +154,7 @@ class OfficialVideoGenerator:
             height=H1,
             num_frames=num_frames,
             frame_rate=24.0,
-            num_inference_steps=8,  # distilled 최적값 (20은 과잉)
+            num_inference_steps=8,
             guidance_scale=3.0,
             generator=generator,
             output_type="latent",
@@ -211,91 +162,35 @@ class OfficialVideoGenerator:
         )
         print(f"[DIFFUSERS] Stage 1 done: {time.time()-t1:.1f}s")
 
-        # ── Latent Upscale 2x ────────────────────────────────────
-        print("[DIFFUSERS] Upscaling latents (2x)...")
-        t2 = time.time()
-        upscaled_latent = self.upsample_pipe(
-            latents=video_latent,
-            output_type="latent",
-            return_dict=False,
-        )[0]
-        print(f"[DIFFUSERS] Upscale done: {time.time()-t2:.1f}s")
+        # ── 외부 VAE decode (Stage 2 없이 바로 디코딩) ────────────
+        print("[DIFFUSERS] VAE decoding...")
+        t_dec = time.time()
+        print(f"  video_latent.shape={video_latent.shape}  dtype={video_latent.dtype}  device={video_latent.device}")
 
-        # ── Stage 2 (distilled LoRA) ─────────────────────────────
-        print("[DIFFUSERS] Stage 2: LoRA refinement...")
-        t3 = time.time()
-        self.pipe.enable_lora()
-        self.pipe.set_adapters("stage_2_distilled", 1.0)
-        self.pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(
-            self.original_scheduler_config,
-            use_dynamic_shifting=False,
-            shift_terminal=None,
-        )
+        with torch.no_grad():
+            decoded = self.pipe.vae.decode(
+                video_latent / self.pipe.vae.config.scaling_factor
+            ).sample
 
-        # prepare_latents monkey patch:
-        # conditioning_mask를 항상 upscaled_latent.shape에서 직접 생성
-        # → height/width/num_frames 역산 오차로 인한 shape 불일치 근본 차단
-        import types as _types
+        print(f"  decoded.shape={decoded.shape}")
+        print(f"  decoded.min={decoded.min().item():.3f}  max={decoded.max().item():.3f}")
 
-        def _patched_prepare_latents(
-            _self, image, batch_size, num_channels_latents,
-            height, width, num_frames, noise_scale, dtype, device, generator, latents=None
-        ):
-            if latents is not None and latents.ndim == 5:
-                B, C, T, H, W = latents.shape
-                print(f"[PATCH] latent 5D: B={B} C={C} T={T} H={H} W={W}")
-                mask_shape = (B, 1, T, H, W)
-                conditioning_mask = latents.new_zeros(mask_shape)
-                conditioning_mask[:, :, 0] = 1.0
-                latents = _self._normalize_latents(
-                    latents, _self.vae.latents_mean,
-                    _self.vae.latents_std, _self.vae.config.scaling_factor
-                )
-                latents = _self._create_noised_state(
-                    latents, noise_scale * (1 - conditioning_mask), generator
-                )
-                latents = _self._pack_latents(
-                    latents,
-                    _self.transformer_spatial_patch_size,
-                    _self.transformer_temporal_patch_size,
-                )
-                conditioning_mask = _self._pack_latents(
-                    conditioning_mask,
-                    _self.transformer_spatial_patch_size,
-                    _self.transformer_temporal_patch_size,
-                ).squeeze(-1)
-                return latents.to(device=device, dtype=dtype), conditioning_mask
-            # 나머지 경로(image encode 등)는 원본 호출
-            return _patched_prepare_latents._orig(_self, image, batch_size, num_channels_latents,
-                                                   height, width, num_frames, noise_scale,
-                                                   dtype, device, generator, latents)
+        # [B, C, T, H, W] → [T, H, W, C], [-1,1] → [0,1]
+        decoded = decoded.clamp(-1, 1)
+        decoded = (decoded + 1.0) / 2.0
+        frames_np = decoded[0].permute(1, 2, 3, 0).float().cpu().numpy()
+        print(f"  frames_np.shape={frames_np.shape}  range=[{frames_np.min():.3f}, {frames_np.max():.3f}]")
 
-        _patched_prepare_latents._orig = self.pipe.__class__.prepare_latents
-        self.pipe.prepare_latents = _types.MethodType(_patched_prepare_latents, self.pipe)
-
-        print(f"[DEBUG] upscaled_latent.shape={upscaled_latent.shape}")
-
-        video, audio = self.pipe(
-            latents=upscaled_latent,
-            audio_latents=audio_latent,
-            prompt=PROMPT,
-            negative_prompt=NEGATIVE_PROMPT,
-            height=H2,
-            width=W2,
-            num_frames=num_frames,
-            frame_rate=24.0,
-            num_inference_steps=3,
-            noise_scale=STAGE_2_DISTILLED_SIGMA_VALUES[0],
-            sigmas=STAGE_2_DISTILLED_SIGMA_VALUES,
-            guidance_scale=1.0,
-            generator=generator,
-            output_type="np",
-            return_dict=False,
-        )
-
-        # patch 해제 (다음 generate 호출에서 Stage 1이 영향 받지 않도록)
-        del self.pipe.prepare_latents
-        print(f"[DIFFUSERS] Stage 2 done: {time.time()-t3:.1f}s")
+        # ── 오디오 decode ────────────────────────────────────────
+        with torch.no_grad():
+            try:
+                audio_out = self.pipe.vocoder(audio_latent)
+                if hasattr(audio_out, "audio_values"):
+                    audio_out = audio_out.audio_values
+            except Exception as e:
+                print(f"[AUDIO] vocoder decode 실패({e}), 무음으로 대체")
+                audio_out = torch.zeros(1, 1, int(num_frames / 24.0 * 24000))
+        print(f"[DIFFUSERS] VAE+Audio decode done: {time.time()-t_dec:.1f}s")
 
         # ── 인코딩 ────────────────────────────────────────────────
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
@@ -303,9 +198,9 @@ class OfficialVideoGenerator:
 
         t_enc = time.time()
         encode_video(
-            video[0],
+            frames_np,
             fps=24.0,
-            audio=audio[0].float().cpu(),
+            audio=audio_out[0].float().cpu(),
             audio_sample_rate=self.pipe.vocoder.config.output_sampling_rate,
             output_path=out_path,
         )
@@ -327,7 +222,7 @@ class OfficialVideoGenerator:
             "cost_usd": round(cost_usd, 4),
             "cost_krw": cost_krw,
             "engine": "diffusers-LTX2ImageToVideoPipeline",
-            "resolution": "1920x1088",
+            "resolution": f"{W1}x{H1}",
             "frames": num_frames,
         }
 
