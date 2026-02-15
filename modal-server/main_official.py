@@ -166,17 +166,13 @@ class OfficialVideoGenerator:
         print("[DIFFUSERS] VAE decoding...")
         t_dec = time.time()
         vae = self.pipe.vae
-        vae_dtype = next(vae.parameters()).dtype
-        print(f"  VAE dtype: {vae_dtype}")
         print(f"  video_latent.shape={video_latent.shape}  dtype={video_latent.dtype}  device={video_latent.device}")
 
-        video_latent = video_latent.to(dtype=vae_dtype)
-        scaling = torch.tensor(
-            float(vae.config.scaling_factor),
-            device=video_latent.device,
-            dtype=video_latent.dtype,
+        # 모델이 bfloat16으로 로딩됨 → 직접 캐스팅 (next(parameters) 우회)
+        z = (video_latent / float(vae.config.scaling_factor)).to(
+            dtype=torch.bfloat16, device="cuda"
         )
-        z = video_latent / scaling
+        print(f"  z.shape={z.shape}  dtype={z.dtype}")
 
         with torch.no_grad():
             decoded = vae.decode(z).sample
