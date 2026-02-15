@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.10-diffusers-a100"
+BUILD_VERSION = "exp/official-sdk-2.11-volume-persist"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -40,6 +40,7 @@ image = (
 
 app = modal.App("ltx-official-exp", image=image)
 model_cache = modal.Volume.from_name("model-cache-official-exp", create_if_missing=True)
+video_cache = modal.Volume.from_name("video-cache-official", create_if_missing=True)
 
 PROMPT = (
     "Cinematic motion, natural character movement, high dynamic range, subtle motion"
@@ -310,13 +311,13 @@ class OfficialVideoGenerator:
 
 
 # ── ASGI 웹 앱 ────────────────────────────────────────────────────────────
-@app.function(image=image, timeout=600)
+@app.function(image=image, timeout=600, volumes={"/video-cache": video_cache})
 @modal.asgi_app()
 def web():
-    import asyncio, uuid
+    import asyncio, uuid, json, os
     from fastapi import FastAPI, Request
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import JSONResponse, StreamingResponse
 
     fast_app = FastAPI()
     fast_app.add_middleware(
@@ -326,7 +327,24 @@ def web():
         allow_headers=["*"],
     )
 
-    jobs: dict = {}
+    CACHE_DIR = "/video-cache"
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+    def _status_path(job_id): return f"{CACHE_DIR}/{job_id}.json"
+    def _video_path(job_id):  return f"{CACHE_DIR}/{job_id}.mp4"
+
+    def _write_status(job_id, data: dict):
+        with open(_status_path(job_id), "w") as f:
+            json.dump(data, f)
+        video_cache.commit()
+
+    def _read_status(job_id) -> dict | None:
+        video_cache.reload()
+        p = _status_path(job_id)
+        if not os.path.exists(p):
+            return None
+        with open(p) as f:
+            return json.load(f)
 
     @fast_app.get("/health")
     def health():
@@ -336,18 +354,26 @@ def web():
     async def start_generation(request: Request):
         data = await request.json()
         job_id = uuid.uuid4().hex[:8]
-        jobs[job_id] = {"status": "running", "result": None, "error": None}
+        _write_status(job_id, {"status": "running", "error": None})
 
         async def _run():
             try:
                 gen = OfficialVideoGenerator()
                 result = await gen.generate.remote.aio(data)
-                jobs[job_id]["result"] = result
-                jobs[job_id]["status"] = "complete"
-                print(f"[JOB {job_id}] complete")
+
+                # MP4 저장
+                import base64 as _b64
+                video_bytes = _b64.b64decode(result["video_base64"])
+                with open(_video_path(job_id), "wb") as f:
+                    f.write(video_bytes)
+
+                # 메타 저장 (video_base64 제외)
+                meta = {k: v for k, v in result.items() if k != "video_base64"}
+                meta["status"] = "complete"
+                _write_status(job_id, meta)
+                print(f"[JOB {job_id}] complete → saved to volume")
             except Exception as e:
-                jobs[job_id]["error"] = str(e)
-                jobs[job_id]["status"] = "error"
+                _write_status(job_id, {"status": "error", "error": str(e)})
                 print(f"[JOB {job_id}] error: {e}")
 
         asyncio.create_task(_run())
@@ -356,22 +382,23 @@ def web():
 
     @fast_app.get("/status/{job_id}")
     def job_status(job_id: str):
-        if job_id not in jobs:
+        st = _read_status(job_id)
+        if st is None:
             return JSONResponse({"status": "not_found"}, status_code=404)
-        job = jobs[job_id]
-        if job["status"] == "error":
-            return JSONResponse({"status": "error", "error": job["error"]})
-        return JSONResponse({"status": job["status"]})
+        if st["status"] == "error":
+            return JSONResponse({"status": "error", "error": st.get("error")})
+        return JSONResponse({"status": st["status"]})
 
-    @fast_app.get("/result/{job_id}")
-    def job_result(job_id: str):
-        if job_id not in jobs:
-            return JSONResponse({"status": "not_found"}, status_code=404)
-        job = jobs[job_id]
-        if job["status"] != "complete":
-            return JSONResponse({"status": job["status"]}, status_code=400)
-        result = job["result"]
-        del jobs[job_id]
-        return JSONResponse(result)
+    @fast_app.get("/download/{job_id}")
+    def download_video(job_id: str):
+        video_cache.reload()
+        vp = _video_path(job_id)
+        if not os.path.exists(vp):
+            return JSONResponse({"error": "not found"}, status_code=404)
+        def _iter():
+            with open(vp, "rb") as f:
+                while chunk := f.read(1024 * 1024):
+                    yield chunk
+        return StreamingResponse(_iter(), media_type="video/mp4")
 
     return fast_app
