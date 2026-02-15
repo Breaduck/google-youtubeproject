@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.3-diffusers-a100"
+BUILD_VERSION = "exp/official-sdk-2.4-diffusers-a100"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -132,12 +132,12 @@ class OfficialVideoGenerator:
         t_total_start = time.time()
 
         image_url  = data.get("image_url", "")
-        num_frames = data.get("num_frames", 192)
+        num_frames = data.get("num_frames", 121)  # 공식 기본값 (~5초 @ 24fps)
         seed       = data.get("seed", 42)
 
         print(f"\n{'='*60}")
         print(f"[DIFFUSERS] generate() called")
-        print(f"  frames={num_frames} ({num_frames/24:.1f}s @ 24fps), seed={seed}")
+        print(f"  frames={num_frames} ({num_frames/24:.2f}s @ 24fps), seed={seed}")
         print(f"{'='*60}")
 
         # 이미지 로드
