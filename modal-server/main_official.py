@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "v3.1-env-steps-cfg"
+BUILD_VERSION = "v3.1-d-combo"  # steps=12, cfg=2.5 D조합 테스트
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -198,13 +198,25 @@ class OfficialVideoGenerator:
 
         generator = torch.Generator("cpu").manual_seed(seed)
 
-        # ── ENV 오버라이드 (실험용) ───────────────────────────────
-        import os as _os
-        steps = int(_os.environ.get("LTX_STEPS", "8"))
-        cfg   = float(_os.environ.get("LTX_CFG", "3.0"))
+        # ── ENV 오버라이드 (실험용, 기본값: D조합 12/2.5) ─────────
+        import os as _os, subprocess as _sp
+        steps = int(_os.environ.get("LTX_STEPS", "12"))
+        cfg   = float(_os.environ.get("LTX_CFG", "2.5"))
         print(f"[DIFFUSERS] steps={steps}  cfg={cfg}  (LTX_STEPS/LTX_CFG)")
 
+        def _gpu_stat(label):
+            try:
+                out = _sp.check_output([
+                    "nvidia-smi",
+                    "--query-gpu=utilization.gpu,utilization.memory,memory.used,memory.total",
+                    "--format=csv,noheader,nounits"
+                ], text=True).strip()
+                print(f"[GPU {label}] util={out}")
+            except Exception as e:
+                print(f"[GPU {label}] nvidia-smi failed: {e}")
+
         # ── Stage 1 ──────────────────────────────────────────────
+        _gpu_stat("before_stage1")
         print("[DIFFUSERS] Stage 1: generating...")
         t1 = time.time()
         video_latent, audio_latent = self.pipe(
@@ -222,6 +234,7 @@ class OfficialVideoGenerator:
             return_dict=False,
         )
         print(f"[DIFFUSERS] Stage 1 done: {time.time()-t1:.1f}s")
+        _gpu_stat("after_stage1")
 
         # ── 외부 VAE decode (Stage 2 없이 바로 디코딩) ────────────
         print("[DIFFUSERS] VAE decoding...")
@@ -268,6 +281,7 @@ class OfficialVideoGenerator:
             audio_tensor = audio_tensor.expand(2, -1)
         print(f"  audio_tensor.shape={audio_tensor.shape}")
         print(f"[DIFFUSERS] VAE+Audio decode done: {time.time()-t_dec:.1f}s")
+        _gpu_stat("after_decode")
 
         # ── 인코딩 ────────────────────────────────────────────────
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
