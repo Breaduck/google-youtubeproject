@@ -4,7 +4,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK 실험 브랜치
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.11"
+BUILD_VERSION = "exp/official-sdk-1.12"
 
 # Python 3.11 (torchao FP8 호환)
 image = (
@@ -77,10 +77,10 @@ class OfficialVideoGenerator:
         print(f"[OFFICIAL] GPU: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
         print(f"{'='*70}")
 
-        print("[OFFICIAL][1/3] Downloading distilled-fp8 checkpoint (27.1GB)...")
+        print("[OFFICIAL][1/4] Downloading distilled BF16 checkpoint (43.3GB)...")
         ckpt_path = hf_hub_download(
             repo_id=REPO_ID,
-            filename="ltx-2-19b-distilled-fp8.safetensors",
+            filename="ltx-2-19b-distilled.safetensors",
             cache_dir=CACHE, token=hf_token,
         )
         print(f"  checkpoint: {ckpt_path}")
@@ -112,14 +112,14 @@ class OfficialVideoGenerator:
         from ltx_core.quantization import QuantizationPolicy
         from ltx_core.loader import LTXV_LORA_COMFY_RENAMING_MAP, LoraPathStrengthAndSDOps
 
-        print("[OFFICIAL] Loading DistilledPipeline (distilled-fp8 + LoRA-384)...")
+        print("[OFFICIAL] Loading DistilledPipeline (distilled-BF16 + LoRA-384)...")
         self.pipeline = DistilledPipeline(
             checkpoint_path=ckpt_path,
             gemma_root=gemma_root,
             spatial_upsampler_path=upscaler_path,
             loras=[LoraPathStrengthAndSDOps(lora_path, 0.6, LTXV_LORA_COMFY_RENAMING_MAP)],
             device="cuda",
-            quantization=QuantizationPolicy.fp8_cast(),
+            quantization=None,
         )
         vram_after = torch.cuda.memory_allocated() / 1024**3
         print(f"[OFFICIAL] Pipeline loaded OK | VRAM: {vram_after:.1f} GB / {vram_gb:.1f} GB")
