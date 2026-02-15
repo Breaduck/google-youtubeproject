@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-2.11-volume-persist"
+BUILD_VERSION = "exp/official-sdk-2.12-spawn-volume"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -310,11 +310,48 @@ class OfficialVideoGenerator:
         }
 
 
+# ── 생성 + 저장 전담 함수 (spawn 패턴) ─────────────────────────────────────
+@app.function(image=image, timeout=700, volumes={"/video-cache": video_cache})
+def run_and_save(data: dict, job_id: str):
+    """generate() 호출 후 결과를 Volume에 직접 저장. web() 함수와 완전히 독립."""
+    import json, os, base64 as _b64
+
+    CACHE_DIR = "/video-cache"
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+    def _save_status(status_data: dict):
+        with open(f"{CACHE_DIR}/{job_id}.json", "w") as f:
+            json.dump(status_data, f)
+        video_cache.commit()
+
+    # 시작 즉시 running 상태 기록
+    _save_status({"status": "running"})
+    print(f"[RUN_AND_SAVE {job_id}] started")
+
+    try:
+        gen = OfficialVideoGenerator()
+        result = gen.generate.remote(data)
+
+        # MP4 저장
+        video_bytes = _b64.b64decode(result["video_base64"])
+        with open(f"{CACHE_DIR}/{job_id}.mp4", "wb") as f:
+            f.write(video_bytes)
+
+        # 메타 저장
+        meta = {k: v for k, v in result.items() if k != "video_base64"}
+        meta["status"] = "complete"
+        _save_status(meta)
+        print(f"[RUN_AND_SAVE {job_id}] complete → {len(video_bytes)//1024}KB saved")
+    except Exception as e:
+        _save_status({"status": "error", "error": str(e)})
+        print(f"[RUN_AND_SAVE {job_id}] error: {e}")
+
+
 # ── ASGI 웹 앱 ────────────────────────────────────────────────────────────
-@app.function(image=image, timeout=600, volumes={"/video-cache": video_cache})
+@app.function(image=image, timeout=60, volumes={"/video-cache": video_cache})
 @modal.asgi_app()
 def web():
-    import asyncio, uuid, json, os
+    import uuid, json, os
     from fastapi import FastAPI, Request
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse, StreamingResponse
@@ -328,19 +365,10 @@ def web():
     )
 
     CACHE_DIR = "/video-cache"
-    os.makedirs(CACHE_DIR, exist_ok=True)
 
-    def _status_path(job_id): return f"{CACHE_DIR}/{job_id}.json"
-    def _video_path(job_id):  return f"{CACHE_DIR}/{job_id}.mp4"
-
-    def _write_status(job_id, data: dict):
-        with open(_status_path(job_id), "w") as f:
-            json.dump(data, f)
-        video_cache.commit()
-
-    def _read_status(job_id) -> dict | None:
+    def _read_status(job_id):
         video_cache.reload()
-        p = _status_path(job_id)
+        p = f"{CACHE_DIR}/{job_id}.json"
         if not os.path.exists(p):
             return None
         with open(p) as f:
@@ -354,37 +382,16 @@ def web():
     async def start_generation(request: Request):
         data = await request.json()
         job_id = uuid.uuid4().hex[:8]
-        _write_status(job_id, {"status": "running", "error": None})
-
-        async def _run():
-            try:
-                gen = OfficialVideoGenerator()
-                result = await gen.generate.remote.aio(data)
-
-                # MP4 저장
-                import base64 as _b64
-                video_bytes = _b64.b64decode(result["video_base64"])
-                with open(_video_path(job_id), "wb") as f:
-                    f.write(video_bytes)
-
-                # 메타 저장 (video_base64 제외)
-                meta = {k: v for k, v in result.items() if k != "video_base64"}
-                meta["status"] = "complete"
-                _write_status(job_id, meta)
-                print(f"[JOB {job_id}] complete → saved to volume")
-            except Exception as e:
-                _write_status(job_id, {"status": "error", "error": str(e)})
-                print(f"[JOB {job_id}] error: {e}")
-
-        asyncio.create_task(_run())
-        print(f"[JOB {job_id}] started")
+        # spawn: fire-and-forget, run_and_save가 독립 컨테이너에서 실행
+        run_and_save.spawn(data, job_id)
+        print(f"[WEB] spawned job {job_id}")
         return JSONResponse({"job_id": job_id})
 
     @fast_app.get("/status/{job_id}")
     def job_status(job_id: str):
         st = _read_status(job_id)
         if st is None:
-            return JSONResponse({"status": "not_found"}, status_code=404)
+            return JSONResponse({"status": "running"})  # spawn 직후 파일 없을 수 있음
         if st["status"] == "error":
             return JSONResponse({"status": "error", "error": st.get("error")})
         return JSONResponse({"status": st["status"]})
@@ -392,7 +399,7 @@ def web():
     @fast_app.get("/download/{job_id}")
     def download_video(job_id: str):
         video_cache.reload()
-        vp = _video_path(job_id)
+        vp = f"{CACHE_DIR}/{job_id}.mp4"
         if not os.path.exists(vp):
             return JSONResponse({"error": "not found"}, status_code=404)
         def _iter():
