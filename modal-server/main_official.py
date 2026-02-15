@@ -187,14 +187,25 @@ class OfficialVideoGenerator:
         print(f"  frames_np.shape={frames_np.shape}  range=[{frames_np.min():.3f}, {frames_np.max():.3f}]")
 
         # ── 오디오 decode ────────────────────────────────────────
+        n_samples = int(num_frames / 24.0 * self.pipe.vocoder.config.output_sampling_rate)
         with torch.no_grad():
             try:
-                audio_out = self.pipe.vocoder(audio_latent)
+                # vocoder도 bfloat16 weights → 동일하게 캐스팅
+                audio_latent_bf16 = audio_latent.to(dtype=torch.bfloat16, device="cuda")
+                audio_out = self.pipe.vocoder(audio_latent_bf16)
                 if hasattr(audio_out, "audio_values"):
                     audio_out = audio_out.audio_values
+                audio_tensor = audio_out[0].float().cpu()   # [C, samples] or [samples]
             except Exception as e:
                 print(f"[AUDIO] vocoder decode 실패({e}), 무음으로 대체")
-                audio_out = torch.zeros(1, 1, int(num_frames / 24.0 * 24000))
+                audio_tensor = torch.zeros(2, n_samples)
+
+        # encode_video는 stereo [2, samples] 필요
+        if audio_tensor.dim() == 1:
+            audio_tensor = audio_tensor.unsqueeze(0).expand(2, -1)
+        elif audio_tensor.shape[0] == 1:
+            audio_tensor = audio_tensor.expand(2, -1)
+        print(f"  audio_tensor.shape={audio_tensor.shape}")
         print(f"[DIFFUSERS] VAE+Audio decode done: {time.time()-t_dec:.1f}s")
 
         # ── 인코딩 ────────────────────────────────────────────────
@@ -205,7 +216,7 @@ class OfficialVideoGenerator:
         encode_video(
             frames_np,
             fps=24.0,
-            audio=audio_out[0].float().cpu(),
+            audio=audio_tensor,
             audio_sample_rate=self.pipe.vocoder.config.output_sampling_rate,
             output_path=out_path,
         )
