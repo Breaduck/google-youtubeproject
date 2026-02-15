@@ -5,7 +5,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.18"
+BUILD_VERSION = "exp/official-sdk-1.19"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -31,8 +31,8 @@ image = (
         "pip install /tmp/ltx2/packages/ltx-pipelines --quiet",
         "pip install 'transformers>=4.52,<5.0' --quiet",
         "python -c \"import transformers; print('transformers version:', transformers.__version__)\"",
-        # SDK bug patch: _fuse_delta_with_scaled_fp8 차원 불일치 수정
-        "python -c \"import ltx_core.loader.fuse_loras as m, inspect, pathlib; p = pathlib.Path(inspect.getfile(m)); t = p.read_text(); assert 'new_weight = original_weight + deltas.to(torch.float32)' in t; p.write_text(t.replace('new_weight = original_weight + deltas.to(torch.float32)', 'new_weight = original_weight + deltas.t().to(torch.float32)')); print('SDK patch applied:', p)\"",
+        # SDK bug patch: _fuse_delta_with_scaled_fp8 shape-aware robust fix
+        "python -c \"import ltx_core.loader.fuse_loras as m, inspect, pathlib; p = pathlib.Path(inspect.getfile(m)); t = p.read_text(); old = 'new_weight = original_weight + deltas.to(torch.float32)'; new = 'delta_f32 = deltas.to(torch.float32); delta_f32 = delta_f32.t() if original_weight.shape != delta_f32.shape else delta_f32; new_weight = original_weight + delta_f32'; src = t.replace(old, new) if old in t else t.replace('new_weight = original_weight + deltas.t().to(torch.float32)', new); p.write_text(src); print('SDK patch applied:', p)\"",
     )
     .env({
         "HF_HOME": "/models",
