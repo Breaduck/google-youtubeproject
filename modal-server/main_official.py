@@ -42,13 +42,23 @@ app = modal.App("ltx-official-exp", image=image)
 model_cache = modal.Volume.from_name("model-cache-official-exp", create_if_missing=True)
 video_cache = modal.Volume.from_name("video-cache-official", create_if_missing=True)
 
-PROMPT = (
-    "Cinematic motion, natural character movement, high dynamic range, subtle motion"
+# ── 캐릭터 정체성 유지 최우선 기본 프롬프트 ──────────────────────────────
+PROMPT_BASE = (
+    "A cinematic 2D anime scene, clean lineart, consistent character design, "
+    "same character identity across all frames, stable facial features, "
+    "stable eyes and mouth shape, no face morphing, no lineart flicker, "
+    "static camera, very slow movement, smooth animation, high quality linework"
 )
+# motion_desc가 없을 때 기본 동작
+PROMPT_DEFAULT_MOTION = "subtle breathing, minimal movement"
+
 NEGATIVE_PROMPT = (
+    "face morphing, inconsistent face, deformed face, melted face, "
+    "warped facial features, extra eyes, bad anatomy, "
+    "jittery lineart, flicker, unstable outlines, "
+    "camera movement, pan, zoom, tilt, dolly, camera shake, "
     "text, watermark, subtitle, caption, logo, "
-    "camera movement, pan, zoom, tilt, dolly, "
-    "blurry, deformed, distorted, melting, morphing"
+    "heavy motion blur, low quality, blurry, distorted, morphing"
 )
 
 W1, H1 = 960, 544
@@ -112,9 +122,13 @@ class OfficialVideoGenerator:
 
         t_total_start = time.time()
 
-        image_url  = data.get("image_url", "")
-        num_frames = data.get("num_frames", 121)  # 공식 기본값 (~5초 @ 24fps)
-        seed       = data.get("seed", 42)
+        image_url    = data.get("image_url", "")
+        num_frames   = data.get("num_frames", 121)
+        seed         = data.get("seed", 42)
+        motion_desc  = data.get("motion_desc", PROMPT_DEFAULT_MOTION)
+
+        # 뼈대(고정) + 동작 1개(가변) 조합
+        PROMPT = f"{PROMPT_BASE}, {motion_desc}"
 
         print(f"\n{'='*60}")
         print(f"[DIFFUSERS] generate() called")
