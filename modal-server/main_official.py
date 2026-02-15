@@ -5,7 +5,7 @@ exp/official-sdk — Lightricks 공식 ltx-pipelines SDK
 """
 import modal
 
-BUILD_VERSION = "exp/official-sdk-1.15"
+BUILD_VERSION = "exp/official-sdk-1.16"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -137,6 +137,7 @@ class OfficialVideoGenerator:
         from io import BytesIO
         from ltx_core.components.guiders import MultiModalGuiderParams
         from ltx_pipelines.utils.media_io import encode_video
+        from ltx_core.model.video_vae import TilingConfig
 
         t_total_start = time.time()
 
@@ -184,6 +185,8 @@ class OfficialVideoGenerator:
             modality_scale=3.0, skip_step=0, stg_blocks=[29],
         )
 
+        tiling_config = TilingConfig.default()  # 512px tiles + 64-frame chunks
+
         t_gen_start = time.time()
         video_iter, _ = self.pipeline(
             prompt=PROMPT,
@@ -196,6 +199,7 @@ class OfficialVideoGenerator:
             video_guider_params=video_guider,
             audio_guider_params=audio_guider,
             images=[(img_path, 0, 1.0)],
+            tiling_config=tiling_config,
             enhance_prompt=False,
         )
         print(f"[OFFICIAL] Generation done: {time.time()-t_gen_start:.1f}s")
