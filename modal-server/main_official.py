@@ -165,14 +165,23 @@ class OfficialVideoGenerator:
         # ── 외부 VAE decode (Stage 2 없이 바로 디코딩) ────────────
         print("[DIFFUSERS] VAE decoding...")
         t_dec = time.time()
+        vae = self.pipe.vae
+        vae_dtype = next(vae.parameters()).dtype
+        print(f"  VAE dtype: {vae_dtype}")
         print(f"  video_latent.shape={video_latent.shape}  dtype={video_latent.dtype}  device={video_latent.device}")
 
-        with torch.no_grad():
-            decoded = self.pipe.vae.decode(
-                video_latent / self.pipe.vae.config.scaling_factor
-            ).sample
+        video_latent = video_latent.to(dtype=vae_dtype)
+        scaling = torch.tensor(
+            float(vae.config.scaling_factor),
+            device=video_latent.device,
+            dtype=video_latent.dtype,
+        )
+        z = video_latent / scaling
 
-        print(f"  decoded.shape={decoded.shape}")
+        with torch.no_grad():
+            decoded = vae.decode(z).sample
+
+        print(f"  decoded.shape={decoded.shape}  dtype={decoded.dtype}  device={decoded.device}")
         print(f"  decoded.min={decoded.min().item():.3f}  max={decoded.max().item():.3f}")
 
         # [B, C, T, H, W] → [T, H, W, C], [-1,1] → [0,1]
