@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "v3.2-eye-stability"  # eye-open guardrail + Preset A/B
+BUILD_VERSION = "v3.3-gemini-safe-motion-mapper"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -42,25 +42,30 @@ app = modal.App("ltx-official-exp", image=image)
 model_cache = modal.Volume.from_name("model-cache-official-exp", create_if_missing=True)
 video_cache = modal.Volume.from_name("video-cache-official", create_if_missing=True)
 
-# ── 캐릭터 정체성 유지 최우선 기본 프롬프트 ──────────────────────────────
-PROMPT_BASE = (
-    "A cinematic 2D anime scene, clean lineart, consistent character design, "
-    "same character identity across all frames, stable facial features, "
-    "stable eyes and mouth shape, no face morphing, no lineart flicker, "
-    "static camera, very slow movement, smooth animation, high quality linework, "
-    "eyes open, keep eyes open most of the time, consistent facial features, stable lineart"
-)
-# motion_desc가 없을 때 기본 동작
-PROMPT_DEFAULT_MOTION = "subtle breathing, minimal movement"
+# ── Safe Motion Mapper 템플릿 ──────────────────────────────────────────────
+SAFE_MOTION_TEMPLATES = {
+    "A": "quick head turn toward the listener",
+    "B": "slight forward lean",
+    "C": "raise one hand slightly below the chin (hand stays away from face)",
+    "D": "micro nod once",
+}
+MOTION_HOLD_SUFFIX = ", then hold still, subtle breathing"
+
+# scene_description에서 제거할 모순 키워드
+SCENE_DESC_FORBIDDEN = [
+    "camera shake", "camera movement", "camera pan", "panning", "zooming",
+    "open mouth", "talking", "speaking", "laughing", "crying",
+    "angry face", "expressive face", "fast motion", "rapid movement",
+]
 
 NEGATIVE_PROMPT = (
     "closed eyes, eyes shut, squinting, "
     "face morphing, inconsistent face, deformed face, melted face, "
-    "warped facial features, warped face, extra eyes, bad anatomy, "
-    "jittery lineart, jitter, flicker, unstable outlines, "
+    "warped facial features, extra eyes, bad anatomy, "
+    "jitter, flicker, unstable outlines, heavy motion blur, "
+    "low quality, blurry, distorted, "
     "camera movement, pan, zoom, tilt, dolly, camera shake, "
-    "text, watermark, subtitle, caption, logo, "
-    "heavy motion blur, low quality, blurry, distorted, morphing"
+    "text, watermark, subtitle, logo"
 )
 
 W1, H1 = 960, 544
@@ -123,81 +128,69 @@ class OfficialVideoGenerator:
         from diffusers.pipelines.ltx2.export_utils import encode_video
 
         t_total_start = time.time()
+        import os as _os, re as _re, subprocess as _sp
 
-        image_url    = data.get("image_url", "")
-        num_frames   = data.get("num_frames", 121)
-        seed         = data.get("seed", 42)
+        image_url       = data.get("image_url", "")
+        raw_frames      = int(data.get("num_frames", 72))
+        seed            = data.get("seed", 42)
+        dialogue        = data.get("dialogue", "")
+        image_prompt_raw = data.get("image_prompt", data.get("scene_description", ""))
 
-        # ── 1단계 로그: request body 전체 ────────────────────────────
-        import os as _os
+        # num_frames: 73→72 보정, 상한 96 클램프
+        num_frames = 72 if raw_frames == 73 else (raw_frames if raw_frames <= 96 else 72)
+
+        # ── 1단계 REQUEST 로그 ────────────────────────────────────────
         print(f"\n{'='*70}")
-        print(f"[REQUEST] data keys={list(data.keys())}")
-        print(f"[REQUEST] num_frames={num_frames}  seed={seed}")
-        MOTION_CANDIDATES = ["motion_desc", "motion", "motions", "motionDesc"]
-        for _k in MOTION_CANDIDATES:
+        print(f"[REQUEST] keys={list(data.keys())}")
+        print(f"[REQUEST] dialogue='{dialogue[:80]}' (len={len(dialogue)})")
+        for _k in ("motion_desc", "motionDesc", "motion", "motions"):
             _v = data.get(_k)
             if _v is not None:
-                print(f"[REQUEST] {_k}={repr(_v)}")
+                print(f"[REQUEST] {_k}='{_v}'")
+        print(f"[REQUEST] motion_desc_raw='{data.get('motion_desc', '')}'")
+        print(f"[REQUEST] num_frames={raw_frames}→{num_frames}  seed={seed}")
 
-        raw_motion = data.get("motion_desc", "")
-        print(f"[REQUEST] raw_motion_desc='{raw_motion}'")
-
-        # ── v3.2 Preset A/B Motion Guardrails ────────────────────────
-        # ENV: MOTION_PRESET=A (기본, ultra stable) | B (micro motion)
-        MOTION_PRESET = _os.environ.get("MOTION_PRESET", "A")
-        print(f"[PRESET] MOTION_PRESET={MOTION_PRESET}")
-
-        MOTION_FORBIDDEN = [
-            "mouth", "talk", "speak", "lip", "smile", "laugh", "cry", "frown",
-            "eye wide", "eyebrow", "look around", "turn head", "shake",
-            "zoom", "pan", "camera", "walk", "run", "jump", "wave",
-            "hand", "arm", "body", "torso",
-        ]
-
-        if MOTION_PRESET == "A":
-            # Preset A: Ultra stable — 강제 "subtle breathing" only
-            motion_desc = "subtle breathing"
-            print(f"[PRESET-A] forced motion_desc='{motion_desc}' (raw ignored)")
-        else:
-            # Preset B: micro motion — 엄격한 whitelist
-            MOTION_WHITELIST_B = {
-                "subtle breathing",
-                "brief blink once",
-            }
-            if raw_motion:
-                parts = [p.strip().lower() for p in raw_motion.split(",") if p.strip()]
-                filtered = []
-                for p in parts:
-                    if any(kw in p for kw in MOTION_FORBIDDEN):
-                        print(f"[PRESET-B][GUARDRAIL] blocked: '{p}'")
-                        continue
-                    matched = next((w for w in MOTION_WHITELIST_B if w in p or p in w), None)
-                    if matched:
-                        filtered.append(matched)
-                    else:
-                        print(f"[PRESET-B][GUARDRAIL] not in whitelist, skipped: '{p}'")
-                motion_desc = ", ".join(dict.fromkeys(filtered))
+        # ── Safe Motion Mapper ────────────────────────────────────────
+        def safe_motion_mapper(dlg: str) -> tuple:
+            d = (dlg or "").strip()
+            if "!" in d:
+                key, preset = "A", "A-head-turn"
+            elif "?" in d:
+                key, preset = "D", "D-micro-nod"
+            elif len(d) >= 20:
+                key, preset = "B", "B-forward-lean"
             else:
-                motion_desc = ""
+                key, preset = "C", "C-hand-raise"
+            return SAFE_MOTION_TEMPLATES[key] + MOTION_HOLD_SUFFIX, preset
 
-            if not motion_desc:
-                motion_desc = PROMPT_DEFAULT_MOTION
-                print(f"[PRESET-B] fallback to default: '{motion_desc}'")
-            else:
-                print(f"[PRESET-B] motion_desc (after guardrail): '{motion_desc}'")
+        motion_desc_final, preset_name = safe_motion_mapper(dialogue)
+        print(f"[MOTION] preset={preset_name}  motion_desc_final='{motion_desc_final}'")
 
-        # ── ENV 오버라이드 (실험용, 기본값: D조합 12/2.5) ─────────
-        import subprocess as _sp
+        # ── scene_description 정제 ────────────────────────────────────
+        scene_desc = image_prompt_raw or ""
+        for _w in SCENE_DESC_FORBIDDEN:
+            scene_desc = scene_desc.replace(_w, "").replace(_w.title(), "")
+        scene_desc = _re.sub(r'\s+', ' ', scene_desc).strip()[:200]
+        if not scene_desc:
+            scene_desc = "anime character in a clean 2D scene"
+
+        # ── 프롬프트 조립 ─────────────────────────────────────────────
+        PROMPT = (
+            "A cinematic 2D anime scene, clean lineart, consistent character design, "
+            "stable facial features, stable eyes and mouth shape, no face morphing, no lineart flicker. "
+            "Static camera, smooth animation, high quality linework. "
+            "Keep eyes open most of the time, consistent facial features throughout, minimal mouth movement. "
+            f"{scene_desc}. "
+            f"Motion: {motion_desc_final}."
+        )
+
+        # ── ENV 오버라이드 ────────────────────────────────────────────
         steps = int(_os.environ.get("LTX_STEPS", "12"))
         cfg   = float(_os.environ.get("LTX_CFG", "2.5"))
 
-        # 뼈대(고정) + 동작(가드레일 통과)
-        PROMPT = f"{PROMPT_BASE}, {motion_desc}"
-
-        # ── 2단계 로그: final prompt 전체 ────────────────────────────
-        print(f"[FINAL] motion_desc='{motion_desc}'")
-        print(f"[FINAL] steps={steps}  cfg={cfg}  num_frames={num_frames}  seed={seed}  preset={MOTION_PRESET}")
-        print(f"[FINAL] positive_prompt='{PROMPT}'")
+        # ── FINAL 로그 ────────────────────────────────────────────────
+        print(f"[FINAL] steps={steps}  cfg={cfg}  num_frames={num_frames}  seed={seed}  preset={preset_name}")
+        print(f"[FINAL] prompt_last_300='{PROMPT[-300:]}'")
         print(f"[FINAL] negative_prompt='{NEGATIVE_PROMPT}'")
         print(f"{'='*70}\n")
 
@@ -222,8 +215,6 @@ class OfficialVideoGenerator:
         print(f"[DIFFUSERS] Input resized to {W1}x{H1}")
 
         generator = torch.Generator("cpu").manual_seed(seed)
-
-        print(f"[DIFFUSERS] steps={steps}  cfg={cfg}  (LTX_STEPS/LTX_CFG)")
 
         def _gpu_stat(label):
             try:
