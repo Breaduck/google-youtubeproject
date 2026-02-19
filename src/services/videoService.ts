@@ -56,11 +56,13 @@ export async function generateSceneVideo(
     // 1. 생성 시작 → job_id 즉시 반환
     const requestBody = {
       image_url: imageUrl,
-      num_frames: 73,   // ~3초 @ 24fps (wobble 감소)
+      num_frames: 73,        // server clamps to 72
       seed: 42,
       motion_desc: motionDesc,
+      dialogue: (dialogue || '').trim().substring(0, 200),   // Safe Motion Mapper용
+      image_prompt: (imagePrompt || '').trim().substring(0, 200), // scene_description용
     };
-    console.log('[LTX] [OFFICIAL] Request body:', JSON.stringify(requestBody));
+    console.log('[LTX] [OFFICIAL] Request body:', JSON.stringify({ ...requestBody, image_url: '[omitted]' }));
 
     const startRes = await fetch(`${OFFICIAL_API}/start`, {
       method: 'POST',
