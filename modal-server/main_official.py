@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "v3.1-d-combo"  # steps=12, cfg=2.5 D조합 테스트
+BUILD_VERSION = "v3.2-eye-stability"  # eye-open guardrail + Preset A/B
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -47,15 +47,17 @@ PROMPT_BASE = (
     "A cinematic 2D anime scene, clean lineart, consistent character design, "
     "same character identity across all frames, stable facial features, "
     "stable eyes and mouth shape, no face morphing, no lineart flicker, "
-    "static camera, very slow movement, smooth animation, high quality linework"
+    "static camera, very slow movement, smooth animation, high quality linework, "
+    "eyes open, keep eyes open most of the time, consistent facial features, stable lineart"
 )
 # motion_desc가 없을 때 기본 동작
 PROMPT_DEFAULT_MOTION = "subtle breathing, minimal movement"
 
 NEGATIVE_PROMPT = (
+    "closed eyes, eyes shut, squinting, "
     "face morphing, inconsistent face, deformed face, melted face, "
-    "warped facial features, extra eyes, bad anatomy, "
-    "jittery lineart, flicker, unstable outlines, "
+    "warped facial features, warped face, extra eyes, bad anatomy, "
+    "jittery lineart, jitter, flicker, unstable outlines, "
     "camera movement, pan, zoom, tilt, dolly, camera shake, "
     "text, watermark, subtitle, caption, logo, "
     "heavy motion blur, low quality, blurry, distorted, morphing"
@@ -126,23 +128,25 @@ class OfficialVideoGenerator:
         num_frames   = data.get("num_frames", 121)
         seed         = data.get("seed", 42)
 
-        # ── DEBUG: request body 키 확인 ───────────────────────────────
+        # ── 1단계 로그: request body 전체 ────────────────────────────
+        import os as _os
+        print(f"\n{'='*70}")
+        print(f"[REQUEST] data keys={list(data.keys())}")
+        print(f"[REQUEST] num_frames={num_frames}  seed={seed}")
         MOTION_CANDIDATES = ["motion_desc", "motion", "motions", "motionDesc"]
         for _k in MOTION_CANDIDATES:
             _v = data.get(_k)
-            print(f"[DEBUG] key='{_k}' value={repr(_v)}")
-        print(f"[DEBUG] data keys={list(data.keys())}")
+            if _v is not None:
+                print(f"[REQUEST] {_k}={repr(_v)}")
 
-        raw_motion   = data.get("motion_desc", "")
+        raw_motion = data.get("motion_desc", "")
+        print(f"[REQUEST] raw_motion_desc='{raw_motion}'")
 
-        # ── v3.1 Motion Guardrails ────────────────────────────────────
-        MOTION_WHITELIST = {
-            "subtle breathing",
-            "slow blink once",
-            "slow blink twice",
-            "slight head tilt",
-            "micro nod",
-        }
+        # ── v3.2 Preset A/B Motion Guardrails ────────────────────────
+        # ENV: MOTION_PRESET=A (기본, ultra stable) | B (micro motion)
+        MOTION_PRESET = _os.environ.get("MOTION_PRESET", "A")
+        print(f"[PRESET] MOTION_PRESET={MOTION_PRESET}")
+
         MOTION_FORBIDDEN = [
             "mouth", "talk", "speak", "lip", "smile", "laugh", "cry", "frown",
             "eye wide", "eyebrow", "look around", "turn head", "shake",
@@ -150,40 +154,52 @@ class OfficialVideoGenerator:
             "hand", "arm", "body", "torso",
         ]
 
-        if raw_motion:
-            # motions 배열(쉼표 구분) 또는 단일 문자열 모두 처리
-            parts = [p.strip().lower() for p in raw_motion.split(",") if p.strip()]
-            filtered = []
-            for p in parts:
-                # 금지 키워드 포함 여부 체크
-                if any(kw in p for kw in MOTION_FORBIDDEN):
-                    print(f"[GUARDRAIL] blocked: '{p}'")
-                    continue
-                # whitelist 매칭 (부분 포함도 허용)
-                matched = next((w for w in MOTION_WHITELIST if w in p or p in w), None)
-                if matched:
-                    filtered.append(matched)
-                else:
-                    print(f"[GUARDRAIL] not in whitelist, skipped: '{p}'")
-            motion_desc = ", ".join(dict.fromkeys(filtered))  # 중복 제거
+        if MOTION_PRESET == "A":
+            # Preset A: Ultra stable — 강제 "subtle breathing" only
+            motion_desc = "subtle breathing"
+            print(f"[PRESET-A] forced motion_desc='{motion_desc}' (raw ignored)")
         else:
-            motion_desc = ""
+            # Preset B: micro motion — 엄격한 whitelist
+            MOTION_WHITELIST_B = {
+                "subtle breathing",
+                "brief blink once",
+            }
+            if raw_motion:
+                parts = [p.strip().lower() for p in raw_motion.split(",") if p.strip()]
+                filtered = []
+                for p in parts:
+                    if any(kw in p for kw in MOTION_FORBIDDEN):
+                        print(f"[PRESET-B][GUARDRAIL] blocked: '{p}'")
+                        continue
+                    matched = next((w for w in MOTION_WHITELIST_B if w in p or p in w), None)
+                    if matched:
+                        filtered.append(matched)
+                    else:
+                        print(f"[PRESET-B][GUARDRAIL] not in whitelist, skipped: '{p}'")
+                motion_desc = ", ".join(dict.fromkeys(filtered))
+            else:
+                motion_desc = ""
 
-        if not motion_desc:
-            motion_desc = PROMPT_DEFAULT_MOTION
-            print(f"[GUARDRAIL] fallback to default: '{motion_desc}'")
-        else:
-            print(f"[GUARDRAIL] motion_desc (after guardrail): '{motion_desc}'")
+            if not motion_desc:
+                motion_desc = PROMPT_DEFAULT_MOTION
+                print(f"[PRESET-B] fallback to default: '{motion_desc}'")
+            else:
+                print(f"[PRESET-B] motion_desc (after guardrail): '{motion_desc}'")
+
+        # ── ENV 오버라이드 (실험용, 기본값: D조합 12/2.5) ─────────
+        import subprocess as _sp
+        steps = int(_os.environ.get("LTX_STEPS", "12"))
+        cfg   = float(_os.environ.get("LTX_CFG", "2.5"))
 
         # 뼈대(고정) + 동작(가드레일 통과)
         PROMPT = f"{PROMPT_BASE}, {motion_desc}"
-        print(f"[GUARDRAIL] motion_desc_final='{motion_desc}'")
-        print(f"[GUARDRAIL] prompt[-200:]='{PROMPT[-200:]}'")
 
-        print(f"\n{'='*60}")
-        print(f"[DIFFUSERS] generate() called")
-        print(f"  frames={num_frames} ({num_frames/24:.2f}s @ 24fps), seed={seed}")
-        print(f"{'='*60}")
+        # ── 2단계 로그: final prompt 전체 ────────────────────────────
+        print(f"[FINAL] motion_desc='{motion_desc}'")
+        print(f"[FINAL] steps={steps}  cfg={cfg}  num_frames={num_frames}  seed={seed}  preset={MOTION_PRESET}")
+        print(f"[FINAL] positive_prompt='{PROMPT}'")
+        print(f"[FINAL] negative_prompt='{NEGATIVE_PROMPT}'")
+        print(f"{'='*70}\n")
 
         # 이미지 로드
         if image_url.startswith("data:"):
@@ -207,10 +223,6 @@ class OfficialVideoGenerator:
 
         generator = torch.Generator("cpu").manual_seed(seed)
 
-        # ── ENV 오버라이드 (실험용, 기본값: D조합 12/2.5) ─────────
-        import os as _os, subprocess as _sp
-        steps = int(_os.environ.get("LTX_STEPS", "12"))
-        cfg   = float(_os.environ.get("LTX_CFG", "2.5"))
         print(f"[DIFFUSERS] steps={steps}  cfg={cfg}  (LTX_STEPS/LTX_CFG)")
 
         def _gpu_stat(label):

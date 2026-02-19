@@ -39,29 +39,33 @@ export async function generateSceneVideo(
     console.log('[LTX] [OFFICIAL] Calling TI2VidTwoStagesPipeline...');
     const startTime = Date.now();
 
-    // 대사 길이/강도 기반 motion 선택 (서버 whitelist 호환)
+    // 대사 길이/강도 기반 motion 선택 (서버 Preset B whitelist 호환)
+    // Preset A(서버 기본)는 motion_desc를 무시하고 "subtle breathing"으로 강제함
+    // Preset B whitelist: {"subtle breathing", "brief blink once"}
     const dialogueLen = (dialogue || '').trim().length;
     let motionDesc: string;
     if (dialogueLen === 0) {
-      motionDesc = 'subtle breathing, slow blink once';
+      motionDesc = 'subtle breathing';
     } else if (dialogueLen < 15) {
-      motionDesc = 'subtle breathing, slow blink twice';
+      motionDesc = 'subtle breathing, brief blink once';
     } else {
-      // 대사가 있을 때: 호흡 + 두 번 깜빡 + 미세 고개 끄덕
-      motionDesc = 'subtle breathing, slow blink twice, micro nod';
+      motionDesc = 'subtle breathing, brief blink once';
     }
     console.log(`[LTX] [OFFICIAL] motion_desc="${motionDesc}" (dialogue len=${dialogueLen})`);
 
     // 1. 생성 시작 → job_id 즉시 반환
+    const requestBody = {
+      image_url: imageUrl,
+      num_frames: 73,   // ~3초 @ 24fps (wobble 감소)
+      seed: 42,
+      motion_desc: motionDesc,
+    };
+    console.log('[LTX] [OFFICIAL] Request body:', JSON.stringify(requestBody));
+
     const startRes = await fetch(`${OFFICIAL_API}/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        image_url: imageUrl,
-        num_frames: 73,   // ~3초 @ 24fps (wobble 감소)
-        seed: 42,
-        motion_desc: motionDesc,
-      }),
+      body: JSON.stringify(requestBody),
     });
     if (!startRes.ok) throw new Error(`Official API start failed: ${startRes.status} ${await startRes.text()}`);
     const { job_id } = await startRes.json();
