@@ -37,17 +37,13 @@ SCENE_DESC_FORBIDDEN = [
 @app.cls(
     cpu=2.0,  # GPU 불필요
     timeout=600,
-    secrets=[modal.Secret.from_name("seedance-api-key")],  # SEEDANCE_API_KEY
+    # secrets 제거: API 키는 request body에서 받음
 )
 class SeeDANCEVideoGenerator:
 
     @modal.enter()
     def setup(self):
         import os
-        self.api_key = os.environ.get("SEEDANCE_API_KEY")
-        if not self.api_key:
-            raise ValueError("SEEDANCE_API_KEY not found in Modal secrets")
-
         # API 엔드포인트 (BytePlus 공식)
         self.api_base = os.environ.get("SEEDANCE_API_BASE", "https://api.byteplus.com/v1")
         self.provider = os.environ.get("SEEDANCE_PROVIDER", "byteplus")
@@ -57,6 +53,7 @@ class SeeDANCEVideoGenerator:
         print(f"[SEEDANCE] BUILD: {BUILD_VERSION}")
         print(f"[SEEDANCE] Provider: {self.provider}")
         print(f"[SEEDANCE] API Base: {self.api_base}")
+        print(f"[SEEDANCE] API Key: from request body")
         print(f"{'='*70}\n")
 
     @modal.method()
@@ -73,6 +70,12 @@ class SeeDANCEVideoGenerator:
         dialogue = data.get("dialogue", "")
         image_prompt_raw = data.get("image_prompt", "")
         seed = data.get("seed", 42)
+        api_key = data.get("api_key", "")  # 프론트엔드에서 전달받은 API 키
+
+        # API 키 검증
+        if not api_key or len(api_key) < 10:
+            raise ValueError("Invalid or missing API key. Please configure in frontend settings.")
+
         # SeeDANCE 1.0 Pro-fast: 5초 고정 (24fps × 5s = 120 frames)
         num_frames = 120
         duration_sec = 5.0
@@ -80,6 +83,7 @@ class SeeDANCEVideoGenerator:
         print(f"\n{'='*70}")
         print(f"[REQUEST] dialogue='{dialogue[:80]}' (len={len(dialogue)})")
         print(f"[REQUEST] duration={duration_sec}s  num_frames={num_frames}  seed={seed}")
+        print(f"[REQUEST] api_key={'*' * (len(api_key) - 4) + api_key[-4:] if len(api_key) > 4 else '***'}")
 
         # ── Safe Motion Mapper ────────────────────────────────────────
         def safe_motion_mapper(dlg: str) -> tuple:
@@ -140,7 +144,7 @@ class SeeDANCEVideoGenerator:
 
         # BytePlus 공식 API 요청
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
 

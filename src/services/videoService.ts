@@ -93,6 +93,64 @@ export async function generateSceneVideo(
     return new Blob([blob], { type: 'video/mp4' });
   }
 
+  // ── SeeDANCE 경로 (브랜치2) ────────────────────────────────────
+  if (engine === 'seedance') {
+    console.log('[LTX] [SEEDANCE] Calling SeeDANCE 1.0 Pro-fast...');
+    const startTime = Date.now();
+
+    // localStorage에서 엔진 설정 읽기
+    const videoEngine = localStorage.getItem('video_engine') || 'official';
+    if (videoEngine !== 'seedance') {
+      throw new Error('SeeDANCE engine selected but not configured in settings');
+    }
+
+    // localStorage에서 API 키 읽기
+    const seedanceApiKey = localStorage.getItem('seedance_api_key') || '';
+    if (!seedanceApiKey || seedanceApiKey.length < 10) {
+      throw new Error('SeeDANCE API key not configured. Please add it in Settings.');
+    }
+
+    const SEEDANCE_API = 'https://hiyoonsh1--seedance-experiment-web.modal.run';
+
+    const requestBody = {
+      image_url: imageUrl,
+      num_frames: 120,  // 5초 고정 (SeeDANCE)
+      seed: 42,
+      dialogue: (dialogue || '').trim().substring(0, 200),
+      image_prompt: (imagePrompt || '').trim().substring(0, 200),
+      api_key: seedanceApiKey,  // API 키 포함
+    };
+    console.log('[LTX] [SEEDANCE] Request body:', JSON.stringify({ ...requestBody, image_url: '[omitted]', api_key: '[omitted]' }));
+
+    const startRes = await fetch(`${SEEDANCE_API}/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+    if (!startRes.ok) throw new Error(`SeeDANCE API start failed: ${startRes.status} ${await startRes.text()}`);
+    const { job_id } = await startRes.json();
+    console.log(`[LTX] [SEEDANCE] Job started: ${job_id}`);
+
+    // 폴링으로 완료 대기
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      const statusRes = await fetch(`${SEEDANCE_API}/status/${job_id}`);
+      const statusData = await statusRes.json();
+      console.log(`[LTX] [SEEDANCE] Job ${job_id} status: ${statusData.status}`);
+      if (statusData.status === 'complete') break;
+      if (statusData.status === 'error') throw new Error(`SeeDANCE generation failed: ${statusData.error}`);
+      if (statusData.status === 'not_found') throw new Error('Job not found');
+    }
+
+    // MP4 다운로드
+    const resultRes = await fetch(`${SEEDANCE_API}/download/${job_id}`);
+    if (!resultRes.ok) throw new Error(`SeeDANCE download failed: ${resultRes.status}`);
+    const blob = await resultRes.blob();
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[LTX] [SEEDANCE] Done: ${elapsed}s | ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+    return new Blob([blob], { type: 'video/mp4' });
+  }
+
   // ── 기존 diffusers 경로 (unchanged) ──────────────────────────
 
   // Item 1+3: Hard-lock motion to "blink only" — deterministic, no Gemini free-form
