@@ -44,10 +44,10 @@ class SeeDANCEVideoGenerator:
     @modal.enter()
     def setup(self):
         import os
-        # API 엔드포인트 (BytePlus 공식)
-        self.api_base = os.environ.get("SEEDANCE_API_BASE", "https://api.byteplus.com/v1")
+        # API 엔드포인트 (BytePlus ModelArk 공식)
+        self.api_base = os.environ.get("SEEDANCE_API_BASE", "https://ark.ap-southeast.bytepluses.com/api/v3")
         self.provider = os.environ.get("SEEDANCE_PROVIDER", "byteplus")
-        self.model = "seedance-1.0-pro-fast"
+        self.model = "seedance-1-0-pro-fast-250528"  # BytePlus ModelArk model ID
 
         print(f"\n{'='*70}")
         print(f"[SEEDANCE] BUILD: {BUILD_VERSION}")
@@ -162,24 +162,62 @@ class SeeDANCEVideoGenerator:
         }
 
         try:
-            # 동기 생성 또는 비동기 폴링 (provider마다 다름)
+            # 1단계: 비디오 생성 태스크 생성
             resp = requests.post(
                 f"{self.api_base}/video/generations",
                 headers=headers,
                 json=payload,
-                timeout=180,
+                timeout=60,
             )
             resp.raise_for_status()
             result = resp.json()
+            print(f"[API] Create task response: {result}")
 
-            # 응답 형식 (provider마다 다름, 여기서는 가정):
-            # { "video_url": "https://...", "duration": 3.0, "cost": 0.05 }
-            video_url = result.get("video_url") or result.get("data", {}).get("url")
+            # task_id 추출 (BytePlus ModelArk 응답 형식)
+            task_id = result.get("task_id") or result.get("id") or result.get("data", {}).get("task_id")
+            if not task_id:
+                raise ValueError(f"No task_id in response: {result}")
+
+            print(f"[API] Task created: {task_id}")
+
+            # 2단계: 태스크 완료 대기 (폴링)
+            max_wait = 180  # 최대 3분
+            poll_interval = 5
+            elapsed = 0
+            video_url = None
+
+            while elapsed < max_wait:
+                time.sleep(poll_interval)
+                elapsed += poll_interval
+
+                status_resp = requests.get(
+                    f"{self.api_base}/video/generations/{task_id}",
+                    headers=headers,
+                    timeout=30,
+                )
+                status_resp.raise_for_status()
+                status_result = status_resp.json()
+
+                status = status_result.get("status") or status_result.get("data", {}).get("status")
+                print(f"[API] Task {task_id} status: {status} ({elapsed}s)")
+
+                if status in ["completed", "success", "complete"]:
+                    video_url = (
+                        status_result.get("video_url") or
+                        status_result.get("url") or
+                        status_result.get("data", {}).get("video_url") or
+                        status_result.get("data", {}).get("url")
+                    )
+                    break
+                elif status in ["failed", "error"]:
+                    error_msg = status_result.get("error") or status_result.get("message", "Unknown error")
+                    raise ValueError(f"Task failed: {error_msg}")
 
             if not video_url:
-                raise ValueError(f"No video URL in response: {result}")
+                raise TimeoutError(f"Task {task_id} did not complete within {max_wait}s")
 
-            # 비디오 다운로드
+            # 3단계: 비디오 다운로드
+            print(f"[API] Downloading video from: {video_url[:80]}...")
             video_resp = requests.get(video_url, timeout=60)
             video_resp.raise_for_status()
             video_bytes = video_resp.content

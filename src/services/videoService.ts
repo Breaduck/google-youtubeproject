@@ -98,12 +98,6 @@ export async function generateSceneVideo(
     console.log('[LTX] [SEEDANCE] Calling SeeDANCE 1.0 Pro-fast...');
     const startTime = Date.now();
 
-    // localStorage에서 엔진 설정 읽기
-    const videoEngine = localStorage.getItem('video_engine') || 'official';
-    if (videoEngine !== 'seedance') {
-      throw new Error('SeeDANCE engine selected but not configured in settings');
-    }
-
     // localStorage에서 API 키 읽기
     const seedanceApiKey = localStorage.getItem('seedance_api_key') || '';
     if (!seedanceApiKey || seedanceApiKey.length < 10) {
