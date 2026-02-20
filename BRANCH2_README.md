@@ -8,8 +8,10 @@ LTX-2 (exp/official-sdk)와 비교하여 SeeDANCE API의 비용/품질/속도를
 ### Modal 서버
 - **파일:** `modal-server/main_seedance.py`
 - **앱 이름:** `seedance-experiment`
+- **모델:** SeeDANCE 1.0 Pro-fast (BytePlus 공식)
+- **해상도:** 1248×704 (16:9, 720p)
+- **길이:** 5초 고정 (120 frames @ 24fps)
 - **GPU:** 불필요 (CPU 2.0 코어만)
-- **API:** laozhang.ai (기본) 또는 BytePlus 공식
 
 ### 엔드포인트
 ```
@@ -36,13 +38,15 @@ modal secret create seedance-api-key SEEDANCE_API_KEY=sk-xxxxx
 powershell -ExecutionPolicy Bypass -File modal-server/deploy_seedance.ps1
 ```
 
-## 비용 비교 (3초 960x544 기준)
+## 비용 비교
 
-| 엔진 | 비용 | 생성 시간 | 인프라 |
-|------|------|----------|--------|
-| LTX-2 (exp/official-sdk) | ₩31 | ~31s | A100-80GB |
-| SeeDANCE laozhang | ₩44 (추정) | ~10s | API only |
-| SeeDANCE BytePlus | ₩65 | ~10s | API only |
+| 엔진 | 해상도 | 길이 | 비용 | 생성 시간 | 인프라 |
+|------|--------|------|------|----------|--------|
+| LTX-2 (exp/official-sdk) | 960×544 | 3초 | ₩31 | ~31s | A100-80GB |
+| **SeeDANCE 1.0 Pro-fast** | **1248×704** | **5초** | **₩146** | **~10s** | **API only** |
+
+**토큰 계산:** (1248 × 704 × 24 × 5) / 1024 = 103,340 tokens
+**BytePlus 단가:** $1.00/1M tokens → $0.10 × ₩1,460 = ₩146
 
 ## 프론트 연결
 
@@ -80,9 +84,8 @@ if (engine === 'seedance') {
    - 비용/시간/품질 측정
 
 2. **200샷 워크로드 시뮬레이션**
-   - 3초 × 200개 = 10분 영상
-   - LTX-2: ₩31 × 200 = ₩6,200 (총 ~103분)
-   - SeeDANCE: ₩44 × 200 = ₩8,800 (총 ~33분)
+   - LTX-2: 3초 × 200 = 10분 영상, ₩31 × 200 = ₩6,200 (총 ~103분)
+   - SeeDANCE: 5초 × 200 = 16.7분 영상, ₩146 × 200 = ₩29,200 (총 ~33분)
 
 3. **품질 검증**
    - 선화 보존 (라인아트 뭉개짐)
