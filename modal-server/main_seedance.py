@@ -11,7 +11,7 @@ BUILD_VERSION = "seedance-1.0-pro-fast-byteplus"
 # GPU 불필요 — API 호출만
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install("requests", "Pillow")
+    .pip_install("fastapi", "requests", "Pillow")
     .env({"PYTHONIOENCODING": "utf-8"})
 )
 
