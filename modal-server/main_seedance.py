@@ -1,10 +1,12 @@
 """
-브랜치2 — SeeDANCE API 통합 (laozhang.ai / BytePlus)
-LTX-2 대비 비용/품질 실험용
+브랜치2 — SeeDANCE 1.0 Pro-fast (BytePlus 공식)
+모델: seedance-1.0-pro-fast
+해상도: 1248×704 (16:9, 720p)
+FPS: 24, Duration: 5s
 """
 import modal
 
-BUILD_VERSION = "seedance-v1.0-laozhang"
+BUILD_VERSION = "seedance-1.0-pro-fast-byteplus"
 
 # GPU 불필요 — API 호출만
 image = (
@@ -46,9 +48,10 @@ class SeeDANCEVideoGenerator:
         if not self.api_key:
             raise ValueError("SEEDANCE_API_KEY not found in Modal secrets")
 
-        # API 엔드포인트 (laozhang.ai 기본, ENV로 변경 가능)
-        self.api_base = os.environ.get("SEEDANCE_API_BASE", "https://api.laozhang.ai/v1")
-        self.provider = os.environ.get("SEEDANCE_PROVIDER", "laozhang")
+        # API 엔드포인트 (BytePlus 공식)
+        self.api_base = os.environ.get("SEEDANCE_API_BASE", "https://api.byteplus.com/v1")
+        self.provider = os.environ.get("SEEDANCE_PROVIDER", "byteplus")
+        self.model = "seedance-1.0-pro-fast"
 
         print(f"\n{'='*70}")
         print(f"[SEEDANCE] BUILD: {BUILD_VERSION}")
@@ -70,12 +73,13 @@ class SeeDANCEVideoGenerator:
         dialogue = data.get("dialogue", "")
         image_prompt_raw = data.get("image_prompt", "")
         seed = data.get("seed", 42)
-        raw_frames = int(data.get("num_frames", 72))
-        num_frames = 72 if raw_frames == 73 else (raw_frames if raw_frames <= 96 else 72)
+        # SeeDANCE 1.0 Pro-fast: 5초 고정 (24fps × 5s = 120 frames)
+        num_frames = 120
+        duration_sec = 5.0
 
         print(f"\n{'='*70}")
         print(f"[REQUEST] dialogue='{dialogue[:80]}' (len={len(dialogue)})")
-        print(f"[REQUEST] num_frames={raw_frames}→{num_frames}  seed={seed}")
+        print(f"[REQUEST] duration={duration_sec}s  num_frames={num_frames}  seed={seed}")
 
         # ── Safe Motion Mapper ────────────────────────────────────────
         def safe_motion_mapper(dlg: str) -> tuple:
@@ -124,9 +128,8 @@ class SeeDANCEVideoGenerator:
             img_data = requests.get(image_url, timeout=30).content
 
         img = PILImage.open(BytesIO(img_data)).convert("RGB")
-        # SeeDANCE는 보통 입력 이미지 해상도 그대로 사용하거나 자동 리사이즈
-        # 여기서는 960x544로 리사이즈 (LTX-2와 동일)
-        img = img.resize((960, 544), PILImage.Resampling.LANCZOS)
+        # SeeDANCE 1.0 Pro-fast: 1248×704 (16:9, 720p)
+        img = img.resize((1248, 704), PILImage.Resampling.LANCZOS)
         buffer = BytesIO()
         img.save(buffer, format="PNG")
         img_base64 = base64.b64encode(buffer.getvalue()).decode()
@@ -135,21 +138,23 @@ class SeeDANCEVideoGenerator:
         print(f"[API] Calling {self.provider} SeeDANCE API...")
         t_api = time.time()
 
-        # laozhang.ai 스타일 요청 (OpenAI-compatible 형식 가정)
+        # BytePlus 공식 API 요청
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
         payload = {
-            "model": "seedance-2.0",  # 또는 seedance-1.5-pro
+            "model": self.model,  # seedance-1.0-pro-fast
             "prompt": prompt,
             "negative_prompt": negative_prompt,
             "image": f"data:image/png;base64,{img_base64}",
+            "width": 1248,
+            "height": 704,
             "num_frames": num_frames,
             "fps": 24,
+            "duration": duration_sec,
             "seed": seed,
-            "resolution": "720p",  # 또는 960x544 지원 여부 확인 필요
         }
 
         try:
@@ -182,12 +187,14 @@ class SeeDANCEVideoGenerator:
             print(f"[API] Error: {e}")
             raise
 
-        # ── 비용 계산 (추정) ──────────────────────────────────────────
+        # ── 비용 계산 ─────────────────────────────────────────────────
         total_time = time.time() - t_start
         # CPU 인스턴스 비용 (거의 무시 가능, ~$0.0001/s)
         cpu_cost = total_time * 0.0001
-        # API 비용 (laozhang: $0.05/5s → $0.03/3s)
-        api_cost_usd = 0.03  # 3초 기준 추정
+        # API 비용: SeeDANCE 1.0 Pro-fast (BytePlus 공식)
+        # 토큰 계산: (1248 × 704 × 24 × 5) / 1024 = 103,340 tokens
+        # $1.00/1M tokens → 103,340 tokens = $0.1033 ≈ $0.10
+        api_cost_usd = 0.10  # 5초 기준
         total_cost_usd = cpu_cost + api_cost_usd
         total_cost_krw = int(total_cost_usd * 1460)
 
@@ -198,9 +205,10 @@ class SeeDANCEVideoGenerator:
             "total_time_sec": round(total_time, 1),
             "cost_usd": round(total_cost_usd, 4),
             "cost_krw": total_cost_krw,
-            "engine": f"seedance-{self.provider}",
-            "resolution": "960x544",
+            "engine": f"seedance-1.0-pro-fast",
+            "resolution": "1248x704",
             "frames": num_frames,
+            "duration": duration_sec,
         }
 
 
