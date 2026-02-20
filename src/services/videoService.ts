@@ -93,10 +93,16 @@ export async function generateSceneVideo(
     return new Blob([blob], { type: 'video/mp4' });
   }
 
-  // ── SeeDANCE 경로 (BytePlus 직접 호출) ────────────────────────
+  // ── SeeDANCE 경로 (브랜치2) ────────────────────────────────────
   if (engine === 'seedance') {
-    console.log('[LTX] [SEEDANCE] Calling BytePlus SeeDANCE API directly...');
+    console.log('[LTX] [SEEDANCE] Calling SeeDANCE 1.0 Pro-fast...');
     const startTime = Date.now();
+
+    // localStorage에서 엔진 설정 읽기
+    const videoEngine = localStorage.getItem('video_engine') || 'official';
+    if (videoEngine !== 'seedance') {
+      throw new Error('SeeDANCE engine selected but not configured in settings');
+    }
 
     // localStorage에서 API 키 읽기
     const seedanceApiKey = localStorage.getItem('seedance_api_key') || '';
@@ -104,83 +110,42 @@ export async function generateSceneVideo(
       throw new Error('SeeDANCE API key not configured. Please add it in Settings.');
     }
 
-    // BytePlus API 직접 호출
-    const BYTEPLUS_API = 'https://api.byteplus.com/v1/video/generations';
-
-    // 이미지를 base64로 변환
-    let imageBase64 = '';
-    if (imageUrl.startsWith('data:')) {
-      imageBase64 = imageUrl;
-    } else {
-      const imgRes = await fetch(imageUrl);
-      const imgBlob = await imgRes.blob();
-      const reader = new FileReader();
-      imageBase64 = await new Promise<string>((resolve) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(imgBlob);
-      });
-    }
-
-    // Safe Motion Mapper (서버 로직과 동일)
-    const d = (dialogue || '').trim();
-    let motionTemplate = '';
-    if (d.includes('!')) {
-      motionTemplate = 'quick head turn toward the listener';
-    } else if (d.includes('?')) {
-      motionTemplate = 'micro nod once';
-    } else if (d.length >= 20) {
-      motionTemplate = 'slight forward lean';
-    } else {
-      motionTemplate = 'raise one hand slightly below the chin (hand stays away from face)';
-    }
-    const motionDesc = motionTemplate + ', then hold still, subtle breathing';
-
-    // 프롬프트 조립
-    const prompt = `A cinematic 2D anime scene, clean lineart, consistent character design, stable facial features. Static camera, smooth animation. Keep eyes open, minimal mouth movement. ${imagePrompt}. Motion: ${motionDesc}.`;
-    const negativePrompt = 'closed eyes, eyes shut, face morphing, deformed face, jitter, flicker, camera movement, text, watermark';
+    const SEEDANCE_API = 'https://hiyoonsh1--seedance-experiment-web.modal.run';
 
     const requestBody = {
-      model: 'seedance-1.0-pro-fast',
-      prompt: prompt,
-      negative_prompt: negativePrompt,
-      image: imageBase64,
-      width: 1248,
-      height: 704,
-      num_frames: 120,
-      fps: 24,
-      duration: 5.0,
+      image_url: imageUrl,
+      num_frames: 120,  // 5초 고정 (SeeDANCE)
       seed: 42,
+      dialogue: (dialogue || '').trim().substring(0, 200),
+      image_prompt: (imagePrompt || '').trim().substring(0, 200),
+      api_key: seedanceApiKey,  // API 키 포함
     };
+    console.log('[LTX] [SEEDANCE] Request body:', JSON.stringify({ ...requestBody, image_url: '[omitted]', api_key: '[omitted]' }));
 
-    console.log('[LTX] [SEEDANCE] Calling BytePlus API...');
-    const apiRes = await fetch(BYTEPLUS_API, {
+    const startRes = await fetch(`${SEEDANCE_API}/start`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${seedanceApiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
     });
+    if (!startRes.ok) throw new Error(`SeeDANCE API start failed: ${startRes.status} ${await startRes.text()}`);
+    const { job_id } = await startRes.json();
+    console.log(`[LTX] [SEEDANCE] Job started: ${job_id}`);
 
-    if (!apiRes.ok) {
-      const errorText = await apiRes.text();
-      throw new Error(`BytePlus API failed: ${apiRes.status} ${errorText}`);
+    // 폴링으로 완료 대기
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      const statusRes = await fetch(`${SEEDANCE_API}/status/${job_id}`);
+      const statusData = await statusRes.json();
+      console.log(`[LTX] [SEEDANCE] Job ${job_id} status: ${statusData.status}`);
+      if (statusData.status === 'complete') break;
+      if (statusData.status === 'error') throw new Error(`SeeDANCE generation failed: ${statusData.error}`);
+      if (statusData.status === 'not_found') throw new Error('Job not found');
     }
 
-    const result = await apiRes.json();
-    console.log('[LTX] [SEEDANCE] API response:', result);
-
-    // 응답에서 비디오 URL 추출 (BytePlus 응답 형식에 맞게 조정 필요)
-    const videoUrl = result.video_url || result.data?.url;
-    if (!videoUrl) {
-      throw new Error(`No video URL in response: ${JSON.stringify(result)}`);
-    }
-
-    // 비디오 다운로드
-    const videoRes = await fetch(videoUrl);
-    if (!videoRes.ok) throw new Error(`Video download failed: ${videoRes.status}`);
-    const blob = await videoRes.blob();
-
+    // MP4 다운로드
+    const resultRes = await fetch(`${SEEDANCE_API}/download/${job_id}`);
+    if (!resultRes.ok) throw new Error(`SeeDANCE download failed: ${resultRes.status}`);
+    const blob = await resultRes.blob();
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`[LTX] [SEEDANCE] Done: ${elapsed}s | ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
     return new Blob([blob], { type: 'video/mp4' });
