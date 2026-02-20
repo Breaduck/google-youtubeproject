@@ -1260,21 +1260,22 @@ const App: React.FC = () => {
       return;
     }
 
-    setBgTask({ type: 'video', message: 'LTX 비디오 생성 중...' });
+    const engineName = videoEngine === 'seedance' ? 'SeeDANCE' : 'LTX-2';
+    setBgTask({ type: 'video', message: `${engineName} 비디오 생성 중...` });
     setBgProgress(0);
 
     try {
-      // 1단계: 모든 씬의 LTX 비디오 생성
+      // 1단계: 모든 씬의 비디오 생성
       const characterDesc = project.characters.length > 0 ? project.characters[0].visualDescription : '';
       const videoBlobs: Blob[] = [];
 
       for (let i = 0; i < project.scenes.length; i++) {
         const scene = project.scenes[i];
-        console.log(`[DEBUG] Scene ${i + 1}/${project.scenes.length} - Starting LTX generation`);
+        console.log(`[DEBUG] Scene ${i + 1}/${project.scenes.length} - Starting ${engineName} generation`);
         console.log(`[DEBUG] Image URL:`, scene.imageUrl?.substring(0, 50));
         console.log(`[DEBUG] Dialogue:`, scene.scriptSegment?.substring(0, 50));
 
-        setBgTask({ type: 'video', message: `LTX 비디오 생성 중 (${i + 1}/${project.scenes.length})...` });
+        setBgTask({ type: 'video', message: `${engineName} 비디오 생성 중 (${i + 1}/${project.scenes.length})...` });
         setBgProgress(Math.round((i / project.scenes.length) * 50));
 
         const videoBlob = await generateSceneVideo(
