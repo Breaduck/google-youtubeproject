@@ -107,6 +107,13 @@ const App: React.FC = () => {
   const [showElKey, setShowElKey] = useState(false);
   const [showChirpKey, setShowChirpKey] = useState(false);
 
+  // SeeDANCE API 설정
+  const [seedanceApiKey, setSeedanceApiKey] = useState(localStorage.getItem('seedance_api_key') || '');
+  const [showSeedanceKey, setShowSeedanceKey] = useState(false);
+  const [videoEngine, setVideoEngine] = useState<'official' | 'seedance'>(
+    (localStorage.getItem('video_engine') as any) || 'official'
+  );
+
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
     (localStorage.getItem('audio_provider') as any) || 'google'
   );
@@ -267,6 +274,14 @@ const App: React.FC = () => {
       setIsGeminiValid(false);
     }
   }, [geminiApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('seedance_api_key', seedanceApiKey);
+  }, [seedanceApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('video_engine', videoEngine);
+  }, [videoEngine]);
 
   useEffect(() => {
     localStorage.setItem('audio_provider', audioProvider);
@@ -2272,6 +2287,44 @@ Generate a detailed English prompt for image generation including scene composit
                         <option value="imagen-3.0-generate-002">Imagen 3.0</option>
                       </select>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SeeDANCE API 설정 - 아코디언 */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <button onClick={() => setExpandedSetting(expandedSetting === 'seedance' ? null : 'seedance')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-slate-700">비디오 엔진 설정</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{videoEngine === 'official' ? 'LTX-2' : 'SeeDANCE'}</span>
+                  </div>
+                  <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'seedance' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {expandedSetting === 'seedance' && (
+                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
+                    <div className="space-y-2 pt-4">
+                      <label className="text-sm font-medium text-slate-700">비디오 엔진</label>
+                      <select value={videoEngine} onChange={e => setVideoEngine(e.target.value as 'official' | 'seedance')} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                        <option value="official">LTX-2 (960×544, 3초, ₩31)</option>
+                        <option value="seedance">SeeDANCE 1.0 Pro-fast (1248×704, 5초, ₩146)</option>
+                      </select>
+                    </div>
+                    {videoEngine === 'seedance' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">SeeDANCE API 키 (BytePlus)</label>
+                        <div className="relative">
+                          <input type={showSeedanceKey ? "text" : "password"} value={seedanceApiKey} onChange={e => setSeedanceApiKey(e.target.value)} placeholder="sk-..." className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
+                          <button onClick={() => setShowSeedanceKey(!showSeedanceKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                            {showSeedanceKey ? (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-500">BytePlus Console (console.byteplus.com) → ModelArk → API Keys에서 발급</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
