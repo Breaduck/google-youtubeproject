@@ -41,7 +41,9 @@ const EXP_TEST_PROJECT: StoryProject = {
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>('storyboard');
-  const [videoEngine, setVideoEngine] = useState<VideoEngine>('official');
+  const [videoEngine, setVideoEngine] = useState<VideoEngine>(
+    (localStorage.getItem('video_engine') as VideoEngine) || 'official'
+  );
   const [projects, setProjects] = useState<StoryProject[]>([EXP_TEST_PROJECT]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(EXP_TEST_PROJECT_ID);
 
@@ -110,9 +112,6 @@ const App: React.FC = () => {
   // SeeDANCE API 설정
   const [seedanceApiKey, setSeedanceApiKey] = useState(localStorage.getItem('seedance_api_key') || '');
   const [showSeedanceKey, setShowSeedanceKey] = useState(false);
-  const [videoEngine, setVideoEngine] = useState<'official' | 'seedance'>(
-    (localStorage.getItem('video_engine') as any) || 'official'
-  );
 
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
     (localStorage.getItem('audio_provider') as any) || 'google'
