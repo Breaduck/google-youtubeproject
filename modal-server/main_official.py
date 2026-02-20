@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "v3.3-gemini-safe-motion-mapper"
+BUILD_VERSION = "v3.4-better-encoding"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -295,9 +295,9 @@ class OfficialVideoGenerator:
         print(f"[DIFFUSERS] VAE+Audio decode done: {time.time()-t_dec:.1f}s")
         _gpu_stat("after_decode")
 
-        # ── 인코딩 ────────────────────────────────────────────────
+        # ── 1단계: 초기 인코딩 (diffusers encode_video) ─────────────
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
-            out_path = f.name
+            out_path_initial = f.name
 
         t_enc = time.time()
         encode_video(
@@ -305,13 +305,61 @@ class OfficialVideoGenerator:
             fps=24.0,
             audio=audio_tensor,
             audio_sample_rate=self.pipe.vocoder.config.output_sampling_rate,
-            output_path=out_path,
+            output_path=out_path_initial,
         )
-        print(f"[DIFFUSERS] Encoding done: {time.time()-t_enc:.1f}s")
+        print(f"[ENCODE-1] Initial encode done: {time.time()-t_enc:.1f}s")
 
-        with open(out_path, "rb") as f:
+        # ffprobe 유틸 함수
+        import json as _json
+        def _ffprobe(path, label):
+            try:
+                cmd = [
+                    "ffprobe", "-v", "error", "-show_entries",
+                    "format=duration,size,bit_rate:stream=width,height,avg_frame_rate,codec_name,pix_fmt",
+                    "-of", "json", path
+                ]
+                result = _sp.run(cmd, capture_output=True, text=True, check=True)
+                data = _json.loads(result.stdout)
+                print(f"[FFPROBE {label}]")
+                if "format" in data:
+                    fmt = data["format"]
+                    dur = fmt.get("duration", "N/A")
+                    size = fmt.get("size", "N/A")
+                    br = fmt.get("bit_rate", "N/A")
+                    print(f"  duration={dur}s  size={size}B ({int(size)//1024 if size != 'N/A' else 0}KB)  bit_rate={br}")
+                if "streams" in data and len(data["streams"]) > 0:
+                    vid = next((s for s in data["streams"] if s.get("codec_type") == "video"), {})
+                    if vid:
+                        print(f"  video: {vid.get('width')}x{vid.get('height')} {vid.get('codec_name')} {vid.get('pix_fmt')} fps={vid.get('avg_frame_rate')}")
+            except Exception as e:
+                print(f"[FFPROBE {label}] failed: {e}")
+
+        _ffprobe(out_path_initial, "INITIAL")
+
+        # ── 2단계: 고품질 재인코딩 (libx264 crf=18 animation) ─────────
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+            out_path_final = f.name
+
+        t_re = time.time()
+        re_cmd = [
+            "ffmpeg", "-y", "-i", out_path_initial,
+            "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-tune", "animation",
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+            "-c:a", "aac", "-b:a", "128k",
+            out_path_final
+        ]
+        _sp.run(re_cmd, check=True, capture_output=True)
+        print(f"[ENCODE-2] Re-encode (crf=18 animation) done: {time.time()-t_re:.1f}s")
+
+        _ffprobe(out_path_final, "FINAL")
+
+        # 최종 파일 읽기
+        with open(out_path_final, "rb") as f:
             video_bytes = f.read()
-        os.unlink(out_path)
+
+        # 임시 파일 정리
+        os.unlink(out_path_initial)
+        os.unlink(out_path_final)
 
         total_time = time.time() - t_total_start
         cost_usd   = total_time * 0.000694  # A100-80GB 단가
