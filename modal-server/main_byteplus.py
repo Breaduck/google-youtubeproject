@@ -13,7 +13,14 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-BUILD_VERSION = "v1.3-byteplus-sdk"
+BUILD_VERSION = "v1.3-byteplus-model-mapping"
+
+# 모델 Alias → 실제 BytePlus Model ID 매핑
+MODEL_ALIAS_MAP = {
+    "seedance-1.0-pro": "seedance-1-0-pro-251015",
+    "seedance-1.0-pro-fast": "seedance-1-0-pro-fast-251015",
+    "seedance-1-0-pro": "seedance-1-0-pro-251015",
+}
 
 app = modal.App("byteplus-proxy")
 
@@ -90,11 +97,9 @@ async def serve_image(filename: str):
         print(f"[SERVE ERROR] {e}")
         raise HTTPException(500, str(e))
 
-@fast_app.post("/api/v3/content_generation/tasks")
-async def create_task(request: Request):
-    """BytePlus SDK로 태스크 생성"""
-    request_id = str(uuid.uuid4())[:8]
-
+@fast_app.get("/api/v3/byteplus/models")
+async def list_models(request: Request):
+    """사용 가능한 BytePlus 모델 목록 (디버그용)"""
     try:
         from byteplussdkarkruntime import Ark
 
@@ -103,13 +108,49 @@ async def create_task(request: Request):
             raise HTTPException(401, "Authorization header missing")
 
         api_key = auth_header.replace("Bearer ", "")
+        client = Ark(api_key=api_key)
+
+        # SDK로 모델 목록 조회 시도
+        try:
+            models = client.models.list()
+            model_list = [{"id": m.id, "name": getattr(m, 'name', m.id)} for m in models[:20]]
+            return {"models": model_list, "alias_map": MODEL_ALIAS_MAP}
+        except:
+            # list API 없으면 alias만 반환
+            return {"models": [], "alias_map": MODEL_ALIAS_MAP, "note": "SDK list not available"}
+    except Exception as e:
+        print(f"[ERROR] List models failed: {e}")
+        raise HTTPException(500, str(e))
+
+@fast_app.post("/api/v3/content_generation/tasks")
+async def create_task(request: Request):
+    """BytePlus SDK로 태스크 생성"""
+    request_id = str(uuid.uuid4())[:8]
+
+    try:
+        from byteplussdkarkruntime import Ark
+        from byteplussdkarkruntime._exceptions import ArkNotFoundError, ArkAPIError
+
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            raise HTTPException(401, "Authorization header missing")
+
+        api_key = auth_header.replace("Bearer ", "")
         body = await request.json()
 
-        # Model 변환
-        model = body.get("model", "seedance-1-0-pro-fast-251015")
+        # Model alias 변환
+        model_alias = body.get("model", "seedance-1-0-pro-fast-251015")
+        model_id = MODEL_ALIAS_MAP.get(model_alias, model_alias)
+
+        # ENV 오버라이드
+        env_model = os.getenv("BYTEPLUS_SEEDANCE_MODEL_ID")
+        if env_model:
+            model_id = env_model
+            print(f"[{request_id}] Using ENV model: {model_id}")
+
         content = body.get("content", [])
 
-        print(f"[{request_id}] SDK create_task: model={model}")
+        print(f"[{request_id}] BYTEPLUS model_alias={model_alias} model_id={model_id}")
 
         # BytePlus SDK 클라이언트
         client = Ark(
@@ -119,7 +160,7 @@ async def create_task(request: Request):
 
         # SDK로 task 생성
         result = client.content_generation.tasks.create(
-            model=model,
+            model=model_id,  # 매핑된 실제 ID 사용
             content=content
         )
 
@@ -137,13 +178,31 @@ async def create_task(request: Request):
 
         return JSONResponse(content=response_data, status_code=200)
 
+    except ArkNotFoundError as e:
+        # 404: 모델/엔드포인트를 찾을 수 없음
+        error_msg = str(e)
+        print(f"[{request_id}] [NOT_FOUND] {error_msg}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Model not found or no access (request_id={request_id}, model={model_id}): {error_msg}"
+        )
+    except ArkAPIError as e:
+        # BytePlus API 에러
+        if "AccessDenied" in str(e) or "Unauthorized" in str(e):
+            status_code = 403
+        elif "NotFound" in str(e):
+            status_code = 404
+        else:
+            status_code = 400
+        print(f"[{request_id}] [API_ERROR] {status_code}: {e}")
+        raise HTTPException(status_code=status_code, detail=f"BytePlus API error (request_id={request_id}): {str(e)}")
     except Exception as e:
         tb = traceback.format_exc()
-        print(f"[{request_id}] [ERROR] SDK create failed:")
+        print(f"[{request_id}] [ERROR] Unexpected:")
         print(tb)
         raise HTTPException(
             status_code=500,
-            detail=f"SDK error (request_id={request_id}): {type(e).__name__}: {str(e)}"
+            detail=f"Internal error (request_id={request_id}): {type(e).__name__}: {str(e)}"
         )
 
 @fast_app.get("/api/v3/content_generation/tasks/{task_id}")
