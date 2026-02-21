@@ -42,13 +42,14 @@ async function generateByteDanceVideo(
   const startTime = Date.now();
 
   // BytePlus API 파라미터
-  const model = testParams?.model || localStorage.getItem('bytedance_model') || 'seedance-1.0-pro';
+  const model = testParams?.model || localStorage.getItem('bytedance_model') || 'seedance-1-0-pro-fast-251015';
   const duration_sec = testParams?.duration_sec || parseInt(localStorage.getItem('bytedance_duration') || '5');
-  const resolution = testParams?.resolution || localStorage.getItem('bytedance_resolution') || '1080p';
+  const resolution = testParams?.resolution || localStorage.getItem('bytedance_resolution') || '720p';
 
-  // 프롬프트 구성
+  // 프롬프트 구성 (BytePlus는 파라미터를 프롬프트에 포함)
   const sceneDesc = (imagePrompt || 'anime character in a clean 2D scene').trim().substring(0, 200);
-  const prompt = `A cinematic 2D anime scene, clean lineart, consistent character design, stable facial features. Static camera, smooth animation. Keep eyes open, minimal mouth movement. ${sceneDesc}.`;
+  const basePrompt = `A cinematic 2D anime scene, clean lineart, consistent character design, stable facial features. Static camera, smooth animation. Keep eyes open, minimal mouth movement. ${sceneDesc}.`;
+  const prompt = `${basePrompt} --resolution ${resolution} --duration ${duration_sec} --camerafixed false`;
 
   console.log(`[BYTEDANCE] Model=${model} Duration=${duration_sec}s Resolution=${resolution}`);
 
@@ -60,19 +61,16 @@ async function generateByteDanceVideo(
     model: model,
     content: [
       {
-        type: 'image',
-        image_url: imageUrl
+        type: 'image_url',
+        image_url: {
+          url: imageUrl
+        }
       },
       {
         type: 'text',
         text: prompt
       }
-    ],
-    parameters: {
-      duration: duration_sec,
-      resolution: resolution,
-      fps: 24
-    }
+    ]
   };
 
   console.log('[BYTEDANCE] Request body:', JSON.stringify({ ...requestBody, content: '[omitted]' }));
