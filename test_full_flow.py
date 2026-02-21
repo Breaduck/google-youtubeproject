@@ -5,8 +5,16 @@ import sys
 
 API_BASE = "https://hiyoonsh1--byteplus-proxy-web.modal.run"
 
-# API 키 입력
-BYTEPLUS_API_KEY = input("BytePlus API key: ").strip()
+# API 키 로드
+try:
+    with open(".env") as f:
+        for line in f:
+            if line.startswith("VITE_BYTEPLUS_API_KEY="):
+                BYTEPLUS_API_KEY = line.split("=", 1)[1].strip()
+                break
+except:
+    BYTEPLUS_API_KEY = input("BytePlus API key: ").strip()
+
 if not BYTEPLUS_API_KEY:
     print("API key required")
     sys.exit(1)
@@ -27,7 +35,7 @@ print(f"OK: {image_url}")
 
 print("\n=== Test 2: Create task ===")
 task_body = {
-    "model": "seedance-1.0-pro-fast",
+    "model": "seedance-1-0-pro-fast-251015",  # 올바른 모델 ID
     "content": [
         {"type": "image_url", "image_url": {"url": image_url}},
         {"type": "text", "text": "A simple test video --resolution 720p --duration 5"}

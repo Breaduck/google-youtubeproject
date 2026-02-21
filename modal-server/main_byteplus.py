@@ -1,27 +1,19 @@
 """
-BytePlus (ByteDance) 공식 API 프록시 서버
-CORS 문제 해결을 위한 중간 서버
-v1.2-byteplus-upload-imageurl: data URL -> 업로드 -> image_url 변환
+BytePlus (ByteDance) SDK 기반 프록시 서버
+v1.3-byteplus-sdk: 공식 SDK 사용으로 REST 스키마 문제 해결
 """
 
 import modal
 import traceback
 import uuid
 import base64
+import os
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
-import httpx
 
-BUILD_VERSION = "v1.2-byteplus-404-debug-model-alias"
-
-# 모델 alias 매핑
-MODEL_ALIAS = {
-    "seedance-1.0-pro": "seedance-1-0-pro-251015",
-    "seedance-1.0-pro-fast": "seedance-1-0-pro-fast-251015",
-    "seedance-1-0-pro": "seedance-1-0-pro-251015",
-}
+BUILD_VERSION = "v1.3-byteplus-sdk"
 
 app = modal.App("byteplus-proxy")
 
@@ -29,10 +21,11 @@ app = modal.App("byteplus-proxy")
 volume = modal.Volume.from_name("byteplus-uploads", create_if_missing=True)
 UPLOAD_DIR = "/uploads"
 
-# Modal Image 설정
-image = modal.Image.debian_slim().pip_install(
-    "fastapi",
-    "httpx",
+# Modal Image with BytePlus SDK + all dependencies
+image = (
+    modal.Image.debian_slim()
+    .pip_install("byteplus-python-sdk-v2")  # BytePlus 공식 SDK (https://pypi.org/project/byteplus-python-sdk-v2/)
+    .pip_install("fastapi", "httpx", "sniffio", "anyio", "httpcore")
 )
 
 fast_app = FastAPI()
@@ -56,12 +49,10 @@ async def upload_image(request: Request):
         if not data_url.startswith("data:image/"):
             raise HTTPException(400, "Invalid data URL")
 
-        # Extract base64 data
         header, b64_data = data_url.split(",", 1)
         mime = header.split(":")[1].split(";")[0]
         ext = mime.split("/")[1]
 
-        # Decode and save
         img_bytes = base64.b64decode(b64_data)
         img_id = str(uuid.uuid4())[:12]
         filename = f"{img_id}.{ext}"
@@ -101,184 +92,103 @@ async def serve_image(filename: str):
 
 @fast_app.post("/api/v3/content_generation/tasks")
 async def create_task(request: Request):
-    """BytePlus API 프록시 - 태스크 생성"""
+    """BytePlus SDK로 태스크 생성"""
     request_id = str(uuid.uuid4())[:8]
 
     try:
-        # 1. Raw body 크기 로깅
-        raw = await request.body()
-        body_bytes = len(raw)
-        print(f"[{request_id}] POST /tasks - body_bytes={body_bytes}")
+        from byteplussdkarkruntime import Ark
 
-        # 2. JSON 파싱
-        try:
-            import json
-            body = json.loads(raw)
-        except json.JSONDecodeError as e:
-            tb = traceback.format_exc().split('\n')[-6:-1]
-            print(f"[{request_id}] [ERROR] JSON parse failed: {e}")
-            print('\n'.join(tb))
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid JSON: {str(e)}"
-            )
-
-        # 3. Authorization 체크
         auth_header = request.headers.get("Authorization")
         if not auth_header:
-            raise HTTPException(status_code=401, detail="Authorization header missing")
+            raise HTTPException(401, "Authorization header missing")
 
-        # 3.5. Model alias 변환
-        original_model = body.get("model", "")
-        mapped_model = MODEL_ALIAS.get(original_model, original_model)
-        if original_model != mapped_model:
-            print(f"[{request_id}] Model alias: {original_model} -> {mapped_model}")
-            body["model"] = mapped_model
+        api_key = auth_header.replace("Bearer ", "")
+        body = await request.json()
+
+        # Model 변환
+        model = body.get("model", "seedance-1-0-pro-fast-251015")
+        content = body.get("content", [])
+
+        print(f"[{request_id}] SDK create_task: model={model}")
+
+        # BytePlus SDK 클라이언트
+        client = Ark(
+            base_url="https://ark.ap-southeast.bytepluses.com/api/v3",
+            api_key=api_key,
+        )
+
+        # SDK로 task 생성
+        result = client.content_generation.tasks.create(
+            model=model,
+            content=content
+        )
+
+        print(f"[{request_id}] SDK result: {result}")
+
+        # SDK 응답을 JSON으로 변환
+        if hasattr(result, 'model_dump'):
+            response_data = result.model_dump()
+        elif hasattr(result, 'dict'):
+            response_data = result.dict()
         else:
-            print(f"[{request_id}] Model: {original_model}")
+            response_data = {"task_id": str(result.id) if hasattr(result, 'id') else None}
 
-        # 4. Data URL 감지 및 제한
-        if "content" in body and isinstance(body["content"], list):
-            for item in body["content"]:
-                if item.get("type") == "image_url":
-                    image_url = item.get("image_url", {}).get("url", "")
-                    if image_url.startswith("data:image/"):
-                        image_len = len(image_url)
-                        print(f"[{request_id}] Detected data URL - image_len={image_len}")
-                        if image_len > 1_000_000:
-                            raise HTTPException(
-                                status_code=413,
-                                detail="Request too large. Use image_url (upload) instead of data:image base64."
-                            )
+        print(f"[{request_id}] Response: {response_data}")
 
-        # 5. BytePlus API 호출
-        upstream_url = "https://ark.ap-southeast.bytepluses.com/api/v3/content_generation/tasks"
-        print(f"[{request_id}] Calling BytePlus API...")
-        print(f"[{request_id}] upstream_url={upstream_url}")
-        print(f"[{request_id}] model={body.get('model')}")
+        return JSONResponse(content=response_data, status_code=200)
 
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    upstream_url,
-                    json=body,
-                    headers={
-                        "Authorization": auth_header,
-                        "Content-Type": "application/json",
-                    },
-                )
-
-                # 6. 응답 처리
-                content_type = response.headers.get("content-type", "")
-                response_text = response.text
-                print(f"[{request_id}] BytePlus response: status={response.status_code} content-type={content_type} body_len={len(response_text)}")
-
-                if response_text:
-                    print(f"[{request_id}] Response body (first 500): {response_text[:500]}")
-
-                if response.status_code == 200:
-                    return JSONResponse(
-                        content=response.json(),
-                        status_code=200,
-                    )
-                else:
-                    # 실패 시 상세 에러 반환
-                    error_detail = {
-                        "error": "BytePlus API error",
-                        "status_code": response.status_code,
-                        "upstream_url": upstream_url,
-                        "model": body.get("model"),
-                        "response_text_snippet": response_text[:500] if response_text else "(empty)",
-                        "content_type": content_type,
-                        "request_id": request_id
-                    }
-                    print(f"[{request_id}] [ERROR] BytePlus API failed: {error_detail}")
-                    return JSONResponse(
-                        content=error_detail,
-                        status_code=response.status_code,
-                    )
-
-        except httpx.TimeoutException as e:
-            tb = traceback.format_exc().split('\n')[-6:-1]
-            print(f"[{request_id}] [ERROR] Timeout: {e}")
-            print('\n'.join(tb))
-            raise HTTPException(
-                status_code=504,
-                detail=f"BytePlus API timeout (request_id={request_id}): {str(e)}"
-            )
-        except httpx.RequestError as e:
-            tb = traceback.format_exc().split('\n')[-6:-1]
-            print(f"[{request_id}] [ERROR] Request failed: {e}")
-            print('\n'.join(tb))
-            raise HTTPException(
-                status_code=502,
-                detail=f"BytePlus API request failed (request_id={request_id}): {str(e)}"
-            )
-
-    except HTTPException:
-        raise
     except Exception as e:
-        # 7. 최종 예외 처리
         tb = traceback.format_exc()
-        print(f"[{request_id}] [ERROR] Unexpected error:")
+        print(f"[{request_id}] [ERROR] SDK create failed:")
         print(tb)
         raise HTTPException(
             status_code=500,
-            detail=f"Internal error (request_id={request_id}): {type(e).__name__}: {str(e)}"
+            detail=f"SDK error (request_id={request_id}): {type(e).__name__}: {str(e)}"
         )
-
 
 @fast_app.get("/api/v3/content_generation/tasks/{task_id}")
 async def get_task(task_id: str, request: Request):
-    """BytePlus API 프록시 - 태스크 조회"""
+    """BytePlus SDK로 태스크 조회"""
     request_id = str(uuid.uuid4())[:8]
 
     try:
-        print(f"[{request_id}] GET /tasks/{task_id}")
+        from byteplussdkarkruntime import Ark
 
         auth_header = request.headers.get("Authorization")
         if not auth_header:
-            raise HTTPException(status_code=401, detail="Authorization header missing")
+            raise HTTPException(401, "Authorization header missing")
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(
-                f"https://ark.ap-southeast.bytepluses.com/api/v3/content_generation/tasks/{task_id}",
-                headers={
-                    "Authorization": auth_header,
-                },
-            )
+        api_key = auth_header.replace("Bearer ", "")
 
-            print(f"[{request_id}] BytePlus response: status={response.status_code}")
+        print(f"[{request_id}] SDK get_task: {task_id}")
 
-            if response.status_code == 200:
-                return JSONResponse(
-                    content=response.json(),
-                    status_code=200,
-                )
-            else:
-                error_detail = {
-                    "error": "BytePlus API error",
-                    "status_code": response.status_code,
-                    "response_text": response.text[:500],
-                    "request_id": request_id
-                }
-                print(f"[{request_id}] [ERROR] BytePlus API failed: {error_detail}")
-                return JSONResponse(
-                    content=error_detail,
-                    status_code=response.status_code,
-                )
+        client = Ark(
+            base_url="https://ark.ap-southeast.bytepluses.com/api/v3",
+            api_key=api_key,
+        )
 
-    except HTTPException:
-        raise
+        # SDK로 task 조회
+        result = client.content_generation.tasks.retrieve(task_id)
+
+        if hasattr(result, 'model_dump'):
+            response_data = result.model_dump()
+        elif hasattr(result, 'dict'):
+            response_data = result.dict()
+        else:
+            response_data = {"status": "unknown", "task_id": task_id}
+
+        print(f"[{request_id}] Status: {response_data.get('status')}")
+
+        return JSONResponse(content=response_data, status_code=200)
+
     except Exception as e:
         tb = traceback.format_exc()
-        print(f"[{request_id}] [ERROR] Unexpected error:")
+        print(f"[{request_id}] [ERROR] SDK retrieve failed:")
         print(tb)
         raise HTTPException(
             status_code=500,
-            detail=f"Internal error (request_id={request_id}): {type(e).__name__}: {str(e)}"
+            detail=f"SDK error (request_id={request_id}): {type(e).__name__}: {str(e)}"
         )
-
 
 @fast_app.get("/health")
 async def health():
@@ -288,7 +198,6 @@ async def health():
         "service": "byteplus-proxy",
         "version": BUILD_VERSION
     }
-
 
 @app.function(
     image=image,
