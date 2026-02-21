@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Modal API (브랜치2):** `https://hiyoonsh1--byteplus-proxy-web.modal.run`
 - **Cloudflare Pages:**
   - main: `https://google-youtubeproject.pages.dev`
-  - 브랜치2: `https://branch2.pages.dev` (자동 배포)
+  - 브랜치2: `https://branch2-9jl.pages.dev` (자동 배포)
 - **Sync Rule:** 유의미한 코드 수정이나 최적화 작업이 끝나면, 작업 내역을 요약하여 위 레포지토리로 반드시 `git push` 할 것.
 - **Deploy 방법:**
   - Frontend: `git push origin <브랜치명>` → Cloudflare Pages 자동 배포 (각 브랜치별 독립 프로젝트)
