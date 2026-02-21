@@ -54,7 +54,22 @@ async function generateByteDanceVideo(
   console.log(`[BYTEDANCE] Model=${model} Duration=${duration_sec}s Resolution=${resolution}`);
 
   // BytePlus ModelArk API 엔드포인트 (Modal 프록시 사용 - CORS 문제 해결)
-  const BYTEPLUS_API = 'https://hiyoonsh1--byteplus-proxy-web.modal.run/api/v3/content_generation/tasks';
+  const BYTEPLUS_API = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
+
+  // Step 0: data URL → 업로드 → image_url 변환
+  let finalImageUrl = imageUrl;
+  if (imageUrl.startsWith('data:image/')) {
+    console.log('[BYTEDANCE] Uploading data URL...');
+    const uploadRes = await fetch(`${BYTEPLUS_API}/api/v3/uploads`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({data_url: imageUrl}),
+    });
+    if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.status}`);
+    const uploadData = await uploadRes.json();
+    finalImageUrl = uploadData.image_url;
+    console.log(`[BYTEDANCE] Uploaded: ${finalImageUrl}`);
+  }
 
   // Step 1: 비디오 생성 태스크 생성
   const requestBody = {
@@ -63,7 +78,7 @@ async function generateByteDanceVideo(
       {
         type: 'image_url',
         image_url: {
-          url: imageUrl
+          url: finalImageUrl
         }
       },
       {
@@ -77,7 +92,7 @@ async function generateByteDanceVideo(
 
   try {
     // 태스크 생성
-    const createResponse = await fetch(BYTEPLUS_API, {
+    const createResponse = await fetch(`${BYTEPLUS_API}/api/v3/content_generation/tasks`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${bytedanceApiKey}`,
@@ -100,7 +115,7 @@ async function generateByteDanceVideo(
     }
 
     // Step 2: 태스크 완료 대기 (폴링)
-    const QUERY_API = `${BYTEPLUS_API}/${taskId}`;
+    const QUERY_API = `${BYTEPLUS_API}/api/v3/content_generation/tasks/${taskId}`;
     let attempts = 0;
     const MAX_ATTEMPTS = 60; // 최대 5분 대기
     let videoUrl = '';
