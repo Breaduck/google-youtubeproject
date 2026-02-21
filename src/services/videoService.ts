@@ -41,14 +41,13 @@ export async function generateSceneVideo(
   const prompt = `A cinematic 2D anime scene, clean lineart, consistent character design, stable facial features. Static camera, smooth animation. Keep eyes open, minimal mouth movement. ${sceneDesc}.`;
 
   const requestBody = {
-    taskType: 'imageToVideo',
+    taskType: 'videoInference',
     inputImage: imageUrl,
     model: model,
-    motionStrength: 127,  // 0-255, 기본 127
+    motionStrength: 127,
     numFrames: num_frames,
-    fps: fps,
-    duration: duration_sec,
-    seed: 42,
+    outputType: 'URL',
+    outputFormat: 'MP4',
   };
 
   console.log(`[RUNWARE] Model=${model} FPS=${fps} Duration=${duration_sec}s Frames=${num_frames}`);
