@@ -111,6 +111,9 @@ const App: React.FC = () => {
   // Runware API 설정 (브랜치2)
   const [runwareApiKey, setRunwareApiKey] = useState(localStorage.getItem('runware_api_key') || '');
   const [showRunwareKey, setShowRunwareKey] = useState(false);
+  const [runwareModel, setRunwareModel] = useState(localStorage.getItem('runware_model') || 'seedance-1.0-pro-fast');
+  const [runwareDuration, setRunwareDuration] = useState(parseInt(localStorage.getItem('runware_duration') || '10'));
+  const [runwareFps, setRunwareFps] = useState(parseInt(localStorage.getItem('runware_fps') || '12'));
 
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
     (localStorage.getItem('audio_provider') as any) || 'google'
@@ -276,6 +279,12 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('runware_api_key', runwareApiKey);
   }, [runwareApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('runware_model', runwareModel);
+    localStorage.setItem('runware_duration', runwareDuration.toString());
+    localStorage.setItem('runware_fps', runwareFps.toString());
+  }, [runwareModel, runwareDuration, runwareFps]);
 
   useEffect(() => {
     localStorage.setItem('audio_provider', audioProvider);
@@ -2292,6 +2301,35 @@ Generate a detailed English prompt for image generation including scene composit
                         </button>
                       </div>
                       <p className="text-xs text-slate-500">Runware 대시보드에서 API 키를 발급받으세요</p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">비디오 모델</label>
+                      <select value={runwareModel} onChange={e => setRunwareModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                        <option value="seedance-1.0-pro-fast">SeeDANCE 1.0 Pro Fast (1248×704, 5초)</option>
+                        <option value="ltx-video">LTX Video (768×512)</option>
+                        <option value="stable-video">Stable Video Diffusion</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">영상 길이 (초)</label>
+                      <select value={runwareDuration} onChange={e => setRunwareDuration(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                        <option value="3">3초</option>
+                        <option value="5">5초</option>
+                        <option value="8">8초</option>
+                        <option value="10">10초</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">FPS (프레임/초)</label>
+                      <select value={runwareFps} onChange={e => setRunwareFps(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                        <option value="8">8 FPS</option>
+                        <option value="12">12 FPS (애니메이션 권장)</option>
+                        <option value="24">24 FPS (영화)</option>
+                        <option value="30">30 FPS</option>
+                      </select>
+                    </div>
+                    <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+                      <p className="text-xs text-indigo-700">프레임 수: {runwareDuration * runwareFps}개</p>
                     </div>
                   </div>
                 )}
