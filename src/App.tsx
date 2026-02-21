@@ -1224,19 +1224,23 @@ const App: React.FC = () => {
         } catch (err: any) {
           console.error(`Video generation failed for scene ${i + 1}:`, err);
 
-          // Runware 크레딧 부족 오류 처리
+          // Runware 비활성화 에러 처리
+          if (err.isRunwareDisabled) {
+            setIsBatchGenerating(false);
+            setLoadingText('');
+            alert(err.message);
+            return;
+          }
+
+          // Runware 크레딧 부족 오류 처리 (재시도 금지)
           if (err.isBillingError) {
             setIsBatchGenerating(false);
             setLoadingText('');
-            const shouldRetry = window.confirm(
-              `⚠️ Runware 크레딧 부족\n\n` +
-              `Runware 영상 생성은 최소 $${err.need_min_credit_usd} 크레딧 또는 paid invoice가 필요합니다.\n\n` +
-              `충전 페이지: ${err.wallet_url}\n\n` +
-              `충전 후 이 창에서 "확인"을 눌러 재시도하시겠습니까?`
+            alert(
+              `${err.message}\n\n` +
+              `참고: 이 오류는 자동 재시도되지 않습니다.\n` +
+              `충전 후 다시 "일괄 생성" 버튼을 눌러주세요.`
             );
-            if (shouldRetry) {
-              generateAllVideos();
-            }
             return;
           }
 
@@ -1370,18 +1374,19 @@ const App: React.FC = () => {
       setBgTask(null);
       setBgProgress(0);
 
-      // Runware 크레딧 부족 오류 처리
+      // Runware 비활성화 에러 처리
+      if (error.isRunwareDisabled) {
+        alert(error.message);
+        return;
+      }
+
+      // Runware 크레딧 부족 오류 처리 (재시도 금지)
       if (error.isBillingError) {
-        const shouldRetry = window.confirm(
-          `⚠️ Runware 크레딧 부족\n\n` +
-          `Runware 영상 생성은 최소 $${error.need_min_credit_usd} 크레딧 또는 paid invoice가 필요합니다.\n\n` +
-          `충전 페이지: ${error.wallet_url}\n\n` +
-          `충전 후 이 창에서 "확인"을 눌러 재시도하시겠습니까?`
+        alert(
+          `${error.message}\n\n` +
+          `참고: 이 오류는 자동 재시도되지 않습니다.\n` +
+          `충전 후 다시 "비디오 내보내기" 버튼을 눌러주세요.`
         );
-        if (shouldRetry) {
-          // 사용자가 충전 후 재시도를 원함
-          exportVideo();
-        }
         return;
       }
 
@@ -2275,29 +2280,43 @@ Generate a detailed English prompt for image generation including scene composit
               {/* 비디오 엔진 선택 */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">비디오 생성 엔진</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setVideoEngine('runware')}
-                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      videoEngine === 'runware'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    Runware
-                  </button>
-                  <button
-                    onClick={() => setVideoEngine('bytedance')}
-                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      videoEngine === 'bytedance'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    BytePlus
-                  </button>
-                </div>
-              </div>
+                {import.meta.env.VITE_RUNWARE_ENABLED === 'true' ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setVideoEngine('runware')}
+                      className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                        videoEngine === 'runware'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      Runware
+                    </button>
+                    <button
+                      onClick={() => setVideoEngine('bytedance')}
+                      className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                        videoEngine === 'bytedance'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      BytePlus
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setVideoEngine('bytedance')}
+                      className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-indigo-600 text-white"
+                    >
+                      BytePlus (공식 API)
+                    </button>
+                    <div className="px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg">
+                      <p className="text-xs text-amber-700 font-medium">⚠️ Runware 비활성화됨</p>
+                      <p className="text-xs text-amber-600 mt-1">Runware는 billing 조건 때문에 기본 비활성화됨 (docs/BILLING_GATE.md 참조)</p>
+                    </div>
+                  </div>
+                )}
 
               {/* Gemini API 설정 - 아코디언 */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">

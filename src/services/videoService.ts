@@ -23,7 +23,25 @@ export async function generateSceneVideo(
     return generateByteDanceVideo(imageUrl, imagePrompt, dialogue, characterDescription, testParams);
   }
 
-  // Runware 엔진 (기본)
+  // Runware 엔진 (Feature Flag 체크)
+  // CRITICAL: Runware는 기본 비활성화 (BILLING_GATE.md 참조)
+  const runwareEnabled = import.meta.env.VITE_RUNWARE_ENABLED === 'true';
+  if (!runwareEnabled) {
+    const disabledError: any = new Error(
+      `⚠️ Runware 비활성화\n\n` +
+      `Runware는 기본적으로 비활성화되어 있습니다.\n\n` +
+      `이유:\n` +
+      `• API 최소 요구: $5 크레딧 또는 paid invoice\n` +
+      `• 실제 최소 충전: $20 (공식 정책)\n` +
+      `• 무료 크레딧 적용 불명확\n\n` +
+      `활성화 방법:\n` +
+      `1. .env 파일에 VITE_RUNWARE_ENABLED=true 추가\n` +
+      `2. docs/BILLING_GATE.md 참조`
+    );
+    disabledError.isRunwareDisabled = true;
+    throw disabledError;
+  }
+
   console.log(`[RUNWARE] generateSceneVideo called`);
   console.log('[RUNWARE] Dialogue:', dialogue.substring(0, 50));
 
@@ -80,16 +98,26 @@ export async function generateSceneVideo(
         throw new Error(`Runware API failed: ${response.status} ${errorText}`);
       }
 
-      // InsufficientCredits 에러 처리
+      // InsufficientCredits 에러 처리 (BILLING_GATE.md 참조)
       const errors = errorJson.errors || [];
       const creditError = errors.find((e: any) => e.code === 'videoInferenceInsufficientCredits');
       if (creditError) {
-        console.error('[BILLING] insufficient credits');
-        const billingError: any = new Error(creditError.message);
+        console.error('[BILLING] insufficient credits - ABORT (no retry)');
+        const billingError: any = new Error(
+          `⚠️ Runware 크레딧 부족\n\n` +
+          `• API 최소 요구: $5 크레딧 또는 paid invoice\n` +
+          `• 실제 최소 충전: $20 (공식 정책)\n` +
+          `• 크레딧 만료: 없음 (영구 사용 가능)\n` +
+          `• 환불: 크레딧 형태로만 가능 (현금 불가)\n\n` +
+          `충전 페이지: https://my.runware.ai/wallet\n\n` +
+          `자세한 내용: docs/BILLING_GATE.md 참조`
+        );
         billingError.isBillingError = true;
         billingError.need_min_credit_usd = 5;
+        billingError.min_topup_usd = 20;
         billingError.wallet_url = 'https://my.runware.ai/wallet';
         billingError.action = 'topup_required';
+        billingError.no_retry = true;  // 재시도 금지
         throw billingError;
       }
 
