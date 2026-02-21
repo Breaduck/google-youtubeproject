@@ -54,14 +54,22 @@ export async function generateSceneVideo(
     console.log(`[LTX] [OFFICIAL] motion_desc="${motionDesc}" (dialogue len=${dialogueLen})`);
 
     // 1. 생성 시작 → job_id 즉시 반환
+    // 12 FPS 기본 설정 (anime on-twos)
+    const fps = 12;
+    const duration_sec = 10;  // 기본 10초 (실험: 5초도 가능)
+    const num_frames = duration_sec * fps;  // 10초 = 120프레임, 5초 = 60프레임
+
     const requestBody = {
       image_url: imageUrl,
-      num_frames: 73,        // server clamps to 72
+      num_frames: num_frames,
+      fps: fps,
+      duration_sec: duration_sec,
       seed: 42,
       motion_desc: motionDesc,
       dialogue: (dialogue || '').trim().substring(0, 200),   // Safe Motion Mapper용
       image_prompt: (imagePrompt || '').trim().substring(0, 200), // scene_description용
     };
+    console.log(`[LTX] [OFFICIAL] FPS=${fps} Duration=${duration_sec}s Frames=${num_frames}`);
     console.log('[LTX] [OFFICIAL] Request body:', JSON.stringify({ ...requestBody, image_url: '[omitted]' }));
 
     const startRes = await fetch(`${OFFICIAL_API}/start`, {

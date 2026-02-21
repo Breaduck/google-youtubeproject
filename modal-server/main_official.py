@@ -4,7 +4,7 @@ exp/official-sdk — Diffusers LTX-2 공식 파이프라인
 """
 import modal
 
-BUILD_VERSION = "v3.4-better-encoding"
+BUILD_VERSION = "v3.5-fps12-default"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -132,23 +132,26 @@ class OfficialVideoGenerator:
 
         image_url       = data.get("image_url", "")
         raw_frames      = int(data.get("num_frames", 72))
+        fps             = float(data.get("fps", 12.0))  # 기본 12 FPS
+        duration_sec    = float(data.get("duration_sec", raw_frames / fps))  # duration 계산
         seed            = data.get("seed", 42)
         dialogue        = data.get("dialogue", "")
         image_prompt_raw = data.get("image_prompt", data.get("scene_description", ""))
 
-        # num_frames: 73→72 보정, 상한 96 클램프
-        num_frames = 72 if raw_frames == 73 else (raw_frames if raw_frames <= 96 else 72)
+        # num_frames: 상한 240 클램프 (12fps * 20초 최대)
+        num_frames = raw_frames if raw_frames <= 240 else 120
 
         # ── 1단계 REQUEST 로그 ────────────────────────────────────────
         print(f"\n{'='*70}")
         print(f"[REQUEST] keys={list(data.keys())}")
+        print(f"[REQUEST] FPS={fps}  Duration={duration_sec:.1f}s  NumFrames={raw_frames}→{num_frames}")
         print(f"[REQUEST] dialogue='{dialogue[:80]}' (len={len(dialogue)})")
         for _k in ("motion_desc", "motionDesc", "motion", "motions"):
             _v = data.get(_k)
             if _v is not None:
                 print(f"[REQUEST] {_k}='{_v}'")
         print(f"[REQUEST] motion_desc_raw='{data.get('motion_desc', '')}'")
-        print(f"[REQUEST] num_frames={raw_frames}→{num_frames}  seed={seed}")
+        print(f"[REQUEST] seed={seed}")
 
         # ── Safe Motion Mapper ────────────────────────────────────────
         def safe_motion_mapper(dlg: str) -> tuple:
@@ -189,7 +192,8 @@ class OfficialVideoGenerator:
         cfg   = float(_os.environ.get("LTX_CFG", "2.5"))
 
         # ── FINAL 로그 ────────────────────────────────────────────────
-        print(f"[FINAL] steps={steps}  cfg={cfg}  num_frames={num_frames}  seed={seed}  preset={preset_name}")
+        print(f"[FINAL] fps={fps}  duration={duration_sec:.1f}s  num_frames={num_frames}")
+        print(f"[FINAL] steps={steps}  cfg={cfg}  seed={seed}  preset={preset_name}")
         print(f"[FINAL] prompt_last_300='{PROMPT[-300:]}'")
         print(f"[FINAL] negative_prompt='{NEGATIVE_PROMPT}'")
         print(f"{'='*70}\n")
@@ -238,7 +242,7 @@ class OfficialVideoGenerator:
             width=W1,
             height=H1,
             num_frames=num_frames,
-            frame_rate=24.0,
+            frame_rate=fps,  # 요청받은 FPS 사용 (기본 12)
             num_inference_steps=steps,
             guidance_scale=cfg,
             generator=generator,
@@ -273,7 +277,7 @@ class OfficialVideoGenerator:
         print(f"  frames_np.shape={frames_np.shape}  range=[{frames_np.min():.3f}, {frames_np.max():.3f}]")
 
         # ── 오디오 decode ────────────────────────────────────────
-        n_samples = int(num_frames / 24.0 * self.pipe.vocoder.config.output_sampling_rate)
+        n_samples = int(num_frames / fps * self.pipe.vocoder.config.output_sampling_rate)
         with torch.no_grad():
             try:
                 # vocoder도 bfloat16 weights → 동일하게 캐스팅
@@ -302,12 +306,12 @@ class OfficialVideoGenerator:
         t_enc = time.time()
         encode_video(
             frames_np,
-            fps=24.0,
+            fps=fps,  # 요청받은 FPS 사용 (기본 12)
             audio=audio_tensor,
             audio_sample_rate=self.pipe.vocoder.config.output_sampling_rate,
             output_path=out_path_initial,
         )
-        print(f"[ENCODE-1] Initial encode done: {time.time()-t_enc:.1f}s")
+        print(f"[ENCODE-1] Initial encode done ({fps} FPS): {time.time()-t_enc:.1f}s")
 
         # ffprobe 유틸 함수
         import json as _json
@@ -375,6 +379,8 @@ class OfficialVideoGenerator:
             "engine": "diffusers-LTX2ImageToVideoPipeline",
             "resolution": f"{W1}x{H1}",
             "frames": num_frames,
+            "fps": fps,
+            "duration_sec": duration_sec,
         }
 
 
