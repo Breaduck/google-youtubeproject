@@ -2317,6 +2317,7 @@ Generate a detailed English prompt for image generation including scene composit
                     </div>
                   </div>
                 )}
+              </div>
 
               {/* Gemini API 설정 - 아코디언 */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
