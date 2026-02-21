@@ -1,6 +1,26 @@
 # BytePlus Proxy Server (Modal)
 
-공식 BytePlus Python SDK 기반 프록시 서버
+BytePlus API 프록시 서버 (Imgur 공개 이미지 호스팅 연동)
+
+## 이미지 업로드
+
+**POST /api/v3/uploads**
+
+Data URL → Imgur 공개 URL 변환 (BytePlus는 공개 HTTPS URL만 허용)
+
+- **서비스**: Imgur 익명 업로드 (API 키 불필요)
+- **제약**: 최소 300px 너비 (BytePlus 요구사항)
+- **검증**: HEAD 요청으로 접근성 확인 (실패 시 soft warning)
+
+Request:
+```json
+{"data_url": "data:image/png;base64,iVBORw0KG..."}
+```
+
+Response:
+```json
+{"image_url": "https://i.imgur.com/xyz.png"}
+```
 
 ## 환경 변수
 
