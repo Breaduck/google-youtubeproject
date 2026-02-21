@@ -68,6 +68,26 @@ export async function generateSceneVideo(
 
     if (!response.ok) {
       const errorText = await response.text();
+      let errorJson;
+      try {
+        errorJson = JSON.parse(errorText);
+      } catch {
+        throw new Error(`Runware API failed: ${response.status} ${errorText}`);
+      }
+
+      // InsufficientCredits 에러 처리
+      const errors = errorJson.errors || [];
+      const creditError = errors.find((e: any) => e.code === 'videoInferenceInsufficientCredits');
+      if (creditError) {
+        console.error('[BILLING] insufficient credits');
+        const billingError: any = new Error(creditError.message);
+        billingError.isBillingError = true;
+        billingError.need_min_credit_usd = 5;
+        billingError.wallet_url = 'https://my.runware.ai/wallet';
+        billingError.action = 'topup_required';
+        throw billingError;
+      }
+
       throw new Error(`Runware API failed: ${response.status} ${errorText}`);
     }
 

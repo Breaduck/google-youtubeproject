@@ -5,6 +5,8 @@ import { GeminiService } from './services/geminiService';
 import { generateSceneVideo, generateBatchVideos, VideoEngine } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect } from './types';
 
+const BUILD_VERSION = 'v1.0-runware-credit-guard';
+
 // 특징(태그) 한국어 번역 맵 (확장됨)
 const TAG_MAP: Record<string, string> = {
   'male': '남성', 'female': '여성', 'young': '어린', 'middle aged': '중년',
@@ -200,6 +202,7 @@ const App: React.FC = () => {
 
   // [EXP] 항상 소금 장인 프로젝트 + 스토리보드로 강제 이동
   useEffect(() => {
+    console.log(`[APP] BUILD_VERSION: ${BUILD_VERSION}`);
     localStorage.removeItem('user_projects_v1');
     setProjects([EXP_TEST_PROJECT]);
     setCurrentProjectId(EXP_TEST_PROJECT_ID);
@@ -1322,10 +1325,26 @@ const App: React.FC = () => {
       setBgTask(null);
       setBgProgress(0);
       alert(`${videoBlobs.length}개 비디오 다운로드 완료!`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Export failed:', error);
       setBgTask(null);
       setBgProgress(0);
+
+      // Runware 크레딧 부족 오류 처리
+      if (error.isBillingError) {
+        const shouldRetry = window.confirm(
+          `⚠️ Runware 크레딧 부족\n\n` +
+          `Runware 영상 생성은 최소 $${error.need_min_credit_usd} 크레딧 또는 paid invoice가 필요합니다.\n\n` +
+          `충전 페이지: ${error.wallet_url}\n\n` +
+          `충전 후 이 창에서 "확인"을 눌러 재시도하시겠습니까?`
+        );
+        if (shouldRetry) {
+          // 사용자가 충전 후 재시도를 원함
+          exportVideo();
+        }
+        return;
+      }
+
       alert(`동영상 생성 중 오류가 발생했습니다: ${error}`);
     }
   };
@@ -2330,6 +2349,11 @@ Generate a detailed English prompt for image generation including scene composit
                     </div>
                     <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
                       <p className="text-xs text-indigo-700">프레임 수: {runwareDuration * runwareFps}개</p>
+                    </div>
+                    <div className="px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg">
+                      <p className="text-xs text-amber-800 font-medium">⚠️ 최소 $5 크레딧 필요</p>
+                      <p className="text-xs text-amber-600 mt-1">Runware 영상 생성은 최소 $5 크레딧 또는 paid invoice가 필요합니다.</p>
+                      <a href="https://my.runware.ai/wallet" target="_blank" rel="noopener noreferrer" className="text-xs text-amber-700 underline hover:text-amber-900 mt-1 inline-block">충전하기 →</a>
                     </div>
                   </div>
                 )}
