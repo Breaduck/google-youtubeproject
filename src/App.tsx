@@ -127,9 +127,9 @@ const App: React.FC = () => {
   // BytePlus (ByteDance) 공식 API 설정
   const [bytedanceApiKey, setBytedanceApiKey] = useState(localStorage.getItem('bytedance_api_key') || '');
   const [showBytedanceKey, setShowBytedanceKey] = useState(false);
-  const [bytedanceModel, setBytedanceModel] = useState(localStorage.getItem('bytedance_model') || 'seedance-1.0-pro');
+  const [bytedanceModel, setBytedanceModel] = useState(localStorage.getItem('bytedance_model') || 'seedance-1-0-pro-fast-251015');
   const [bytedanceDuration, setBytedanceDuration] = useState(parseInt(localStorage.getItem('bytedance_duration') || '5'));
-  const [bytedanceResolution, setBytedanceResolution] = useState(localStorage.getItem('bytedance_resolution') || '1080p');
+  const [bytedanceResolution, setBytedanceResolution] = useState(localStorage.getItem('bytedance_resolution') || '720p');
 
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
     (localStorage.getItem('audio_provider') as any) || 'google'
