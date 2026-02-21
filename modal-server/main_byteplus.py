@@ -1,20 +1,26 @@
 """
 BytePlus (ByteDance) 공식 API 프록시 서버
 CORS 문제 해결을 위한 중간 서버
-v1.2-byteplus-proxy-debug: 500 에러 원인 완전 노출
+v1.2-byteplus-upload-imageurl: data URL -> 업로드 -> image_url 변환
 """
 
 import modal
 import traceback
 import uuid
+import base64
+from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 import httpx
 
-BUILD_VERSION = "v1.2-byteplus-proxy-debug"
+BUILD_VERSION = "v1.2-byteplus-upload-imageurl"
 
 app = modal.App("byteplus-proxy")
+
+# Modal volume for image storage
+volume = modal.Volume.from_name("byteplus-uploads", create_if_missing=True)
+UPLOAD_DIR = "/uploads"
 
 # Modal Image 설정
 image = modal.Image.debian_slim().pip_install(
@@ -32,6 +38,59 @@ fast_app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@fast_app.post("/api/v3/uploads")
+async def upload_image(request: Request):
+    """Data URL을 업로드하고 image_url 반환"""
+    try:
+        body = await request.json()
+        data_url = body.get("data_url", "")
+
+        if not data_url.startswith("data:image/"):
+            raise HTTPException(400, "Invalid data URL")
+
+        # Extract base64 data
+        header, b64_data = data_url.split(",", 1)
+        mime = header.split(":")[1].split(";")[0]
+        ext = mime.split("/")[1]
+
+        # Decode and save
+        img_bytes = base64.b64decode(b64_data)
+        img_id = str(uuid.uuid4())[:12]
+        filename = f"{img_id}.{ext}"
+        filepath = f"{UPLOAD_DIR}/{filename}"
+
+        Path(UPLOAD_DIR).mkdir(exist_ok=True)
+        with open(filepath, "wb") as f:
+            f.write(img_bytes)
+
+        print(f"[UPLOAD] {img_id} - {len(img_bytes)} bytes")
+
+        image_url = f"https://hiyoonsh1--byteplus-proxy-web.modal.run/api/v3/uploads/{filename}"
+        return {"image_url": image_url}
+    except Exception as e:
+        print(f"[UPLOAD ERROR] {e}")
+        raise HTTPException(500, str(e))
+
+@fast_app.get("/api/v3/uploads/{filename}")
+async def serve_image(filename: str):
+    """업로드된 이미지 서빙"""
+    try:
+        filepath = f"{UPLOAD_DIR}/{filename}"
+        if not Path(filepath).exists():
+            raise HTTPException(404, "Image not found")
+
+        with open(filepath, "rb") as f:
+            content = f.read()
+
+        ext = filename.split(".")[-1]
+        mime = f"image/{ext}"
+        return Response(content=content, media_type=mime)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[SERVE ERROR] {e}")
+        raise HTTPException(500, str(e))
 
 @fast_app.post("/api/v3/content_generation/tasks")
 async def create_task(request: Request):
@@ -206,6 +265,7 @@ async def health():
 @app.function(
     image=image,
     timeout=600,
+    volumes={UPLOAD_DIR: volume},
 )
 @modal.asgi_app()
 def web():
