@@ -5,7 +5,7 @@ import { GeminiService } from './services/geminiService';
 import { generateSceneVideo, generateBatchVideos, VideoEngine } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect } from './types';
 
-const BUILD_VERSION = 'v1.0-runware-credit-guard';
+const BUILD_VERSION = 'v1.1-byteplus-only';
 
 // 특징(태그) 한국어 번역 맵 (확장됨)
 const TAG_MAP: Record<string, string> = {
@@ -43,10 +43,8 @@ const EXP_TEST_PROJECT: StoryProject = {
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>('storyboard');
-  // 브랜치2: Runware + BytePlus 공식
-  const [videoEngine, setVideoEngine] = useState<VideoEngine>(
-    (localStorage.getItem('video_engine') as VideoEngine) || 'runware'
-  );
+  // 브랜치2: BytePlus 공식 API 전용
+  const [videoEngine, setVideoEngine] = useState<VideoEngine>('bytedance');
   const [projects, setProjects] = useState<StoryProject[]>([EXP_TEST_PROJECT]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(EXP_TEST_PROJECT_ID);
 
@@ -111,13 +109,6 @@ const App: React.FC = () => {
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showElKey, setShowElKey] = useState(false);
   const [showChirpKey, setShowChirpKey] = useState(false);
-
-  // Runware API 설정 (브랜치2)
-  const [runwareApiKey, setRunwareApiKey] = useState(localStorage.getItem('runware_api_key') || '');
-  const [showRunwareKey, setShowRunwareKey] = useState(false);
-  const [runwareModel, setRunwareModel] = useState(localStorage.getItem('runware_model') || 'seedance-1.0-pro-fast');
-  const [runwareDuration, setRunwareDuration] = useState(parseInt(localStorage.getItem('runware_duration') || '10'));
-  const [runwareFps, setRunwareFps] = useState(parseInt(localStorage.getItem('runware_fps') || '12'));
 
   // BytePlus (ByteDance) 공식 API 설정
   const [bytedanceApiKey, setBytedanceApiKey] = useState(localStorage.getItem('bytedance_api_key') || '');
@@ -287,16 +278,6 @@ const App: React.FC = () => {
       setIsGeminiValid(false);
     }
   }, [geminiApiKey]);
-
-  useEffect(() => {
-    localStorage.setItem('runware_api_key', runwareApiKey);
-  }, [runwareApiKey]);
-
-  useEffect(() => {
-    localStorage.setItem('runware_model', runwareModel);
-    localStorage.setItem('runware_duration', runwareDuration.toString());
-    localStorage.setItem('runware_fps', runwareFps.toString());
-  }, [runwareModel, runwareDuration, runwareFps]);
 
   useEffect(() => {
     localStorage.setItem('bytedance_api_key', bytedanceApiKey);
@@ -1224,26 +1205,6 @@ const App: React.FC = () => {
         } catch (err: any) {
           console.error(`Video generation failed for scene ${i + 1}:`, err);
 
-          // Runware 비활성화 에러 처리
-          if (err.isRunwareDisabled) {
-            setIsBatchGenerating(false);
-            setLoadingText('');
-            alert(err.message);
-            return;
-          }
-
-          // Runware 크레딧 부족 오류 처리 (재시도 금지)
-          if (err.isBillingError) {
-            setIsBatchGenerating(false);
-            setLoadingText('');
-            alert(
-              `${err.message}\n\n` +
-              `참고: 이 오류는 자동 재시도되지 않습니다.\n` +
-              `충전 후 다시 "일괄 생성" 버튼을 눌러주세요.`
-            );
-            return;
-          }
-
           updateCurrentProject({
             scenes: project.scenes.map(s =>
               s.id === scene.id
@@ -1311,7 +1272,7 @@ const App: React.FC = () => {
       return;
     }
 
-    const engineName = 'Runware';
+    const engineName = 'BytePlus';
     setBgTask({ type: 'video', message: `${engineName} 비디오 생성 중...` });
     setBgProgress(0);
 
@@ -1373,22 +1334,6 @@ const App: React.FC = () => {
       console.error('Export failed:', error);
       setBgTask(null);
       setBgProgress(0);
-
-      // Runware 비활성화 에러 처리
-      if (error.isRunwareDisabled) {
-        alert(error.message);
-        return;
-      }
-
-      // Runware 크레딧 부족 오류 처리 (재시도 금지)
-      if (error.isBillingError) {
-        alert(
-          `${error.message}\n\n` +
-          `참고: 이 오류는 자동 재시도되지 않습니다.\n` +
-          `충전 후 다시 "비디오 내보내기" 버튼을 눌러주세요.`
-        );
-        return;
-      }
 
       alert(`동영상 생성 중 오류가 발생했습니다: ${error}`);
     }
@@ -2277,48 +2222,6 @@ Generate a detailed English prompt for image generation including scene composit
                 </div>
               )}
 
-              {/* 비디오 엔진 선택 */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">비디오 생성 엔진</label>
-                {import.meta.env.VITE_RUNWARE_ENABLED === 'true' ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setVideoEngine('runware')}
-                      className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                        videoEngine === 'runware'
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      Runware
-                    </button>
-                    <button
-                      onClick={() => setVideoEngine('bytedance')}
-                      className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                        videoEngine === 'bytedance'
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      BytePlus
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setVideoEngine('bytedance')}
-                      className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-indigo-600 text-white"
-                    >
-                      BytePlus (공식 API)
-                    </button>
-                    <div className="px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg">
-                      <p className="text-xs text-amber-700 font-medium">⚠️ Runware 비활성화됨</p>
-                      <p className="text-xs text-amber-600 mt-1">Runware는 billing 조건 때문에 기본 비활성화됨 (docs/BILLING_GATE.md 참조)</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Gemini API 설정 - 아코디언 */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <button onClick={() => setExpandedSetting(expandedSetting === 'gemini' ? null : 'gemini')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
@@ -2378,69 +2281,6 @@ Generate a detailed English prompt for image generation including scene composit
                         <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
                         <option value="imagen-3.0-generate-002">Imagen 3.0</option>
                       </select>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Runware API 설정 - 아코디언 */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <button onClick={() => setExpandedSetting(expandedSetting === 'runware' ? null : 'runware')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">비디오 API 설정</span>
-                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">Runware</span>
-                  </div>
-                  <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'runware' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                {expandedSetting === 'runware' && (
-                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
-                    <div className="space-y-2 pt-4">
-                      <label className="text-sm font-medium text-slate-700">Runware API 키</label>
-                      <div className="relative">
-                        <input type={showRunwareKey ? "text" : "password"} value={runwareApiKey} onChange={e => setRunwareApiKey(e.target.value)} placeholder="rw_..." className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
-                        <button onClick={() => setShowRunwareKey(!showRunwareKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                          {showRunwareKey ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                          ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-xs text-slate-500">Runware 대시보드에서 API 키를 발급받으세요</p>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">비디오 모델</label>
-                      <select value={runwareModel} onChange={e => setRunwareModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                        <option value="seedance-1.0-pro-fast">SeeDANCE 1.0 Pro Fast (1248×704, 5초)</option>
-                        <option value="ltx-video">LTX Video (768×512)</option>
-                        <option value="stable-video">Stable Video Diffusion</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">영상 길이 (초)</label>
-                      <select value={runwareDuration} onChange={e => setRunwareDuration(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                        <option value="3">3초</option>
-                        <option value="5">5초</option>
-                        <option value="8">8초</option>
-                        <option value="10">10초</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">FPS (프레임/초)</label>
-                      <select value={runwareFps} onChange={e => setRunwareFps(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                        <option value="8">8 FPS</option>
-                        <option value="12">12 FPS (애니메이션 권장)</option>
-                        <option value="24">24 FPS (영화)</option>
-                        <option value="30">30 FPS</option>
-                      </select>
-                    </div>
-                    <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
-                      <p className="text-xs text-indigo-700">프레임 수: {runwareDuration * runwareFps}개</p>
-                    </div>
-                    <div className="px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg">
-                      <p className="text-xs text-amber-800 font-medium">⚠️ 최소 $5 크레딧 필요</p>
-                      <p className="text-xs text-amber-600 mt-1">Runware 영상 생성은 최소 $5 크레딧 또는 paid invoice가 필요합니다.</p>
-                      <a href="https://my.runware.ai/wallet" target="_blank" rel="noopener noreferrer" className="text-xs text-amber-700 underline hover:text-amber-900 mt-1 inline-block">충전하기 →</a>
                     </div>
                   </div>
                 )}

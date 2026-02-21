@@ -1,6 +1,6 @@
-// 브랜치2: Runware API + BytePlus 공식 API
+// 브랜치2: BytePlus 공식 API 전용
 
-export type VideoEngine = 'runware' | 'bytedance';
+export type VideoEngine = 'bytedance';
 
 export interface VideoGenerationRequest {
   image_url: string;
@@ -17,137 +17,9 @@ export async function generateSceneVideo(
   characterDescription: string = '',
   multiFaceMode: boolean = false,
   testParams?: any,
-  engine: VideoEngine = 'runware'
+  engine: VideoEngine = 'bytedance'
 ): Promise<Blob> {
-  if (engine === 'bytedance') {
-    return generateByteDanceVideo(imageUrl, imagePrompt, dialogue, characterDescription, testParams);
-  }
-
-  // Runware 엔진 (Feature Flag 체크)
-  // CRITICAL: Runware는 기본 비활성화 (BILLING_GATE.md 참조)
-  const runwareEnabled = import.meta.env.VITE_RUNWARE_ENABLED === 'true';
-  if (!runwareEnabled) {
-    const disabledError: any = new Error(
-      `⚠️ Runware 비활성화\n\n` +
-      `Runware는 기본적으로 비활성화되어 있습니다.\n\n` +
-      `이유:\n` +
-      `• API 최소 요구: $5 크레딧 또는 paid invoice\n` +
-      `• 실제 최소 충전: $20 (공식 정책)\n` +
-      `• 무료 크레딧 적용 불명확\n\n` +
-      `활성화 방법:\n` +
-      `1. .env 파일에 VITE_RUNWARE_ENABLED=true 추가\n` +
-      `2. docs/BILLING_GATE.md 참조`
-    );
-    disabledError.isRunwareDisabled = true;
-    throw disabledError;
-  }
-
-  console.log(`[RUNWARE] generateSceneVideo called`);
-  console.log('[RUNWARE] Dialogue:', dialogue.substring(0, 50));
-
-  // localStorage에서 Runware API 키 읽기
-  const runwareApiKey = localStorage.getItem('runware_api_key') || '';
-  if (!runwareApiKey || runwareApiKey.length < 10) {
-    throw new Error('Runware API key not configured. Please add it in Settings.');
-  }
-
-  const startTime = Date.now();
-
-  // Runware API 파라미터 (testParams나 localStorage에서 읽기)
-  const fps = testParams?.fps || parseInt(localStorage.getItem('runware_fps') || '12');
-  const duration_sec = testParams?.duration_sec || parseInt(localStorage.getItem('runware_duration') || '10');
-  const model = testParams?.model || localStorage.getItem('runware_model') || 'seedance-1.0-pro-fast';
-  const num_frames = duration_sec * fps;
-
-  // 프롬프트 구성
-  const sceneDesc = (imagePrompt || 'anime character in a clean 2D scene').trim().substring(0, 200);
-  const prompt = `A cinematic 2D anime scene, clean lineart, consistent character design, stable facial features. Static camera, smooth animation. Keep eyes open, minimal mouth movement. ${sceneDesc}.`;
-
-  const requestBody = {
-    taskType: 'videoInference',
-    inputImage: imageUrl,
-    model: model,
-    motionStrength: 127,
-    numFrames: num_frames,
-    outputType: 'URL',
-    outputFormat: 'MP4',
-  };
-
-  console.log(`[RUNWARE] Model=${model} FPS=${fps} Duration=${duration_sec}s Frames=${num_frames}`);
-  console.log('[RUNWARE] Request body:', JSON.stringify({ ...requestBody, inputImage: '[omitted]' }));
-
-  // Runware API 엔드포인트
-  const RUNWARE_API = 'https://api.runware.ai/v1/video/generate';
-
-  try {
-    const response = await fetch(RUNWARE_API, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${runwareApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify([requestBody]),  // 배열로 감싸기
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorJson;
-      try {
-        errorJson = JSON.parse(errorText);
-      } catch {
-        throw new Error(`Runware API failed: ${response.status} ${errorText}`);
-      }
-
-      // InsufficientCredits 에러 처리 (BILLING_GATE.md 참조)
-      const errors = errorJson.errors || [];
-      const creditError = errors.find((e: any) => e.code === 'videoInferenceInsufficientCredits');
-      if (creditError) {
-        console.error('[BILLING] insufficient credits - ABORT (no retry)');
-        const billingError: any = new Error(
-          `⚠️ Runware 크레딧 부족\n\n` +
-          `• API 최소 요구: $5 크레딧 또는 paid invoice\n` +
-          `• 실제 최소 충전: $20 (공식 정책)\n` +
-          `• 크레딧 만료: 없음 (영구 사용 가능)\n` +
-          `• 환불: 크레딧 형태로만 가능 (현금 불가)\n\n` +
-          `충전 페이지: https://my.runware.ai/wallet\n\n` +
-          `자세한 내용: docs/BILLING_GATE.md 참조`
-        );
-        billingError.isBillingError = true;
-        billingError.need_min_credit_usd = 5;
-        billingError.min_topup_usd = 20;
-        billingError.wallet_url = 'https://my.runware.ai/wallet';
-        billingError.action = 'topup_required';
-        billingError.no_retry = true;  // 재시도 금지
-        throw billingError;
-      }
-
-      throw new Error(`Runware API failed: ${response.status} ${errorText}`);
-    }
-
-    const result = await response.json();
-    console.log('[RUNWARE] API response:', result);
-
-    // Runware는 배열로 응답 (요청도 배열이므로)
-    const firstResult = Array.isArray(result) ? result[0] : result;
-    const videoUrl = firstResult.video_url || firstResult.url || firstResult.data?.url || firstResult.outputURL;
-
-    if (!videoUrl) {
-      throw new Error(`No video URL in response: ${JSON.stringify(result)}`);
-    }
-
-    // 비디오 다운로드
-    const videoRes = await fetch(videoUrl);
-    if (!videoRes.ok) throw new Error(`Video download failed: ${videoRes.status}`);
-    const blob = await videoRes.blob();
-
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[RUNWARE] Done: ${elapsed}s | ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
-
-    return new Blob([blob], { type: 'video/mp4' });
-  } catch (error) {
-    console.error('[RUNWARE] Error:', error);
-    throw error;
-  }
+  return generateByteDanceVideo(imageUrl, imagePrompt, dialogue, characterDescription, testParams);
 }
 
 // BytePlus 공식 API (ModelArk)
