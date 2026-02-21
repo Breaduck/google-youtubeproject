@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **최적 제안:** 더 저렴하거나 효율적인 방식이 있다면 작업 전 대표님께 먼저 제안할 것.
 - **토큰 효율:** 항상 최고로 효율적으로 탐색할 것. 불필요한 서술을 지양하고 핵심 코드와 정보 위주로 응답하여 토큰 사용량을 최소화할 것.
 - 항상 cloud flare에 자동배포하기
+- **Billing Gate (필수):** 외부 API 연동 전 `docs/BILLING_GATE.md` 체크리스트 확인 필수. 최소 충전/환불/무료크레딧 적용범위 확인 없이 결제 유도 금지.
 
 ## ⚙️ Current Configuration (Aggressive Quality Mode)
 - **Model:** LTX-2 Distilled + LoRA Rank 175 FP8 (1.79 GB)
@@ -35,9 +36,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |--------|-------------|-------------|------------|------------|----------|
 | `main` | LTX diffusers (deprecated) | `main.py` | - | - | - |
 | `exp/official-sdk` | LTX-2 TI2VidTwoStagesPipeline | `main_official.py` | ₩31 | 960×544 | 3s |
-| `브랜치2` | SeeDANCE 1.0 Pro-fast | `main_seedance.py` | ₩146 | 1248×704 | 5s |
+| `브랜치2` | BytePlus + Runware (disabled) | Frontend only | 종량제 | 1080p | 2~12s |
 
-**CRITICAL:** 브랜치별로 서로 다른 `main_*.py` 파일을 사용. 코드 수정 시 현재 활성 브랜치 확인 필수.
+**CRITICAL:**
+- 브랜치별로 서로 다른 `main_*.py` 파일을 사용. 코드 수정 시 현재 활성 브랜치 확인 필수.
+- **브랜치2**: Runware는 기본 비활성화 (`VITE_RUNWARE_ENABLED=false`). BytePlus 공식 API 권장.
+
+## 🚨 Billing Gate (외부 API 도입 필수 프로세스)
+
+**원칙:** 외부 API 연동 시 사용자에게 예상치 못한 과금 방지 + 투명한 비용 안내
+
+### 필수 체크리스트 (docs/BILLING_GATE.md)
+새로운 외부 API 도입 전 **반드시** 확인하고 문서화:
+- [ ] **최소 잔액 조건**: API 호출에 필요한 최소 크레딧/잔액
+- [ ] **최소 충전 금액**: 사용자가 실제로 충전해야 하는 최소 금액
+- [ ] **무료 크레딧 적용 범위**: 무료 크레딧이 해당 기능에 사용 가능한지
+- [ ] **환불 정책**: 환불 가능 여부 및 조건
+- [ ] **만료 정책**: 크레딧/쿠폰 만료 기간
+- [ ] **최소 과금 단위**: 반올림/절사 방식
+- [ ] **사용량 확인 방법**: Dashboard URL 또는 API 엔드포인트
+
+### 현재 상태 (2026-02-21)
+- **Runware**: 기본 비활성화 (`VITE_RUNWARE_ENABLED=false`)
+  - API 최소 요구: $5 크레딧
+  - 실제 최소 충전: $20
+  - 환불: 크레딧 형태만 가능
+  - 재시도: 금지 (insufficient credits 시 즉시 실패)
+- **BytePlus**: 활성화 (권장)
+  - 무료 크레딧: 2M~5M 토큰 (비디오 적용 가능)
+  - 종량제 (최소 충전 금액 확인 필요)
+
+### 코드 구현 규칙
+1. **Feature Flag**: 새 provider는 ENV 변수로 비활성화 (기본값: false)
+2. **명시적 비용 안내**: 최소 충전 금액 + API 요구 조건 + 환불 정책
+3. **재시도 금지**: insufficient credits 시 즉시 실패 처리 (무한 재시도 방지)
 
 ## 📚 LTX-2 공식 SDK 레퍼런스 (https://github.com/Lightricks/LTX-2)
 
