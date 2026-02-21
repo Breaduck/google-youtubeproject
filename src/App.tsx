@@ -217,6 +217,21 @@ const App: React.FC = () => {
   // [EXP] 항상 소금 장인 프로젝트 + 스토리보드로 강제 이동
   useEffect(() => {
     console.log(`[APP] BUILD_VERSION: ${BUILD_VERSION}`);
+
+    // localStorage 기본값 마이그레이션
+    const storedModel = localStorage.getItem('bytedance_model');
+    if (!storedModel || storedModel === 'seedance-1.0-pro') {
+      console.log('[MIGRATION] Setting default model to PRO-FAST');
+      localStorage.setItem('bytedance_model', 'seedance-1-0-pro-fast-251015');
+      setBytedanceModel('seedance-1-0-pro-fast-251015');
+    }
+
+    const storedRes = localStorage.getItem('bytedance_resolution');
+    if (!storedRes || storedRes === '1080p') {
+      console.log('[MIGRATION] Setting default resolution to 720p');
+      localStorage.setItem('bytedance_resolution', '720p');
+      setBytedanceResolution('720p');
+    }
   }, []);
 
   useEffect(() => {
