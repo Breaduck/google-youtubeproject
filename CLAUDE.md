@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 핵심 지표 (North Star)
 - **생성 비용:** 8초 영상 기준 54원 (Aggressive Quality Mode, 환율 1,450원/$)
 - **품질 우선:** 표정 & 움직임 해결 최우선 (비용 2배 투자)
@@ -25,9 +29,15 @@
 - **Modal Deploy 필수:** `modal-server/main.py` 수정 시 git push와 동시에 반드시 `python -m modal deploy modal-server/main.py` 실행할 것. (deploy.ps1 사용: `powershell -ExecutionPolicy Bypass -File modal-server/deploy.ps1`)
 - **Structure:** 로컬 `video-saas` 폴더의 작업물을 레포지토리 구조에 맞춰 일관성 있게 관리할 것.
 
-## 🌿 현재 작업 브랜치
-- **Active Branch:** `exp/official-sdk` → 작업 파일: `modal-server/main_official.py`
-- **main 브랜치 파일:** `modal-server/main.py` (별도)
+## 🌿 브랜치 구조 (Branch-Based Experimentation)
+
+| Branch | Video Engine | Server File | Cost/Video | Resolution | Duration |
+|--------|-------------|-------------|------------|------------|----------|
+| `main` | LTX diffusers (deprecated) | `main.py` | - | - | - |
+| `exp/official-sdk` | LTX-2 TI2VidTwoStagesPipeline | `main_official.py` | ₩31 | 960×544 | 3s |
+| `브랜치2` | SeeDANCE 1.0 Pro-fast | `main_seedance.py` | ₩146 | 1248×704 | 5s |
+
+**CRITICAL:** 브랜치별로 서로 다른 `main_*.py` 파일을 사용. 코드 수정 시 현재 활성 브랜치 확인 필수.
 
 ## 📚 LTX-2 공식 SDK 레퍼런스 (https://github.com/Lightricks/LTX-2)
 
@@ -115,7 +125,198 @@ distilled_lora=[LoraPathStrengthAndSDOps("distilled_lora.safetensors", 0.6, LTXV
 - FP8: `QuantizationPolicy.fp8_cast()` → VRAM 약 50% 절약
 - `PYTORCH_ALLOC_CONF=expandable_segments:True` 필수
 
-AI Self-Reflection & Auto-Fix Protocol
+## 🏗️ Architecture Patterns
+
+### Modal Job-Based Async Pattern
+```python
+# 1. Spawn pattern (prevents timeout)
+@app.function(volumes={"/video-cache": video_cache})
+def run_and_save(data: dict, job_id: str):
+    # Long-running generation
+    gen = VideoGenerator()
+    result = gen.generate.remote(data)
+    # Save to volume
+    with open(f"/video-cache/{job_id}.mp4", "wb") as f:
+        f.write(video_bytes)
+    video_cache.commit()
+
+# 2. ASGI web endpoint
+@app.function()
+@modal.asgi_app()
+def web():
+    @fast_app.post("/start")
+    async def start_generation(request: Request):
+        job_id = uuid.uuid4().hex[:8]
+        run_and_save.spawn(data, job_id)  # Non-blocking
+        return {"job_id": job_id}
+
+    @fast_app.get("/status/{job_id}")
+    def job_status(job_id: str):
+        # Read from volume
+        return {"status": "complete"}
+
+    @fast_app.get("/download/{job_id}")
+    def download_video(job_id: str):
+        # Stream MP4 from volume
+        return StreamingResponse(...)
+```
+
+### Safe Motion Mapper (Quality Guard)
+**목적:** 자유형 프롬프트 대신 템플릿 기반 모션으로 LTX-2 품질 문제 방지 (눈 감김, 얼굴 변형)
+
+```python
+SAFE_MOTION_TEMPLATES = {
+    "A": "quick head turn toward the listener",
+    "B": "slight forward lean",
+    "C": "raise one hand slightly below the chin (hand stays away from face)",
+    "D": "micro nod once",
+}
+MOTION_HOLD_SUFFIX = ", then hold still, subtle breathing"
+
+def safe_motion_mapper(dialogue: str) -> tuple:
+    d = (dialogue or "").strip()
+    if "!" in d:
+        key, preset = "A", "A-head-turn"
+    elif "?" in d:
+        key, preset = "D", "D-micro-nod"
+    elif len(d) >= 20:
+        key, preset = "B", "B-forward-lean"
+    else:
+        key, preset = "C", "C-hand-raise"
+    return SAFE_MOTION_TEMPLATES[key] + MOTION_HOLD_SUFFIX, preset
+```
+
+### Two-Stage FFmpeg Encoding (Lineart Preservation)
+```python
+# Stage 1: Initial encode
+encode_video(frames_np, fps=24.0, output_path=out_path_initial)
+
+# Stage 2: High-quality re-encode (crf=18, tune=animation)
+ffmpeg -i initial.mp4 -c:v libx264 -preset fast -crf 18 \
+       -tune animation -pix_fmt yuv420p -movflags +faststart \
+       -c:a aac -b:a 128k final.mp4
+```
+
+### Frontend Engine Routing (브랜치2)
+```typescript
+// src/services/videoService.ts
+export type VideoEngine = 'diffusers' | 'official' | 'seedance';
+
+if (engine === 'official') {
+  const OFFICIAL_API = 'https://hiyoonsh1--ltx-official-exp-web.modal.run';
+  // Call main_official.py
+} else if (engine === 'seedance') {
+  const SEEDANCE_API = 'https://hiyoonsh1--seedance-experiment-web.modal.run';
+  // Call main_seedance.py
+}
+```
+
+## 🔧 Development Commands
+
+### Frontend
+```bash
+npm install          # 의존성 설치
+npm run dev          # 개발 서버 (http://localhost:5173)
+npm run build        # TypeScript 체크 + 프로덕션 빌드
+npm run lint         # ESLint 검사
+```
+
+### Modal Server Deployment (Windows UTF-8 필수)
+```bash
+# exp/official-sdk 브랜치
+export PYTHONIOENCODING=utf-8 && python -m modal deploy modal-server/main_official.py
+
+# 브랜치2 브랜치
+export PYTHONIOENCODING=utf-8 && python -m modal deploy modal-server/main_seedance.py
+```
+
+**PowerShell 대안:**
+```powershell
+powershell -ExecutionPolicy Bypass -File modal-server/deploy_official.ps1
+```
+
+### Git Workflow
+```bash
+git status                    # 현재 브랜치 및 변경사항 확인
+git push origin <branch>      # Cloudflare Pages 자동 배포
+git log --oneline -5          # 최근 커밋 메시지 스타일 확인
+```
+
+## ⚠️ Common Issues & Solutions
+
+### 1. Modal Server Timeout (2min+)
+**원인:** FastAPI 의존성 누락 → 웹 서버가 시작되지 않음
+**해결:**
+```python
+# ❌ WRONG
+image = modal.Image.debian_slim().pip_install("requests", "Pillow")
+
+# ✅ CORRECT
+image = modal.Image.debian_slim().pip_install("fastapi", "requests", "Pillow")
+```
+
+### 2. CORS Error from Browser
+**원인:** BytePlus/외부 API는 CORS 미지원 → Modal 프록시 필수
+**해결:** Modal 서버를 중간 경유지로 유지 (브라우저에서 직접 호출 불가)
+
+```python
+# Modal 서버에 CORS 활성화
+from fastapi.middleware.cors import CORSMiddleware
+
+fast_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+### 3. Cloudflare Not Reflecting Changes
+**원인:** TypeScript 빌드 오류 또는 브라우저 캐시
+**해결:**
+- `npm run build` 로컬 검증
+- 강제 새로고침 (Ctrl+Shift+R)
+- 시크릿 모드에서 확인
+
+### 4. TypeScript Duplicate Variable Error
+```typescript
+// ❌ WRONG - 중복 선언
+const [videoEngine, setVideoEngine] = useState('official');  // Line 44
+const [videoEngine, setVideoEngine] = useState('seedance');  // Line 113 - ERROR!
+
+// ✅ CORRECT - 기존 state 업데이트
+const [videoEngine, setVideoEngine] = useState<VideoEngine>(
+  (localStorage.getItem('video_engine') as VideoEngine) || 'official'
+);
+```
+
+### 5. Windows Encoding Error (CP949)
+**원인:** Modal CLI 기본값이 CP949 → UTF-8 필수
+**해결:** 항상 `export PYTHONIOENCODING=utf-8` 접두사 사용
+
+### 6. Eye-Closing / Face Morphing (LTX-2)
+**원인:** 자유형 프롬프트 + 외모 묘사가 모델 혼란 유발
+**해결:** Safe Motion Mapper 사용 (모션 전용 템플릿) + negative prompts
+
+## 📁 File Structure
+```
+src/
+├── App.tsx                    # 메인 UI (2000+ lines, 전체 워크플로우)
+├── ExpLanding.tsx             # 랜딩 페이지
+├── main.tsx                   # React entry point
+├── types.ts                   # TypeScript 인터페이스
+└── services/
+    ├── geminiService.ts       # Gemini API (스크립트 분해, 이미지 생성)
+    └── videoService.ts        # 비디오 생성 라우팅 (엔진 선택)
+
+modal-server/
+├── main.py                    # (deprecated) 구 diffusers 파이프라인
+├── main_official.py           # exp/official-sdk: LTX-2 TI2VidTwoStagesPipeline
+├── main_seedance.py           # 브랜치2: SeeDANCE BytePlus API 프록시
+└── deploy_official.ps1        # PowerShell 배포 스크립트
+```
+
+## AI Self-Reflection & Auto-Fix Protocol
 Pre-Deployment Sanity Check: 모든 코드 수정 후 배포(Push) 전, 다음 항목을 스스로 시뮬레이션한다.
 VRAM 체크: LTX-2 + LoRA(Rank 175) 조합이 A10G(24GB)에서 OOM을 일으키지 않는가?
 인코딩 검증: 윈도우 환경의 CP949 충돌 가능성이 있는가? (UTF-8 강제 적용 여부)
