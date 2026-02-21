@@ -1,0 +1,526 @@
+{
+  "sha": "453230a1686a039ad9826a76ecf88a22f05ebf07",
+  "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/trees/453230a1686a039ad9826a76ecf88a22f05ebf07",
+  "tree": [
+    {
+      "path": ".github",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "e6e7d807b7c14f4e62e46c7cf3c3f2a29fd2ae64",
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/trees/e6e7d807b7c14f4e62e46c7cf3c3f2a29fd2ae64"
+    },
+    {
+      "path": ".github/workflows",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "67af4f0c1705dec52617025745d3c876ac1bbfc4",
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/trees/67af4f0c1705dec52617025745d3c876ac1bbfc4"
+    },
+    {
+      "path": ".github/workflows/deploy.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c48b1ef1f554869d2084146220f23aa0bcb6b43b",
+      "size": 854,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/c48b1ef1f554869d2084146220f23aa0bcb6b43b"
+    },
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0a5777aa36780f71c53d1d2c4f31189412b73481",
+      "size": 312,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/0a5777aa36780f71c53d1d2c4f31189412b73481"
+    },
+    {
+      "path": "CLAUDE.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "92013fff48fc03707b91e471dffd79af510403ad",
+      "size": 2808,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/92013fff48fc03707b91e471dffd79af510403ad"
+    },
+    {
+      "path": "DEBUG_GUIDE.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d49619fcecf3cd55109f75bdf26c6d6964603193",
+      "size": 4853,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/d49619fcecf3cd55109f75bdf26c6d6964603193"
+    },
+    {
+      "path": "DEPLOYMENT_SUCCESS.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d7471a5fbcc70597e996af75547ca7dac7891bf4",
+      "size": 7251,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/d7471a5fbcc70597e996af75547ca7dac7891bf4"
+    },
+    {
+      "path": "GEMINI_API_KEY_SETUP.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2ebd5df35a8ea0f32f2843a8b811267d31291066",
+      "size": 3909,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/2ebd5df35a8ea0f32f2843a8b811267d31291066"
+    },
+    {
+      "path": "MANUAL_TEST_GUIDE.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e3782d207ae22722b013624f6fd0f4c0138a3e05",
+      "size": 10918,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/e3782d207ae22722b013624f6fd0f4c0138a3e05"
+    },
+    {
+      "path": "MODAL_DEPLOY_MANUAL.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1ae3f5ca37f9a74be0eaaa6f4bf196b5ddf9bfa6",
+      "size": 4241,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/1ae3f5ca37f9a74be0eaaa6f4bf196b5ddf9bfa6"
+    },
+    {
+      "path": "OFFICIAL_OPTIMIZATION.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ae5059317f72bfbc841b3f1e8f2998087944ccca",
+      "size": 6934,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/ae5059317f72bfbc841b3f1e8f2998087944ccca"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0ce594bfa5b630968b5dbc28f0bc976613cb0c3d",
+      "size": 2257,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/0ce594bfa5b630968b5dbc28f0bc976613cb0c3d"
+    },
+    {
+      "path": "dist",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "c726d19e9d96071e9a982fbaedbc3859de5d8bdd",
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/trees/c726d19e9d96071e9a982fbaedbc3859de5d8bdd"
+    },
+    {
+      "path": "dist/assets",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "1a0c4608e6acf3b235cc9499224d7f690cf7b2f5",
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/trees/1a0c4608e6acf3b235cc9499224d7f690cf7b2f5"
+    },
+    {
+      "path": "dist/assets/index-BMyLPuD1.css",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "deb4633f99a7a875bad079ea5c90e6773af795ab",
+      "size": 40217,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/deb4633f99a7a875bad079ea5c90e6773af795ab"
+    },
+    {
+      "path": "dist/assets/index-BnU1--mK.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "98821c8e092ce6ff13764084de34f7ab7bf1d2ea",
+      "size": 555498,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/98821c8e092ce6ff13764084de34f7ab7bf1d2ea"
+    },
+    {
+      "path": "dist/index.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e70023435472b21ae502e0bcd0d4712951a13445",
+      "size": 511,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/e70023435472b21ae502e0bcd0d4712951a13445"
+    },
+    {
+      "path": "dist/test-quality.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a99c4ef965aa0e4f4a8553a35ca228552dd7c488",
+      "size": 16733,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/a99c4ef965aa0e4f4a8553a35ca228552dd7c488"
+    },
+    {
+      "path": "dist/vite.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e7b8dfb1b2a60bd50538bec9f876511b9cac21e3",
+      "size": 1497,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/e7b8dfb1b2a60bd50538bec9f876511b9cac21e3"
+    },
+    {
+      "path": "eslint.config.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5e6b472f583e34a1cca751440d4f241495475723",
+      "size": 616,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/5e6b472f583e34a1cca751440d4f241495475723"
+    },
+    {
+      "path": "index.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8116c424d92b7a36ccc9ba2fe6e7572d6c2b2bdf",
+      "size": 363,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/8116c424d92b7a36ccc9ba2fe6e7572d6c2b2bdf"
+    },
+    {
+      "path": "migrate-projects.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ca625dac10c374db5fe567bf84dfd9b0a78d28a0",
+      "size": 1277,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/ca625dac10c374db5fe567bf84dfd9b0a78d28a0"
+    },
+    {
+      "path": "modal-server",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "f82c2782f4d085c94cd15dae45099d64a0fcb396",
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/trees/f82c2782f4d085c94cd15dae45099d64a0fcb396"
+    },
+    {
+      "path": "modal-server/AGGRESSIVE_QUALITY_MODE.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cde36832399b2db628c31ab9fd68659fd82afd69",
+      "size": 6443,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/cde36832399b2db628c31ab9fd68659fd82afd69"
+    },
+    {
+      "path": "modal-server/AUTOMATED_TESTING_PLAN.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dc6d22566f9e17f9266fec018f8076d7eb6d2f75",
+      "size": 7374,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/dc6d22566f9e17f9266fec018f8076d7eb6d2f75"
+    },
+    {
+      "path": "modal-server/BASELINE_DEPLOYMENT.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b87589aef7e3cdd041511222b1fcef4645e1da6c",
+      "size": 6259,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/b87589aef7e3cdd041511222b1fcef4645e1da6c"
+    },
+    {
+      "path": "modal-server/CHARACTER_FIDELITY_COMPLETE.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1aed707bf4eac65eb02aab0ae05b02abdd0ef3c7",
+      "size": 9535,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/1aed707bf4eac65eb02aab0ae05b02abdd0ef3c7"
+    },
+    {
+      "path": "modal-server/CLAUDE.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "837e1b3f2d31b34ffbcf88317be1e7454e5ff519",
+      "size": 1021,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/837e1b3f2d31b34ffbcf88317be1e7454e5ff519"
+    },
+    {
+      "path": "modal-server/COMMUNITY_OPTIMIZATION.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "07e9574d97762835ba83e6b2cc104788e0ae6229",
+      "size": 9124,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/07e9574d97762835ba83e6b2cc104788e0ae6229"
+    },
+    {
+      "path": "modal-server/DEPLOYMENT_SUMMARY.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2fa688d80dff7942f800e628215d5f905b8c7906",
+      "size": 6661,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/2fa688d80dff7942f800e628215d5f905b8c7906"
+    },
+    {
+      "path": "modal-server/EMOTION_DRIVEN_DEPLOYMENT.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "00f6c96dc22c77441b404fc0f513bd338114508a",
+      "size": 10825,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/00f6c96dc22c77441b404fc0f513bd338114508a"
+    },
+    {
+      "path": "modal-server/FINAL_TWEAK.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "99ba9a3ce1f5f51fcbcfa4e8bfc5f562013f7f36",
+      "size": 9367,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/99ba9a3ce1f5f51fcbcfa4e8bfc5f562013f7f36"
+    },
+    {
+      "path": "modal-server/IMAGE_CONDITIONING_FIXES.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6c7cfc9d87faa46d225a400efae83f88664b545d",
+      "size": 4864,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/6c7cfc9d87faa46d225a400efae83f88664b545d"
+    },
+    {
+      "path": "modal-server/LORA_DEPLOYMENT.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9626f41dbac925baaaad435e73f3a2779d4ab6b4",
+      "size": 8943,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/9626f41dbac925baaaad435e73f3a2779d4ab6b4"
+    },
+    {
+      "path": "modal-server/OFFICIAL_LTX2_GUIDE.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a4902c491bbc847259600ba3cc89f626862f763f",
+      "size": 9072,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/a4902c491bbc847259600ba3cc89f626862f763f"
+    },
+    {
+      "path": "modal-server/README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0fc81a61e2f9f34117cec456bc0f9b832db8eb16",
+      "size": 2910,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/0fc81a61e2f9f34117cec456bc0f9b832db8eb16"
+    },
+    {
+      "path": "modal-server/automated_test.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2d286e4e8b503e02c66bdc32c0eeee813a17a913",
+      "size": 10940,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/2d286e4e8b503e02c66bdc32c0eeee813a17a913"
+    },
+    {
+      "path": "modal-server/deploy.ps1",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ad90dd0352fe868daec28daaa826ef963661aed5",
+      "size": 216,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/ad90dd0352fe868daec28daaa826ef963661aed5"
+    },
+    {
+      "path": "modal-server/deploy.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "304e085f7e4aa8e1a396b3da0463e6303c1150e5",
+      "size": 531,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/304e085f7e4aa8e1a396b3da0463e6303c1150e5"
+    },
+    {
+      "path": "modal-server/main.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2b8cf09f761c0aabc746a8f5b96aba3788b3f894",
+      "size": 79032,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/2b8cf09f761c0aabc746a8f5b96aba3788b3f894"
+    },
+    {
+      "path": "modal-server/main.py.backup",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f162f1e23322de1605af7b52cc68b4517e1c9ab4",
+      "size": 27513,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/f162f1e23322de1605af7b52cc68b4517e1c9ab4"
+    },
+    {
+      "path": "modal-server/requirements.txt",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d361575c85a4ccc7afe3fa0b4d0b746e8562cee3",
+      "size": 14,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/d361575c85a4ccc7afe3fa0b4d0b746e8562cee3"
+    },
+    {
+      "path": "package-lock.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "18d2929322c0a7b47f7eb642b6c95e8f1dce4d6f",
+      "size": 162277,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/18d2929322c0a7b47f7eb642b6c95e8f1dce4d6f"
+    },
+    {
+      "path": "package.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "06563791e5f0e50df3d5b8d17bfe078b0d9fab82",
+      "size": 813,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/06563791e5f0e50df3d5b8d17bfe078b0d9fab82"
+    },
+    {
+      "path": "public",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "557b37c44d5cb352ff331f90e7fba0189cdfa65e",
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/trees/557b37c44d5cb352ff331f90e7fba0189cdfa65e"
+    },
+    {
+      "path": "public/vite.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e7b8dfb1b2a60bd50538bec9f876511b9cac21e3",
+      "size": 1497,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/e7b8dfb1b2a60bd50538bec9f876511b9cac21e3"
+    },
+    {
+      "path": "src",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "713f1b68bcc041bf363ecbb9485a34ba802129f7",
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/trees/713f1b68bcc041bf363ecbb9485a34ba802129f7"
+    },
+    {
+      "path": "src/App.css",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b9d355df2a5956b526c004531b7b0ffe412461e0",
+      "size": 606,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/b9d355df2a5956b526c004531b7b0ffe412461e0"
+    },
+    {
+      "path": "src/App.tsx",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0659ba93d84913fed18fcf017b0caec27d5419ce",
+      "size": 147852,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/0659ba93d84913fed18fcf017b0caec27d5419ce"
+    },
+    {
+      "path": "src/assets",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "94c0b2fc152a086447a04f62793957235d2475be",
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/trees/94c0b2fc152a086447a04f62793957235d2475be"
+    },
+    {
+      "path": "src/assets/react.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6c87de9bb3358469122cc991d5cf578927246184",
+      "size": 4126,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/6c87de9bb3358469122cc991d5cf578927246184"
+    },
+    {
+      "path": "src/index.css",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "064e180387884b1f3e03d3bdbc04528ee07113ba",
+      "size": 1267,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/064e180387884b1f3e03d3bdbc04528ee07113ba"
+    },
+    {
+      "path": "src/main.tsx",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bef5202a32cbd0632c43de40f6e908532903fd42",
+      "size": 230,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/bef5202a32cbd0632c43de40f6e908532903fd42"
+    },
+    {
+      "path": "src/services",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "a8abf21db065454958b09e24b2bdeedee4395229",
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/trees/a8abf21db065454958b09e24b2bdeedee4395229"
+    },
+    {
+      "path": "src/services/geminiService.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "115c267a39db23fe02ac88f1589e481b48445ebd",
+      "size": 17382,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/115c267a39db23fe02ac88f1589e481b48445ebd"
+    },
+    {
+      "path": "src/services/videoService.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "edf0f47b6c5c69c625486767aa9265979a55c809",
+      "size": 4210,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/edf0f47b6c5c69c625486767aa9265979a55c809"
+    },
+    {
+      "path": "src/types.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f2948c023923ca367706ab130759cf9c9f46c85e",
+      "size": 1651,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/f2948c023923ca367706ab130759cf9c9f46c85e"
+    },
+    {
+      "path": "test-ltx.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "81eda9734515d02a9b9fb878d5c7d17814809ec5",
+      "size": 6391,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/81eda9734515d02a9b9fb878d5c7d17814809ec5"
+    },
+    {
+      "path": "test-modal-base64.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a132ea21e174431a7177571a496934fd1e822e82",
+      "size": 4750,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/a132ea21e174431a7177571a496934fd1e822e82"
+    },
+    {
+      "path": "test-quality.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a99c4ef965aa0e4f4a8553a35ca228552dd7c488",
+      "size": 16733,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/a99c4ef965aa0e4f4a8553a35ca228552dd7c488"
+    },
+    {
+      "path": "test_output.mp4",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa1a4066cf3b372dd9f4677abdb8956a151476db",
+      "size": 569915,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/aa1a4066cf3b372dd9f4677abdb8956a151476db"
+    },
+    {
+      "path": "tsconfig.app.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e68ec9b4529ca7af4f588afd07668d79492394f8",
+      "size": 735,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/e68ec9b4529ca7af4f588afd07668d79492394f8"
+    },
+    {
+      "path": "tsconfig.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1ffef600d959ec9e396d5a260bd3f5b927b2cef8",
+      "size": 119,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/1ffef600d959ec9e396d5a260bd3f5b927b2cef8"
+    },
+    {
+      "path": "tsconfig.node.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8a67f62f4ceebff3424e6e8cd4b3c25b17347546",
+      "size": 653,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/8a67f62f4ceebff3424e6e8cd4b3c25b17347546"
+    },
+    {
+      "path": "vite.config.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c4069b77004b2443326a0afa4a5919012d757fc5",
+      "size": 220,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/c4069b77004b2443326a0afa4a5919012d757fc5"
+    },
+    {
+      "path": "wrangler.jsonc",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1c9fa986d85e39c758e97ae4f21f5dae7b62b63c",
+      "size": 121,
+      "url": "https://api.github.com/repos/Breaduck/google-youtubeproject/git/blobs/1c9fa986d85e39c758e97ae4f21f5dae7b62b63c"
+    }
+  ],
+  "truncated": false
+}

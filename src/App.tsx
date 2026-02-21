@@ -1198,8 +1198,25 @@ const App: React.FC = () => {
                 : s
             )
           });
-        } catch (err) {
+        } catch (err: any) {
           console.error(`Video generation failed for scene ${i + 1}:`, err);
+
+          // Runware 크레딧 부족 오류 처리
+          if (err.isBillingError) {
+            setIsBatchGenerating(false);
+            setLoadingText('');
+            const shouldRetry = window.confirm(
+              `⚠️ Runware 크레딧 부족\n\n` +
+              `Runware 영상 생성은 최소 $${err.need_min_credit_usd} 크레딧 또는 paid invoice가 필요합니다.\n\n` +
+              `충전 페이지: ${err.wallet_url}\n\n` +
+              `충전 후 이 창에서 "확인"을 눌러 재시도하시겠습니까?`
+            );
+            if (shouldRetry) {
+              generateAllVideos();
+            }
+            return;
+          }
+
           updateCurrentProject({
             scenes: project.scenes.map(s =>
               s.id === scene.id
