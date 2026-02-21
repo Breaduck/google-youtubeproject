@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-BUILD_VERSION = "v1.3-byteplus-model-mapping"
+BUILD_VERSION = "v1.3-byteplus-correct-endpoint"
 
 # 모델 Alias → 실제 BytePlus Model ID 매핑
 MODEL_ALIAS_MAP = {
@@ -152,50 +152,53 @@ async def create_task(request: Request):
 
         print(f"[{request_id}] BYTEPLUS model_alias={model_alias} model_id={model_id}")
 
-        # BytePlus SDK 클라이언트
-        client = Ark(
-            base_url="https://ark.ap-southeast.bytepluses.com/api/v3",
-            api_key=api_key,
-        )
+        # BytePlus API 직접 호출 (올바른 엔드포인트)
+        import httpx
 
-        # SDK로 task 생성
-        result = client.content_generation.tasks.create(
-            model=model_id,  # 매핑된 실제 ID 사용
-            content=content
-        )
+        endpoint = "https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks"
+        request_body = {
+            "model": model_id,
+            "content": content
+        }
 
-        print(f"[{request_id}] SDK result: {result}")
+        print(f"[{request_id}] Calling: {endpoint}")
 
-        # SDK 응답을 JSON으로 변환
-        if hasattr(result, 'model_dump'):
-            response_data = result.model_dump()
-        elif hasattr(result, 'dict'):
-            response_data = result.dict()
-        else:
-            response_data = {"task_id": str(result.id) if hasattr(result, 'id') else None}
+        async with httpx.AsyncClient(timeout=30.0) as http_client:
+            response = await http_client.post(
+                endpoint,
+                json=request_body,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+            )
 
-        print(f"[{request_id}] Response: {response_data}")
+            print(f"[{request_id}] Response: {response.status_code}")
 
-        return JSONResponse(content=response_data, status_code=200)
+            if response.status_code != 200:
+                error_text = response.text
+                print(f"[{request_id}] Error: {error_text}")
 
-    except ArkNotFoundError as e:
-        # 404: 모델/엔드포인트를 찾을 수 없음
+                # 에러 코드 분석
+                if "ModelNotOpen" in error_text or "NotFound" in error_text:
+                    raise HTTPException(404, f"Model not activated: {error_text}")
+                elif "AccessDenied" in error_text or "Unauthorized" in error_text:
+                    raise HTTPException(403, f"Access denied: {error_text}")
+                else:
+                    raise HTTPException(response.status_code, error_text)
+
+            result = response.json()
+
+        print(f"[{request_id}] Result: {result}")
+
+        return JSONResponse(content=result, status_code=200)
+
+    except HTTPException:
+        raise
+    except httpx.HTTPError as e:
         error_msg = str(e)
-        print(f"[{request_id}] [NOT_FOUND] {error_msg}")
-        raise HTTPException(
-            status_code=404,
-            detail=f"Model not found or no access (request_id={request_id}, model={model_id}): {error_msg}"
-        )
-    except ArkAPIError as e:
-        # BytePlus API 에러
-        if "AccessDenied" in str(e) or "Unauthorized" in str(e):
-            status_code = 403
-        elif "NotFound" in str(e):
-            status_code = 404
-        else:
-            status_code = 400
-        print(f"[{request_id}] [API_ERROR] {status_code}: {e}")
-        raise HTTPException(status_code=status_code, detail=f"BytePlus API error (request_id={request_id}): {str(e)}")
+        print(f"[{request_id}] [HTTP_ERROR] {error_msg}")
+        raise HTTPException(500, f"HTTP error (request_id={request_id}): {error_msg}")
     except Exception as e:
         tb = traceback.format_exc()
         print(f"[{request_id}] [ERROR] Unexpected:")
@@ -207,11 +210,11 @@ async def create_task(request: Request):
 
 @fast_app.get("/api/v3/content_generation/tasks/{task_id}")
 async def get_task(task_id: str, request: Request):
-    """BytePlus SDK로 태스크 조회"""
+    """BytePlus 태스크 조회"""
     request_id = str(uuid.uuid4())[:8]
 
     try:
-        from byteplussdkarkruntime import Ark
+        import httpx
 
         auth_header = request.headers.get("Authorization")
         if not auth_header:
@@ -219,35 +222,36 @@ async def get_task(task_id: str, request: Request):
 
         api_key = auth_header.replace("Bearer ", "")
 
-        print(f"[{request_id}] SDK get_task: {task_id}")
+        print(f"[{request_id}] Get task: {task_id}")
 
-        client = Ark(
-            base_url="https://ark.ap-southeast.bytepluses.com/api/v3",
-            api_key=api_key,
-        )
+        # 올바른 엔드포인트 사용
+        endpoint = f"https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/{task_id}"
 
-        # SDK로 task 조회
-        result = client.content_generation.tasks.retrieve(task_id)
+        async with httpx.AsyncClient(timeout=30.0) as http_client:
+            response = await http_client.get(
+                endpoint,
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
 
-        if hasattr(result, 'model_dump'):
-            response_data = result.model_dump()
-        elif hasattr(result, 'dict'):
-            response_data = result.dict()
-        else:
-            response_data = {"status": "unknown", "task_id": task_id}
+            print(f"[{request_id}] Response: {response.status_code}")
 
-        print(f"[{request_id}] Status: {response_data.get('status')}")
+            if response.status_code != 200:
+                error_text = response.text
+                print(f"[{request_id}] Error: {error_text}")
+                raise HTTPException(response.status_code, error_text)
 
-        return JSONResponse(content=response_data, status_code=200)
+            result = response.json()
+            print(f"[{request_id}] Status: {result.get('status')}")
 
+            return JSONResponse(content=result, status_code=200)
+
+    except HTTPException:
+        raise
     except Exception as e:
         tb = traceback.format_exc()
-        print(f"[{request_id}] [ERROR] SDK retrieve failed:")
+        print(f"[{request_id}] [ERROR]:")
         print(tb)
-        raise HTTPException(
-            status_code=500,
-            detail=f"SDK error (request_id={request_id}): {type(e).__name__}: {str(e)}"
-        )
+        raise HTTPException(500, f"Error (request_id={request_id}): {str(e)}")
 
 @fast_app.get("/health")
 async def health():
