@@ -45,8 +45,22 @@ const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>('storyboard');
   // 브랜치2: BytePlus 공식 API 전용
   const [videoEngine, setVideoEngine] = useState<VideoEngine>('bytedance');
-  const [projects, setProjects] = useState<StoryProject[]>([EXP_TEST_PROJECT]);
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(EXP_TEST_PROJECT_ID);
+  const [projects, setProjects] = useState<StoryProject[]>(() => {
+    try {
+      const saved = localStorage.getItem('user_projects_v1');
+      return saved ? JSON.parse(saved) : [EXP_TEST_PROJECT];
+    } catch {
+      return [EXP_TEST_PROJECT];
+    }
+  });
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => {
+    const saved = localStorage.getItem('user_projects_v1');
+    if (saved) {
+      const projects = JSON.parse(saved);
+      return projects[0]?.id || EXP_TEST_PROJECT_ID;
+    }
+    return EXP_TEST_PROJECT_ID;
+  });
 
   const project = useMemo(() => {
     return projects.find(p => p.id === currentProjectId) || null;
@@ -203,10 +217,6 @@ const App: React.FC = () => {
   // [EXP] 항상 소금 장인 프로젝트 + 스토리보드로 강제 이동
   useEffect(() => {
     console.log(`[APP] BUILD_VERSION: ${BUILD_VERSION}`);
-    localStorage.removeItem('user_projects_v1');
-    setProjects([EXP_TEST_PROJECT]);
-    setCurrentProjectId(EXP_TEST_PROJECT_ID);
-    setStep('storyboard');
   }, []);
 
   useEffect(() => {
