@@ -30,29 +30,32 @@ export async function generateSceneVideo(
 
   const startTime = Date.now();
 
-  // Runware API 파라미터
-  const fps = 12;
-  const duration_sec = 10;  // 기본 10초
-  const num_frames = duration_sec * fps;  // 120프레임
+  // Runware API 파라미터 (testParams나 localStorage에서 읽기)
+  const fps = testParams?.fps || parseInt(localStorage.getItem('runware_fps') || '12');
+  const duration_sec = testParams?.duration_sec || parseInt(localStorage.getItem('runware_duration') || '10');
+  const model = testParams?.model || localStorage.getItem('runware_model') || 'seedance-1.0-pro-fast';
+  const num_frames = duration_sec * fps;
 
   // 프롬프트 구성
   const sceneDesc = (imagePrompt || 'anime character in a clean 2D scene').trim().substring(0, 200);
   const prompt = `A cinematic 2D anime scene, clean lineart, consistent character design, stable facial features. Static camera, smooth animation. Keep eyes open, minimal mouth movement. ${sceneDesc}.`;
 
   const requestBody = {
-    image_url: imageUrl,
-    prompt: prompt,
-    num_frames: num_frames,
+    taskType: 'imageToVideo',
+    inputImage: imageUrl,
+    model: model,
+    motionStrength: 127,  // 0-255, 기본 127
+    numFrames: num_frames,
     fps: fps,
-    duration_sec: duration_sec,
+    duration: duration_sec,
     seed: 42,
   };
 
-  console.log(`[RUNWARE] FPS=${fps} Duration=${duration_sec}s Frames=${num_frames}`);
-  console.log('[RUNWARE] Request body:', JSON.stringify({ ...requestBody, image_url: '[omitted]' }));
+  console.log(`[RUNWARE] Model=${model} FPS=${fps} Duration=${duration_sec}s Frames=${num_frames}`);
+  console.log('[RUNWARE] Request body:', JSON.stringify({ ...requestBody, inputImage: '[omitted]' }));
 
-  // TODO: Runware API 엔드포인트 (가입 후 설정 필요)
-  const RUNWARE_API = 'https://api.runware.ai/v1/video/generate';  // 예시 URL
+  // Runware API 엔드포인트
+  const RUNWARE_API = 'https://api.runware.ai/v1/video/generate';
 
   try {
     const response = await fetch(RUNWARE_API, {
@@ -61,7 +64,7 @@ export async function generateSceneVideo(
         'Authorization': `Bearer ${runwareApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify([requestBody]),  // 배열로 감싸기
     });
 
     if (!response.ok) {
@@ -72,8 +75,9 @@ export async function generateSceneVideo(
     const result = await response.json();
     console.log('[RUNWARE] API response:', result);
 
-    // 응답 형식에 따라 조정 필요
-    const videoUrl = result.video_url || result.url || result.data?.url;
+    // Runware는 배열로 응답 (요청도 배열이므로)
+    const firstResult = Array.isArray(result) ? result[0] : result;
+    const videoUrl = firstResult.video_url || firstResult.url || firstResult.data?.url || firstResult.outputURL;
 
     if (!videoUrl) {
       throw new Error(`No video URL in response: ${JSON.stringify(result)}`);
