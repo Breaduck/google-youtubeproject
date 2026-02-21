@@ -43,8 +43,10 @@ const EXP_TEST_PROJECT: StoryProject = {
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>('storyboard');
-  // 브랜치2: Runware 전용
-  const [videoEngine, setVideoEngine] = useState<VideoEngine>('runware');
+  // 브랜치2: Runware + BytePlus 공식
+  const [videoEngine, setVideoEngine] = useState<VideoEngine>(
+    (localStorage.getItem('video_engine') as VideoEngine) || 'runware'
+  );
   const [projects, setProjects] = useState<StoryProject[]>([EXP_TEST_PROJECT]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(EXP_TEST_PROJECT_ID);
 
@@ -116,6 +118,13 @@ const App: React.FC = () => {
   const [runwareModel, setRunwareModel] = useState(localStorage.getItem('runware_model') || 'seedance-1.0-pro-fast');
   const [runwareDuration, setRunwareDuration] = useState(parseInt(localStorage.getItem('runware_duration') || '10'));
   const [runwareFps, setRunwareFps] = useState(parseInt(localStorage.getItem('runware_fps') || '12'));
+
+  // BytePlus (ByteDance) 공식 API 설정
+  const [bytedanceApiKey, setBytedanceApiKey] = useState(localStorage.getItem('bytedance_api_key') || '');
+  const [showBytedanceKey, setShowBytedanceKey] = useState(false);
+  const [bytedanceModel, setBytedanceModel] = useState(localStorage.getItem('bytedance_model') || 'seedance-1.0-pro');
+  const [bytedanceDuration, setBytedanceDuration] = useState(parseInt(localStorage.getItem('bytedance_duration') || '5'));
+  const [bytedanceResolution, setBytedanceResolution] = useState(localStorage.getItem('bytedance_resolution') || '1080p');
 
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
     (localStorage.getItem('audio_provider') as any) || 'google'
@@ -288,6 +297,20 @@ const App: React.FC = () => {
     localStorage.setItem('runware_duration', runwareDuration.toString());
     localStorage.setItem('runware_fps', runwareFps.toString());
   }, [runwareModel, runwareDuration, runwareFps]);
+
+  useEffect(() => {
+    localStorage.setItem('bytedance_api_key', bytedanceApiKey);
+  }, [bytedanceApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('bytedance_model', bytedanceModel);
+    localStorage.setItem('bytedance_duration', bytedanceDuration.toString());
+    localStorage.setItem('bytedance_resolution', bytedanceResolution);
+  }, [bytedanceModel, bytedanceDuration, bytedanceResolution]);
+
+  useEffect(() => {
+    localStorage.setItem('video_engine', videoEngine);
+  }, [videoEngine]);
 
   useEffect(() => {
     localStorage.setItem('audio_provider', audioProvider);
@@ -2249,6 +2272,33 @@ Generate a detailed English prompt for image generation including scene composit
                 </div>
               )}
 
+              {/* 비디오 엔진 선택 */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">비디오 생성 엔진</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setVideoEngine('runware')}
+                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      videoEngine === 'runware'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Runware
+                  </button>
+                  <button
+                    onClick={() => setVideoEngine('bytedance')}
+                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      videoEngine === 'bytedance'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    BytePlus
+                  </button>
+                </div>
+              </div>
+
               {/* Gemini API 설정 - 아코디언 */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <button onClick={() => setExpandedSetting(expandedSetting === 'gemini' ? null : 'gemini')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
@@ -2371,6 +2421,67 @@ Generate a detailed English prompt for image generation including scene composit
                       <p className="text-xs text-amber-800 font-medium">⚠️ 최소 $5 크레딧 필요</p>
                       <p className="text-xs text-amber-600 mt-1">Runware 영상 생성은 최소 $5 크레딧 또는 paid invoice가 필요합니다.</p>
                       <a href="https://my.runware.ai/wallet" target="_blank" rel="noopener noreferrer" className="text-xs text-amber-700 underline hover:text-amber-900 mt-1 inline-block">충전하기 →</a>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* BytePlus (ByteDance) 공식 API 설정 - 아코디언 */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <button onClick={() => setExpandedSetting(expandedSetting === 'bytedance' ? null : 'bytedance')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-slate-700">BytePlus 공식 API</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">ModelArk</span>
+                  </div>
+                  <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'bytedance' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {expandedSetting === 'bytedance' && (
+                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
+                    <div className="space-y-2 pt-4">
+                      <label className="text-sm font-medium text-slate-700">BytePlus API 키</label>
+                      <div className="relative">
+                        <input type={showBytedanceKey ? "text" : "password"} value={bytedanceApiKey} onChange={e => setBytedanceApiKey(e.target.value)} placeholder="ARK_API_KEY" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
+                        <button onClick={() => setShowBytedanceKey(!showBytedanceKey)} className="absolute right-3 top-1\2 -translate-y-1\2 text-slate-400 hover:text-slate-600 transition-colors">
+                          {showBytedanceKey ? (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-500">BytePlus ModelArk에서 API 키를 발급받으세요</p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">비디오 모델</label>
+                      <select value={bytedanceModel} onChange={e => setBytedanceModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                        <option value="seedance-1.0-pro">SeeDANCE 1.0 Pro</option>
+                        <option value="seedance-1.0-pro-fast">SeeDANCE 1.0 Pro Fast</option>
+                        <option value="seedance-1.5-pro">SeeDANCE 1.5 Pro</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">해상도</label>
+                      <select value={bytedanceResolution} onChange={e => setBytedanceResolution(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                        <option value="480p">480p</option>
+                        <option value="720p">720p</option>
+                        <option value="1080p">1080p (권장)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">영상 길이 (초)</label>
+                      <select value={bytedanceDuration} onChange={e => setBytedanceDuration(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                        <option value="2">2초</option>
+                        <option value="3">3초</option>
+                        <option value="5">5초 (권장)</option>
+                        <option value="8">8초</option>
+                        <option value="10">10초</option>
+                        <option value="12">12초</option>
+                      </select>
+                    </div>
+                    <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs text-blue-700 font-medium">📘 BytePlus 공식 API</p>
+                      <p className="text-xs text-blue-600 mt-1">ModelArk를 통해 SeeDANCE 모델을 직접 사용합니다. (종량제)</p>
+                      <a href="https://docs.byteplus.com/en/docs/ModelArk/1544106" target="_blank" rel="noopener noreferrer" className="text-xs text-blue-700 underline hover:text-blue-900 mt-1 inline-block">공식 문서 →</a>
                     </div>
                   </div>
                 )}
