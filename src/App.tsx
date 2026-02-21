@@ -5,7 +5,7 @@ import { GeminiService } from './services/geminiService';
 import { generateSceneVideo, generateBatchVideos, VideoEngine } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect } from './types';
 
-const BUILD_VERSION = 'v1.3-byteplus-sdk-model-mapping';
+const BUILD_VERSION = 'v1.4-imgur-public-hosting';
 
 // 특징(태그) 한국어 번역 맵 (확장됨)
 const TAG_MAP: Record<string, string> = {
