@@ -23,24 +23,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 📦 Repository & Backup
 - **Main Repo:** `https://github.com/Breaduck/google-youtubeproject`
-- **Modal API:** `https://hiyoonsh1--ltx-video-service-distilled-1080p-web-app.modal.run`
-- **Cloudflare Pages:** `https://google-youtubeproject.pages.dev`
+- **Modal API (브랜치2):** `https://hiyoonsh1--byteplus-proxy-web.modal.run`
+- **Cloudflare Pages:**
+  - main: `https://google-youtubeproject.pages.dev`
+  - 브랜치2: 수동 배포 (wrangler) 또는 별도 Pages 프로젝트 권장
 - **Sync Rule:** 유의미한 코드 수정이나 최적화 작업이 끝나면, 작업 내역을 요약하여 위 레포지토리로 반드시 `git push` 할 것.
-- **Auto Deploy:** GitHub push → Cloudflare Pages 자동 배포 (1-2분)
-- **Modal Deploy 필수:** `modal-server/main.py` 수정 시 git push와 동시에 반드시 `python -m modal deploy modal-server/main.py` 실행할 것. (deploy.ps1 사용: `powershell -ExecutionPolicy Bypass -File modal-server/deploy.ps1`)
+- **Deploy 방법:**
+  - Frontend: `npm run build && npx wrangler pages deploy dist --project-name=google-youtubeproject --commit-dirty=true`
+  - Modal (브랜치2): `cd modal-server && export PYTHONIOENCODING=utf-8 && python -m modal deploy main_byteplus.py`
 - **Structure:** 로컬 `video-saas` 폴더의 작업물을 레포지토리 구조에 맞춰 일관성 있게 관리할 것.
 
 ## 🌿 브랜치 구조 (Branch-Based Experimentation)
 
-| Branch | Video Engine | Server File | Cost/Video | Resolution | Duration |
-|--------|-------------|-------------|------------|------------|----------|
-| `main` | LTX diffusers (deprecated) | `main.py` | - | - | - |
-| `exp/official-sdk` | LTX-2 TI2VidTwoStagesPipeline | `main_official.py` | ₩31 | 960×544 | 3s |
-| `브랜치2` | BytePlus + Runware (disabled) | Frontend only | 종량제 | 1080p | 2~12s |
+| Branch | 설명 | Video Engine | Server File | Cost/Video | Resolution | Duration |
+|--------|------|-------------|-------------|------------|------------|----------|
+| `main` | LTX Distilled 모드 실험 | LTX-2 Distilled | `main.py` | - | - | - |
+| `exp/official-sdk` (브랜치1) | LTX 공식 루트 실험 | LTX-2 TI2VidTwoStagesPipeline | `main_official.py` | ₩31 | 960×544 | 3s |
+| `브랜치2` | SeeDANCE API 실험 | BytePlus SeeDANCE | `main_byteplus.py` (proxy) | ₩146 | 720p/1080p | 5s |
 
 **CRITICAL:**
-- 브랜치별로 서로 다른 `main_*.py` 파일을 사용. 코드 수정 시 현재 활성 브랜치 확인 필수.
-- **브랜치2**: Runware는 기본 비활성화 (`VITE_RUNWARE_ENABLED=false`). BytePlus 공식 API 권장.
+- **각 브랜치는 독립적인 실험 환경**: 브랜치별로 다른 비디오 생성 엔진과 서버 파일 사용
+- **브랜치2 (현재 활성)**: BytePlus SeeDANCE 1.0 Pro-fast 전용, Model ID: `seedance-1-0-pro-fast-251015`
+- **Cloudflare 배포**: 각 브랜치는 별도 Pages 프로젝트로 배포 권장 (충돌 방지)
 
 ## 🚨 Billing Gate (외부 API 도입 필수 프로세스)
 
