@@ -52,8 +52,8 @@ async function generateByteDanceVideo(
 
   console.log(`[BYTEDANCE] Model=${model} Duration=${duration_sec}s Resolution=${resolution}`);
 
-  // BytePlus ModelArk API 엔드포인트
-  const BYTEPLUS_API = 'https://ark.ap-southeast.bytepluses.com/api/v3/content_generation/tasks';
+  // BytePlus ModelArk API 엔드포인트 (Modal 프록시 사용 - CORS 문제 해결)
+  const BYTEPLUS_API = 'https://hiyoonsh1--byteplus-proxy-web.modal.run/api/v3/content_generation/tasks';
 
   // Step 1: 비디오 생성 태스크 생성
   const requestBody = {
