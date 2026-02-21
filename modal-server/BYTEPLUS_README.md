@@ -8,9 +8,18 @@ BytePlus API 프록시 서버 (Imgur 공개 이미지 호스팅 연동)
 
 Data URL → Imgur 공개 URL 변환 (BytePlus는 공개 HTTPS URL만 허용)
 
-- **서비스**: Imgur 익명 업로드 (API 키 불필요)
-- **제약**: 최소 300px 너비 (BytePlus 요구사항)
-- **검증**: HEAD 요청으로 접근성 확인 (실패 시 soft warning)
+**검증 규칙:**
+- MIME: `image/png`, `image/jpeg`, `image/webp`만 허용
+- 크기: 최대 5MB (base64 디코드 후)
+- 형식: `data:image/*;base64,...` 형식만 허용
+- BytePlus 요구사항: 최소 300px 너비
+
+**에러 코드:**
+- `400 imgur_client_id_missing`: Modal Secret 미설정
+- `400 invalid_data_url`: data URL 형식 오류
+- `400 unsupported_format`: 지원되지 않는 이미지 포맷
+- `413 file_too_large`: 5MB 초과
+- `500 imgur_upload_failed`: Imgur 업로드 실패
 
 Request:
 ```json
@@ -22,12 +31,23 @@ Response:
 {"image_url": "https://i.imgur.com/xyz.png"}
 ```
 
-## 환경 변수
+## 환경 변수 (Modal Secrets)
 
+**필수:**
 ```bash
-# 선택: Seedance 모델 ID 오버라이드
+# Imgur Client ID (https://imgur.com/account/settings/apps)
+modal secret create imgur-client-id IMGUR_CLIENT_ID=<your_client_id>
+```
+
+**선택:**
+```bash
+# Seedance 모델 ID 오버라이드
 BYTEPLUS_SEEDANCE_MODEL_ID="seedance-1-0-pro-fast-251015"
 ```
+
+**보안:**
+- 절대 코드에 API 키/Client ID를 하드코딩하지 마세요
+- Modal Secret으로만 관리합니다
 
 ## 모델 Alias 매핑
 

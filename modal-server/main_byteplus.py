@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-BUILD_VERSION = "v1.4-imgur-public-hosting"
+BUILD_VERSION = "v1.4-imgur-secret-hardening"
 
 # 모델 Alias → 실제 BytePlus Model ID 매핑
 MODEL_ALIAS_MAP = {
@@ -48,52 +48,70 @@ fast_app.add_middleware(
 
 @fast_app.post("/api/v3/uploads")
 async def upload_image(request: Request):
-    """Data URL을 ImgBB에 업로드하고 공개 URL 반환"""
+    """Data URL을 Imgur에 업로드하고 공개 URL 반환 (BytePlus 호환)"""
     try:
         import httpx
+
+        # ENV에서 Imgur Client ID 읽기 (필수)
+        imgur_client_id = os.getenv("IMGUR_CLIENT_ID")
+        if not imgur_client_id:
+            raise HTTPException(400, "imgur_client_id_missing: Set IMGUR_CLIENT_ID in Modal secrets")
 
         body = await request.json()
         data_url = body.get("data_url", "")
 
+        # 1. data URL 형식 검증
         if not data_url.startswith("data:image/"):
-            raise HTTPException(400, "Invalid data URL")
+            raise HTTPException(400, "invalid_data_url: Must start with 'data:image/'")
 
-        # base64 데이터 추출
+        # 2. MIME 타입 검증 (png/jpeg/webp만 허용)
         header, b64_data = data_url.split(",", 1)
+        mime_type = header.split(";")[0].replace("data:", "")
+        allowed_mimes = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
+        if mime_type not in allowed_mimes:
+            raise HTTPException(400, f"unsupported_format: Only {allowed_mimes} allowed, got {mime_type}")
 
-        print(f"[UPLOAD] Uploading to Imgur (size: {len(b64_data)} chars)")
+        # 3. 크기 제한 (5MB)
+        decoded_bytes = base64.b64decode(b64_data)
+        size_mb = len(decoded_bytes) / (1024 * 1024)
+        if size_mb > 5:
+            raise HTTPException(413, f"file_too_large: {size_mb:.2f}MB exceeds 5MB limit")
 
-        # Imgur 익명 업로드 (API key 불필요, 공개 이미지 호스팅)
+        print(f"[UPLOAD] Uploading {mime_type} ({size_mb:.2f}MB) to Imgur")
+
+        # 4. Imgur 업로드
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 "https://api.imgur.com/3/image",
-                headers={"Authorization": "Client-ID 546c25a59c58ad7"},  # Imgur 공개 Client ID
+                headers={"Authorization": f"Client-ID {imgur_client_id}"},
                 data={"image": b64_data, "type": "base64"}
             )
 
             if response.status_code != 200:
-                print(f"[UPLOAD ERROR] Imgur failed: {response.text}")
-                raise HTTPException(500, f"Imgur upload failed: {response.text}")
+                error_detail = f"imgur_upload_failed: HTTP {response.status_code} - {response.text[:200]}"
+                print(f"[UPLOAD ERROR] {error_detail}")
+                raise HTTPException(500, error_detail)
 
             result = response.json()
             image_url = result["data"]["link"]
 
-            print(f"[UPLOAD] Imgur URL: {image_url}")
+            print(f"[UPLOAD] Success → {image_url}")
 
-            # 업로드된 이미지 접근성 검증 (선택적, 실패해도 계속 진행)
+            # 5. 접근성 검증 (선택적)
             try:
                 verify_response = await client.head(image_url, timeout=5.0)
-                status = verify_response.status_code
-                content_type = verify_response.headers.get("content-type", "unknown")
-                print(f"[UPLOAD] Verification: status={status} content-type={content_type}")
+                print(f"[UPLOAD] Verified: {verify_response.status_code}")
             except Exception as e:
-                print(f"[UPLOAD] Verification skipped: {e}")
+                print(f"[UPLOAD] Verification skipped: {str(e)[:100]}")
 
             return {"image_url": image_url}
 
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"[UPLOAD ERROR] {e}")
-        raise HTTPException(500, str(e))
+        error_msg = f"upload_error: {type(e).__name__}: {str(e)[:200]}"
+        print(f"[UPLOAD ERROR] {error_msg}")
+        raise HTTPException(500, error_msg)
 
 @fast_app.get("/api/v3/uploads/{filename}")
 async def serve_image(filename: str):
