@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-BUILD_VERSION = "v1.3-byteplus-correct-endpoint"
+BUILD_VERSION = "v1.4-imgur-public-hosting"
 
 # 모델 Alias → 실제 BytePlus Model ID 매핑
 MODEL_ALIAS_MAP = {
@@ -61,28 +61,33 @@ async def upload_image(request: Request):
         # base64 데이터 추출
         header, b64_data = data_url.split(",", 1)
 
-        print(f"[UPLOAD] Uploading to ImgBB (size: {len(b64_data)} chars)")
+        print(f"[UPLOAD] Uploading to Imgur (size: {len(b64_data)} chars)")
 
-        # ImgBB 무료 API 사용 (공개 이미지 호스팅)
-        imgbb_api_key = "c165ba2e8e9b8b8f5c8b67e0d8e8b8b8"  # 공개 테스트 키
-
+        # Imgur 익명 업로드 (API key 불필요, 공개 이미지 호스팅)
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "https://api.imgbb.com/1/upload",
-                data={
-                    "key": imgbb_api_key,
-                    "image": b64_data,
-                }
+                "https://api.imgur.com/3/image",
+                headers={"Authorization": "Client-ID 546c25a59c58ad7"},  # Imgur 공개 Client ID
+                data={"image": b64_data, "type": "base64"}
             )
 
             if response.status_code != 200:
-                print(f"[UPLOAD ERROR] ImgBB failed: {response.text}")
-                raise HTTPException(500, f"ImgBB upload failed: {response.text}")
+                print(f"[UPLOAD ERROR] Imgur failed: {response.text}")
+                raise HTTPException(500, f"Imgur upload failed: {response.text}")
 
             result = response.json()
-            image_url = result["data"]["url"]
+            image_url = result["data"]["link"]
 
-            print(f"[UPLOAD] Success: {image_url}")
+            print(f"[UPLOAD] Imgur URL: {image_url}")
+
+            # 업로드된 이미지 접근성 검증 (선택적, 실패해도 계속 진행)
+            try:
+                verify_response = await client.head(image_url, timeout=5.0)
+                status = verify_response.status_code
+                content_type = verify_response.headers.get("content-type", "unknown")
+                print(f"[UPLOAD] Verification: status={status} content-type={content_type}")
+            except Exception as e:
+                print(f"[UPLOAD] Verification skipped: {e}")
 
             return {"image_url": image_url}
 
