@@ -14,7 +14,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 import httpx
 
-BUILD_VERSION = "v1.2-byteplus-upload-imageurl"
+BUILD_VERSION = "v1.2-byteplus-404-debug-model-alias"
+
+# 모델 alias 매핑
+MODEL_ALIAS = {
+    "seedance-1.0-pro": "seedance-1-0-pro-251015",
+    "seedance-1.0-pro-fast": "seedance-1-0-pro-fast-251015",
+    "seedance-1-0-pro": "seedance-1-0-pro-251015",
+}
 
 app = modal.App("byteplus-proxy")
 
@@ -121,6 +128,15 @@ async def create_task(request: Request):
         if not auth_header:
             raise HTTPException(status_code=401, detail="Authorization header missing")
 
+        # 3.5. Model alias 변환
+        original_model = body.get("model", "")
+        mapped_model = MODEL_ALIAS.get(original_model, original_model)
+        if original_model != mapped_model:
+            print(f"[{request_id}] Model alias: {original_model} -> {mapped_model}")
+            body["model"] = mapped_model
+        else:
+            print(f"[{request_id}] Model: {original_model}")
+
         # 4. Data URL 감지 및 제한
         if "content" in body and isinstance(body["content"], list):
             for item in body["content"]:
@@ -136,11 +152,15 @@ async def create_task(request: Request):
                             )
 
         # 5. BytePlus API 호출
+        upstream_url = "https://ark.ap-southeast.bytepluses.com/api/v3/content_generation/tasks"
         print(f"[{request_id}] Calling BytePlus API...")
+        print(f"[{request_id}] upstream_url={upstream_url}")
+        print(f"[{request_id}] model={body.get('model')}")
+
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    "https://ark.ap-southeast.bytepluses.com/api/v3/content_generation/tasks",
+                    upstream_url,
                     json=body,
                     headers={
                         "Authorization": auth_header,
@@ -149,7 +169,12 @@ async def create_task(request: Request):
                 )
 
                 # 6. 응답 처리
-                print(f"[{request_id}] BytePlus response: status={response.status_code}")
+                content_type = response.headers.get("content-type", "")
+                response_text = response.text
+                print(f"[{request_id}] BytePlus response: status={response.status_code} content-type={content_type} body_len={len(response_text)}")
+
+                if response_text:
+                    print(f"[{request_id}] Response body (first 500): {response_text[:500]}")
 
                 if response.status_code == 200:
                     return JSONResponse(
@@ -161,7 +186,10 @@ async def create_task(request: Request):
                     error_detail = {
                         "error": "BytePlus API error",
                         "status_code": response.status_code,
-                        "response_text": response.text[:500],  # 처음 500자만
+                        "upstream_url": upstream_url,
+                        "model": body.get("model"),
+                        "response_text_snippet": response_text[:500] if response_text else "(empty)",
+                        "content_type": content_type,
                         "request_id": request_id
                     }
                     print(f"[{request_id}] [ERROR] BytePlus API failed: {error_detail}")
