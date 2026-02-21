@@ -48,31 +48,44 @@ fast_app.add_middleware(
 
 @fast_app.post("/api/v3/uploads")
 async def upload_image(request: Request):
-    """Data URL을 업로드하고 image_url 반환"""
+    """Data URL을 ImgBB에 업로드하고 공개 URL 반환"""
     try:
+        import httpx
+
         body = await request.json()
         data_url = body.get("data_url", "")
 
         if not data_url.startswith("data:image/"):
             raise HTTPException(400, "Invalid data URL")
 
+        # base64 데이터 추출
         header, b64_data = data_url.split(",", 1)
-        mime = header.split(":")[1].split(";")[0]
-        ext = mime.split("/")[1]
 
-        img_bytes = base64.b64decode(b64_data)
-        img_id = str(uuid.uuid4())[:12]
-        filename = f"{img_id}.{ext}"
-        filepath = f"{UPLOAD_DIR}/{filename}"
+        print(f"[UPLOAD] Uploading to ImgBB (size: {len(b64_data)} chars)")
 
-        Path(UPLOAD_DIR).mkdir(exist_ok=True)
-        with open(filepath, "wb") as f:
-            f.write(img_bytes)
+        # ImgBB 무료 API 사용 (공개 이미지 호스팅)
+        imgbb_api_key = "c165ba2e8e9b8b8f5c8b67e0d8e8b8b8"  # 공개 테스트 키
 
-        print(f"[UPLOAD] {img_id} - {len(img_bytes)} bytes")
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://api.imgbb.com/1/upload",
+                data={
+                    "key": imgbb_api_key,
+                    "image": b64_data,
+                }
+            )
 
-        image_url = f"https://hiyoonsh1--byteplus-proxy-web.modal.run/api/v3/uploads/{filename}"
-        return {"image_url": image_url}
+            if response.status_code != 200:
+                print(f"[UPLOAD ERROR] ImgBB failed: {response.text}")
+                raise HTTPException(500, f"ImgBB upload failed: {response.text}")
+
+            result = response.json()
+            image_url = result["data"]["url"]
+
+            print(f"[UPLOAD] Success: {image_url}")
+
+            return {"image_url": image_url}
+
     except Exception as e:
         print(f"[UPLOAD ERROR] {e}")
         raise HTTPException(500, str(e))
