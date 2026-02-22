@@ -30,6 +30,46 @@ function stripBannedTerms(text: string): string {
 // Alias for backward compat
 const stripCameraTerms = stripBannedTerms;
 
+async function generateRunwareImage(prompt: string, isPortrait: boolean): Promise<string> {
+  const apiKey = localStorage.getItem('runware_api_key') || '';
+  if (!apiKey || apiKey.length < 10) {
+    throw new Error('Runware API key not configured');
+  }
+
+  const width = isPortrait ? 512 : 1024;
+  const height = isPortrait ? 1024 : 512;
+
+  const res = await fetch('https://api.runware.ai/v1', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify([{
+      taskType: 'imageInference',
+      taskUUID: crypto.randomUUID(),
+      positivePrompt: prompt,
+      model: 'civitai:36520@76907',
+      width,
+      height,
+      numberResults: 1,
+      outputType: 'URL'
+    }])
+  });
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(`Runware API failed: ${res.status} ${error}`);
+  }
+
+  const data = await res.json();
+  if (!data[0]?.imageURL) {
+    throw new Error('No image URL in Runware response');
+  }
+
+  return data[0].imageURL;
+}
+
 export class GeminiService {
   private getApiKey(): string {
     return localStorage.getItem('gemini_api_key') || '';
@@ -104,6 +144,10 @@ Return ONLY valid JSON, no markdown or explanation.`;
   }
 
   async generateImage(prompt: string, isPortrait: boolean = false, model?: string): Promise<string> {
+    const provider = localStorage.getItem('image_provider') || 'gemini';
+    if (provider === 'runware') {
+      return generateRunwareImage(prompt, isPortrait);
+    }
     const ai = this.getClient();
     const imageModel = model || localStorage.getItem('gemini_image_model') || 'gemini-2.5-flash-image';
 

@@ -117,6 +117,11 @@ const App: React.FC = () => {
   }
   const [geminiModel, setGeminiModel] = useState(localStorage.getItem('gemini_model') || 'gemini-3-flash-preview');
   const [geminiImageModel, setGeminiImageModel] = useState(localStorage.getItem('gemini_image_model') || 'gemini-2.5-flash-image');
+  const [imageProvider, setImageProvider] = useState<'gemini' | 'runware'>(
+    (localStorage.getItem('image_provider') as any) || 'gemini'
+  );
+  const [runwareApiKey, setRunwareApiKey] = useState(localStorage.getItem('runware_api_key') || '');
+  const [showRunwareKey, setShowRunwareKey] = useState(false);
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [isGeminiValid, setIsGeminiValid] = useState(false);
   const [isValidatingGemini, setIsValidatingGemini] = useState(false);
@@ -317,12 +322,14 @@ const App: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('gemini_api_key', geminiApiKey);
+    localStorage.setItem('image_provider', imageProvider);
+    localStorage.setItem('runware_api_key', runwareApiKey);
     if (geminiApiKey.length > 20) {
       checkGeminiKey(geminiApiKey);
     } else {
       setIsGeminiValid(false);
     }
-  }, [geminiApiKey]);
+  }, [geminiApiKey, imageProvider, runwareApiKey]);
 
   useEffect(() => {
     localStorage.setItem('bytedance_api_key', bytedanceApiKey);
