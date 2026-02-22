@@ -159,9 +159,10 @@ async function generateByteDanceVideo(
       console.log(`[BYTEDANCE] Attempt ${attempts}: status=${status} (${progress}%)`);
 
       if (status === 'completed' || status === 'success' || status === 'succeeded') {
-        videoUrl = queryResult.video_url || queryResult.url || queryResult.data?.video_url || queryResult.data?.url;
+        // BytePlus 응답: {"content": {"video_url": "..."}}
+        videoUrl = queryResult.content?.video_url || queryResult.video_url || queryResult.url || queryResult.data?.video_url || queryResult.data?.url;
         console.log(`[BYTEDANCE] Video URL extracted: ${videoUrl ? videoUrl.substring(0, 50) + '...' : 'NOT FOUND'}`);
-        console.log(`[BYTEDANCE] Full response: ${JSON.stringify(queryResult).substring(0, 200)}...`);
+        console.log(`[BYTEDANCE] Full response: ${JSON.stringify(queryResult).substring(0, 300)}...`);
         break;
       } else if (status === 'failed' || status === 'error') {
         throw new Error(`Video generation failed: ${JSON.stringify(queryResult)}`);
