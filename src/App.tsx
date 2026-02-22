@@ -5,7 +5,7 @@ import { GeminiService } from './services/geminiService';
 import { generateSceneVideo, generateBatchVideos, VideoEngine } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect } from './types';
 
-const BUILD_VERSION = 'v1.4-imgur-secret-hardening';
+const BUILD_VERSION = 'v1.5-dual-download-buttons';
 
 // 특징(태그) 한국어 번역 맵 (확장됨)
 const TAG_MAP: Record<string, string> = {
@@ -2035,10 +2035,36 @@ Generate a detailed English prompt for image generation including scene composit
                       {/* 비디오 버튼 */}
                       <div className="flex items-center gap-2">
                         {scene.videoUrl ? (
-                          <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-green-50 rounded-xl">
-                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-                            <span className="text-xs font-medium text-green-600">비디오 생성됨 (720p)</span>
-                          </div>
+                          <>
+                            <button
+                              onClick={() => {
+                                if (!scene.videoUrl) return;
+                                console.log('[UI] downloading 720p');
+                                const a = document.createElement('a');
+                                a.href = scene.videoUrl;
+                                a.download = `scene-${idx+1}_720p.mp4`;
+                                a.click();
+                              }}
+                              className="flex-1 py-2 px-3 bg-green-50 text-green-600 text-xs font-semibold rounded-xl hover:bg-green-100 transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                              720p
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (!scene.videoUrl) return;
+                                console.log('[UI] downloading 1080p export');
+                                const a = document.createElement('a');
+                                a.href = scene.videoUrl.includes('?') ? `${scene.videoUrl}&export=1080` : `${scene.videoUrl}?export=1080`;
+                                a.download = `scene-${idx+1}_1080p.mp4`;
+                                a.click();
+                              }}
+                              className="flex-1 py-2 px-3 bg-red-50 text-red-600 text-xs font-semibold rounded-xl hover:bg-red-100 transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
+                              YouTube 1080p
+                            </button>
+                          </>
                         ) : (
                           <button
                             onClick={() => generateVideo(scene.id)}
