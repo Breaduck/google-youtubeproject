@@ -25,6 +25,15 @@ export async function generateSceneVideo(
     return generateEvolinkVideo(imageUrl, imagePrompt, dialogue, testParams, onProgress);
   }
   if (provider === 'runware') {
+    // Feature Flag 체크 (Billing Gate)
+    const runwareEnabled = import.meta.env.VITE_RUNWARE_ENABLED === 'true';
+    if (!runwareEnabled) {
+      throw new Error(
+        'Runware provider is disabled.\n\n' +
+        'To enable: Set VITE_RUNWARE_ENABLED=true in .env file.\n' +
+        'WARNING: Requires minimum $20 top-up (see docs/BILLING_GATE.md)'
+      );
+    }
     return generateRunwareVideo(imageUrl, imagePrompt, dialogue, testParams, onProgress);
   }
   return generateByteDanceVideo(imageUrl, imagePrompt, dialogue, characterDescription, testParams, onProgress);
@@ -359,7 +368,7 @@ async function generateRunwareVideo(
   const sceneDesc = (imagePrompt || 'anime character').trim().substring(0, 200);
   const prompt = `A cinematic 2D anime scene, clean lineart, smooth animation. ${sceneDesc}.`;
 
-  onProgress?.(10, '비디오 생성 요청 중...');
+  onProgress?.(10, '비디오 생성 중... (동기 완료 대기)');
   const createRes = await fetch(`${API_BASE}/api/v3/runware/videos/generations`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -368,13 +377,17 @@ async function generateRunwareVideo(
       image_url: finalImageUrl,
       prompt,
       duration,
-      resolution,
-      aspect_ratio: aspectRatio
+      resolution
     }),
   });
 
   if (!createRes.ok) {
     const errorText = await createRes.text();
+
+    // Feature Flag 체크
+    if (createRes.status === 403) {
+      throw new Error('Runware provider is disabled. Contact admin to enable.');
+    }
 
     // Billing Gate: insufficient credits 체크
     if (createRes.status === 402 || errorText.includes('insufficient')) {
@@ -394,49 +407,25 @@ async function generateRunwareVideo(
 
   const createResult = await createRes.json();
   const taskId = createResult.id;
-  console.log('[RUNWARE] Task created:', taskId);
+  const videoUrl = createResult.result?.video_url;
+  console.log('[RUNWARE] Completed:', taskId, videoUrl ? 'video available' : 'no video');
 
-  // Step 3: 폴링
-  let attempts = 0;
-  const MAX_ATTEMPTS = 60;
-
-  while (attempts < MAX_ATTEMPTS) {
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    attempts++;
-
-    const queryRes = await fetch(`${API_BASE}/api/v3/runware/tasks/${taskId}`, {
-      headers: {'Authorization': `Bearer ${runwareApiKey}`}
-    });
-    if (!queryRes.ok) continue;
-
-    const queryResult = await queryRes.json();
-    const status = queryResult.status;
-
-    const progress = status === 'processing' ? Math.min(95, 10 + attempts * 10) : status === 'completed' ? 100 : 5;
-    onProgress?.(progress, `비디오 생성 중... (${attempts}번째 확인)`);
-    console.log(`[RUNWARE] Attempt ${attempts}: ${status} (${progress}%)`);
-
-    if (status === 'completed') {
-      console.log('[RUNWARE] Task succeeded');
-      const videoUrl = queryResult.result?.video_url;
-      if (!videoUrl) throw new Error('No video_url in response');
-
-      // Step 4: 다운로드 프록시
-      console.log('[RUNWARE] Downloading via proxy...');
-      const downloadRes = await fetch(`${API_BASE}/api/v3/runware/download?url=${encodeURIComponent(videoUrl)}`);
-      if (!downloadRes.ok) throw new Error(`Download failed: ${downloadRes.status}`);
-
-      const blob = await downloadRes.blob();
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.log(`[RUNWARE] Done: ${elapsed}s | ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
-
-      return new Blob([blob], { type: 'video/mp4' });
-    } else if (status === 'failed') {
-      throw new Error(`Runware generation failed: ${JSON.stringify(queryResult)}`);
-    }
+  if (!videoUrl) {
+    throw new Error('No video_url in response (unexpected status)');
   }
 
-  throw new Error(`Runware timeout after ${MAX_ATTEMPTS} attempts`);
+  onProgress?.(90, '비디오 다운로드 중...');
+
+  // 다운로드 프록시 (CORS 우회)
+  console.log('[RUNWARE] Downloading via proxy...');
+  const downloadRes = await fetch(`${API_BASE}/api/v3/runware/download?url=${encodeURIComponent(videoUrl)}`);
+  if (!downloadRes.ok) throw new Error(`Download failed: ${downloadRes.status}`);
+
+  const blob = await downloadRes.blob();
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[RUNWARE] Done: ${elapsed}s | ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+
+  return new Blob([blob], { type: 'video/mp4' });
 }
 
 export async function generateBatchVideos(
