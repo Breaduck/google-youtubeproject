@@ -802,11 +802,21 @@ async def create_runware_video(request: Request):
         image_url = body.get("image_url")
         prompt = body.get("prompt", "")
         duration = body.get("duration", 5)
+        resolution = body.get("resolution", "720p")
+        aspect_ratio = body.get("aspect_ratio", "16:9")
 
         if not image_url:
             raise HTTPException(400, "image_url required")
 
-        print(f"[{request_id}] Runware generation: duration={duration}s")
+        # 해상도 매핑
+        resolution_map = {
+            "480p": {"width": 864, "height": 480},
+            "720p": {"width": 1280, "height": 720},
+            "1080p": {"width": 1920, "height": 1088}
+        }
+        size = resolution_map.get(resolution, {"width": 1280, "height": 720})
+
+        print(f"[{request_id}] Runware generation: {resolution} ({size['width']}×{size['height']}) duration={duration}s")
 
         # Runware 클라이언트 초기화
         runware = Runware(api_key=runware_api_key)
@@ -818,7 +828,8 @@ async def create_runware_video(request: Request):
             model="bytedance:2@2",  # SeeDance 1.0 Pro Fast
             frameImages=[IImageInference(imageUUID=image_url)],
             duration=duration,
-            ratio="16:9"
+            width=size["width"],
+            height=size["height"]
         )
 
         task_id = task[0].taskUUID
