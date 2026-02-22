@@ -69,14 +69,28 @@ def my_function():
 |--------|------|-------------|-------------|------------|------------|----------|
 | `main` | LTX Distilled 모드 실험 | LTX-2 Distilled | `main.py` | - | - | - |
 | `exp/official-sdk` (브랜치1) | LTX 공식 루트 실험 | LTX-2 TI2VidTwoStagesPipeline | `main_official.py` | ₩31 | 960×544 | 3s |
-| `브랜치2` | SeeDANCE API 실험 | BytePlus SeeDANCE | `main_byteplus.py` (proxy) | ₩146 | 720p/1080p | 5s |
+| `브랜치2` | Multi-Provider 실험 | BytePlus/Evolink/Runware | `main_byteplus.py` (proxy) | ₩54~₩203 | 720p/1080p | 5s |
 
 **CRITICAL:**
 - **각 브랜치는 독립적인 실험 환경**: 브랜치별로 다른 비디오 생성 엔진과 서버 파일 사용
-- **브랜치2 (현재 활성)**: BytePlus SeeDANCE 1.0 Pro-fast 전용, Model ID: `seedance-1-0-pro-fast-251015`
+- **브랜치2 (현재 활성)**: Multi-Provider 지원
+  - BytePlus: `seedance-1-0-pro-fast-251015` (기본, ₩54)
+  - Evolink: `seedance-1.0-pro-fast` (₩203)
+  - Runware: `bytedance:2@2` (₩203, Feature Flag로 기본 OFF)
 - **Cloudflare 배포**: 각 브랜치는 별도 Pages 프로젝트로 배포 권장 (충돌 방지)
 
-## 📡 BytePlus Integration (브랜치2)
+## 📡 Video Providers (브랜치2)
+
+### Provider 구조
+```
+modal-server/
+├── main_byteplus.py          # FastAPI 엔드포인트
+└── providers/
+    ├── __init__.py
+    └── runware_client.py      # Runware SDK wrapper
+```
+
+### 1. BytePlus Integration (기본 Provider)
 
 **Architecture Flow:**
 ```
@@ -105,6 +119,50 @@ Video Result (polling)
 - modal-server/BYTEPLUS_README.md: API 명세
 - modal-server/SETUP_IMGUR.md: Imgur Client ID 설정
 - modal-server/SECURITY_NOTICE.md: 보안 이슈 히스토리
+
+### 2. Runware Integration (Feature Flag OFF)
+
+**Architecture Flow:**
+```
+Frontend (VITE_RUNWARE_ENABLED 체크)
+    ↓ POST /api/v3/runware/videos/generations
+Modal Proxy (RUNWARE_ENABLED 체크)
+    ↓ providers.runware_client.runware_generate_video()
+Runware SDK (WebSocket)
+    ↓ IVideoInference + IFrameImage(inputImage=URL)
+    ↓ await videoInference() → 동기 완료 대기
+    ↓ video_url 반환
+Modal Proxy
+    ↓ GET /api/v3/runware/download?url=... (CORS 프록시)
+Frontend (Blob)
+```
+
+**Feature Flag (Billing Gate 준수):**
+- **서버**: `RUNWARE_ENABLED=false` (기본 OFF, Modal Secret)
+- **프론트**: `VITE_RUNWARE_ENABLED=false` (기본 OFF, .env)
+- **활성화 방법**:
+  ```bash
+  # Modal Secret 생성
+  python -m modal secret create runware-config \
+    RUNWARE_ENABLED=true \
+    RUNWARE_API_KEY=your_key
+
+  # .env 수정
+  VITE_RUNWARE_ENABLED=true
+  ```
+
+**Key Implementation Details:**
+1. **동기 완료 대기**: 폴링 엔드포인트 없음 (WebSocket 세션 이슈 회피)
+2. **WebSocket 연결 관리**: `try/finally`로 `disconnect()` 보장
+3. **Billing Gate**:
+   - API 최소 요구: $5 크레딧 또는 paid invoice
+   - 실제 최소 충전: $20 (환불: 크레딧만)
+   - 비용: $0.14/video (₩203)
+4. **해상도**: 480p/720p/1080p 지원
+
+**참고 문서:**
+- docs/PROVIDERS_RUNWARE.md: 전체 명세
+- docs/BILLING_GATE.md: Billing 정책
 
 ## 🚨 Billing Gate (외부 API 도입 필수 프로세스)
 
