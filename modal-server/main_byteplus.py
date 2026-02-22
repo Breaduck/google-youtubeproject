@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-BUILD_VERSION = "v1.5-byteplus-download-proxy"
+BUILD_VERSION = "v1.6-yt-1080-export-option"
 
 # 모델 Alias → 실제 BytePlus Model ID 매핑
 MODEL_ALIAS_MAP = {
@@ -24,13 +24,16 @@ MODEL_ALIAS_MAP = {
 
 app = modal.App("byteplus-proxy")
 
-# Modal volume for image storage
-volume = modal.Volume.from_name("byteplus-uploads", create_if_missing=True)
+# Modal volumes
+upload_volume = modal.Volume.from_name("byteplus-uploads", create_if_missing=True)
+cache_volume = modal.Volume.from_name("byteplus-1080p-cache", create_if_missing=True)
 UPLOAD_DIR = "/uploads"
+CACHE_DIR = "/cache"
 
 # Modal Image with BytePlus SDK + all dependencies
 image = (
     modal.Image.debian_slim()
+    .apt_install("ffmpeg")  # 720p → 1080p 리사이징용
     .pip_install("byteplus-python-sdk-v2")  # BytePlus 공식 SDK (https://pypi.org/project/byteplus-python-sdk-v2/)
     .pip_install("fastapi", "httpx", "sniffio", "anyio", "httpcore")
 )
@@ -289,9 +292,69 @@ async def get_task(task_id: str, request: Request):
         print(tb)
         raise HTTPException(500, f"Error (request_id={request_id}): {str(e)}")
 
+def resize_to_1080p(video_bytes: bytes, request_id: str) -> bytes:
+    """720p → 1080p 리사이징 (유튜브 업로드용, 오디오 제거)"""
+    import subprocess
+    import tempfile
+    import json
+
+    # 임시 파일 생성
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp_in:
+        tmp_in.write(video_bytes)
+        tmp_in_path = tmp_in.name
+
+    tmp_out_path = tmp_in_path.replace(".mp4", "_1080p.mp4")
+
+    # FFmpeg 리사이징 (lanczos + 오디오 제거)
+    ffmpeg_result = subprocess.run([
+        "ffmpeg", "-i", tmp_in_path,
+        "-vf", "scale=1920:1080:flags=lanczos",  # 고품질 스케일링
+        "-c:v", "libx264",
+        "-preset", "ultrafast",  # 빠른 처리
+        "-crf", "18",  # 고품질 유지
+        "-tune", "animation",  # 애니메이션 최적화
+        "-an",  # 오디오 제거
+        "-y", tmp_out_path
+    ], capture_output=True, stderr=subprocess.PIPE, text=True)
+
+    if ffmpeg_result.returncode != 0:
+        print(f"[{request_id}] FFmpeg error: {ffmpeg_result.stderr}")
+        raise RuntimeError(f"FFmpeg failed: {ffmpeg_result.stderr[:200]}")
+
+    # ffprobe로 최종 해상도 검증
+    probe_result = subprocess.run([
+        "ffprobe", "-v", "error",
+        "-select_streams", "v:0",
+        "-show_entries", "stream=width,height",
+        "-of", "json",
+        tmp_out_path
+    ], capture_output=True, text=True)
+
+    if probe_result.returncode == 0:
+        probe_data = json.loads(probe_result.stdout)
+        width = probe_data["streams"][0]["width"]
+        height = probe_data["streams"][0]["height"]
+        print(f"[{request_id}] Verified resolution: {width}x{height}")
+    else:
+        print(f"[{request_id}] ffprobe failed, skipping verification")
+
+    # 결과 읽기
+    with open(tmp_out_path, "rb") as f:
+        output_bytes = f.read()
+
+    # 임시 파일 삭제
+    os.unlink(tmp_in_path)
+    os.unlink(tmp_out_path)
+
+    return output_bytes
+
 @fast_app.get("/api/v3/content_generation/tasks/{task_id}/download")
-async def download_video(task_id: str, request: Request):
-    """BytePlus 비디오 다운로드 (CORS 우회 스트리밍 프록시)"""
+async def download_video(task_id: str, request: Request, export: str = None):
+    """BytePlus 비디오 다운로드 (CORS 우회 프록시)
+
+    ?export=1080 → 1080p 변환 (유튜브용, 캐시됨)
+    기본 → 720p 원본 반환
+    """
     request_id = str(uuid.uuid4())[:8]
 
     try:
@@ -304,7 +367,23 @@ async def download_video(task_id: str, request: Request):
 
         api_key = auth_header.replace("Bearer ", "")
 
-        # 1. BytePlus에서 task 조회하여 video_url 획득
+        # 1. export=1080 요청 시 캐시 확인
+        if export == "1080":
+            cache_path = f"{CACHE_DIR}/{task_id}_1080p.mp4"
+            if os.path.exists(cache_path):
+                print(f"[{request_id}] Cache hit: {task_id}_1080p.mp4")
+                with open(cache_path, "rb") as f:
+                    cached_bytes = f.read()
+                return Response(
+                    content=cached_bytes,
+                    media_type="video/mp4",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{task_id}_1080p.mp4"',
+                        "Access-Control-Allow-Origin": "*",
+                    }
+                )
+
+        # 2. BytePlus에서 task 조회하여 video_url 획득
         endpoint = f"https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/{task_id}"
 
         async with httpx.AsyncClient(timeout=30.0) as http_client:
@@ -323,13 +402,13 @@ async def download_video(task_id: str, request: Request):
             if not video_url:
                 raise HTTPException(404, f"No video_url in task (request_id={request_id}): {result.get('status')}")
 
-            # 2. SSRF 방지: volces.com 도메인만 허용
+            # 3. SSRF 방지: volces.com 도메인만 허용
             if not ("volces.com" in video_url or "tos-ap-southeast" in video_url):
                 raise HTTPException(403, f"Invalid video URL domain (request_id={request_id})")
 
             print(f"[{request_id}] Streaming video: {video_url[:80]}...")
 
-            # 3. 스트리밍 다운로드
+            # 4. 스트리밍 다운로드
             async with httpx.AsyncClient(timeout=120.0) as stream_client:
                 video_response = await stream_client.get(video_url, follow_redirects=True)
 
@@ -339,9 +418,37 @@ async def download_video(task_id: str, request: Request):
                         f"Upstream video download failed (request_id={request_id}): HTTP {video_response.status_code}"
                     )
 
-                # 4. 스트리밍 응답 반환
+                original_bytes = video_response.content
+                original_mb = len(original_bytes) / (1024 * 1024)
+                print(f"[{request_id}] Original 720p: {original_mb:.2f}MB")
+
+                # 5. export=1080 요청 시 변환 + 캐시
+                if export == "1080":
+                    print(f"[{request_id}] Converting to 1080p...")
+                    upscaled_bytes = resize_to_1080p(original_bytes, request_id)
+                    upscaled_mb = len(upscaled_bytes) / (1024 * 1024)
+                    print(f"[{request_id}] Upscaled 1080p: {upscaled_mb:.2f}MB")
+
+                    # 캐시 저장
+                    os.makedirs(CACHE_DIR, exist_ok=True)
+                    cache_path = f"{CACHE_DIR}/{task_id}_1080p.mp4"
+                    with open(cache_path, "wb") as f:
+                        f.write(upscaled_bytes)
+                    cache_volume.commit()
+                    print(f"[{request_id}] Cached: {task_id}_1080p.mp4")
+
+                    return Response(
+                        content=upscaled_bytes,
+                        media_type="video/mp4",
+                        headers={
+                            "Content-Disposition": f'attachment; filename="{task_id}_1080p.mp4"',
+                            "Access-Control-Allow-Origin": "*",
+                        }
+                    )
+
+                # 6. 기본: 720p 원본 반환
                 return Response(
-                    content=video_response.content,
+                    content=original_bytes,
                     media_type="video/mp4",
                     headers={
                         "Content-Disposition": f'attachment; filename="{task_id}.mp4"',
@@ -369,7 +476,7 @@ async def health():
 @app.function(
     image=image,
     timeout=600,
-    volumes={UPLOAD_DIR: volume},
+    volumes={UPLOAD_DIR: upload_volume, CACHE_DIR: cache_volume},
     secrets=[modal.Secret.from_name("imgur-client-id")],
 )
 @modal.asgi_app()
