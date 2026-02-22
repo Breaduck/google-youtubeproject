@@ -14,7 +14,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-BUILD_VERSION = "v1.7-download-range-cache"
+BUILD_VERSION = "v1.8-evolink-provider"
 
 # 모델 Alias → 실제 BytePlus Model ID 매핑
 MODEL_ALIAS_MAP = {
@@ -605,6 +605,184 @@ async def download_video(task_id: str, request: Request, export: str = None):
         print(f"[{request_id}] [ERROR]:")
         print(tb)
         raise HTTPException(500, f"Download error (request_id={request_id}): {type(e).__name__}: {str(e)}")
+
+@fast_app.post("/api/v3/evolink/videos/generations")
+async def create_evolink_video(request: Request):
+    """Evolink 비디오 생성 태스크 생성"""
+    request_id = str(uuid.uuid4())[:8]
+
+    try:
+        import httpx
+
+        # ENV에서 Evolink 설정 읽기
+        evolink_api_key = os.getenv("EVOLINK_API_KEY")
+        if not evolink_api_key:
+            raise HTTPException(400, "evolink_api_key_missing: Set EVOLINK_API_KEY in Modal secrets")
+
+        evolink_base_url = os.getenv("EVOLINK_BASE_URL", "https://api.evolink.ai")
+        evolink_model_id = os.getenv("EVOLINK_MODEL_ID", "doubao-seedance-1.0-pro-fast")
+
+        body = await request.json()
+
+        # 파라미터 추출
+        prompt = body.get("prompt", "")
+        image_urls = body.get("image_urls", [])
+        duration = body.get("duration", 5)
+        quality = body.get("quality", "720p")
+        aspect_ratio = body.get("aspect_ratio", "16:9")
+
+        print(f"[{request_id}] Evolink generation: duration={duration}s quality={quality}")
+
+        # Evolink API 요청
+        request_body = {
+            "model": evolink_model_id,
+            "prompt": prompt,
+            "duration": duration,
+            "quality": quality,
+            "aspect_ratio": aspect_ratio
+        }
+
+        if image_urls:
+            request_body["image_urls"] = image_urls
+
+        endpoint = f"{evolink_base_url}/v1/videos/generations"
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                endpoint,
+                json=request_body,
+                headers={
+                    "Authorization": f"Bearer {evolink_api_key}",
+                    "Content-Type": "application/json"
+                }
+            )
+
+            print(f"[{request_id}] Evolink response: {response.status_code}")
+
+            if response.status_code != 200:
+                error_text = response.text
+                print(f"[{request_id}] Evolink error: {error_text}")
+                raise HTTPException(
+                    response.status_code,
+                    f"Evolink API failed (request_id={request_id}): {error_text}"
+                )
+
+            result = response.json()
+            print(f"[{request_id}] Task created: {result.get('id')}")
+
+            return JSONResponse(content=result, status_code=200)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[{request_id}] [ERROR]:")
+        print(tb)
+        raise HTTPException(
+            500,
+            f"Evolink generation error (request_id={request_id}): {type(e).__name__}: {str(e)}"
+        )
+
+@fast_app.get("/api/v3/evolink/tasks/{task_id}")
+async def get_evolink_task(task_id: str, request: Request):
+    """Evolink 태스크 상태 조회"""
+    request_id = str(uuid.uuid4())[:8]
+
+    try:
+        import httpx
+
+        evolink_api_key = os.getenv("EVOLINK_API_KEY")
+        if not evolink_api_key:
+            raise HTTPException(400, "evolink_api_key_missing")
+
+        evolink_base_url = os.getenv("EVOLINK_BASE_URL", "https://api.evolink.ai")
+
+        endpoint = f"{evolink_base_url}/v1/tasks/{task_id}"
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                endpoint,
+                headers={"Authorization": f"Bearer {evolink_api_key}"}
+            )
+
+            if response.status_code != 200:
+                error_text = response.text
+                print(f"[{request_id}] Evolink task query error: {error_text}")
+                raise HTTPException(
+                    response.status_code,
+                    f"Evolink task query failed (request_id={request_id}): {error_text}"
+                )
+
+            result = response.json()
+            status = result.get("status")
+            print(f"[{request_id}] Task {task_id}: {status}")
+
+            return JSONResponse(content=result, status_code=200)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[{request_id}] [ERROR]:")
+        print(tb)
+        raise HTTPException(
+            500,
+            f"Evolink task query error (request_id={request_id}): {type(e).__name__}: {str(e)}"
+        )
+
+@fast_app.get("/api/v3/evolink/download")
+async def download_evolink_video(request: Request, url: str = None):
+    """Evolink 비디오 다운로드 프록시 (CORS 우회)"""
+    request_id = str(uuid.uuid4())[:8]
+
+    try:
+        import httpx
+
+        if not url:
+            raise HTTPException(400, "url parameter missing")
+
+        # SSRF 방지: evolink.ai 도메인만 허용
+        if not ("evolink.ai" in url or "cdn.evolink.ai" in url):
+            raise HTTPException(403, f"Invalid URL domain (request_id={request_id}): {url}")
+
+        print(f"[{request_id}] Proxying Evolink video: {url[:80]}...")
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.get(url, follow_redirects=True)
+
+            if response.status_code != 200:
+                raise HTTPException(
+                    502,
+                    f"Upstream download failed (request_id={request_id}): HTTP {response.status_code}"
+                )
+
+            video_bytes = response.content
+            file_size_mb = len(video_bytes) / (1024 * 1024)
+            print(f"[{request_id}] Downloaded: {file_size_mb:.2f}MB")
+
+            return Response(
+                content=video_bytes,
+                status_code=200,
+                media_type="video/mp4",
+                headers={
+                    "Accept-Ranges": "bytes",
+                    "Content-Length": str(len(video_bytes)),
+                    "Content-Type": "video/mp4",
+                    "Content-Disposition": f'attachment; filename="evolink_video.mp4"',
+                    "Access-Control-Allow-Origin": "*",
+                }
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[{request_id}] [ERROR]:")
+        print(tb)
+        raise HTTPException(
+            500,
+            f"Evolink download error (request_id={request_id}): {type(e).__name__}: {str(e)}"
+        )
 
 @fast_app.get("/health")
 async def health():
