@@ -125,9 +125,11 @@ const App: React.FC = () => {
   const [showChirpKey, setShowChirpKey] = useState(false);
 
   // BytePlus (ByteDance) 공식 API 설정
-  const [bytedanceApiKey, setBytedanceApiKey] = useState(localStorage.getItem('bytedance_api_key') || '');
+  // 기본 API 키 (사용자 요청으로 하드코딩 - 보안 주의)
+  const DEFAULT_BYTEPLUS_KEY = '002c08ea-0f36-4ad1-84ef-25740c463f5d';
+  const [bytedanceApiKey, setBytedanceApiKey] = useState(localStorage.getItem('bytedance_api_key') || DEFAULT_BYTEPLUS_KEY);
   const [showBytedanceKey, setShowBytedanceKey] = useState(false);
-  const [bytedanceModel, setBytedanceModel] = useState(localStorage.getItem('bytedance_model') || 'seedance-1-0-pro-fast-251015');
+  const [bytedanceModel, setBytedanceModel] = useState(localStorage.getItem('bytedance_model') || 'seedance-1.0-pro-fast');
   const [bytedanceDuration, setBytedanceDuration] = useState(parseInt(localStorage.getItem('bytedance_duration') || '5'));
   const [bytedanceResolution, setBytedanceResolution] = useState(localStorage.getItem('bytedance_resolution') || '720p');
 
@@ -219,11 +221,20 @@ const App: React.FC = () => {
     console.log(`[APP] BUILD_VERSION: ${BUILD_VERSION}`);
 
     // localStorage 기본값 마이그레이션
+    // 1. API 키 자동 설정
+    const storedApiKey = localStorage.getItem('bytedance_api_key');
+    if (!storedApiKey) {
+      console.log('[MIGRATION] Setting default BytePlus API key');
+      localStorage.setItem('bytedance_api_key', DEFAULT_BYTEPLUS_KEY);
+      setBytedanceApiKey(DEFAULT_BYTEPLUS_KEY);
+    }
+
+    // 2. 모델 항상 PRO-FAST로 강제
     const storedModel = localStorage.getItem('bytedance_model');
-    if (!storedModel || storedModel === 'seedance-1.0-pro') {
+    if (!storedModel || storedModel === 'seedance-1.0-pro' || storedModel.includes('251015')) {
       console.log('[MIGRATION] Setting default model to PRO-FAST');
-      localStorage.setItem('bytedance_model', 'seedance-1-0-pro-fast-251015');
-      setBytedanceModel('seedance-1-0-pro-fast-251015');
+      localStorage.setItem('bytedance_model', 'seedance-1.0-pro-fast');
+      setBytedanceModel('seedance-1.0-pro-fast');
     }
 
     const storedRes = localStorage.getItem('bytedance_resolution');
