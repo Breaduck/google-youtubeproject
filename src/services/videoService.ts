@@ -140,7 +140,7 @@ async function generateByteDanceVideo(
 
       console.log(`[BYTEDANCE] Attempt ${attempts}: status=${status}`);
 
-      if (status === 'completed' || status === 'success') {
+      if (status === 'completed' || status === 'success' || status === 'succeeded') {
         videoUrl = queryResult.video_url || queryResult.url || queryResult.data?.video_url || queryResult.data?.url;
         break;
       } else if (status === 'failed' || status === 'error') {
