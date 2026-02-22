@@ -173,8 +173,9 @@ async function generateByteDanceVideo(
       throw new Error(`Video generation timeout after ${MAX_ATTEMPTS} attempts`);
     }
 
-    // Step 3: 비디오 다운로드
-    const videoRes = await fetch(videoUrl);
+    // Step 3: 비디오 다운로드 (CORS 우회 - Modal 프록시 사용)
+    const proxyUrl = `${BYTEPLUS_API}/api/v3/video_proxy?url=${encodeURIComponent(videoUrl)}`;
+    const videoRes = await fetch(proxyUrl);
     if (!videoRes.ok) throw new Error(`Video download failed: ${videoRes.status}`);
     const blob = await videoRes.blob();
 

@@ -289,6 +289,16 @@ async def get_task(task_id: str, request: Request):
         print(tb)
         raise HTTPException(500, f"Error (request_id={request_id}): {str(e)}")
 
+@fast_app.get("/api/v3/video_proxy")
+async def video_proxy(url: str):
+    """CORS 우회 비디오 프록시"""
+    import httpx
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        response = await client.get(url)
+        if response.status_code != 200:
+            raise HTTPException(response.status_code, "Video download failed")
+        return Response(content=response.content, media_type="video/mp4")
+
 @fast_app.get("/health")
 async def health():
     """헬스 체크"""
