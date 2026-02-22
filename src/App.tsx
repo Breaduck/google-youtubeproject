@@ -148,6 +148,7 @@ const App: React.FC = () => {
   const [evolinkDuration, setEvolinkDuration] = useState(parseInt(localStorage.getItem('evolink_duration') || '5'));
 
   const [runwareDuration, setRunwareDuration] = useState(parseInt(localStorage.getItem('runware_duration') || '5'));
+  const [runwareResolution, setRunwareResolution] = useState(localStorage.getItem('runware_resolution') || '720p');
 
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
     (localStorage.getItem('audio_provider') as any) || 'google'
@@ -354,7 +355,8 @@ const App: React.FC = () => {
     localStorage.setItem('evolink_duration', evolinkDuration.toString());
     localStorage.setItem('runware_api_key', runwareApiKey);
     localStorage.setItem('runware_duration', runwareDuration.toString());
-  }, [videoProvider, evolinkApiKey, evolinkResolution, evolinkDuration, runwareApiKey, runwareDuration]);
+    localStorage.setItem('runware_resolution', runwareResolution);
+  }, [videoProvider, evolinkApiKey, evolinkResolution, evolinkDuration, runwareApiKey, runwareDuration, runwareResolution]);
 
   useEffect(() => {
     localStorage.setItem('audio_provider', audioProvider);
@@ -2501,7 +2503,14 @@ Generate a detailed English prompt for image generation including scene composit
                               )}
                             </button>
                           </div>
-                          <p className="text-xs text-orange-600 font-medium">⚠️ 최소 충전 $20 (환불: 크레딧만) | 충전: https://my.runware.ai/wallet</p>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">해상도</label>
+                          <select value={runwareResolution} onChange={e => setRunwareResolution(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                            <option value="480p">480p (864×480)</option>
+                            <option value="720p">720p (1280×720) - 권장</option>
+                            <option value="1080p">1080p (1920×1088)</option>
+                          </select>
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700">영상 길이 (초)</label>

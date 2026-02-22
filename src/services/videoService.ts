@@ -327,6 +327,15 @@ async function generateRunwareVideo(
 
   const startTime = Date.now();
   const duration = testParams?.duration_sec || parseInt(localStorage.getItem('runware_duration') || '5');
+  const resolution = testParams?.resolution || localStorage.getItem('runware_resolution') || '720p';
+
+  // 해상도 매핑 (Runware aspect ratio)
+  const resolutionMap: Record<string, string> = {
+    '480p': '16:9',
+    '720p': '16:9',
+    '1080p': '16:9'
+  };
+  const aspectRatio = resolutionMap[resolution] || '16:9';
 
   const API_BASE = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
 
@@ -358,7 +367,9 @@ async function generateRunwareVideo(
       api_key: runwareApiKey,
       image_url: finalImageUrl,
       prompt,
-      duration
+      duration,
+      resolution,
+      aspect_ratio: aspectRatio
     }),
   });
 
