@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-BUILD_VERSION = "v1.4-imgur-secret-hardening"
+BUILD_VERSION = "v1.5-byteplus-download-proxy"
 
 # 모델 Alias → 실제 BytePlus Model ID 매핑
 MODEL_ALIAS_MAP = {
@@ -289,15 +289,73 @@ async def get_task(task_id: str, request: Request):
         print(tb)
         raise HTTPException(500, f"Error (request_id={request_id}): {str(e)}")
 
-@fast_app.get("/api/v3/video_proxy")
-async def video_proxy(url: str):
-    """CORS 우회 비디오 프록시"""
-    import httpx
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        response = await client.get(url)
-        if response.status_code != 200:
-            raise HTTPException(response.status_code, "Video download failed")
-        return Response(content=response.content, media_type="video/mp4")
+@fast_app.get("/api/v3/content_generation/tasks/{task_id}/download")
+async def download_video(task_id: str, request: Request):
+    """BytePlus 비디오 다운로드 (CORS 우회 스트리밍 프록시)"""
+    request_id = str(uuid.uuid4())[:8]
+
+    try:
+        import httpx
+        from fastapi.responses import StreamingResponse
+
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            raise HTTPException(401, "Authorization header missing")
+
+        api_key = auth_header.replace("Bearer ", "")
+
+        # 1. BytePlus에서 task 조회하여 video_url 획득
+        endpoint = f"https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/{task_id}"
+
+        async with httpx.AsyncClient(timeout=30.0) as http_client:
+            response = await http_client.get(
+                endpoint,
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+
+            if response.status_code != 200:
+                error_text = response.text
+                raise HTTPException(response.status_code, f"Task query failed (request_id={request_id}): {error_text}")
+
+            result = response.json()
+            video_url = result.get("content", {}).get("video_url")
+
+            if not video_url:
+                raise HTTPException(404, f"No video_url in task (request_id={request_id}): {result.get('status')}")
+
+            # 2. SSRF 방지: volces.com 도메인만 허용
+            if not ("volces.com" in video_url or "tos-ap-southeast" in video_url):
+                raise HTTPException(403, f"Invalid video URL domain (request_id={request_id})")
+
+            print(f"[{request_id}] Streaming video: {video_url[:80]}...")
+
+            # 3. 스트리밍 다운로드
+            async with httpx.AsyncClient(timeout=120.0) as stream_client:
+                video_response = await stream_client.get(video_url, follow_redirects=True)
+
+                if video_response.status_code != 200:
+                    raise HTTPException(
+                        502,
+                        f"Upstream video download failed (request_id={request_id}): HTTP {video_response.status_code}"
+                    )
+
+                # 4. 스트리밍 응답 반환
+                return Response(
+                    content=video_response.content,
+                    media_type="video/mp4",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{task_id}.mp4"',
+                        "Access-Control-Allow-Origin": "*",
+                    }
+                )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[{request_id}] [ERROR]:")
+        print(tb)
+        raise HTTPException(500, f"Download error (request_id={request_id}): {type(e).__name__}: {str(e)}")
 
 @fast_app.get("/health")
 async def health():

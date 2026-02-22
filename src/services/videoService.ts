@@ -122,7 +122,6 @@ async function generateByteDanceVideo(
     const QUERY_API = `${BYTEPLUS_API}/api/v3/content_generation/tasks/${taskId}`;
     let attempts = 0;
     const MAX_ATTEMPTS = 60; // 최대 5분 대기
-    let videoUrl = '';
 
     while (attempts < MAX_ATTEMPTS) {
       await new Promise(resolve => setTimeout(resolve, 5000)); // 5초 대기
@@ -159,24 +158,32 @@ async function generateByteDanceVideo(
       console.log(`[BYTEDANCE] Attempt ${attempts}: status=${status} (${progress}%)`);
 
       if (status === 'completed' || status === 'success' || status === 'succeeded') {
-        // BytePlus 응답: {"content": {"video_url": "..."}}
-        videoUrl = queryResult.content?.video_url || queryResult.video_url || queryResult.url || queryResult.data?.video_url || queryResult.data?.url;
-        console.log(`[BYTEDANCE] Video URL extracted: ${videoUrl ? videoUrl.substring(0, 50) + '...' : 'NOT FOUND'}`);
-        console.log(`[BYTEDANCE] Full response: ${JSON.stringify(queryResult).substring(0, 300)}...`);
+        console.log(`[BYTEDANCE] Task succeeded: ${taskId}`);
         break;
       } else if (status === 'failed' || status === 'error') {
         throw new Error(`Video generation failed: ${JSON.stringify(queryResult)}`);
       }
     }
 
-    if (!videoUrl) {
+    if (attempts >= MAX_ATTEMPTS) {
       throw new Error(`Video generation timeout after ${MAX_ATTEMPTS} attempts`);
     }
 
     // Step 3: 비디오 다운로드 (CORS 우회 - Modal 프록시 사용)
-    const proxyUrl = `${BYTEPLUS_API}/api/v3/video_proxy?url=${encodeURIComponent(videoUrl)}`;
-    const videoRes = await fetch(proxyUrl);
-    if (!videoRes.ok) throw new Error(`Video download failed: ${videoRes.status}`);
+    const downloadUrl = `${BYTEPLUS_API}/api/v3/content_generation/tasks/${taskId}/download`;
+    console.log(`[BYTEDANCE] Downloading via proxy: ${downloadUrl}`);
+
+    const videoRes = await fetch(downloadUrl, {
+      headers: {
+        'Authorization': `Bearer ${bytedanceApiKey}`,
+      },
+    });
+
+    if (!videoRes.ok) {
+      const errorText = await videoRes.text();
+      throw new Error(`Video download failed: ${videoRes.status} ${errorText}`);
+    }
+
     const blob = await videoRes.blob();
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
