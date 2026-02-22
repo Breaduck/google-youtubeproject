@@ -14,7 +14,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-BUILD_VERSION = "v1.9-runware-provider"
+BUILD_VERSION = "v1.10-runware-provider-fixed"
 
 # 모델 Alias → 실제 BytePlus Model ID 매핑
 MODEL_ALIAS_MAP = {
@@ -788,22 +788,33 @@ async def download_evolink_video(request: Request, url: str = None):
 
 @fast_app.post("/api/v3/runware/videos/generations")
 async def create_runware_video(request: Request):
-    """Runware 비디오 생성 (SeeDance 1.0 Pro Fast)"""
+    """Runware 비디오 생성 (SeeDance 1.0 Pro Fast) - 동기 완료 대기"""
     request_id = str(uuid.uuid4())[:8]
 
     try:
-        from runware import Runware, IImageInference
+        # Feature Flag 체크 (Billing Gate)
+        if not os.getenv("RUNWARE_ENABLED", "false").lower() == "true":
+            raise HTTPException(
+                403,
+                "Runware provider is disabled. Set RUNWARE_ENABLED=true in Modal secrets to enable."
+            )
+
+        # Runware provider client import
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from providers.runware_client import runware_generate_video
 
         body = await request.json()
-        runware_api_key = body.get("api_key") or os.getenv("RUNWARE_API_KEY")
-        if not runware_api_key:
-            raise HTTPException(400, "runware_api_key_missing")
+        runware_api_key = body.get("api_key")
+
+        # API 키를 환경변수에 임시 설정 (provider client에서 사용)
+        if runware_api_key:
+            os.environ["RUNWARE_API_KEY"] = runware_api_key
 
         image_url = body.get("image_url")
         prompt = body.get("prompt", "")
         duration = body.get("duration", 5)
         resolution = body.get("resolution", "720p")
-        aspect_ratio = body.get("aspect_ratio", "16:9")
 
         if not image_url:
             raise HTTPException(400, "image_url required")
@@ -818,81 +829,54 @@ async def create_runware_video(request: Request):
 
         print(f"[{request_id}] Runware generation: {resolution} ({size['width']}×{size['height']}) duration={duration}s")
 
-        # Runware 클라이언트 초기화
-        runware = Runware(api_key=runware_api_key)
-        await runware.connect()
-
-        # 비디오 생성 (image-to-video)
-        task = await runware.videoInference(
-            positivePrompt=prompt,
-            model="bytedance:2@2",  # SeeDance 1.0 Pro Fast
-            frameImages=[IImageInference(imageUUID=image_url)],
-            duration=duration,
+        # 동기 완료 대기 (WebSocket 연결 자동 관리)
+        result = await runware_generate_video(
+            image_url=image_url,
+            prompt=prompt,
+            duration_sec=duration,
             width=size["width"],
-            height=size["height"]
+            height=size["height"],
+            fps=24,
+            model_id="bytedance:2@2"
         )
 
-        task_id = task[0].taskUUID
-        print(f"[{request_id}] Task created: {task_id}")
+        task_id = result["task_id"]
+        video_url = result["video_url"]
+        status = result["status"]
+
+        print(f"[{request_id}] Runware completed: task_id={task_id}, status={status}")
 
         return JSONResponse(content={
             "id": task_id,
-            "status": "processing",
-            "video_url": None
+            "status": status,
+            "result": {"video_url": video_url} if video_url else None
         }, status_code=200)
 
-    except Exception as e:
-        # Billing Gate: insufficient credits 체크
+    except HTTPException:
+        raise
+    except ValueError as e:
+        # Billing Gate 또는 Feature Flag 오류
         error_msg = str(e).lower()
-        if "insufficient" in error_msg or "credits" in error_msg or "paid invoice" in error_msg:
+        if "insufficient" in error_msg or "credits" in error_msg:
             print(f"[{request_id}] BILLING ERROR: {str(e)}")
-            raise HTTPException(402, f"runware_insufficient_credits: {str(e)}")
-
+            raise HTTPException(402, str(e))
+        elif "disabled" in error_msg:
+            print(f"[{request_id}] FEATURE FLAG: {str(e)}")
+            raise HTTPException(403, str(e))
+        else:
+            raise HTTPException(400, str(e))
+    except RuntimeError as e:
         tb = traceback.format_exc()
-        print(f"[{request_id}] [ERROR]:")
+        print(f"[{request_id}] [RUNTIME ERROR]:")
         print(tb)
-        raise HTTPException(500, f"Runware error (request_id={request_id}): {type(e).__name__}: {str(e)}")
-
-@fast_app.get("/api/v3/runware/tasks/{task_id}")
-async def get_runware_task(task_id: str, request: Request):
-    """Runware 태스크 상태 조회"""
-    request_id = str(uuid.uuid4())[:8]
-
-    try:
-        from runware import Runware
-
-        auth_header = request.headers.get("Authorization")
-        runware_api_key = auth_header.replace("Bearer ", "") if auth_header else os.getenv("RUNWARE_API_KEY")
-        if not runware_api_key:
-            raise HTTPException(400, "runware_api_key_missing")
-
-        # Runware SDK는 task UUID로 결과 조회
-        runware = Runware(api_key=runware_api_key)
-        await runware.connect()
-
-        result = await runware.getResponse(taskUUID=task_id)
-
-        if result and len(result) > 0:
-            video_url = result[0].videoURL if hasattr(result[0], 'videoURL') else None
-            status = "completed" if video_url else "processing"
-
-            return JSONResponse(content={
-                "id": task_id,
-                "status": status,
-                "result": {"video_url": video_url} if video_url else None
-            }, status_code=200)
-
-        return JSONResponse(content={
-            "id": task_id,
-            "status": "processing",
-            "result": None
-        }, status_code=200)
-
+        raise HTTPException(500, f"Runware API error (request_id={request_id}): {str(e)}")
     except Exception as e:
         tb = traceback.format_exc()
         print(f"[{request_id}] [ERROR]:")
         print(tb)
-        raise HTTPException(500, f"Runware task query error (request_id={request_id}): {str(e)}")
+        raise HTTPException(500, f"Unexpected error (request_id={request_id}): {type(e).__name__}: {str(e)}")
+
+# Runware 태스크 조회 엔드포인트 제거 (동기 완료 대기 방식으로 불필요)
 
 @fast_app.get("/api/v3/runware/download")
 async def download_runware_video(request: Request, url: str = None):
