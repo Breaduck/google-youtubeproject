@@ -139,6 +139,8 @@ const App: React.FC = () => {
   );
   const [evolinkApiKey, setEvolinkApiKey] = useState(localStorage.getItem('evolink_api_key') || '');
   const [showEvolinkKey, setShowEvolinkKey] = useState(false);
+  const [evolinkResolution, setEvolinkResolution] = useState(localStorage.getItem('evolink_resolution') || '720p');
+  const [evolinkDuration, setEvolinkDuration] = useState(parseInt(localStorage.getItem('evolink_duration') || '5'));
 
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
     (localStorage.getItem('audio_provider') as any) || 'google'
@@ -339,7 +341,9 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('video_provider', videoProvider);
     localStorage.setItem('evolink_api_key', evolinkApiKey);
-  }, [videoProvider, evolinkApiKey]);
+    localStorage.setItem('evolink_resolution', evolinkResolution);
+    localStorage.setItem('evolink_duration', evolinkDuration.toString());
+  }, [videoProvider, evolinkApiKey, evolinkResolution, evolinkDuration]);
 
   useEffect(() => {
     localStorage.setItem('audio_provider', audioProvider);
@@ -2410,20 +2414,41 @@ Generate a detailed English prompt for image generation including scene composit
                       </div>
                     )}
                     {videoProvider === 'evolink' && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">Evolink API 키</label>
-                        <div className="relative">
-                          <input type={showEvolinkKey ? "text" : "password"} value={evolinkApiKey} onChange={e => setEvolinkApiKey(e.target.value)} placeholder="YOUR_EVOLINK_API_KEY" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
-                          <button onClick={() => setShowEvolinkKey(!showEvolinkKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                            {showEvolinkKey ? (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                            ) : (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                            )}
-                          </button>
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">Evolink API 키</label>
+                          <div className="relative">
+                            <input type={showEvolinkKey ? "text" : "password"} value={evolinkApiKey} onChange={e => setEvolinkApiKey(e.target.value)} placeholder="YOUR_EVOLINK_API_KEY" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
+                            <button onClick={() => setShowEvolinkKey(!showEvolinkKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                              {showEvolinkKey ? (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                              )}
+                            </button>
+                          </div>
+                          <p className="text-xs text-slate-500">Evolink Dashboard에서 API 키를 발급받으세요</p>
                         </div>
-                        <p className="text-xs text-slate-500">Evolink Dashboard에서 API 키를 발급받으세요</p>
-                      </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">해상도</label>
+                          <select value={evolinkResolution} onChange={e => setEvolinkResolution(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                            <option value="480p">480p</option>
+                            <option value="720p">720p (권장)</option>
+                            <option value="1080p">1080p</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">영상 길이 (초)</label>
+                          <select value={evolinkDuration} onChange={e => setEvolinkDuration(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                            <option value="2">2초</option>
+                            <option value="3">3초</option>
+                            <option value="5">5초 (권장)</option>
+                            <option value="8">8초</option>
+                            <option value="10">10초</option>
+                            <option value="12">12초</option>
+                          </select>
+                        </div>
+                      </>
                     )}
                     {videoProvider === 'byteplus' && (
                       <>

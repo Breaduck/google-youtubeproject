@@ -216,8 +216,8 @@ async function generateEvolinkVideo(
   }
 
   const startTime = Date.now();
-  const duration = testParams?.duration_sec || parseInt(localStorage.getItem('bytedance_duration') || '5');
-  const quality = testParams?.resolution || localStorage.getItem('bytedance_resolution') || '720p';
+  const duration = testParams?.duration_sec || parseInt(localStorage.getItem('evolink_duration') || '5');
+  const quality = testParams?.resolution || localStorage.getItem('evolink_resolution') || '720p';
 
   const API_BASE = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
 
