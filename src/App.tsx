@@ -138,14 +138,16 @@ const App: React.FC = () => {
   const [bytedanceDuration, setBytedanceDuration] = useState(parseInt(localStorage.getItem('bytedance_duration') || '5'));
   const [bytedanceResolution, setBytedanceResolution] = useState(localStorage.getItem('bytedance_resolution') || '720p');
 
-  // Video Provider 설정 (byteplus | evolink)
-  const [videoProvider, setVideoProvider] = useState<'byteplus' | 'evolink'>(
+  // Video Provider 설정 (byteplus | evolink | runware)
+  const [videoProvider, setVideoProvider] = useState<'byteplus' | 'evolink' | 'runware'>(
     (localStorage.getItem('video_provider') as any) || 'byteplus'
   );
   const [evolinkApiKey, setEvolinkApiKey] = useState(localStorage.getItem('evolink_api_key') || '');
   const [showEvolinkKey, setShowEvolinkKey] = useState(false);
   const [evolinkResolution, setEvolinkResolution] = useState(localStorage.getItem('evolink_resolution') || '720p');
   const [evolinkDuration, setEvolinkDuration] = useState(parseInt(localStorage.getItem('evolink_duration') || '5'));
+
+  const [runwareDuration, setRunwareDuration] = useState(parseInt(localStorage.getItem('runware_duration') || '5'));
 
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
     (localStorage.getItem('audio_provider') as any) || 'google'
@@ -350,7 +352,9 @@ const App: React.FC = () => {
     localStorage.setItem('evolink_api_key', evolinkApiKey);
     localStorage.setItem('evolink_resolution', evolinkResolution);
     localStorage.setItem('evolink_duration', evolinkDuration.toString());
-  }, [videoProvider, evolinkApiKey, evolinkResolution, evolinkDuration]);
+    localStorage.setItem('runware_api_key', runwareApiKey);
+    localStorage.setItem('runware_duration', runwareDuration.toString());
+  }, [videoProvider, evolinkApiKey, evolinkResolution, evolinkDuration, runwareApiKey, runwareDuration]);
 
   useEffect(() => {
     localStorage.setItem('audio_provider', audioProvider);
@@ -2424,9 +2428,10 @@ Generate a detailed English prompt for image generation including scene composit
                   <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
                     <div className="space-y-2 pt-4">
                       <label className="text-sm font-medium text-slate-700">비디오 Provider</label>
-                      <select value={videoProvider} onChange={e => setVideoProvider(e.target.value as 'byteplus' | 'evolink')} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                      <select value={videoProvider} onChange={e => setVideoProvider(e.target.value as 'byteplus' | 'evolink' | 'runware')} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
                         <option value="byteplus">BytePlus (기본)</option>
                         <option value="evolink">Evolink (SeeDance 1.0 Pro Fast)</option>
+                        <option value="runware">Runware (SeeDance 1.0 Pro Fast - $0.14/video)</option>
                       </select>
                     </div>
                     {videoProvider === 'byteplus' && (
@@ -2472,6 +2477,35 @@ Generate a detailed English prompt for image generation including scene composit
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700">영상 길이 (초)</label>
                           <select value={evolinkDuration} onChange={e => setEvolinkDuration(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                            <option value="2">2초</option>
+                            <option value="3">3초</option>
+                            <option value="5">5초 (권장)</option>
+                            <option value="8">8초</option>
+                            <option value="10">10초</option>
+                            <option value="12">12초</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+                    {videoProvider === 'runware' && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">Runware API 키</label>
+                          <div className="relative">
+                            <input type={showRunwareKey ? "text" : "password"} value={runwareApiKey} onChange={e => setRunwareApiKey(e.target.value)} placeholder="YOUR_RUNWARE_API_KEY" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
+                            <button onClick={() => setShowRunwareKey(!showRunwareKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                              {showRunwareKey ? (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                              )}
+                            </button>
+                          </div>
+                          <p className="text-xs text-orange-600 font-medium">⚠️ 최소 충전 $20 (환불: 크레딧만) | 충전: https://my.runware.ai/wallet</p>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">영상 길이 (초)</label>
+                          <select value={runwareDuration} onChange={e => setRunwareDuration(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
                             <option value="2">2초</option>
                             <option value="3">3초</option>
                             <option value="5">5초 (권장)</option>

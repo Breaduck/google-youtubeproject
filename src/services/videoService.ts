@@ -1,4 +1,4 @@
-// 브랜치2: BytePlus 공식 API 전용
+// 브랜치2: BytePlus + Evolink + Runware
 
 export type VideoEngine = 'bytedance';
 
@@ -23,6 +23,9 @@ export async function generateSceneVideo(
   const provider = localStorage.getItem('video_provider') || 'byteplus';
   if (provider === 'evolink') {
     return generateEvolinkVideo(imageUrl, imagePrompt, dialogue, testParams, onProgress);
+  }
+  if (provider === 'runware') {
+    return generateRunwareVideo(imageUrl, imagePrompt, dialogue, testParams, onProgress);
   }
   return generateByteDanceVideo(imageUrl, imagePrompt, dialogue, characterDescription, testParams, onProgress);
 }
@@ -305,6 +308,124 @@ async function generateEvolinkVideo(
   }
 
   throw new Error(`Evolink timeout after ${MAX_ATTEMPTS} attempts`);
+}
+
+// Runware API (SeeDance 1.0 Pro Fast)
+async function generateRunwareVideo(
+  imageUrl: string,
+  imagePrompt: string,
+  dialogue: string,
+  testParams?: any,
+  onProgress?: (progress: number, message: string) => void
+): Promise<Blob> {
+  console.log('[RUNWARE] generateRunwareVideo called');
+
+  const runwareApiKey = localStorage.getItem('runware_api_key') || '';
+  if (!runwareApiKey || runwareApiKey.length < 10) {
+    throw new Error('Runware API key not configured. Please add it in Settings.');
+  }
+
+  const startTime = Date.now();
+  const duration = testParams?.duration_sec || parseInt(localStorage.getItem('runware_duration') || '5');
+
+  const API_BASE = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
+
+  // Step 1: 이미지 업로드
+  let finalImageUrl = imageUrl;
+  if (imageUrl.startsWith('data:image/')) {
+    console.log('[RUNWARE] Uploading data URL...');
+    onProgress?.(5, '이미지 업로드 중...');
+    const uploadRes = await fetch(`${API_BASE}/api/v3/uploads`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({data_url: imageUrl}),
+    });
+    if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.status}`);
+    const uploadData = await uploadRes.json();
+    finalImageUrl = uploadData.image_url;
+    console.log('[RUNWARE] Uploaded:', finalImageUrl);
+  }
+
+  // Step 2: 비디오 생성 요청
+  const sceneDesc = (imagePrompt || 'anime character').trim().substring(0, 200);
+  const prompt = `A cinematic 2D anime scene, clean lineart, smooth animation. ${sceneDesc}.`;
+
+  onProgress?.(10, '비디오 생성 요청 중...');
+  const createRes = await fetch(`${API_BASE}/api/v3/runware/videos/generations`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      api_key: runwareApiKey,
+      image_url: finalImageUrl,
+      prompt,
+      duration
+    }),
+  });
+
+  if (!createRes.ok) {
+    const errorText = await createRes.text();
+
+    // Billing Gate: insufficient credits 체크
+    if (createRes.status === 402 || errorText.includes('insufficient')) {
+      const billingError: any = new Error(
+        `⚠️ Runware 크레딧 부족\n\n` +
+        `• API 최소 요구: $5 크레딧 또는 paid invoice\n` +
+        `• 실제 최소 충전: $20 (공식 정책)\n` +
+        `• 환불: 크레딧 형태로만 가능\n` +
+        `• 충전 페이지: https://my.runware.ai/wallet`
+      );
+      billingError.isBillingError = true;
+      throw billingError;
+    }
+
+    throw new Error(`Runware API failed: ${createRes.status} ${errorText}`);
+  }
+
+  const createResult = await createRes.json();
+  const taskId = createResult.id;
+  console.log('[RUNWARE] Task created:', taskId);
+
+  // Step 3: 폴링
+  let attempts = 0;
+  const MAX_ATTEMPTS = 60;
+
+  while (attempts < MAX_ATTEMPTS) {
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    attempts++;
+
+    const queryRes = await fetch(`${API_BASE}/api/v3/runware/tasks/${taskId}`, {
+      headers: {'Authorization': `Bearer ${runwareApiKey}`}
+    });
+    if (!queryRes.ok) continue;
+
+    const queryResult = await queryRes.json();
+    const status = queryResult.status;
+
+    const progress = status === 'processing' ? Math.min(95, 10 + attempts * 10) : status === 'completed' ? 100 : 5;
+    onProgress?.(progress, `비디오 생성 중... (${attempts}번째 확인)`);
+    console.log(`[RUNWARE] Attempt ${attempts}: ${status} (${progress}%)`);
+
+    if (status === 'completed') {
+      console.log('[RUNWARE] Task succeeded');
+      const videoUrl = queryResult.result?.video_url;
+      if (!videoUrl) throw new Error('No video_url in response');
+
+      // Step 4: 다운로드 프록시
+      console.log('[RUNWARE] Downloading via proxy...');
+      const downloadRes = await fetch(`${API_BASE}/api/v3/runware/download?url=${encodeURIComponent(videoUrl)}`);
+      if (!downloadRes.ok) throw new Error(`Download failed: ${downloadRes.status}`);
+
+      const blob = await downloadRes.blob();
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`[RUNWARE] Done: ${elapsed}s | ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+
+      return new Blob([blob], { type: 'video/mp4' });
+    } else if (status === 'failed') {
+      throw new Error(`Runware generation failed: ${JSON.stringify(queryResult)}`);
+    }
+  }
+
+  throw new Error(`Runware timeout after ${MAX_ATTEMPTS} attempts`);
 }
 
 export async function generateBatchVideos(
