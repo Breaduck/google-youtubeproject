@@ -8,12 +8,13 @@ import traceback
 import uuid
 import base64
 import os
+import re
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-BUILD_VERSION = "v1.6-yt-1080-export-option"
+BUILD_VERSION = "v1.7-download-range-cache"
 
 # 모델 Alias → 실제 BytePlus Model ID 매핑
 MODEL_ALIAS_MAP = {
@@ -292,6 +293,24 @@ async def get_task(task_id: str, request: Request):
         print(tb)
         raise HTTPException(500, f"Error (request_id={request_id}): {str(e)}")
 
+def parse_range_header(range_header: str, total_size: int) -> tuple[int, int]:
+    """
+    Parse HTTP Range header: bytes=start-end
+    Returns: (start, end) inclusive
+    """
+    match = re.match(r'bytes=(\d+)-(\d*)', range_header)
+    if not match:
+        raise ValueError(f"Invalid Range header: {range_header}")
+
+    start = int(match.group(1))
+    end = int(match.group(2)) if match.group(2) else total_size - 1
+
+    # 범위 검증
+    if start >= total_size or end >= total_size or start > end:
+        raise ValueError(f"Invalid range: {start}-{end} (total: {total_size})")
+
+    return start, end
+
 def resize_to_1080p(video_bytes: bytes, request_id: str) -> bytes:
     """720p → 1080p 리사이징 (유튜브 업로드용, 오디오 제거)"""
     import subprocess
@@ -350,35 +369,72 @@ def resize_to_1080p(video_bytes: bytes, request_id: str) -> bytes:
 
 @fast_app.get("/api/v3/content_generation/tasks/{task_id}/download")
 async def download_video(task_id: str, request: Request, export: str = None):
-    """BytePlus 비디오 다운로드 (CORS 우회 프록시)
+    """BytePlus 비디오 다운로드 (CORS 우회 프록시 + HTTP Range 지원)
 
     ?export=1080 → 1080p 변환 (유튜브용, 캐시됨)
     기본 → 720p 원본 반환
+    Range: bytes=start-end → 206 Partial Content
     """
     request_id = str(uuid.uuid4())[:8]
 
     try:
         import httpx
-        from fastapi.responses import StreamingResponse
 
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             raise HTTPException(401, "Authorization header missing")
 
         api_key = auth_header.replace("Bearer ", "")
+        range_header = request.headers.get("Range")
 
-        # 1. export=1080 요청 시 캐시 확인
+        filename = f"{task_id}_1080p.mp4" if export == "1080" else f"{task_id}.mp4"
+
+        # 1. export=1080 캐시 확인 (Range 지원)
         if export == "1080":
             cache_path = f"{CACHE_DIR}/{task_id}_1080p.mp4"
             if os.path.exists(cache_path):
                 print(f"[{request_id}] Cache hit: {task_id}_1080p.mp4")
+                file_size = os.path.getsize(cache_path)
+
+                # Range 요청 처리
+                if range_header:
+                    try:
+                        start, end = parse_range_header(range_header, file_size)
+                        print(f"[{request_id}] Range request: {start}-{end}/{file_size}")
+
+                        with open(cache_path, "rb") as f:
+                            f.seek(start)
+                            chunk = f.read(end - start + 1)
+
+                        return Response(
+                            content=chunk,
+                            status_code=206,
+                            media_type="video/mp4",
+                            headers={
+                                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                                "Accept-Ranges": "bytes",
+                                "Content-Length": str(len(chunk)),
+                                "Content-Type": "video/mp4",
+                                "Content-Disposition": f'attachment; filename="{filename}"',
+                                "Access-Control-Allow-Origin": "*",
+                            }
+                        )
+                    except ValueError as e:
+                        raise HTTPException(416, f"Range not satisfiable: {str(e)}")
+
+                # 전체 파일 반환
                 with open(cache_path, "rb") as f:
                     cached_bytes = f.read()
+
                 return Response(
                     content=cached_bytes,
+                    status_code=200,
                     media_type="video/mp4",
                     headers={
-                        "Content-Disposition": f'attachment; filename="{task_id}_1080p.mp4"',
+                        "Accept-Ranges": "bytes",
+                        "Content-Length": str(file_size),
+                        "Content-Type": "video/mp4",
+                        "Content-Disposition": f'attachment; filename="{filename}"',
                         "Access-Control-Allow-Origin": "*",
                     }
                 )
@@ -408,11 +464,38 @@ async def download_video(task_id: str, request: Request, export: str = None):
 
             print(f"[{request_id}] Streaming video: {video_url[:80]}...")
 
-            # 4. 스트리밍 다운로드
+            # 4. 스트리밍 다운로드 (Range 헤더 전달 시도)
             async with httpx.AsyncClient(timeout=120.0) as stream_client:
-                video_response = await stream_client.get(video_url, follow_redirects=True)
+                upstream_headers = {}
+                if range_header:
+                    upstream_headers["Range"] = range_header
+                    print(f"[{request_id}] Forwarding Range: {range_header}")
 
-                if video_response.status_code != 200:
+                video_response = await stream_client.get(
+                    video_url,
+                    follow_redirects=True,
+                    headers=upstream_headers
+                )
+
+                # Upstream이 206을 반환하면 그대로 전달 (export=1080 아닐 때만)
+                if video_response.status_code == 206 and export != "1080":
+                    print(f"[{request_id}] Upstream supports Range, forwarding 206")
+                    return Response(
+                        content=video_response.content,
+                        status_code=206,
+                        media_type="video/mp4",
+                        headers={
+                            "Content-Range": video_response.headers.get("Content-Range", ""),
+                            "Accept-Ranges": "bytes",
+                            "Content-Length": video_response.headers.get("Content-Length", str(len(video_response.content))),
+                            "Content-Type": "video/mp4",
+                            "Content-Disposition": f'attachment; filename="{filename}"',
+                            "Access-Control-Allow-Origin": "*",
+                        }
+                    )
+
+                # Upstream이 200 반환 또는 export=1080
+                if video_response.status_code not in [200, 206]:
                     raise HTTPException(
                         502,
                         f"Upstream video download failed (request_id={request_id}): HTTP {video_response.status_code}"
@@ -420,7 +503,7 @@ async def download_video(task_id: str, request: Request, export: str = None):
 
                 original_bytes = video_response.content
                 original_mb = len(original_bytes) / (1024 * 1024)
-                print(f"[{request_id}] Original 720p: {original_mb:.2f}MB")
+                print(f"[{request_id}] Downloaded: {original_mb:.2f}MB")
 
                 # 5. export=1080 요청 시 변환 + 캐시
                 if export == "1080":
@@ -437,21 +520,80 @@ async def download_video(task_id: str, request: Request, export: str = None):
                     cache_volume.commit()
                     print(f"[{request_id}] Cached: {task_id}_1080p.mp4")
 
+                    file_size = len(upscaled_bytes)
+
+                    # Range 요청 처리
+                    if range_header:
+                        try:
+                            start, end = parse_range_header(range_header, file_size)
+                            chunk = upscaled_bytes[start:end+1]
+                            print(f"[{request_id}] Range: {start}-{end}/{file_size}")
+
+                            return Response(
+                                content=chunk,
+                                status_code=206,
+                                media_type="video/mp4",
+                                headers={
+                                    "Content-Range": f"bytes {start}-{end}/{file_size}",
+                                    "Accept-Ranges": "bytes",
+                                    "Content-Length": str(len(chunk)),
+                                    "Content-Type": "video/mp4",
+                                    "Content-Disposition": f'attachment; filename="{filename}"',
+                                    "Access-Control-Allow-Origin": "*",
+                                }
+                            )
+                        except ValueError as e:
+                            raise HTTPException(416, f"Range not satisfiable: {str(e)}")
+
+                    # 전체 파일 반환
                     return Response(
                         content=upscaled_bytes,
+                        status_code=200,
                         media_type="video/mp4",
                         headers={
-                            "Content-Disposition": f'attachment; filename="{task_id}_1080p.mp4"',
+                            "Accept-Ranges": "bytes",
+                            "Content-Length": str(file_size),
+                            "Content-Type": "video/mp4",
+                            "Content-Disposition": f'attachment; filename="{filename}"',
                             "Access-Control-Allow-Origin": "*",
                         }
                     )
 
-                # 6. 기본: 720p 원본 반환
+                # 6. 기본: 720p 원본 반환 (Range 지원)
+                file_size = len(original_bytes)
+
+                if range_header:
+                    try:
+                        start, end = parse_range_header(range_header, file_size)
+                        chunk = original_bytes[start:end+1]
+                        print(f"[{request_id}] Range: {start}-{end}/{file_size}")
+
+                        return Response(
+                            content=chunk,
+                            status_code=206,
+                            media_type="video/mp4",
+                            headers={
+                                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                                "Accept-Ranges": "bytes",
+                                "Content-Length": str(len(chunk)),
+                                "Content-Type": "video/mp4",
+                                "Content-Disposition": f'attachment; filename="{filename}"',
+                                "Access-Control-Allow-Origin": "*",
+                            }
+                        )
+                    except ValueError as e:
+                        raise HTTPException(416, f"Range not satisfiable: {str(e)}")
+
+                # 전체 파일 반환
                 return Response(
                     content=original_bytes,
+                    status_code=200,
                     media_type="video/mp4",
                     headers={
-                        "Content-Disposition": f'attachment; filename="{task_id}.mp4"',
+                        "Accept-Ranges": "bytes",
+                        "Content-Length": str(file_size),
+                        "Content-Type": "video/mp4",
+                        "Content-Disposition": f'attachment; filename="{filename}"',
                         "Access-Control-Allow-Origin": "*",
                     }
                 )
