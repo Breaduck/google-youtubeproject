@@ -614,15 +614,14 @@ async def create_evolink_video(request: Request):
     try:
         import httpx
 
-        # ENV에서 Evolink 설정 읽기
-        evolink_api_key = os.getenv("EVOLINK_API_KEY")
+        # ENV에서 Evolink 설정 읽기 (프론트에서 전달받음)
+        body = await request.json()
+        evolink_api_key = body.get("api_key") or os.getenv("EVOLINK_API_KEY")
         if not evolink_api_key:
-            raise HTTPException(400, "evolink_api_key_missing: Set EVOLINK_API_KEY in Modal secrets")
+            raise HTTPException(400, "evolink_api_key_missing: Provide api_key in request body")
 
         evolink_base_url = os.getenv("EVOLINK_BASE_URL", "https://api.evolink.ai")
         evolink_model_id = os.getenv("EVOLINK_MODEL_ID", "doubao-seedance-1.0-pro-fast")
-
-        body = await request.json()
 
         # 파라미터 추출
         prompt = body.get("prompt", "")
@@ -691,9 +690,11 @@ async def get_evolink_task(task_id: str, request: Request):
     try:
         import httpx
 
-        evolink_api_key = os.getenv("EVOLINK_API_KEY")
+        # Authorization 헤더에서 API 키 추출
+        auth_header = request.headers.get("Authorization")
+        evolink_api_key = auth_header.replace("Bearer ", "") if auth_header else os.getenv("EVOLINK_API_KEY")
         if not evolink_api_key:
-            raise HTTPException(400, "evolink_api_key_missing")
+            raise HTTPException(400, "evolink_api_key_missing: Provide Authorization header")
 
         evolink_base_url = os.getenv("EVOLINK_BASE_URL", "https://api.evolink.ai")
 
