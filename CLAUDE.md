@@ -34,6 +34,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Modal (브랜치2): `cd modal-server && export PYTHONIOENCODING=utf-8 && python -m modal deploy main_byteplus.py`
 - **Structure:** 로컬 `video-saas` 폴더의 작업물을 레포지토리 구조에 맞춰 일관성 있게 관리할 것.
 
+## 🔐 Security & Secrets Management
+
+**절대 금지:**
+- API 키, Client ID, Secret을 코드에 하드코딩
+- 민감 정보를 git commit에 포함
+
+**Modal Secrets 관리:**
+```bash
+# Secret 생성
+python -m modal secret create <secret-name> KEY_NAME=<value>
+
+# Secret 목록 확인
+python -m modal secret list
+
+# Function에서 사용
+@app.function(secrets=[modal.Secret.from_name("<secret-name>")])
+def my_function():
+    api_key = os.getenv("KEY_NAME")
+```
+
+**현재 필수 Secrets (브랜치2):**
+- `imgur-client-id`: IMGUR_CLIENT_ID (이미지 업로드용)
+
+**보안 체크리스트:**
+1. 새 API 연동 시 항상 ENV 변수 사용
+2. 커밋 전 `git diff`로 민감 정보 누출 확인
+3. 노출된 키는 즉시 폐기 후 재발급
+4. modal-server/SECURITY_NOTICE.md 참조
+
 ## 🌿 브랜치 구조 (Branch-Based Experimentation)
 
 | Branch | 설명 | Video Engine | Server File | Cost/Video | Resolution | Duration |
@@ -46,6 +75,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **각 브랜치는 독립적인 실험 환경**: 브랜치별로 다른 비디오 생성 엔진과 서버 파일 사용
 - **브랜치2 (현재 활성)**: BytePlus SeeDANCE 1.0 Pro-fast 전용, Model ID: `seedance-1-0-pro-fast-251015`
 - **Cloudflare 배포**: 각 브랜치는 별도 Pages 프로젝트로 배포 권장 (충돌 방지)
+
+## 📡 BytePlus Integration (브랜치2)
+
+**Architecture Flow:**
+```
+Frontend (data:image/png;base64,...)
+    ↓ POST /api/v3/uploads
+Modal Proxy (main_byteplus.py)
+    ↓ Imgur 공개 업로드
+Imgur (https://i.imgur.com/...)
+    ↓ POST /api/v3/content_generation/tasks
+BytePlus SeeDANCE API
+    ↓ GET /api/v3/content_generation/tasks/{task_id}
+Video Result (polling)
+```
+
+**Key Implementation Details:**
+1. **Image Upload Requirement**: BytePlus는 공개 HTTPS URL만 허용 → Imgur 중간 호스팅 필수
+2. **Upload Validation**:
+   - 포맷: png/jpeg/webp만 허용
+   - 크기: 최대 5MB
+   - 최소 크기: 300px 너비 (BytePlus 요구사항)
+3. **Model Alias Mapping**: 서버 측에서 `seedance-1.0-pro-fast` → `seedance-1-0-pro-fast-251015` 변환
+4. **Correct Endpoint**: `/api/v3/contents/generations/tasks` (SDK 문서 오류 주의)
+5. **Error Handling**: HTTP 상태 코드로 명확한 에러 구분 (404/403/400/413/500)
+
+**참고 문서:**
+- modal-server/BYTEPLUS_README.md: API 명세
+- modal-server/SETUP_IMGUR.md: Imgur Client ID 설정
+- modal-server/SECURITY_NOTICE.md: 보안 이슈 히스토리
 
 ## 🚨 Billing Gate (외부 API 도입 필수 프로세스)
 
@@ -263,13 +322,26 @@ npm run lint         # ESLint 검사
 # exp/official-sdk 브랜치
 export PYTHONIOENCODING=utf-8 && python -m modal deploy modal-server/main_official.py
 
-# 브랜치2 브랜치
-export PYTHONIOENCODING=utf-8 && python -m modal deploy modal-server/main_seedance.py
+# 브랜치2 브랜치 (BytePlus)
+cd modal-server
+export PYTHONIOENCODING=utf-8
+python -m modal deploy main_byteplus.py
 ```
 
 **PowerShell 대안:**
 ```powershell
 powershell -ExecutionPolicy Bypass -File modal-server/deploy_official.ps1
+```
+
+**배포 전 체크리스트:**
+1. Modal Secret 등록 확인: `python -m modal secret list`
+2. 브랜치 확인: `git branch --show-current`
+3. 올바른 서버 파일 선택 (브랜치별로 다름)
+
+**로그 확인:**
+```bash
+python -m modal app logs byteplus-proxy  # 브랜치2
+python -m modal app logs ltx-video-service-v2  # main/exp branches
 ```
 
 ### Git Workflow
@@ -335,6 +407,24 @@ const [videoEngine, setVideoEngine] = useState<VideoEngine>(
 **원인:** 자유형 프롬프트 + 외모 묘사가 모델 혼란 유발
 **해결:** Safe Motion Mapper 사용 (모션 전용 템플릿) + negative prompts
 
+### 7. BytePlus Image URL Error (InvalidParameter)
+**원인:** BytePlus가 Modal Volume URL에 접근 불가
+**해결:** Imgur/ImgBB 같은 공개 이미지 호스팅 사용 (300px 이상)
+
+### 8. Modal Secret 미설정 에러
+**증상:** `imgur_client_id_missing` 또는 500 에러
+**해결:**
+```bash
+python -m modal secret create imgur-client-id IMGUR_CLIENT_ID=<your_id>
+python -m modal deploy modal-server/main_byteplus.py  # 재배포
+```
+
+### 9. BytePlus Model Not Activated (404)
+**에러:** `ModelNotOpen` 또는 404
+**해결:** BytePlus 콘솔에서 모델 활성화
+- https://console.byteplus.com → ModelArk → Models
+- `seedance-1-0-pro-fast-251015` 활성화 필요
+
 ## 📁 File Structure
 ```
 src/
@@ -349,14 +439,53 @@ src/
 modal-server/
 ├── main.py                    # (deprecated) 구 diffusers 파이프라인
 ├── main_official.py           # exp/official-sdk: LTX-2 TI2VidTwoStagesPipeline
-├── main_seedance.py           # 브랜치2: SeeDANCE BytePlus API 프록시
-└── deploy_official.ps1        # PowerShell 배포 스크립트
+├── main_byteplus.py           # 브랜치2: BytePlus API 프록시 + Imgur 업로드
+├── deploy_official.ps1        # PowerShell 배포 스크립트
+├── BYTEPLUS_README.md         # BytePlus API 명세
+├── SETUP_IMGUR.md             # Imgur Client ID 설정 가이드
+└── SECURITY_NOTICE.md         # 보안 이슈 히스토리
+
+tests/
+├── test_byteplus_quick.py     # BytePlus E2E 테스트 (upload → task → poll)
+└── test_upload_validation.py  # 업로드 검증 테스트 (포맷/크기 제한)
+```
+
+## 🧪 Testing
+
+**E2E 테스트 (브랜치2):**
+```bash
+# BytePlus 전체 플로우 테스트
+python test_byteplus_quick.py
+# ✓ Upload → Task 생성 → Polling → 완료
+
+# 업로드 검증 테스트
+python test_upload_validation.py
+# ✓ PNG/JPEG 허용, GIF 거부, 5MB 제한
+```
+
+**Manual Testing:**
+```bash
+# Health check
+curl https://hiyoonsh1--byteplus-proxy-web.modal.run/health
+
+# 모델 목록 확인
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+  https://hiyoonsh1--byteplus-proxy-web.modal.run/api/v3/byteplus/models
 ```
 
 ## AI Self-Reflection & Auto-Fix Protocol
-Pre-Deployment Sanity Check: 모든 코드 수정 후 배포(Push) 전, 다음 항목을 스스로 시뮬레이션한다.
-VRAM 체크: LTX-2 + LoRA(Rank 175) 조합이 A10G(24GB)에서 OOM을 일으키지 않는가?
-인코딩 검증: 윈도우 환경의 CP949 충돌 가능성이 있는가? (UTF-8 강제 적용 여부)
-의존성 체크: Modal 환경 구축에 필요한 라이브러리가 누락되지 않았는가?
-Auto-Fix Execution: 검토 과정에서 오류 가능성이 발견되면, 사용자에게 보고하기 전 선제적으로 코드를 수정하여 '정상 작동' 상태를 만든 뒤 배포한다.
-Reflection Log: 배포 시, "스스로 발견한 잠재적 오류 및 이를 해결하기 위해 수정한 내역"을 짧고 명확하게 요약 보고한다.
+
+**Pre-Deployment Sanity Check:**
+모든 코드 수정 후 배포(Push) 전, 다음 항목을 스스로 시뮬레이션한다.
+
+1. **보안 체크**: API 키/Secret이 하드코딩되지 않았는가?
+2. **VRAM 체크**: LTX-2 + LoRA(Rank 175) 조합이 A10G(24GB)에서 OOM을 일으키지 않는가?
+3. **인코딩 검증**: 윈도우 환경의 CP949 충돌 가능성이 있는가? (UTF-8 강제 적용 여부)
+4. **의존성 체크**: Modal 환경 구축에 필요한 라이브러리가 누락되지 않았는가?
+5. **브랜치 체크**: 올바른 서버 파일을 수정했는가? (브랜치별로 다름)
+
+**Auto-Fix Execution:**
+검토 과정에서 오류 가능성이 발견되면, 사용자에게 보고하기 전 선제적으로 코드를 수정하여 '정상 작동' 상태를 만든 뒤 배포한다.
+
+**Reflection Log:**
+배포 시, "스스로 발견한 잠재적 오류 및 이를 해결하기 위해 수정한 내역"을 짧고 명확하게 요약 보고한다.
