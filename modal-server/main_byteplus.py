@@ -14,7 +14,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-BUILD_VERSION = "v1.8-evolink-provider"
+BUILD_VERSION = "v1.9-runware-provider"
 
 # 모델 Alias → 실제 BytePlus Model ID 매핑
 MODEL_ALIAS_MAP = {
@@ -31,11 +31,12 @@ cache_volume = modal.Volume.from_name("byteplus-1080p-cache", create_if_missing=
 UPLOAD_DIR = "/uploads"
 CACHE_DIR = "/cache"
 
-# Modal Image with BytePlus SDK + all dependencies
+# Modal Image with BytePlus SDK + Runware SDK + all dependencies
 image = (
     modal.Image.debian_slim()
     .apt_install("ffmpeg")  # 720p → 1080p 리사이징용
-    .pip_install("byteplus-python-sdk-v2")  # BytePlus 공식 SDK (https://pypi.org/project/byteplus-python-sdk-v2/)
+    .pip_install("byteplus-python-sdk-v2")  # BytePlus 공식 SDK
+    .pip_install("runware")  # Runware SDK (https://pypi.org/project/runware/)
     .pip_install("fastapi", "httpx", "sniffio", "anyio", "httpcore")
 )
 
@@ -784,6 +785,151 @@ async def download_evolink_video(request: Request, url: str = None):
             500,
             f"Evolink download error (request_id={request_id}): {type(e).__name__}: {str(e)}"
         )
+
+@fast_app.post("/api/v3/runware/videos/generations")
+async def create_runware_video(request: Request):
+    """Runware 비디오 생성 (SeeDance 1.0 Pro Fast)"""
+    request_id = str(uuid.uuid4())[:8]
+
+    try:
+        from runware import Runware, IImageInference
+
+        body = await request.json()
+        runware_api_key = body.get("api_key") or os.getenv("RUNWARE_API_KEY")
+        if not runware_api_key:
+            raise HTTPException(400, "runware_api_key_missing")
+
+        image_url = body.get("image_url")
+        prompt = body.get("prompt", "")
+        duration = body.get("duration", 5)
+
+        if not image_url:
+            raise HTTPException(400, "image_url required")
+
+        print(f"[{request_id}] Runware generation: duration={duration}s")
+
+        # Runware 클라이언트 초기화
+        runware = Runware(api_key=runware_api_key)
+        await runware.connect()
+
+        # 비디오 생성 (image-to-video)
+        task = await runware.videoInference(
+            positivePrompt=prompt,
+            model="bytedance:2@2",  # SeeDance 1.0 Pro Fast
+            frameImages=[IImageInference(imageUUID=image_url)],
+            duration=duration,
+            ratio="16:9"
+        )
+
+        task_id = task[0].taskUUID
+        print(f"[{request_id}] Task created: {task_id}")
+
+        return JSONResponse(content={
+            "id": task_id,
+            "status": "processing",
+            "video_url": None
+        }, status_code=200)
+
+    except Exception as e:
+        # Billing Gate: insufficient credits 체크
+        error_msg = str(e).lower()
+        if "insufficient" in error_msg or "credits" in error_msg or "paid invoice" in error_msg:
+            print(f"[{request_id}] BILLING ERROR: {str(e)}")
+            raise HTTPException(402, f"runware_insufficient_credits: {str(e)}")
+
+        tb = traceback.format_exc()
+        print(f"[{request_id}] [ERROR]:")
+        print(tb)
+        raise HTTPException(500, f"Runware error (request_id={request_id}): {type(e).__name__}: {str(e)}")
+
+@fast_app.get("/api/v3/runware/tasks/{task_id}")
+async def get_runware_task(task_id: str, request: Request):
+    """Runware 태스크 상태 조회"""
+    request_id = str(uuid.uuid4())[:8]
+
+    try:
+        from runware import Runware
+
+        auth_header = request.headers.get("Authorization")
+        runware_api_key = auth_header.replace("Bearer ", "") if auth_header else os.getenv("RUNWARE_API_KEY")
+        if not runware_api_key:
+            raise HTTPException(400, "runware_api_key_missing")
+
+        # Runware SDK는 task UUID로 결과 조회
+        runware = Runware(api_key=runware_api_key)
+        await runware.connect()
+
+        result = await runware.getResponse(taskUUID=task_id)
+
+        if result and len(result) > 0:
+            video_url = result[0].videoURL if hasattr(result[0], 'videoURL') else None
+            status = "completed" if video_url else "processing"
+
+            return JSONResponse(content={
+                "id": task_id,
+                "status": status,
+                "result": {"video_url": video_url} if video_url else None
+            }, status_code=200)
+
+        return JSONResponse(content={
+            "id": task_id,
+            "status": "processing",
+            "result": None
+        }, status_code=200)
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[{request_id}] [ERROR]:")
+        print(tb)
+        raise HTTPException(500, f"Runware task query error (request_id={request_id}): {str(e)}")
+
+@fast_app.get("/api/v3/runware/download")
+async def download_runware_video(request: Request, url: str = None):
+    """Runware 비디오 다운로드 프록시 (CORS 우회)"""
+    request_id = str(uuid.uuid4())[:8]
+
+    try:
+        import httpx
+
+        if not url:
+            raise HTTPException(400, "url parameter missing")
+
+        # SSRF 방지: runware.ai 도메인만 허용
+        if not ("runware.ai" in url or "cdn.runware" in url):
+            raise HTTPException(403, f"Invalid URL domain (request_id={request_id})")
+
+        print(f"[{request_id}] Proxying Runware video: {url[:80]}...")
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.get(url, follow_redirects=True)
+
+            if response.status_code != 200:
+                raise HTTPException(502, f"Upstream download failed (request_id={request_id}): HTTP {response.status_code}")
+
+            video_bytes = response.content
+            file_size_mb = len(video_bytes) / (1024 * 1024)
+            print(f"[{request_id}] Downloaded: {file_size_mb:.2f}MB")
+
+            return Response(
+                content=video_bytes,
+                status_code=200,
+                media_type="video/mp4",
+                headers={
+                    "Accept-Ranges": "bytes",
+                    "Content-Length": str(len(video_bytes)),
+                    "Content-Type": "video/mp4",
+                    "Content-Disposition": 'attachment; filename="runware_video.mp4"',
+                    "Access-Control-Allow-Origin": "*",
+                }
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[{request_id}] [ERROR]:")
+        print(tb)
+        raise HTTPException(500, f"Runware download error (request_id={request_id}): {str(e)}")
 
 @fast_app.get("/health")
 async def health():
