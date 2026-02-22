@@ -61,7 +61,7 @@ if task_res.status_code == 200:
             data = status_res.json()
             status = data.get("status") or data.get("data", {}).get("status")
             print(f"Poll {i+1}: {status}")
-            if status in ["completed", "success"]:
+            if status in ["completed", "success", "succeeded"]:
                 print(f"OK: Video ready: {data}")
                 break
         else:
