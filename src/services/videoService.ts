@@ -246,6 +246,7 @@ async function generateEvolinkVideo(
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
+      api_key: evolinkApiKey,
       prompt,
       image_urls: [finalImageUrl],
       duration,
@@ -271,7 +272,9 @@ async function generateEvolinkVideo(
     await new Promise(resolve => setTimeout(resolve, 5000));
     attempts++;
 
-    const queryRes = await fetch(`${API_BASE}/api/v3/evolink/tasks/${taskId}`);
+    const queryRes = await fetch(`${API_BASE}/api/v3/evolink/tasks/${taskId}`, {
+      headers: {'Authorization': `Bearer ${evolinkApiKey}`}
+    });
     if (!queryRes.ok) continue;
 
     const queryResult = await queryRes.json();
