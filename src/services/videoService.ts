@@ -17,9 +17,10 @@ export async function generateSceneVideo(
   characterDescription: string = '',
   multiFaceMode: boolean = false,
   testParams?: any,
-  engine: VideoEngine = 'bytedance'
+  engine: VideoEngine = 'bytedance',
+  onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
-  return generateByteDanceVideo(imageUrl, imagePrompt, dialogue, characterDescription, testParams);
+  return generateByteDanceVideo(imageUrl, imagePrompt, dialogue, characterDescription, testParams, onProgress);
 }
 
 // BytePlus 공식 API (ModelArk)
@@ -28,7 +29,8 @@ async function generateByteDanceVideo(
   imagePrompt: string,
   dialogue: string,
   characterDescription: string = '',
-  testParams?: any
+  testParams?: any,
+  onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
   console.log(`[BYTEDANCE] generateByteDanceVideo called`);
   console.log('[BYTEDANCE] Dialogue:', dialogue.substring(0, 50));
@@ -60,6 +62,7 @@ async function generateByteDanceVideo(
   let finalImageUrl = imageUrl;
   if (imageUrl.startsWith('data:image/')) {
     console.log('[BYTEDANCE] Uploading data URL...');
+    onProgress?.(5, '이미지 업로드 중...');
     const uploadRes = await fetch(`${BYTEPLUS_API}/api/v3/uploads`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -92,6 +95,7 @@ async function generateByteDanceVideo(
 
   try {
     // 태스크 생성
+    onProgress?.(10, '비디오 생성 요청 중...');
     const createResponse = await fetch(`${BYTEPLUS_API}/api/v3/content_generation/tasks`, {
       method: 'POST',
       headers: {
@@ -138,10 +142,26 @@ async function generateByteDanceVideo(
       const queryResult = await queryResponse.json();
       const status = queryResult.status || queryResult.data?.status;
 
-      console.log(`[BYTEDANCE] Attempt ${attempts}: status=${status}`);
+      // 진행률 계산 (대략적 추정)
+      const progress = status === 'running'
+        ? Math.min(95, 10 + (attempts * 10))
+        : status === 'succeeded'
+        ? 100
+        : 5;
+
+      const progressMessage = status === 'running'
+        ? `비디오 생성 중... (${attempts}번째 확인)`
+        : status === 'succeeded'
+        ? '비디오 생성 완료!'
+        : '비디오 생성 대기 중...';
+
+      onProgress?.(progress, progressMessage);
+      console.log(`[BYTEDANCE] Attempt ${attempts}: status=${status} (${progress}%)`);
 
       if (status === 'completed' || status === 'success' || status === 'succeeded') {
         videoUrl = queryResult.video_url || queryResult.url || queryResult.data?.video_url || queryResult.data?.url;
+        console.log(`[BYTEDANCE] Video URL extracted: ${videoUrl ? videoUrl.substring(0, 50) + '...' : 'NOT FOUND'}`);
+        console.log(`[BYTEDANCE] Full response: ${JSON.stringify(queryResult).substring(0, 200)}...`);
         break;
       } else if (status === 'failed' || status === 'error') {
         throw new Error(`Video generation failed: ${JSON.stringify(queryResult)}`);

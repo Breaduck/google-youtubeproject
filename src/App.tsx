@@ -1152,6 +1152,10 @@ const App: React.FC = () => {
         project.characters.length > 1,
         undefined,
         videoEngine,
+        (progress, message) => {
+          setTargetProgress(progress);
+          setLoadingText(message);
+        }
       );
 
       const videoUrl = URL.createObjectURL(videoBlob);
@@ -1216,6 +1220,11 @@ const App: React.FC = () => {
             project.characters.length > 1,
             undefined,
             videoEngine,
+            (progress, message) => {
+              const overallProgress = ((i / limitedScenes.length) * 100) + (progress / limitedScenes.length);
+              setTargetProgress(overallProgress);
+              setLoadingText(`${message} (${i + 1}/${limitedScenes.length})`);
+            }
           );
 
           const videoUrl = URL.createObjectURL(videoBlob);
@@ -1323,6 +1332,12 @@ const App: React.FC = () => {
           project.characters.length > 1,
           undefined,
           videoEngine,
+          (progress, message) => {
+            const baseProgress = Math.round((i / project.scenes.length) * 50);
+            const sceneProgress = Math.round((progress / 100) * (50 / project.scenes.length));
+            setBgProgress(baseProgress + sceneProgress);
+            setBgTask({ type: 'video', message: `${message} (${i + 1}/${project.scenes.length})` });
+          }
         );
         console.log(`[DEBUG] Scene ${i + 1} - Video blob size:`, (videoBlob.size / 1024 / 1024).toFixed(2), 'MB');
         videoBlobs.push(videoBlob);
