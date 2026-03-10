@@ -84,7 +84,23 @@ export class GeminiService {
     if (!apiKey) {
       throw new Error('Gemini API key is required');
     }
-    return new GoogleGenAI({ apiKey });
+
+    // Google Cloud (Vertex AI) 설정 확인
+    const projectId = localStorage.getItem('google_cloud_project_id') || '';
+    const location = localStorage.getItem('google_cloud_location') || 'us-central1';
+
+    // Project ID가 있으면 Vertex AI 모드, 없으면 Gemini API 모드
+    if (projectId && projectId.trim().length > 0) {
+      return new GoogleGenAI({
+        apiKey,
+        vertexAI: {
+          project: projectId,
+          location: location
+        }
+      });
+    } else {
+      return new GoogleGenAI({ apiKey });
+    }
   }
 
   async extractCharacters(
