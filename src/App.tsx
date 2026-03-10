@@ -126,6 +126,9 @@ const App: React.FC = () => {
   const [isGeminiValid, setIsGeminiValid] = useState(false);
   const [isValidatingGemini, setIsValidatingGemini] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
+  // Google Cloud (Vertex AI) 설정
+  const [googleCloudProjectId, setGoogleCloudProjectId] = useState(localStorage.getItem('google_cloud_project_id') || '');
+  const [googleCloudLocation, setGoogleCloudLocation] = useState(localStorage.getItem('google_cloud_location') || 'us-central1');
   const [showElKey, setShowElKey] = useState(false);
   const [showChirpKey, setShowChirpKey] = useState(false);
 
@@ -328,6 +331,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('gemini_api_key', geminiApiKey);
+    localStorage.setItem('google_cloud_project_id', googleCloudProjectId);
+    localStorage.setItem('google_cloud_location', googleCloudLocation);
     localStorage.setItem('image_provider', imageProvider);
     localStorage.setItem('runware_api_key', runwareApiKey);
     if (geminiApiKey.length > 20) {
@@ -335,7 +340,7 @@ const App: React.FC = () => {
     } else {
       setIsGeminiValid(false);
     }
-  }, [geminiApiKey, imageProvider, runwareApiKey]);
+  }, [geminiApiKey, googleCloudProjectId, googleCloudLocation, imageProvider, runwareApiKey]);
 
   useEffect(() => {
     localStorage.setItem('bytedance_api_key', bytedanceApiKey);
@@ -409,7 +414,15 @@ const App: React.FC = () => {
   const checkGeminiKey = async (key: string) => {
     setIsValidatingGemini(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: key });
+      // Google Cloud (Vertex AI) 설정 확인
+      const projectId = localStorage.getItem('google_cloud_project_id') || '';
+      const location = localStorage.getItem('google_cloud_location') || 'us-central1';
+
+      // Project ID가 있으면 Vertex AI 모드
+      const ai = projectId && projectId.trim().length > 0
+        ? new GoogleGenAI({ apiKey: key, vertexAI: { project: projectId, location } })
+        : new GoogleGenAI({ apiKey: key });
+
       const model = localStorage.getItem('gemini_model') || 'gemini-3-flash-preview';
       const response = await ai.models.generateContent({
         model: model,
@@ -1570,7 +1583,14 @@ Generate a detailed English prompt for image generation including scene composit
 
       const apiKey = localStorage.getItem('gemini_api_key') || '';
       const model = localStorage.getItem('gemini_model') || 'gemini-3-flash-preview';
-      const ai = new GoogleGenAI({ apiKey });
+
+      // Google Cloud (Vertex AI) 설정 확인
+      const projectId = localStorage.getItem('google_cloud_project_id') || '';
+      const location = localStorage.getItem('google_cloud_location') || 'us-central1';
+      const ai = projectId && projectId.trim().length > 0
+        ? new GoogleGenAI({ apiKey, vertexAI: { project: projectId, location } })
+        : new GoogleGenAI({ apiKey });
+
       const response = await ai.models.generateContent({
         model: model,
         contents: prompt
@@ -2422,6 +2442,42 @@ Generate a detailed English prompt for image generation including scene composit
                         <option value="gemini-1.5-pro">Gemini 1.5 Pro (고품질)</option>
                       </select>
                     </div>
+
+                    {/* Google Cloud (Vertex AI) 설정 - 선택사항 */}
+                    <div className="space-y-2 pt-2 border-t border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-slate-700">Google Cloud (Vertex AI) 설정</label>
+                        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">선택사항</span>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        프로덕션 환경에서 사용 시 입력하세요. 비워두면 Gemini API를 사용합니다.
+                      </p>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-600">Project ID</label>
+                        <input
+                          type="text"
+                          value={googleCloudProjectId}
+                          onChange={e => setGoogleCloudProjectId(e.target.value)}
+                          placeholder="my-project-123 (선택사항)"
+                          className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none text-sm bg-white"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-600">Location</label>
+                        <select
+                          value={googleCloudLocation}
+                          onChange={e => setGoogleCloudLocation(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white"
+                        >
+                          <option value="us-central1">us-central1 (기본)</option>
+                          <option value="us-east1">us-east1</option>
+                          <option value="us-west1">us-west1</option>
+                          <option value="europe-west1">europe-west1</option>
+                          <option value="asia-northeast1">asia-northeast1 (도쿄)</option>
+                        </select>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-slate-700">이미지 Provider</label>
                       <select value={imageProvider} onChange={e => setImageProvider(e.target.value as 'gemini' | 'runware')} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
