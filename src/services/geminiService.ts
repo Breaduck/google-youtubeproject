@@ -93,10 +93,10 @@ export class GeminiService {
     if (projectId && projectId.trim().length > 0) {
       return new GoogleGenAI({
         apiKey,
-        vertexAI: {
-          project: projectId,
-          location: location
-        }
+        vertexai: true,
+        project: projectId,
+        location: location,
+        apiVersion: 'v1'
       });
     } else {
       return new GoogleGenAI({ apiKey });

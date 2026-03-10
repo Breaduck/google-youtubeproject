@@ -420,7 +420,7 @@ const App: React.FC = () => {
 
       // Project ID가 있으면 Vertex AI 모드
       const ai = projectId && projectId.trim().length > 0
-        ? new GoogleGenAI({ apiKey: key, vertexAI: { project: projectId, location } })
+        ? new GoogleGenAI({ apiKey: key, vertexai: true, project: projectId, location, apiVersion: 'v1' })
         : new GoogleGenAI({ apiKey: key });
 
       const model = localStorage.getItem('gemini_model') || 'gemini-3-flash-preview';
@@ -1588,7 +1588,7 @@ Generate a detailed English prompt for image generation including scene composit
       const projectId = localStorage.getItem('google_cloud_project_id') || '';
       const location = localStorage.getItem('google_cloud_location') || 'us-central1';
       const ai = projectId && projectId.trim().length > 0
-        ? new GoogleGenAI({ apiKey, vertexAI: { project: projectId, location } })
+        ? new GoogleGenAI({ apiKey, vertexai: true, project: projectId, location, apiVersion: 'v1' })
         : new GoogleGenAI({ apiKey });
 
       const response = await ai.models.generateContent({
