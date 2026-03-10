@@ -43,7 +43,7 @@ const EXP_TEST_PROJECT: StoryProject = {
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>('storyboard');
-  // 브랜치2: BytePlus 공식 API 전용
+  // 브랜치2: 비디오 API 전용
   const [videoEngine, setVideoEngine] = useState<VideoEngine>('bytedance');
   const [projects, setProjects] = useState<StoryProject[]>(() => {
     try {
@@ -129,7 +129,7 @@ const App: React.FC = () => {
   const [showElKey, setShowElKey] = useState(false);
   const [showChirpKey, setShowChirpKey] = useState(false);
 
-  // BytePlus (ByteDance) 공식 API 설정
+  // 비디오 API 설정
   // 기본 API 키 (사용자 요청으로 하드코딩 - 보안 주의)
   const DEFAULT_BYTEPLUS_KEY = '002c08ea-0f36-4ad1-84ef-25740c463f5d';
   const [bytedanceApiKey, setBytedanceApiKey] = useState(localStorage.getItem('bytedance_api_key') || DEFAULT_BYTEPLUS_KEY);
@@ -149,6 +149,9 @@ const App: React.FC = () => {
 
   const [runwareDuration, setRunwareDuration] = useState(parseInt(localStorage.getItem('runware_duration') || '5'));
   const [runwareResolution, setRunwareResolution] = useState(localStorage.getItem('runware_resolution') || '720p');
+
+  // 영상 생성 범위 설정 (초 단위, 기본값: 300초 = 5분)
+  const [videoGenerationRange, setVideoGenerationRange] = useState(parseInt(localStorage.getItem('video_generation_range') || '300'));
 
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
     (localStorage.getItem('audio_provider') as any) || 'google'
@@ -356,7 +359,8 @@ const App: React.FC = () => {
     localStorage.setItem('runware_api_key', runwareApiKey);
     localStorage.setItem('runware_duration', runwareDuration.toString());
     localStorage.setItem('runware_resolution', runwareResolution);
-  }, [videoProvider, evolinkApiKey, evolinkResolution, evolinkDuration, runwareApiKey, runwareDuration, runwareResolution]);
+    localStorage.setItem('video_generation_range', videoGenerationRange.toString());
+  }, [videoProvider, evolinkApiKey, evolinkResolution, evolinkDuration, runwareApiKey, runwareDuration, runwareResolution, videoGenerationRange]);
 
   useEffect(() => {
     localStorage.setItem('audio_provider', audioProvider);
@@ -1175,6 +1179,16 @@ const App: React.FC = () => {
       return;
     }
 
+    // 영상 생성 범위 체크 (경고만 표시)
+    const sceneIndex = project.scenes.findIndex(s => s.id === sceneId);
+    const sceneStartTime = sceneIndex * 10;
+    if (sceneStartTime >= videoGenerationRange) {
+      const proceed = confirm(
+        `이 장면은 영상 생성 범위(${videoGenerationRange}초) 밖에 있습니다.\n줌인-줌아웃 효과만 사용하는 것이 비용 절감에 도움이 됩니다.\n\n그래도 영상을 생성하시겠습니까?`
+      );
+      if (!proceed) return;
+    }
+
     updateCurrentProject({
       scenes: project.scenes.map(s => s.id === sceneId ? { ...s, videoStatus: 'loading' } : s)
     });
@@ -1219,15 +1233,37 @@ const App: React.FC = () => {
   const generateAllVideos = async () => {
     if (!project) return;
 
-    const scenesNeedingVideo = project.scenes.filter(s => s.imageUrl && !s.videoUrl);
+    // videoGenerationRange 이내의 장면만 필터링 (각 장면은 10초)
+    const scenesNeedingVideo = project.scenes.filter((s, index) => {
+      const sceneStartTime = index * 10; // 각 scene은 10초
+      return s.imageUrl && !s.videoUrl && sceneStartTime < videoGenerationRange;
+    });
 
     if (scenesNeedingVideo.length === 0) {
-      alert('생성할 비디오가 없습니다!');
+      const totalScenes = project.scenes.filter(s => s.imageUrl && !s.videoUrl).length;
+      if (totalScenes > 0) {
+        alert(`영상 생성 범위(${videoGenerationRange}초) 이내에 생성할 비디오가 없습니다.\n범위를 늘려보세요.`);
+      } else {
+        alert('생성할 비디오가 없습니다!');
+      }
       return;
     }
 
-    // 5개씩 제한 (테스트용)
-    const limitedScenes = scenesNeedingVideo.slice(0, 5);
+    // 영상 생성 범위 외의 장면 개수 계산
+    const skippedScenes = project.scenes.filter((s, index) => {
+      const sceneStartTime = index * 10;
+      return s.imageUrl && !s.videoUrl && sceneStartTime >= videoGenerationRange;
+    }).length;
+
+    if (skippedScenes > 0) {
+      const proceed = confirm(
+        `${scenesNeedingVideo.length}개 장면을 영상으로 생성하고,\n${skippedScenes}개 장면은 줌인-줌아웃 효과만 적용합니다.\n\n계속하시겠습니까?`
+      );
+      if (!proceed) return;
+    }
+
+    // 5개씩 제한 제거 (전체 범위 생성)
+    const limitedScenes = scenesNeedingVideo;
 
     setIsBatchGenerating(true);
     setLoadingText(`비디오 생성 중 (${limitedScenes.length}개)...`);
@@ -2353,6 +2389,11 @@ Generate a detailed English prompt for image generation including scene composit
                           )}
                         </button>
                       </div>
+                      <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
+                        <p className="text-xs text-slate-600">
+                          💡 <strong>Gemini API 키</strong> (ai.google.dev) 또는 <strong>Google Cloud API 키</strong> (cloud.google.com) 모두 사용 가능합니다.
+                        </p>
+                      </div>
                       {geminiApiKey.length > 20 && (
                         <div className="flex items-center gap-2 text-sm">
                           {isValidatingGemini ? (
@@ -2417,11 +2458,11 @@ Generate a detailed English prompt for image generation including scene composit
                 )}
               </div>
 
-              {/* BytePlus (ByteDance) 공식 API 설정 - 아코디언 */}
+              {/* 비디오 API 설정 - 아코디언 */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <button onClick={() => setExpandedSetting(expandedSetting === 'bytedance' ? null : 'bytedance')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">BytePlus 공식 API</span>
+                    <span className="text-sm font-medium text-slate-700">비디오 API 설정</span>
                     <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">ModelArk</span>
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'bytedance' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -2436,6 +2477,41 @@ Generate a detailed English prompt for image generation including scene composit
                         <option value="runware">Runware (SeeDance 1.0 Pro Fast - $0.14/video)</option>
                       </select>
                     </div>
+
+                    {/* 영상 생성 범위 설정 (모든 Provider 공통) */}
+                    <div className="space-y-2 pt-2">
+                      <label className="text-sm font-medium text-slate-700">영상 생성 범위</label>
+                      <div className="flex gap-3 items-center">
+                        <input
+                          type="range"
+                          min="0"
+                          max="600"
+                          step="10"
+                          value={videoGenerationRange}
+                          onChange={e => setVideoGenerationRange(parseInt(e.target.value))}
+                          className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max="600"
+                          step="10"
+                          value={videoGenerationRange}
+                          onChange={e => setVideoGenerationRange(Math.max(0, Math.min(600, parseInt(e.target.value) || 0)))}
+                          className="w-20 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        />
+                        <span className="text-sm text-slate-600 min-w-[20px]">초</span>
+                      </div>
+                      <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+                        <p className="text-xs text-indigo-700 font-medium">
+                          💡 {Math.floor(videoGenerationRange / 10)}개의 이미지가 영상화됩니다
+                        </p>
+                        <p className="text-xs text-indigo-600 mt-1">
+                          이후 장면은 비용 절감을 위해 줌인-줌아웃 효과만 적용됩니다.
+                        </p>
+                      </div>
+                    </div>
+
                     {videoProvider === 'byteplus' && (
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-700">BytePlus API 키</label>
