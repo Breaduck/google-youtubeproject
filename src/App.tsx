@@ -41,6 +41,13 @@ const EXP_TEST_PROJECT: StoryProject = {
   updatedAt: Date.now(),
 };
 
+// 초를 "0분 0초" 형식으로 변환하는 헬퍼 함수
+const formatSecondsToTime = (seconds: number): string => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}분 ${remainingSeconds}초`;
+};
+
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>('storyboard');
   // 브랜치2: 비디오 API 전용
@@ -161,6 +168,7 @@ const App: React.FC = () => {
   );
   const [chirpApiKey, setChirpApiKey] = useState(localStorage.getItem('chirp_api_key') || '');
   const [chirpVoice, setChirpVoice] = useState(localStorage.getItem('chirp_voice') || 'Kore');
+  const [chirpSpeed, setChirpSpeed] = useState(parseFloat(localStorage.getItem('chirp_speed') || '1.0'));
 
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
   const [isCharLoadModalOpen, setIsCharLoadModalOpen] = useState(false);
@@ -371,7 +379,8 @@ const App: React.FC = () => {
     localStorage.setItem('audio_provider', audioProvider);
     localStorage.setItem('chirp_api_key', chirpApiKey);
     localStorage.setItem('chirp_voice', chirpVoice);
-  }, [audioProvider, chirpApiKey, chirpVoice]);
+    localStorage.setItem('chirp_speed', chirpSpeed.toString());
+  }, [audioProvider, chirpApiKey, chirpVoice, chirpSpeed]);
 
   useEffect(() => {
     localStorage.setItem('el_speed', elSettings.speed.toString());
@@ -573,7 +582,7 @@ const App: React.FC = () => {
         const url = URL.createObjectURL(blob);
         new Audio(url).play();
       } else {
-        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", chirpVoice, chirpApiKey);
+        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", chirpVoice, chirpSpeed, chirpApiKey);
         new Audio(audioUrl).play();
       }
     } catch (e) {
@@ -1135,7 +1144,7 @@ const App: React.FC = () => {
         const blob = await response.blob();
         audioUrl = URL.createObjectURL(blob);
       } else {
-        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, chirpVoice, chirpApiKey);
+        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, chirpVoice, chirpSpeed, chirpApiKey);
       }
 
       updateCurrentProject({
@@ -2556,7 +2565,7 @@ Generate a detailed English prompt for image generation including scene composit
                           onChange={e => setVideoGenerationRange(Math.max(0, Math.min(600, parseInt(e.target.value) || 0)))}
                           className="w-20 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
                         />
-                        <span className="text-sm text-slate-600 min-w-[20px]">초</span>
+                        <span className="text-sm text-slate-600 whitespace-nowrap">{formatSecondsToTime(videoGenerationRange)}</span>
                       </div>
                       <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
                         <p className="text-xs text-indigo-700 font-medium">
@@ -2686,11 +2695,6 @@ Generate a detailed English prompt for image generation including scene composit
                             <option value="12">12초</option>
                           </select>
                         </div>
-                        <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-xs text-blue-700 font-medium">📘 BytePlus 공식 API</p>
-                          <p className="text-xs text-blue-600 mt-1">ModelArk를 통해 SeeDANCE 모델을 직접 사용합니다. (종량제)</p>
-                          <a href="https://docs.byteplus.com/en/docs/ModelArk/1544106" target="_blank" rel="noopener noreferrer" className="text-xs text-blue-700 underline hover:text-blue-900 mt-1 inline-block">공식 문서 →</a>
-                        </div>
                       </>
                     )}
                     {videoProvider === 'evolink' && (
@@ -2740,12 +2744,40 @@ Generate a detailed English prompt for image generation including scene composit
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700">Chirp 음성</label>
                           <select value={chirpVoice} onChange={e => setChirpVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                            <option value="Kore">Kore (한국어 여성)</option>
-                            <option value="Aoede">Aoede (영어 여성)</option>
-                            <option value="Charon">Charon (영어 남성)</option>
-                            <option value="Fenrir">Fenrir (영어 남성)</option>
-                            <option value="Puck">Puck (영어 남성)</option>
+                            <option value="Kore">Kore - 활기찬, 명랑한, 자연스러운 (여성)</option>
+                            <option value="Aoede">Aoede - 차분한, 우아한, 부드러운 (여성)</option>
+                            <option value="Leda">Leda - 중립적, 안정적, 명확한 (여성)</option>
+                            <option value="Zephyr">Zephyr - 경쾌한, 산뜻한, 상쾌한 (여성)</option>
+                            <option value="Charon">Charon - 중후한, 깊은, 신뢰감 있는 (남성)</option>
+                            <option value="Fenrir">Fenrir - 힘찬, 강렬한, 역동적인 (남성)</option>
+                            <option value="Puck">Puck - 경쾌한, 활발한, 친근한 (남성)</option>
+                            <option value="Orus">Orus - 차분한, 부드러운, 따뜻한 (남성)</option>
                           </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">목소리 속도</label>
+                          <div className="flex gap-3 items-center">
+                            <input
+                              type="range"
+                              min="0.5"
+                              max="2.0"
+                              step="0.1"
+                              value={chirpSpeed}
+                              onChange={e => setChirpSpeed(parseFloat(e.target.value))}
+                              className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
+                            />
+                            <input
+                              type="number"
+                              min="0.5"
+                              max="2.0"
+                              step="0.1"
+                              value={chirpSpeed}
+                              onChange={e => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
+                              className="w-20 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                            />
+                            <span className="text-sm text-slate-600 min-w-[12px]">×</span>
+                          </div>
+                          <p className="text-xs text-slate-500">0.5 (느리게) ~ 2.0 (빠르게)</p>
                         </div>
                       </>
                     )}

@@ -439,7 +439,7 @@ Return ONLY the new prompt text, no explanation or markdown.`;
     return stripCameraTerms(response.text || currentPrompt);
   }
 
-  async generateGoogleTTS(text: string, voice: string, apiKey?: string): Promise<string> {
+  async generateGoogleTTS(text: string, voice: string, speakingRate: number = 1.0, apiKey?: string): Promise<string> {
     const key = apiKey || this.getApiKey();
     if (!key) {
       throw new Error('API key is required for TTS');
@@ -449,13 +449,16 @@ Return ONLY the new prompt text, no explanation or markdown.`;
     // This is a workaround - ideally you'd use the dedicated TTS API
     const ai = new GoogleGenAI({ apiKey: key });
 
-    // Map voice names to actual voice configs
+    // Map voice names to actual voice configs (8개 전체 목소리 지원)
     const voiceConfigs: Record<string, { languageCode: string; name: string }> = {
       'Kore': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Kore' },
+      'Aoede': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Aoede' },
+      'Leda': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Leda' },
       'Zephyr': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Zephyr' },
-      'Puck': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Puck' },
       'Charon': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Charon' },
-      'Fenrir': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Fenrir' }
+      'Fenrir': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Fenrir' },
+      'Puck': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Puck' },
+      'Orus': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Orus' }
     };
 
     const selectedVoice = voiceConfigs[voice] || voiceConfigs['Kore'];
@@ -477,8 +480,9 @@ Return ONLY the new prompt text, no explanation or markdown.`;
               prebuiltVoiceConfig: {
                 voiceName: selectedVoice.name
               }
-            }
-          }
+            },
+            ...(speakingRate !== 1.0 ? { speakingRate } : {})
+          } as any
         }
       });
 
@@ -498,7 +502,7 @@ Return ONLY the new prompt text, no explanation or markdown.`;
     return new Promise((resolve, reject) => {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ko-KR';
-      utterance.rate = 1.0;
+      utterance.rate = speakingRate;
 
       // Create audio from speech synthesis
       const audioContext = new AudioContext();

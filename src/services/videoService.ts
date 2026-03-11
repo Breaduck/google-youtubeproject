@@ -39,7 +39,6 @@ export async function generateSceneVideo(
   return generateByteDanceVideo(imageUrl, imagePrompt, dialogue, characterDescription, testParams, onProgress);
 }
 
-// BytePlus 공식 API (ModelArk)
 async function generateByteDanceVideo(
   imageUrl: string,
   imagePrompt: string,
