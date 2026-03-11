@@ -1210,12 +1210,30 @@ const App: React.FC = () => {
       return;
     }
 
+    // API 키 체크
+    let hasApiKey = false;
+    if (videoProvider === 'byteplus') {
+      hasApiKey = !!(bytedanceApiKey && bytedanceApiKey.length >= 10);
+    } else if (videoProvider === 'evolink') {
+      hasApiKey = !!(evolinkApiKey && evolinkApiKey.length >= 10);
+    } else if (videoProvider === 'runware') {
+      hasApiKey = !!(runwareApiKey && runwareApiKey.length >= 10);
+    }
+
+    // API 키가 없으면 사용자에게 확인
+    if (!hasApiKey) {
+      const proceed = confirm(
+        `API 키가 입력되지 않아 줌인-줌아웃 효과로만 영상이 출력될 예정입니다.\n자막과 함께 간단한 애니메이션 영상이 생성됩니다.\n\n괜찮습니까?`
+      );
+      if (!proceed) return;
+    }
+
     // 영상 생성 범위 체크 (경고만 표시)
     const sceneIndex = project.scenes.findIndex(s => s.id === sceneId);
     const sceneStartTime = sceneIndex * 10;
-    if (sceneStartTime >= videoGenerationRange) {
+    if (sceneStartTime >= videoGenerationRange && hasApiKey) {
       const proceed = confirm(
-        `이 장면은 영상 생성 범위(${videoGenerationRange}초) 밖에 있습니다.\n줌인-줌아웃 효과만 사용하는 것이 비용 절감에 도움이 됩니다.\n\n그래도 영상을 생성하시겠습니까?`
+        `이 장면은 영상 생성 범위(${formatSecondsToTime(videoGenerationRange)}) 밖에 있습니다.\n줌인-줌아웃 효과만 사용하는 것이 비용 절감에 도움이 됩니다.\n\n그래도 API를 사용하여 영상을 생성하시겠습니까?`
       );
       if (!proceed) return;
     }

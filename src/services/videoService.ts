@@ -10,6 +10,89 @@ export interface VideoGenerationRequest {
   duration_sec?: number;
 }
 
+// 간단한 줌인-줌아웃 비디오 생성 (API 키 없을 때)
+async function generateSimpleZoomVideo(
+  imageUrl: string,
+  onProgress?: (progress: number, message: string) => void
+): Promise<Blob> {
+  if (onProgress) onProgress(10, '줌인-줌아웃 효과 생성 중...');
+
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error('Canvas context not available'));
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = async () => {
+      // 720p 해상도
+      canvas.width = 1280;
+      canvas.height = 720;
+
+      const duration = 5; // 5초
+      const fps = 24;
+      const totalFrames = duration * fps;
+
+      // MediaRecorder 설정
+      const stream = canvas.captureStream(fps);
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9',
+        videoBitsPerSecond: 2500000
+      });
+
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        if (onProgress) onProgress(100, '완료');
+        resolve(blob);
+      };
+
+      recorder.start();
+
+      // 줌인 애니메이션 렌더링
+      let frame = 0;
+      const interval = setInterval(() => {
+        if (frame >= totalFrames) {
+          clearInterval(interval);
+          recorder.stop();
+          return;
+        }
+
+        // 줌인 효과: 1.0 → 1.2배
+        const progress = frame / totalFrames;
+        const scale = 1.0 + (progress * 0.2);
+
+        // 캔버스 클리어
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 이미지를 중앙에서 확대
+        const scaledWidth = canvas.width * scale;
+        const scaledHeight = canvas.height * scale;
+        const x = (canvas.width - scaledWidth) / 2;
+        const y = (canvas.height - scaledHeight) / 2;
+
+        ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
+        frame++;
+
+        if (onProgress && frame % 10 === 0) {
+          const percent = Math.round((frame / totalFrames) * 90) + 10;
+          onProgress(percent, '줌인-줌아웃 효과 생성 중...');
+        }
+      }, 1000 / fps);
+    };
+
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = imageUrl;
+  });
+}
+
 export async function generateSceneVideo(
   imageUrl: string,
   imagePrompt: string,
@@ -53,7 +136,9 @@ async function generateByteDanceVideo(
   // localStorage에서 BytePlus API 키 읽기
   const bytedanceApiKey = localStorage.getItem('bytedance_api_key') || '';
   if (!bytedanceApiKey || bytedanceApiKey.length < 10) {
-    throw new Error('BytePlus API key not configured. Please add it in Settings.');
+    // API 키가 없으면 간단한 줌인-줌아웃 비디오 생성
+    console.log('[BYTEDANCE] No API key - generating simple zoom video');
+    return generateSimpleZoomVideo(imageUrl, onProgress);
   }
 
   const startTime = Date.now();
@@ -223,7 +308,8 @@ async function generateEvolinkVideo(
 
   const evolinkApiKey = localStorage.getItem('evolink_api_key') || '';
   if (!evolinkApiKey || evolinkApiKey.length < 10) {
-    throw new Error('Evolink API key not configured. Please add it in Settings.');
+    console.log('[EVOLINK] No API key - generating simple zoom video');
+    return generateSimpleZoomVideo(imageUrl, onProgress);
   }
 
   const startTime = Date.now();
@@ -330,7 +416,8 @@ async function generateRunwareVideo(
 
   const runwareApiKey = localStorage.getItem('runware_api_key') || '';
   if (!runwareApiKey || runwareApiKey.length < 10) {
-    throw new Error('Runware API key not configured. Please add it in Settings.');
+    console.log('[RUNWARE] No API key - generating simple zoom video');
+    return generateSimpleZoomVideo(imageUrl, onProgress);
   }
 
   const startTime = Date.now();
