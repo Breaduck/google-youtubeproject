@@ -160,8 +160,17 @@ const App: React.FC = () => {
   const [runwareDuration, setRunwareDuration] = useState(parseInt(localStorage.getItem('runware_duration') || '5'));
   const [runwareResolution, setRunwareResolution] = useState(localStorage.getItem('runware_resolution') || '720p');
 
-  // 영상 생성 범위 설정 (초 단위, 기본값: 300초 = 5분)
+  // 영상 생성 범위 설정 (초 단위, 기본값: 300초 = 5분, 최대: 1800초 = 30분)
   const [videoGenerationRange, setVideoGenerationRange] = useState(parseInt(localStorage.getItem('video_generation_range') || '300'));
+
+  // 분/초 별도 입력을 위한 계산
+  const videoRangeMinutes = Math.floor(videoGenerationRange / 60);
+  const videoRangeSeconds = videoGenerationRange % 60;
+
+  const updateVideoRange = (minutes: number, seconds: number) => {
+    const totalSeconds = Math.max(0, Math.min(1800, minutes * 60 + seconds));
+    setVideoGenerationRange(totalSeconds);
+  };
 
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
     (localStorage.getItem('audio_provider') as any) || 'google'
@@ -2543,29 +2552,32 @@ Generate a detailed English prompt for image generation including scene composit
                       </select>
                     </div>
 
-                    {/* 영상 생성 범위 설정 (모든 Provider 공통) */}
+                    {/* 영상 생성 범위 설정 (모든 Provider 공통) - 최대 30분 */}
                     <div className="space-y-2 pt-2">
-                      <label className="text-sm font-medium text-slate-700">영상 생성 범위</label>
-                      <div className="flex gap-3 items-center">
-                        <input
-                          type="range"
-                          min="0"
-                          max="600"
-                          step="10"
-                          value={videoGenerationRange}
-                          onChange={e => setVideoGenerationRange(parseInt(e.target.value))}
-                          className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
-                        />
-                        <input
-                          type="number"
-                          min="0"
-                          max="600"
-                          step="10"
-                          value={videoGenerationRange}
-                          onChange={e => setVideoGenerationRange(Math.max(0, Math.min(600, parseInt(e.target.value) || 0)))}
-                          className="w-20 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
-                        />
-                        <span className="text-sm text-slate-600 whitespace-nowrap">{formatSecondsToTime(videoGenerationRange)}</span>
+                      <label className="text-sm font-medium text-slate-700">영상 생성 범위 (최대 30분)</label>
+                      <div className="flex gap-2 items-center justify-center">
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="30"
+                            value={videoRangeMinutes}
+                            onChange={e => updateVideoRange(Math.max(0, Math.min(30, parseInt(e.target.value) || 0)), videoRangeSeconds)}
+                            className="w-16 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                          />
+                          <span className="text-sm font-medium text-slate-700">분</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={videoRangeSeconds}
+                            onChange={e => updateVideoRange(videoRangeMinutes, Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
+                            className="w-16 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                          />
+                          <span className="text-sm font-medium text-slate-700">초</span>
+                        </div>
                       </div>
                       <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
                         <p className="text-xs text-indigo-700 font-medium">
