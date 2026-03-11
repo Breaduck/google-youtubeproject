@@ -1,4 +1,6 @@
 // 브랜치2: BytePlus + Evolink + Runware
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 export type VideoEngine = 'bytedance';
 
@@ -10,14 +12,37 @@ export interface VideoGenerationRequest {
   duration_sec?: number;
 }
 
-// 간단한 줌인-줌아웃 비디오 생성 (API 키 없을 때)
+// FFmpeg 인스턴스 (싱글톤)
+let ffmpegInstance: FFmpeg | null = null;
+let ffmpegLoaded = false;
+
+async function getFFmpeg(): Promise<FFmpeg> {
+  if (ffmpegInstance && ffmpegLoaded) {
+    return ffmpegInstance;
+  }
+
+  ffmpegInstance = new FFmpeg();
+
+  // FFmpeg.wasm 로드 (CDN)
+  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+  await ffmpegInstance.load({
+    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+  });
+
+  ffmpegLoaded = true;
+  return ffmpegInstance;
+}
+
+// 간단한 줌인-줌아웃 비디오 생성 (API 키 없을 때) - MP4 포맷
 async function generateSimpleZoomVideo(
   imageUrl: string,
   onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
   if (onProgress) onProgress(10, '줌인-줌아웃 효과 생성 중...');
 
-  return new Promise((resolve, reject) => {
+  // 1단계: WebM 비디오 생성
+  const webmBlob = await new Promise<Blob>((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) {
@@ -48,7 +73,6 @@ async function generateSimpleZoomVideo(
       recorder.ondataavailable = (e) => chunks.push(e.data);
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'video/webm' });
-        if (onProgress) onProgress(100, '완료');
         resolve(blob);
       };
 
@@ -82,7 +106,7 @@ async function generateSimpleZoomVideo(
         frame++;
 
         if (onProgress && frame % 10 === 0) {
-          const percent = Math.round((frame / totalFrames) * 90) + 10;
+          const percent = Math.round((frame / totalFrames) * 60) + 10;
           onProgress(percent, '줌인-줌아웃 효과 생성 중...');
         }
       }, 1000 / fps);
@@ -91,6 +115,35 @@ async function generateSimpleZoomVideo(
     img.onerror = () => reject(new Error('Failed to load image'));
     img.src = imageUrl;
   });
+
+  if (onProgress) onProgress(70, 'MP4로 변환 중...');
+
+  // 2단계: WebM → MP4 변환 (FFmpeg.wasm)
+  try {
+    const ffmpeg = await getFFmpeg();
+
+    // WebM 파일을 FFmpeg 가상 파일 시스템에 쓰기
+    await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
+
+    // WebM → MP4 변환
+    await ffmpeg.exec(['-i', 'input.webm', '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', 'output.mp4']);
+
+    // 변환된 MP4 읽기
+    const data = await ffmpeg.readFile('output.mp4');
+    const mp4Blob = new Blob([new Uint8Array(data as Uint8Array)], { type: 'video/mp4' });
+
+    // 임시 파일 삭제
+    await ffmpeg.deleteFile('input.webm');
+    await ffmpeg.deleteFile('output.mp4');
+
+    if (onProgress) onProgress(100, '완료');
+    return mp4Blob;
+  } catch (error) {
+    console.error('FFmpeg conversion failed:', error);
+    // 변환 실패 시 WebM 반환 (호환성)
+    if (onProgress) onProgress(100, '완료 (WebM)');
+    return webmBlob;
+  }
 }
 
 export async function generateSceneVideo(
