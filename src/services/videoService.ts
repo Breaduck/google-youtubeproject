@@ -34,12 +34,14 @@ async function getFFmpeg(): Promise<FFmpeg> {
   return ffmpegInstance;
 }
 
-// 간단한 줌인-줌아웃 비디오 생성 (API 키 없을 때) - MP4 포맷
-async function generateSimpleZoomVideo(
+// 간단한 줌인-줌아웃 비디오 생성 (API 키 없을 때) - MP4 포맷 - export
+export async function generateSimpleZoomVideo(
   imageUrl: string,
+  subtitle: string = '',
+  zoomDirection: 'in' | 'out' = 'in',
   onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
-  if (onProgress) onProgress(10, '줌인-줌아웃 효과 생성 중...');
+  if (onProgress) onProgress(10, `${zoomDirection === 'in' ? '줌인' : '줌아웃'} 효과 생성 중...`);
 
   // 1단계: WebM 비디오 생성
   const webmBlob = await new Promise<Blob>((resolve, reject) => {
@@ -78,7 +80,7 @@ async function generateSimpleZoomVideo(
 
       recorder.start();
 
-      // 줌인 애니메이션 렌더링
+      // 줌인/줌아웃 애니메이션 렌더링
       let frame = 0;
       const interval = setInterval(() => {
         if (frame >= totalFrames) {
@@ -87,15 +89,21 @@ async function generateSimpleZoomVideo(
           return;
         }
 
-        // 줌인 효과: 1.0 → 1.2배
         const progress = frame / totalFrames;
-        const scale = 1.0 + (progress * 0.2);
+
+        // 줌 방향에 따라 스케일 계산
+        let scale: number;
+        if (zoomDirection === 'in') {
+          scale = 1.0 + (progress * 0.15); // 1.0 → 1.15 (부드럽게)
+        } else {
+          scale = 1.15 - (progress * 0.15); // 1.15 → 1.0 (줌아웃)
+        }
 
         // 캔버스 클리어
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 이미지를 중앙에서 확대
+        // 이미지를 중앙에서 확대/축소
         const scaledWidth = canvas.width * scale;
         const scaledHeight = canvas.height * scale;
         const x = (canvas.width - scaledWidth) / 2;
@@ -103,11 +111,31 @@ async function generateSimpleZoomVideo(
 
         ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
 
+        // 자막 렌더링 (하단 중앙)
+        if (subtitle) {
+          ctx.save();
+          ctx.font = 'bold 32px "Pretendard", sans-serif';
+          ctx.fillStyle = '#000';
+          ctx.strokeStyle = '#FFF';
+          ctx.lineWidth = 6;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+
+          const text = subtitle;
+          const textY = canvas.height - 40;
+
+          // 외곽선 + 텍스트
+          ctx.strokeText(text, canvas.width / 2, textY);
+          ctx.fillStyle = '#FFF';
+          ctx.fillText(text, canvas.width / 2, textY);
+          ctx.restore();
+        }
+
         frame++;
 
         if (onProgress && frame % 10 === 0) {
           const percent = Math.round((frame / totalFrames) * 60) + 10;
-          onProgress(percent, '줌인-줌아웃 효과 생성 중...');
+          onProgress(percent, `${zoomDirection === 'in' ? '줌인' : '줌아웃'} 효과 생성 중...`);
         }
       }, 1000 / fps);
     };
@@ -144,6 +172,48 @@ async function generateSimpleZoomVideo(
     if (onProgress) onProgress(100, '완료 (WebM)');
     return webmBlob;
   }
+}
+
+// 여러 비디오를 하나로 합치기 (FFmpeg concat) - export
+export async function mergeVideos(videoBlobs: Blob[], onProgress?: (progress: number, message: string) => void): Promise<Blob> {
+  if (onProgress) onProgress(0, '비디오 병합 중...');
+
+  const ffmpeg = await getFFmpeg();
+
+  // 각 비디오를 FFmpeg 파일 시스템에 쓰기
+  for (let i = 0; i < videoBlobs.length; i++) {
+    await ffmpeg.writeFile(`video${i}.mp4`, await fetchFile(videoBlobs[i]));
+    if (onProgress) {
+      const percent = Math.round(((i + 1) / videoBlobs.length) * 30);
+      onProgress(percent, `비디오 ${i + 1}/${videoBlobs.length} 준비 중...`);
+    }
+  }
+
+  // concat 리스트 파일 생성
+  const concatList = videoBlobs.map((_, i) => `file 'video${i}.mp4'`).join('\n');
+  await ffmpeg.writeFile('concat_list.txt', concatList);
+
+  if (onProgress) onProgress(40, '비디오 병합 중...');
+
+  // concat으로 병합
+  await ffmpeg.exec(['-f', 'concat', '-safe', '0', '-i', 'concat_list.txt', '-c', 'copy', 'merged.mp4']);
+
+  if (onProgress) onProgress(80, '최종 처리 중...');
+
+  // 병합된 파일 읽기
+  const mergedData = await ffmpeg.readFile('merged.mp4');
+  const mergedBlob = new Blob([new Uint8Array(mergedData as Uint8Array)], { type: 'video/mp4' });
+
+  // 임시 파일 삭제
+  for (let i = 0; i < videoBlobs.length; i++) {
+    await ffmpeg.deleteFile(`video${i}.mp4`);
+  }
+  await ffmpeg.deleteFile('concat_list.txt');
+  await ffmpeg.deleteFile('merged.mp4');
+
+  if (onProgress) onProgress(100, '완료');
+
+  return mergedBlob;
 }
 
 export async function generateSceneVideo(
@@ -191,7 +261,8 @@ async function generateByteDanceVideo(
   if (!bytedanceApiKey || bytedanceApiKey.length < 10) {
     // API 키가 없으면 간단한 줌인-줌아웃 비디오 생성
     console.log('[BYTEDANCE] No API key - generating simple zoom video');
-    return generateSimpleZoomVideo(imageUrl, onProgress);
+    // dialogue를 자막으로, zoomDirection은 외부에서 설정
+    return generateSimpleZoomVideo(imageUrl, dialogue, 'in', onProgress);
   }
 
   const startTime = Date.now();
@@ -362,7 +433,7 @@ async function generateEvolinkVideo(
   const evolinkApiKey = localStorage.getItem('evolink_api_key') || '';
   if (!evolinkApiKey || evolinkApiKey.length < 10) {
     console.log('[EVOLINK] No API key - generating simple zoom video');
-    return generateSimpleZoomVideo(imageUrl, onProgress);
+    return generateSimpleZoomVideo(imageUrl, dialogue, 'in', onProgress);
   }
 
   const startTime = Date.now();
@@ -470,7 +541,7 @@ async function generateRunwareVideo(
   const runwareApiKey = localStorage.getItem('runware_api_key') || '';
   if (!runwareApiKey || runwareApiKey.length < 10) {
     console.log('[RUNWARE] No API key - generating simple zoom video');
-    return generateSimpleZoomVideo(imageUrl, onProgress);
+    return generateSimpleZoomVideo(imageUrl, dialogue, 'in', onProgress);
   }
 
   const startTime = Date.now();

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom';
 import { GoogleGenAI } from "@google/genai";
 import { GeminiService } from './services/geminiService';
-import { generateSceneVideo, generateBatchVideos, VideoEngine } from './services/videoService';
+import { generateSceneVideo, generateBatchVideos, VideoEngine, mergeVideos, generateSimpleZoomVideo } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect } from './types';
 
 const BUILD_VERSION = 'v1.5-dual-download-buttons';
@@ -1431,7 +1431,17 @@ const App: React.FC = () => {
       return;
     }
 
-    const engineName = 'BytePlus';
+    // API 키 체크
+    let hasApiKey = false;
+    if (videoProvider === 'byteplus') {
+      hasApiKey = !!(bytedanceApiKey && bytedanceApiKey.length >= 10);
+    } else if (videoProvider === 'evolink') {
+      hasApiKey = !!(evolinkApiKey && evolinkApiKey.length >= 10);
+    } else if (videoProvider === 'runware') {
+      hasApiKey = !!(runwareApiKey && runwareApiKey.length >= 10);
+    }
+
+    const engineName = hasApiKey ? 'BytePlus' : '줌인-줌아웃';
     setBgTask({ type: 'video', message: `${engineName} 비디오 생성 중...` });
     setBgProgress(0);
 
@@ -1449,52 +1459,72 @@ const App: React.FC = () => {
         setBgTask({ type: 'video', message: `${engineName} 비디오 생성 중 (${i + 1}/${project.scenes.length})...` });
         setBgProgress(Math.round((i / project.scenes.length) * 50));
 
-        const videoBlob = await generateSceneVideo(
-          scene.imageUrl!,
-          scene.imagePrompt,
-          scene.scriptSegment,
-          characterDesc,
-          project.characters.length > 1,
-          undefined,
-          videoEngine,
-          (progress, message) => {
-            const baseProgress = Math.round((i / project.scenes.length) * 50);
-            const sceneProgress = Math.round((progress / 100) * (50 / project.scenes.length));
-            setBgProgress(baseProgress + sceneProgress);
-            setBgTask({ type: 'video', message: `${message} (${i + 1}/${project.scenes.length})` });
-          }
-        );
+        let videoBlob: Blob;
+        if (hasApiKey) {
+          // API로 비디오 생성
+          videoBlob = await generateSceneVideo(
+            scene.imageUrl!,
+            scene.imagePrompt,
+            scene.scriptSegment,
+            characterDesc,
+            project.characters.length > 1,
+            undefined,
+            videoEngine,
+            (progress, message) => {
+              const baseProgress = Math.round((i / project.scenes.length) * 50);
+              const sceneProgress = Math.round((progress / 100) * (50 / project.scenes.length));
+              setBgProgress(baseProgress + sceneProgress);
+              setBgTask({ type: 'video', message: `${message} (${i + 1}/${project.scenes.length})` });
+            }
+          );
+        } else {
+          // API 키 없음 → 줌인/줌아웃 교차
+          const zoomDirection = i % 2 === 0 ? 'in' : 'out'; // 홀수=줌인, 짝수=줌아웃
+          videoBlob = await generateSimpleZoomVideo(
+            scene.imageUrl!,
+            scene.scriptSegment, // 자막
+            zoomDirection,
+            (progress, message) => {
+              const baseProgress = Math.round((i / project.scenes.length) * 50);
+              const sceneProgress = Math.round((progress / 100) * (50 / project.scenes.length));
+              setBgProgress(baseProgress + sceneProgress);
+              setBgTask({ type: 'video', message: `${message} (${i + 1}/${project.scenes.length})` });
+            }
+          );
+        }
+
         console.log(`[DEBUG] Scene ${i + 1} - Video blob size:`, (videoBlob.size / 1024 / 1024).toFixed(2), 'MB');
         videoBlobs.push(videoBlob);
       }
       console.log(`[DEBUG] Total videos generated:`, videoBlobs.length);
 
-      // 2단계: 비디오 다운로드
-      setBgTask({ type: 'video', message: '비디오 다운로드 중...' });
+      // 2단계: 비디오 병합 및 다운로드
+      setBgTask({ type: 'video', message: '비디오 병합 중...' });
 
+      let finalBlob: Blob;
       if (videoBlobs.length === 1) {
         // 1개 씬 → 바로 다운로드
-        const url = URL.createObjectURL(videoBlobs[0]);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${project.title}_video.mp4`;
-        a.click();
-        URL.revokeObjectURL(url);
+        finalBlob = videoBlobs[0];
       } else {
-        // 여러 씬 → 개별 다운로드
-        videoBlobs.forEach((blob, i) => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${project.title}_scene${i + 1}.mp4`;
-          a.click();
-          URL.revokeObjectURL(url);
+        // 여러 씬 → 하나로 합치기
+        finalBlob = await mergeVideos(videoBlobs, (progress, message) => {
+          setBgProgress(50 + Math.round(progress * 0.5));
+          setBgTask({ type: 'video', message });
         });
       }
 
+      // 통합 비디오 다운로드
+      setBgTask({ type: 'video', message: '비디오 다운로드 중...' });
+      const url = URL.createObjectURL(finalBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.title}_complete.mp4`;
+      a.click();
+      URL.revokeObjectURL(url);
+
       setBgTask(null);
       setBgProgress(0);
-      alert(`${videoBlobs.length}개 비디오 다운로드 완료!`);
+      alert(`통합 비디오 다운로드 완료!`);
     } catch (error: any) {
       console.error('Export failed:', error);
       setBgTask(null);
