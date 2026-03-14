@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import { GoogleGenAI } from "@google/genai";
 import { GeminiService } from './services/geminiService';
 import { generateSceneVideo, generateBatchVideos, VideoEngine, mergeVideos, generateSimpleZoomVideo } from './services/videoService';
-import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect } from './types';
+import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect, SubtitleSettings } from './types';
 
 const BUILD_VERSION = 'v1.5-dual-download-buttons';
 
@@ -16,6 +16,20 @@ const TAG_MAP: Record<string, string> = {
   'casual': '캐주얼', 'narrative': '내레이션', 'news': '뉴스',
   'gentle': '다정한', 'authoritative': '권위있는', 'confident': '신뢰감있는',
   'bright': '밝은', 'dark': '어두운', 'clear': '선명한', 'raspy': '허스키한'
+};
+
+const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
+  fontSize: 32,
+  letterSpacing: 0,
+  lineHeight: 1.2,
+  opacity: 1.0,
+  template: 'default-white',
+  customColor: '#FFFFFF',
+  customStrokeColor: '#000000',
+  position: 'bottom',
+  yPosition: 680,
+  lockPosition: false,
+  lockFont: false,
 };
 
 const EXP_TEST_PROJECT_ID = 'exp-official-sdk-test-pid';
@@ -178,6 +192,16 @@ const App: React.FC = () => {
   const [chirpApiKey, setChirpApiKey] = useState(localStorage.getItem('chirp_api_key') || '');
   const [chirpVoice, setChirpVoice] = useState(localStorage.getItem('chirp_voice') || 'Kore');
   const [chirpSpeed, setChirpSpeed] = useState(parseFloat(localStorage.getItem('chirp_speed') || '1.0'));
+
+  // 자막 설정
+  const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(() => {
+    try {
+      const stored = localStorage.getItem('subtitle_settings');
+      return stored ? JSON.parse(stored) : DEFAULT_SUBTITLE_SETTINGS;
+    } catch {
+      return DEFAULT_SUBTITLE_SETTINGS;
+    }
+  });
 
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
   const [isCharLoadModalOpen, setIsCharLoadModalOpen] = useState(false);
@@ -390,6 +414,97 @@ const App: React.FC = () => {
     localStorage.setItem('chirp_voice', chirpVoice);
     localStorage.setItem('chirp_speed', chirpSpeed.toString());
   }, [audioProvider, chirpApiKey, chirpVoice, chirpSpeed]);
+
+  useEffect(() => {
+    localStorage.setItem('subtitle_settings', JSON.stringify(subtitleSettings));
+  }, [subtitleSettings]);
+
+  // 자막 미리보기 렌더링
+  useEffect(() => {
+    const canvas = document.getElementById('subtitle-preview-canvas') as HTMLCanvasElement;
+    if (!canvas || expandedSetting !== 'subtitle') return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // 배경
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, 1280, 720);
+
+    // 템플릿 스타일
+    const SUBTITLE_TEMPLATES = {
+      'default-white': { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 6 },
+      'black-bg': { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#000000', bgPadding: 12, bgOpacity: 0.8 },
+      'transparent-black': { textColor: '#000000', strokeColor: '#FFFFFF', strokeWidth: 4, backgroundColor: '#000000', bgPadding: 8, bgOpacity: 0.3 },
+      'yellow': { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 6 },
+      'neon-green': { textColor: '#39FF14', strokeColor: '#FFFFFF', strokeWidth: 5 },
+      'youtube': { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#000000', bgPadding: 8, bgOpacity: 0.7 },
+      'youtube-shorts': { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 8 },
+      'custom': { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 6 },
+    };
+
+    const template: any = subtitleSettings.template === 'custom'
+      ? {
+          textColor: subtitleSettings.customColor,
+          strokeColor: subtitleSettings.customStrokeColor,
+          strokeWidth: 6,
+          backgroundColor: subtitleSettings.customBgColor,
+          bgPadding: 12,
+          bgOpacity: subtitleSettings.customBgColor ? 0.8 : undefined,
+        }
+      : SUBTITLE_TEMPLATES[subtitleSettings.template as keyof typeof SUBTITLE_TEMPLATES];
+
+    ctx.font = `bold ${subtitleSettings.fontSize}px "Pretendard", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+
+    const text = '미리보기 자막 텍스트';
+    const textY = subtitleSettings.yPosition;
+
+    // 배경 박스
+    if (template.backgroundColor) {
+      const metrics = ctx.measureText(text);
+      const textWidth = metrics.width;
+      const bgPadding = template.bgPadding || 10;
+      const bgHeight = subtitleSettings.fontSize * 1.4 + bgPadding * 2;
+
+      ctx.fillStyle = template.backgroundColor;
+      ctx.globalAlpha = template.bgOpacity || 0.8;
+      ctx.fillRect(
+        1280 / 2 - textWidth / 2 - bgPadding,
+        textY - bgHeight,
+        textWidth + bgPadding * 2,
+        bgHeight
+      );
+      ctx.globalAlpha = 1.0;
+    }
+
+    ctx.globalAlpha = subtitleSettings.opacity;
+
+    // 외곽선
+    if (template.strokeWidth > 0 && template.strokeColor !== 'transparent') {
+      ctx.strokeStyle = template.strokeColor;
+      ctx.lineWidth = template.strokeWidth;
+      ctx.lineJoin = 'round';
+      ctx.miterLimit = 2;
+      ctx.strokeText(text, 1280 / 2, textY);
+    }
+
+    // 텍스트
+    ctx.fillStyle = template.textColor;
+    ctx.fillText(text, 1280 / 2, textY);
+
+    ctx.globalAlpha = 1.0;
+
+    // Y축 가이드라인
+    ctx.strokeStyle = '#FF0000';
+    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, subtitleSettings.yPosition);
+    ctx.lineTo(1280, subtitleSettings.yPosition);
+    ctx.stroke();
+  }, [subtitleSettings, expandedSetting]);
 
   useEffect(() => {
     localStorage.setItem('el_speed', elSettings.speed.toString());
@@ -1255,6 +1370,7 @@ const App: React.FC = () => {
         project.characters.length > 1,
         undefined,
         videoEngine,
+        subtitleSettings,
         (progress, message) => {
           setTargetProgress(progress);
           setLoadingText(message);
@@ -1345,7 +1461,8 @@ const App: React.FC = () => {
             project.characters.length > 1,
             undefined,
             videoEngine,
-            (progress, message) => {
+            subtitleSettings,
+            (progress: number, message: string) => {
               const overallProgress = ((i / limitedScenes.length) * 100) + (progress / limitedScenes.length);
               setTargetProgress(overallProgress);
               setLoadingText(`${message} (${i + 1}/${limitedScenes.length})`);
@@ -1470,6 +1587,7 @@ const App: React.FC = () => {
             project.characters.length > 1,
             undefined,
             videoEngine,
+            subtitleSettings,
             (progress, message) => {
               const baseProgress = Math.round((i / project.scenes.length) * 50);
               const sceneProgress = Math.round((progress / 100) * (50 / project.scenes.length));
@@ -1484,6 +1602,7 @@ const App: React.FC = () => {
             scene.imageUrl!,
             scene.scriptSegment, // 자막
             zoomDirection,
+            subtitleSettings,
             (progress, message) => {
               const baseProgress = Math.round((i / project.scenes.length) * 50);
               const sceneProgress = Math.round((progress / 100) * (50 / project.scenes.length));
@@ -2764,6 +2883,199 @@ Generate a detailed English prompt for image generation including scene composit
                         <a href="https://evolink.ai/seedance-1-pro-fast" target="_blank" rel="noopener noreferrer" className="text-xs text-purple-700 underline hover:text-purple-900 mt-1 inline-block">공식 문서 →</a>
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+
+              {/* 자막 설정 - 아코디언 */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-slate-700">자막 설정</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{subtitleSettings.template === 'custom' ? '커스텀' : subtitleSettings.template}</span>
+                  </div>
+                  <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'subtitle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {expandedSetting === 'subtitle' && (
+                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
+                    {/* 템플릿 선택 */}
+                    <div className="space-y-2 pt-4">
+                      <label className="text-sm font-medium text-slate-700">템플릿</label>
+                      <select
+                        value={subtitleSettings.template}
+                        onChange={(e) => setSubtitleSettings({...subtitleSettings, template: e.target.value as any})}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="default-white">기본 (흰색)</option>
+                        <option value="black-bg">검정 배경</option>
+                        <option value="transparent-black">반투명 검정</option>
+                        <option value="yellow">노란 자막</option>
+                        <option value="neon-green">네온 그린</option>
+                        <option value="youtube">유튜브</option>
+                        <option value="youtube-shorts">유튜브 쇼츠</option>
+                        <option value="custom">커스텀 색상</option>
+                      </select>
+                    </div>
+
+                    {/* 커스텀 색상 (template='custom'일 때만) */}
+                    {subtitleSettings.template === 'custom' && (
+                      <div className="space-y-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex gap-3">
+                          <div className="flex-1">
+                            <label className="text-xs font-medium text-slate-600 mb-1 block">텍스트 색상</label>
+                            <input
+                              type="color"
+                              value={subtitleSettings.customColor}
+                              onChange={(e) => setSubtitleSettings({...subtitleSettings, customColor: e.target.value})}
+                              className="w-full h-10 rounded border border-slate-300 cursor-pointer"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs font-medium text-slate-600 mb-1 block">외곽선 색상</label>
+                            <input
+                              type="color"
+                              value={subtitleSettings.customStrokeColor}
+                              onChange={(e) => setSubtitleSettings({...subtitleSettings, customStrokeColor: e.target.value})}
+                              className="w-full h-10 rounded border border-slate-300 cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 mb-1 block">배경 색상 (선택)</label>
+                          <input
+                            type="color"
+                            value={subtitleSettings.customBgColor || '#000000'}
+                            onChange={(e) => setSubtitleSettings({...subtitleSettings, customBgColor: e.target.value})}
+                            className="w-full h-10 rounded border border-slate-300 cursor-pointer"
+                          />
+                          <button
+                            onClick={() => setSubtitleSettings({...subtitleSettings, customBgColor: undefined})}
+                            className="text-xs text-red-600 hover:text-red-800 mt-1"
+                          >
+                            배경 제거
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 글자 크기 */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700 flex justify-between">
+                        <span>글자 크기</span>
+                        <span className="text-blue-600">{subtitleSettings.fontSize}px</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="16"
+                        max="80"
+                        value={subtitleSettings.fontSize}
+                        onChange={(e) => setSubtitleSettings({...subtitleSettings, fontSize: parseInt(e.target.value)})}
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* 불투명도 */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700 flex justify-between">
+                        <span>불투명도</span>
+                        <span className="text-blue-600">{Math.round(subtitleSettings.opacity * 100)}%</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={subtitleSettings.opacity}
+                        onChange={(e) => setSubtitleSettings({...subtitleSettings, opacity: parseFloat(e.target.value)})}
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* 위치 프리셋 */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">위치 프리셋</label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setSubtitleSettings({...subtitleSettings, position: 'top', yPosition: 80})}
+                          className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all ${subtitleSettings.position === 'top' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300'}`}
+                        >
+                          상단
+                        </button>
+                        <button
+                          onClick={() => setSubtitleSettings({...subtitleSettings, position: 'center', yPosition: 400})}
+                          className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all ${subtitleSettings.position === 'center' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300'}`}
+                        >
+                          중앙
+                        </button>
+                        <button
+                          onClick={() => setSubtitleSettings({...subtitleSettings, position: 'bottom', yPosition: 680})}
+                          className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all ${subtitleSettings.position === 'bottom' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300'}`}
+                        >
+                          하단
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Y축 미세 조정 */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700 flex justify-between">
+                        <span>Y축 위치</span>
+                        <span className="text-blue-600">{subtitleSettings.yPosition}px</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="40"
+                        max="720"
+                        value={subtitleSettings.yPosition}
+                        onChange={(e) => setSubtitleSettings({...subtitleSettings, yPosition: parseInt(e.target.value)})}
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* 고정 옵션 */}
+                    <div className="space-y-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={subtitleSettings.lockPosition}
+                          onChange={(e) => setSubtitleSettings({...subtitleSettings, lockPosition: e.target.checked})}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-slate-700">모든 장면 동일 위치</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={subtitleSettings.lockFont}
+                          onChange={(e) => setSubtitleSettings({...subtitleSettings, lockFont: e.target.checked})}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-slate-700">모든 장면 동일 폰트</span>
+                      </label>
+                    </div>
+
+                    {/* 미리보기 Canvas */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">미리보기</label>
+                      <div className="relative border-2 border-slate-300 rounded-lg overflow-hidden bg-slate-900">
+                        <canvas
+                          id="subtitle-preview-canvas"
+                          width="1280"
+                          height="720"
+                          className="w-full cursor-crosshair"
+                          onClick={(e) => {
+                            const canvas = e.currentTarget;
+                            const rect = canvas.getBoundingClientRect();
+                            const scaleY = 720 / rect.height;
+                            const clickY = (e.clientY - rect.top) * scaleY;
+                            setSubtitleSettings({...subtitleSettings, yPosition: Math.round(clickY)});
+                          }}
+                        />
+                        <div className="absolute bottom-2 left-2 text-xs text-white bg-black/50 px-2 py-1 rounded">
+                          클릭하여 Y축 위치 조정
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

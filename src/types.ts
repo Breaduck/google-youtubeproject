@@ -65,3 +65,33 @@ export interface SavedCharacter {
   description: string;
   portraitUrl: string | null;
 }
+
+export type SubtitleTemplate =
+  | 'default-white'      // 기본(흰색) - 흰색 텍스트 + 검은 외곽선
+  | 'black-bg'           // 검정 배경 - 반투명 검정 박스 + 흰색 텍스트
+  | 'transparent-black'  // 반투명 검정 - 반투명 검정 텍스트 + 흰색 외곽선
+  | 'yellow'             // 노란 자막
+  | 'neon-green'         // 네온 그린
+  | 'youtube'            // 유튜브 스타일 - 검은 반투명 배경
+  | 'youtube-shorts'     // 유튜브 쇼츠 - 큰 텍스트 + 굵은 외곽선
+  | 'custom';            // 커스텀 색상
+
+export type SubtitlePosition = 'top' | 'center' | 'bottom';
+
+export interface SubtitleSettings {
+  fontSize: number;           // 16~80px
+  letterSpacing: number;      // -2~10px (Phase 2)
+  lineHeight: number;         // 0.8~2.0 (Phase 2)
+  opacity: number;            // 0~1
+
+  template: SubtitleTemplate;
+  customColor: string;        // hex (template='custom'일 때)
+  customStrokeColor: string;  // hex (template='custom'일 때)
+  customBgColor?: string;     // hex (배경 옵션)
+
+  position: SubtitlePosition; // 프리셋
+  yPosition: number;          // 0~720px
+
+  lockPosition: boolean;      // 모든 장면 동일 위치
+  lockFont: boolean;          // 모든 장면 동일 폰트
+}
