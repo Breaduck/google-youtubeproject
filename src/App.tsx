@@ -2630,8 +2630,10 @@ Generate a detailed English prompt for image generation including scene composit
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-slate-700">이미지 모델</label>
                       <select value={geminiImageModel} onChange={e => setGeminiImageModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                        <option value="gemini-3-flash">Nano Banana 2 (Gemini 3 Flash)</option>
-                        <option value="gemini-3-pro">Gemini 3 Pro</option>
+                        <option value="gemini-3.1-flash-image-preview">Nano Banana 2</option>
+                        <option value="gemini-3-pro-image-preview">Nano Banana Pro</option>
+                        <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+                        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
                         <option value="imagen-3.0-generate-002">Imagen 3</option>
                         <option value="imagen-4.0-generate-001">Imagen 4</option>
                       </select>
