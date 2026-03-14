@@ -85,9 +85,14 @@ export interface SubtitleSettings {
   opacity: number;            // 0~1
 
   template: SubtitleTemplate;
-  customColor: string;        // hex (template='custom'일 때)
-  customStrokeColor: string;  // hex (template='custom'일 때)
-  customBgColor?: string;     // hex (배경 옵션)
+
+  // 실제 사용되는 색상 (템플릿 선택 시 자동 설정, 이후 수동 조정 가능)
+  textColor: string;          // 자막 글씨 색
+  strokeColor: string;        // 외곽선 색
+  strokeWidth: number;        // 외곽선 두께
+  backgroundColor?: string;   // 자막 배경 색 (선택)
+  bgPadding: number;          // 배경 여백
+  bgOpacity: number;          // 배경 불투명도
 
   position: SubtitlePosition; // 프리셋
   yPosition: number;          // 0~720px

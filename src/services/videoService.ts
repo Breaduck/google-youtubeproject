@@ -13,68 +13,6 @@ export interface VideoGenerationRequest {
   duration_sec?: number;
 }
 
-// 자막 템플릿 스타일 정의
-interface SubtitleStyle {
-  textColor: string;
-  strokeColor: string;
-  strokeWidth: number;
-  backgroundColor?: string;
-  bgPadding?: number;
-  bgOpacity?: number;
-}
-
-const SUBTITLE_TEMPLATES: Record<SubtitleTemplate, SubtitleStyle> = {
-  'default-white': {
-    textColor: '#FFFFFF',
-    strokeColor: '#000000',
-    strokeWidth: 6,
-  },
-  'black-bg': {
-    textColor: '#FFFFFF',
-    strokeColor: 'transparent',
-    strokeWidth: 0,
-    backgroundColor: '#000000',
-    bgPadding: 12,
-    bgOpacity: 0.8,
-  },
-  'transparent-black': {
-    textColor: '#000000',
-    strokeColor: '#FFFFFF',
-    strokeWidth: 4,
-    backgroundColor: '#000000',
-    bgPadding: 8,
-    bgOpacity: 0.3,
-  },
-  'yellow': {
-    textColor: '#FFD700',
-    strokeColor: '#000000',
-    strokeWidth: 6,
-  },
-  'neon-green': {
-    textColor: '#39FF14',
-    strokeColor: '#FFFFFF',
-    strokeWidth: 5,
-  },
-  'youtube': {
-    textColor: '#FFFFFF',
-    strokeColor: 'transparent',
-    strokeWidth: 0,
-    backgroundColor: '#000000',
-    bgPadding: 8,
-    bgOpacity: 0.7,
-  },
-  'youtube-shorts': {
-    textColor: '#FFFFFF',
-    strokeColor: '#000000',
-    strokeWidth: 8,
-  },
-  'custom': {
-    textColor: '#FFFFFF',
-    strokeColor: '#000000',
-    strokeWidth: 6,
-  },
-};
-
 // FFmpeg 인스턴스 (싱글톤)
 let ffmpegInstance: FFmpeg | null = null;
 let ffmpegLoaded = false;
@@ -179,18 +117,6 @@ export async function generateSimpleZoomVideo(
         if (subtitle && subtitleSettings) {
           ctx.save();
 
-          // 템플릿 스타일 가져오기
-          const template = subtitleSettings.template === 'custom'
-            ? {
-                textColor: subtitleSettings.customColor,
-                strokeColor: subtitleSettings.customStrokeColor,
-                strokeWidth: 6,
-                backgroundColor: subtitleSettings.customBgColor,
-                bgPadding: 12,
-                bgOpacity: subtitleSettings.customBgColor ? 0.8 : undefined,
-              }
-            : SUBTITLE_TEMPLATES[subtitleSettings.template];
-
           ctx.font = `bold ${subtitleSettings.fontSize}px "Pretendard", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
@@ -199,14 +125,14 @@ export async function generateSimpleZoomVideo(
           const textY = subtitleSettings.yPosition;
 
           // 배경 박스 (있을 경우)
-          if (template.backgroundColor) {
+          if (subtitleSettings.backgroundColor) {
             const metrics = ctx.measureText(text);
             const textWidth = metrics.width;
-            const bgPadding = template.bgPadding || 10;
+            const bgPadding = subtitleSettings.bgPadding || 12;
             const bgHeight = subtitleSettings.fontSize * 1.4 + bgPadding * 2;
 
-            ctx.fillStyle = template.backgroundColor;
-            ctx.globalAlpha = template.bgOpacity || 0.8;
+            ctx.fillStyle = subtitleSettings.backgroundColor;
+            ctx.globalAlpha = subtitleSettings.bgOpacity || 0.8;
             ctx.fillRect(
               canvas.width / 2 - textWidth / 2 - bgPadding,
               textY - bgHeight,
@@ -219,16 +145,16 @@ export async function generateSimpleZoomVideo(
           ctx.globalAlpha = subtitleSettings.opacity;
 
           // 외곽선
-          if (template.strokeWidth > 0 && template.strokeColor !== 'transparent') {
-            ctx.strokeStyle = template.strokeColor;
-            ctx.lineWidth = template.strokeWidth;
+          if (subtitleSettings.strokeWidth > 0 && subtitleSettings.strokeColor !== 'transparent') {
+            ctx.strokeStyle = subtitleSettings.strokeColor;
+            ctx.lineWidth = subtitleSettings.strokeWidth;
             ctx.lineJoin = 'round';
             ctx.miterLimit = 2;
             ctx.strokeText(text, canvas.width / 2, textY);
           }
 
           // 텍스트
-          ctx.fillStyle = template.textColor;
+          ctx.fillStyle = subtitleSettings.textColor;
           ctx.fillText(text, canvas.width / 2, textY);
 
           ctx.restore();
