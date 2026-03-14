@@ -128,14 +128,14 @@ export async function generateSimpleZoomVideo(
           if (subtitleSettings.backgroundColor) {
             const metrics = ctx.measureText(text);
             const textWidth = metrics.width;
-            const bgPadding = subtitleSettings.bgPadding || 12;
-            const bgHeight = subtitleSettings.fontSize * 1.4 + bgPadding * 2;
+            const bgPadding = subtitleSettings.bgPadding || 8;
+            const bgHeight = subtitleSettings.fontSize + bgPadding * 2;
 
             ctx.fillStyle = subtitleSettings.backgroundColor;
             ctx.globalAlpha = subtitleSettings.bgOpacity || 0.8;
             ctx.fillRect(
               canvas.width / 2 - textWidth / 2 - bgPadding,
-              textY - bgHeight,
+              textY - subtitleSettings.fontSize - bgPadding,
               textWidth + bgPadding * 2,
               bgHeight
             );

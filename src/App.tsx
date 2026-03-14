@@ -446,14 +446,14 @@ const App: React.FC = () => {
     if (subtitleSettings.backgroundColor) {
       const metrics = ctx.measureText(text);
       const textWidth = metrics.width;
-      const bgPadding = subtitleSettings.bgPadding || 12;
-      const bgHeight = subtitleSettings.fontSize * 1.4 + bgPadding * 2;
+      const bgPadding = subtitleSettings.bgPadding || 8;
+      const bgHeight = subtitleSettings.fontSize + bgPadding * 2;
 
       ctx.fillStyle = subtitleSettings.backgroundColor;
       ctx.globalAlpha = subtitleSettings.bgOpacity || 0.8;
       ctx.fillRect(
         1280 / 2 - textWidth / 2 - bgPadding,
-        textY - bgHeight,
+        textY - subtitleSettings.fontSize - bgPadding,
         textWidth + bgPadding * 2,
         bgHeight
       );
@@ -2909,69 +2909,7 @@ Generate a detailed English prompt for image generation including scene composit
                         <option value="youtube-shorts">유튜브 쇼츠</option>
                         <option value="custom">커스텀 색상</option>
                       </select>
-                      <p className="text-xs text-slate-500 mt-1">프리셋 선택 후 아래에서 자유롭게 색상 수정 가능</p>
-                    </div>
-
-                    {/* 색상 팔레트 (항상 표시) */}
-                    <div className="space-y-3 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-                      <div className="flex gap-3">
-                        <div className="flex-1">
-                          <label className="text-xs font-medium text-slate-700 mb-1 block">🎨 자막 색</label>
-                          <input
-                            type="color"
-                            value={subtitleSettings.textColor}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
-                            className="w-full h-12 rounded-lg border-2 border-slate-300 cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={subtitleSettings.textColor}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
-                            className="w-full mt-1 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-xs font-medium text-slate-700 mb-1 block">✏️ 외곽선 색</label>
-                          <input
-                            type="color"
-                            value={subtitleSettings.strokeColor === 'transparent' ? '#000000' : subtitleSettings.strokeColor}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, strokeColor: e.target.value})}
-                            className="w-full h-12 rounded-lg border-2 border-slate-300 cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={subtitleSettings.strokeColor}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, strokeColor: e.target.value})}
-                            className="w-full mt-1 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-slate-700 mb-1 block flex items-center justify-between">
-                          <span>📦 자막 배경 색 (선택)</span>
-                          {subtitleSettings.backgroundColor && (
-                            <button
-                              onClick={() => setSubtitleSettings({...subtitleSettings, backgroundColor: undefined})}
-                              className="text-xs text-red-600 hover:text-red-800 underline"
-                            >
-                              배경 제거
-                            </button>
-                          )}
-                        </label>
-                        <input
-                          type="color"
-                          value={subtitleSettings.backgroundColor || '#000000'}
-                          onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
-                          className="w-full h-12 rounded-lg border-2 border-slate-300 cursor-pointer"
-                        />
-                        <input
-                          type="text"
-                          value={subtitleSettings.backgroundColor || '없음'}
-                          onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value === '없음' ? undefined : e.target.value})}
-                          className="w-full mt-1 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono"
-                          placeholder="없음"
-                        />
-                      </div>
+                      <p className="text-xs text-slate-500 mt-1">프리셋 선택 후 크기/위치 조정 → 하단에서 색상 커스터마이징</p>
                     </div>
 
                     {/* 글자 크기 */}
@@ -3068,6 +3006,54 @@ Generate a detailed English prompt for image generation including scene composit
                         />
                         <span className="text-slate-700">모든 장면 동일 폰트</span>
                       </label>
+                    </div>
+
+                    {/* 색상 설정 (맨 하단) */}
+                    <div className="space-y-3 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg">
+                      <h3 className="text-sm font-semibold text-slate-800 mb-2">🎨 색상 커스터마이징</h3>
+                      <div className="flex gap-3">
+                        <div className="flex-1">
+                          <label className="text-xs font-medium text-slate-700 mb-2 block">자막 색</label>
+                          <input
+                            type="color"
+                            value={subtitleSettings.textColor}
+                            onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
+                            className="w-full h-14 rounded-lg border-2 border-slate-300 cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={subtitleSettings.textColor}
+                            onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
+                            className="w-full mt-2 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono bg-white"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-xs font-medium text-slate-700 mb-2 block flex items-center justify-between">
+                            <span>자막 배경 색</span>
+                            {subtitleSettings.backgroundColor && (
+                              <button
+                                onClick={() => setSubtitleSettings({...subtitleSettings, backgroundColor: undefined})}
+                                className="text-xs text-red-600 hover:text-red-800 underline"
+                              >
+                                제거
+                              </button>
+                            )}
+                          </label>
+                          <input
+                            type="color"
+                            value={subtitleSettings.backgroundColor || '#000000'}
+                            onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
+                            className="w-full h-14 rounded-lg border-2 border-slate-300 cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={subtitleSettings.backgroundColor || '없음'}
+                            onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value === '없음' ? undefined : e.target.value})}
+                            className="w-full mt-2 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono bg-white"
+                            placeholder="없음"
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {/* 미리보기 Canvas */}
