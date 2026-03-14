@@ -174,8 +174,8 @@ Return ONLY valid JSON, no markdown or explanation.`;
       enhancedPrompt = `Widescreen 16:9 aspect ratio, no text anywhere in the frame, no captions, no subtitles, no letters, no symbols, no signage, no watermark, ${stripBannedTerms(prompt)}, static locked framing, high quality, detailed, professional lighting`;
     }
 
-    // Check if using Imagen models
-    if (imageModel.includes('imagen')) {
+    // Check if using Imagen or Gemini image-specific models
+    if (imageModel.includes('imagen') || imageModel.includes('-image-')) {
       const response = await ai.models.generateImages({
         model: imageModel,
         prompt: enhancedPrompt,
