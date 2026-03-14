@@ -1,6 +1,7 @@
 // 브랜치2: BytePlus + Evolink + Runware
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import type { SubtitleSettings, SubtitleTemplate } from '../types';
 
 export type VideoEngine = 'bytedance';
 
@@ -11,6 +12,68 @@ export interface VideoGenerationRequest {
   fps?: number;
   duration_sec?: number;
 }
+
+// 자막 템플릿 스타일 정의
+interface SubtitleStyle {
+  textColor: string;
+  strokeColor: string;
+  strokeWidth: number;
+  backgroundColor?: string;
+  bgPadding?: number;
+  bgOpacity?: number;
+}
+
+const SUBTITLE_TEMPLATES: Record<SubtitleTemplate, SubtitleStyle> = {
+  'default-white': {
+    textColor: '#FFFFFF',
+    strokeColor: '#000000',
+    strokeWidth: 6,
+  },
+  'black-bg': {
+    textColor: '#FFFFFF',
+    strokeColor: 'transparent',
+    strokeWidth: 0,
+    backgroundColor: '#000000',
+    bgPadding: 12,
+    bgOpacity: 0.8,
+  },
+  'transparent-black': {
+    textColor: '#000000',
+    strokeColor: '#FFFFFF',
+    strokeWidth: 4,
+    backgroundColor: '#000000',
+    bgPadding: 8,
+    bgOpacity: 0.3,
+  },
+  'yellow': {
+    textColor: '#FFD700',
+    strokeColor: '#000000',
+    strokeWidth: 6,
+  },
+  'neon-green': {
+    textColor: '#39FF14',
+    strokeColor: '#FFFFFF',
+    strokeWidth: 5,
+  },
+  'youtube': {
+    textColor: '#FFFFFF',
+    strokeColor: 'transparent',
+    strokeWidth: 0,
+    backgroundColor: '#000000',
+    bgPadding: 8,
+    bgOpacity: 0.7,
+  },
+  'youtube-shorts': {
+    textColor: '#FFFFFF',
+    strokeColor: '#000000',
+    strokeWidth: 8,
+  },
+  'custom': {
+    textColor: '#FFFFFF',
+    strokeColor: '#000000',
+    strokeWidth: 6,
+  },
+};
 
 // FFmpeg 인스턴스 (싱글톤)
 let ffmpegInstance: FFmpeg | null = null;
@@ -39,6 +102,7 @@ export async function generateSimpleZoomVideo(
   imageUrl: string,
   subtitle: string = '',
   zoomDirection: 'in' | 'out' = 'in',
+  subtitleSettings?: SubtitleSettings,
   onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
   if (onProgress) onProgress(10, `${zoomDirection === 'in' ? '줌인' : '줌아웃'} 효과 생성 중...`);
@@ -111,23 +175,62 @@ export async function generateSimpleZoomVideo(
 
         ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
 
-        // 자막 렌더링 (하단 중앙)
-        if (subtitle) {
+        // 자막 렌더링
+        if (subtitle && subtitleSettings) {
           ctx.save();
-          ctx.font = 'bold 32px "Pretendard", sans-serif';
-          ctx.fillStyle = '#000';
-          ctx.strokeStyle = '#FFF';
-          ctx.lineWidth = 6;
+
+          // 템플릿 스타일 가져오기
+          const template = subtitleSettings.template === 'custom'
+            ? {
+                textColor: subtitleSettings.customColor,
+                strokeColor: subtitleSettings.customStrokeColor,
+                strokeWidth: 6,
+                backgroundColor: subtitleSettings.customBgColor,
+                bgPadding: 12,
+                bgOpacity: subtitleSettings.customBgColor ? 0.8 : undefined,
+              }
+            : SUBTITLE_TEMPLATES[subtitleSettings.template];
+
+          ctx.font = `bold ${subtitleSettings.fontSize}px "Pretendard", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
 
           const text = subtitle;
-          const textY = canvas.height - 40;
+          const textY = subtitleSettings.yPosition;
 
-          // 외곽선 + 텍스트
-          ctx.strokeText(text, canvas.width / 2, textY);
-          ctx.fillStyle = '#FFF';
+          // 배경 박스 (있을 경우)
+          if (template.backgroundColor) {
+            const metrics = ctx.measureText(text);
+            const textWidth = metrics.width;
+            const bgPadding = template.bgPadding || 10;
+            const bgHeight = subtitleSettings.fontSize * 1.4 + bgPadding * 2;
+
+            ctx.fillStyle = template.backgroundColor;
+            ctx.globalAlpha = template.bgOpacity || 0.8;
+            ctx.fillRect(
+              canvas.width / 2 - textWidth / 2 - bgPadding,
+              textY - bgHeight,
+              textWidth + bgPadding * 2,
+              bgHeight
+            );
+            ctx.globalAlpha = 1.0;
+          }
+
+          ctx.globalAlpha = subtitleSettings.opacity;
+
+          // 외곽선
+          if (template.strokeWidth > 0 && template.strokeColor !== 'transparent') {
+            ctx.strokeStyle = template.strokeColor;
+            ctx.lineWidth = template.strokeWidth;
+            ctx.lineJoin = 'round';
+            ctx.miterLimit = 2;
+            ctx.strokeText(text, canvas.width / 2, textY);
+          }
+
+          // 텍스트
+          ctx.fillStyle = template.textColor;
           ctx.fillText(text, canvas.width / 2, textY);
+
           ctx.restore();
         }
 
@@ -224,11 +327,12 @@ export async function generateSceneVideo(
   multiFaceMode: boolean = false,
   testParams?: any,
   engine: VideoEngine = 'bytedance',
+  subtitleSettings?: SubtitleSettings,
   onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
   const provider = localStorage.getItem('video_provider') || 'byteplus';
   if (provider === 'evolink') {
-    return generateEvolinkVideo(imageUrl, imagePrompt, dialogue, testParams, onProgress);
+    return generateEvolinkVideo(imageUrl, imagePrompt, dialogue, testParams, subtitleSettings, onProgress);
   }
   if (provider === 'runware') {
     // Feature Flag 체크 (Billing Gate)
@@ -240,9 +344,9 @@ export async function generateSceneVideo(
         'WARNING: Requires minimum $20 top-up (see docs/BILLING_GATE.md)'
       );
     }
-    return generateRunwareVideo(imageUrl, imagePrompt, dialogue, testParams, onProgress);
+    return generateRunwareVideo(imageUrl, imagePrompt, dialogue, testParams, subtitleSettings, onProgress);
   }
-  return generateByteDanceVideo(imageUrl, imagePrompt, dialogue, characterDescription, testParams, onProgress);
+  return generateByteDanceVideo(imageUrl, imagePrompt, dialogue, characterDescription, testParams, subtitleSettings, onProgress);
 }
 
 async function generateByteDanceVideo(
@@ -251,6 +355,7 @@ async function generateByteDanceVideo(
   dialogue: string,
   characterDescription: string = '',
   testParams?: any,
+  subtitleSettings?: SubtitleSettings,
   onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
   console.log(`[BYTEDANCE] generateByteDanceVideo called`);
@@ -262,7 +367,7 @@ async function generateByteDanceVideo(
     // API 키가 없으면 간단한 줌인-줌아웃 비디오 생성
     console.log('[BYTEDANCE] No API key - generating simple zoom video');
     // dialogue를 자막으로, zoomDirection은 외부에서 설정
-    return generateSimpleZoomVideo(imageUrl, dialogue, 'in', onProgress);
+    return generateSimpleZoomVideo(imageUrl, dialogue, 'in', subtitleSettings, onProgress);
   }
 
   const startTime = Date.now();
@@ -426,6 +531,7 @@ async function generateEvolinkVideo(
   imagePrompt: string,
   dialogue: string,
   testParams?: any,
+  subtitleSettings?: SubtitleSettings,
   onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
   console.log('[EVOLINK] generateEvolinkVideo called');
@@ -433,7 +539,7 @@ async function generateEvolinkVideo(
   const evolinkApiKey = localStorage.getItem('evolink_api_key') || '';
   if (!evolinkApiKey || evolinkApiKey.length < 10) {
     console.log('[EVOLINK] No API key - generating simple zoom video');
-    return generateSimpleZoomVideo(imageUrl, dialogue, 'in', onProgress);
+    return generateSimpleZoomVideo(imageUrl, dialogue, 'in', subtitleSettings, onProgress);
   }
 
   const startTime = Date.now();
@@ -534,6 +640,7 @@ async function generateRunwareVideo(
   imagePrompt: string,
   dialogue: string,
   testParams?: any,
+  subtitleSettings?: SubtitleSettings,
   onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
   console.log('[RUNWARE] generateRunwareVideo called');
@@ -541,7 +648,7 @@ async function generateRunwareVideo(
   const runwareApiKey = localStorage.getItem('runware_api_key') || '';
   if (!runwareApiKey || runwareApiKey.length < 10) {
     console.log('[RUNWARE] No API key - generating simple zoom video');
-    return generateSimpleZoomVideo(imageUrl, dialogue, 'in', onProgress);
+    return generateSimpleZoomVideo(imageUrl, dialogue, 'in', subtitleSettings, onProgress);
   }
 
   const startTime = Date.now();
