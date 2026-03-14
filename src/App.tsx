@@ -2626,6 +2626,15 @@ Generate a detailed English prompt for image generation including scene composit
                       />
                     </div>
 
+                    {/* 기본 Gemini 엔진 */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">기본 Gemini 엔진 (대본/프롬프트 생성)</label>
+                      <select value={geminiModel} onChange={e => setGeminiModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                        <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+                        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
+                      </select>
+                    </div>
+
                     {/* 이미지 모델 */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-slate-700">이미지 모델</label>
