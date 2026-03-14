@@ -205,16 +205,26 @@ export async function generateSimpleZoomVideo(
 
 // 여러 비디오를 하나로 합치기 (FFmpeg concat) - export
 export async function mergeVideos(videoBlobs: Blob[], onProgress?: (progress: number, message: string) => void): Promise<Blob> {
-  if (onProgress) onProgress(0, '비디오 병합 중...');
+  if (onProgress) onProgress(0, '병합 준비 중...');
 
   const ffmpeg = await getFFmpeg();
+  const startTime = Date.now();
 
-  // 각 비디오를 FFmpeg 파일 시스템에 쓰기
-  for (let i = 0; i < videoBlobs.length; i++) {
-    await ffmpeg.writeFile(`video${i}.mp4`, await fetchFile(videoBlobs[i]));
+  // 각 비디오를 FFmpeg 파일 시스템에 쓰기 (병렬 처리 시뮬레이션)
+  const writePromises = videoBlobs.map(async (blob, i) => {
+    const data = await fetchFile(blob);
+    await ffmpeg.writeFile(`video${i}.mp4`, data);
+    return i;
+  });
+
+  // 모든 파일 쓰기 완료 대기
+  let completed = 0;
+  for (const promise of writePromises) {
+    await promise;
+    completed++;
     if (onProgress) {
-      const percent = Math.round(((i + 1) / videoBlobs.length) * 30);
-      onProgress(percent, `비디오 ${i + 1}/${videoBlobs.length} 준비 중...`);
+      const percent = Math.round((completed / videoBlobs.length) * 40);
+      onProgress(percent, `비디오 로딩 ${completed}/${videoBlobs.length}`);
     }
   }
 
@@ -222,25 +232,28 @@ export async function mergeVideos(videoBlobs: Blob[], onProgress?: (progress: nu
   const concatList = videoBlobs.map((_, i) => `file 'video${i}.mp4'`).join('\n');
   await ffmpeg.writeFile('concat_list.txt', concatList);
 
-  if (onProgress) onProgress(40, '비디오 병합 중...');
+  if (onProgress) onProgress(50, '병합 시작...');
 
-  // concat으로 병합
-  await ffmpeg.exec(['-f', 'concat', '-safe', '0', '-i', 'concat_list.txt', '-c', 'copy', 'merged.mp4']);
+  // concat으로 병합 (스트림 복사 모드 - 재인코딩 없음)
+  await ffmpeg.exec(['-f', 'concat', '-safe', '0', '-i', 'concat_list.txt', '-c', 'copy', '-movflags', '+faststart', 'merged.mp4']);
 
-  if (onProgress) onProgress(80, '최종 처리 중...');
+  if (onProgress) onProgress(85, '파일 생성 중...');
 
   // 병합된 파일 읽기
   const mergedData = await ffmpeg.readFile('merged.mp4');
   const mergedBlob = new Blob([new Uint8Array(mergedData as Uint8Array)], { type: 'video/mp4' });
 
-  // 임시 파일 삭제
+  if (onProgress) onProgress(95, '정리 중...');
+
+  // 임시 파일 삭제 (순차 처리)
   for (let i = 0; i < videoBlobs.length; i++) {
     await ffmpeg.deleteFile(`video${i}.mp4`);
   }
   await ffmpeg.deleteFile('concat_list.txt');
   await ffmpeg.deleteFile('merged.mp4');
 
-  if (onProgress) onProgress(100, '완료');
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  if (onProgress) onProgress(100, `완료 (${elapsed}초)`);
 
   return mergedBlob;
 }

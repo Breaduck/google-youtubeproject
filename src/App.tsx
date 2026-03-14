@@ -442,22 +442,27 @@ const App: React.FC = () => {
     const text = '미리보기 자막 텍스트';
     const textY = subtitleSettings.yPosition;
 
-    // 배경 박스
+    // 배경 박스 (RGBA로 직접 불투명도 적용 - 화질 개선)
     if (subtitleSettings.backgroundColor) {
       const metrics = ctx.measureText(text);
       const textWidth = metrics.width;
       const bgPadding = subtitleSettings.bgPadding || 8;
       const bgHeight = subtitleSettings.fontSize + bgPadding * 2;
 
-      ctx.fillStyle = subtitleSettings.backgroundColor;
-      ctx.globalAlpha = subtitleSettings.bgOpacity || 0.8;
+      // HEX to RGBA 변환 (화질 저하 방지)
+      const hex = subtitleSettings.backgroundColor;
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const a = subtitleSettings.bgOpacity || 0.8;
+
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
       ctx.fillRect(
         1280 / 2 - textWidth / 2 - bgPadding,
         textY - subtitleSettings.fontSize - bgPadding,
         textWidth + bgPadding * 2,
         bgHeight
       );
-      ctx.globalAlpha = 1.0;
     }
 
     ctx.globalAlpha = subtitleSettings.opacity;
@@ -2912,28 +2917,24 @@ Generate a detailed English prompt for image generation including scene composit
                       <p className="text-xs text-slate-500 mt-1">프리셋 선택 후 크기/위치 조정 → 하단에서 색상 커스터마이징</p>
                     </div>
 
-                    {/* 글자 크기 */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700 flex justify-between">
-                        <span>글자 크기</span>
-                        <span className="text-blue-600">{subtitleSettings.fontSize}px</span>
-                      </label>
+                    {/* 크기 & 불투명도 - 컴팩트 */}
+                    <div className="space-y-1.5 p-3 bg-white border border-slate-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-slate-600">글자 크기</label>
+                        <span className="text-xs font-mono text-slate-500">{subtitleSettings.fontSize}px</span>
+                      </div>
                       <input
                         type="range"
                         min="16"
                         max="80"
                         value={subtitleSettings.fontSize}
                         onChange={(e) => setSubtitleSettings({...subtitleSettings, fontSize: parseInt(e.target.value)})}
-                        className="w-full"
+                        className="w-full h-1.5"
                       />
-                    </div>
-
-                    {/* 불투명도 */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700 flex justify-between">
-                        <span>불투명도</span>
-                        <span className="text-blue-600">{Math.round(subtitleSettings.opacity * 100)}%</span>
-                      </label>
+                      <div className="flex items-center justify-between mt-2">
+                        <label className="text-xs font-medium text-slate-600">자막 불투명도</label>
+                        <span className="text-xs font-mono text-slate-500">{Math.round(subtitleSettings.opacity * 100)}%</span>
+                      </div>
                       <input
                         type="range"
                         min="0"
@@ -2941,48 +2942,61 @@ Generate a detailed English prompt for image generation including scene composit
                         step="0.05"
                         value={subtitleSettings.opacity}
                         onChange={(e) => setSubtitleSettings({...subtitleSettings, opacity: parseFloat(e.target.value)})}
-                        className="w-full"
+                        className="w-full h-1.5"
                       />
+                      {subtitleSettings.backgroundColor && (
+                        <>
+                          <div className="flex items-center justify-between mt-2">
+                            <label className="text-xs font-medium text-slate-600">배경 불투명도</label>
+                            <span className="text-xs font-mono text-slate-500">{Math.round(subtitleSettings.bgOpacity * 100)}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={subtitleSettings.bgOpacity}
+                            onChange={(e) => setSubtitleSettings({...subtitleSettings, bgOpacity: parseFloat(e.target.value)})}
+                            className="w-full h-1.5"
+                          />
+                        </>
+                      )}
                     </div>
 
-                    {/* 위치 프리셋 */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">위치 프리셋</label>
-                      <div className="flex gap-2">
+                    {/* 위치 설정 - 컴팩트 */}
+                    <div className="space-y-2 p-3 bg-white border border-slate-200 rounded-lg">
+                      <label className="text-xs font-medium text-slate-600">위치</label>
+                      <div className="flex gap-1.5">
                         <button
                           onClick={() => setSubtitleSettings({...subtitleSettings, position: 'top', yPosition: 80})}
-                          className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all ${subtitleSettings.position === 'top' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300'}`}
+                          className={`flex-1 px-2 py-1.5 text-xs rounded-md border transition-all ${subtitleSettings.position === 'top' ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
                         >
                           상단
                         </button>
                         <button
                           onClick={() => setSubtitleSettings({...subtitleSettings, position: 'center', yPosition: 400})}
-                          className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all ${subtitleSettings.position === 'center' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300'}`}
+                          className={`flex-1 px-2 py-1.5 text-xs rounded-md border transition-all ${subtitleSettings.position === 'center' ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
                         >
                           중앙
                         </button>
                         <button
                           onClick={() => setSubtitleSettings({...subtitleSettings, position: 'bottom', yPosition: 680})}
-                          className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all ${subtitleSettings.position === 'bottom' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300'}`}
+                          className={`flex-1 px-2 py-1.5 text-xs rounded-md border transition-all ${subtitleSettings.position === 'bottom' ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
                         >
                           하단
                         </button>
                       </div>
-                    </div>
-
-                    {/* Y축 미세 조정 */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700 flex justify-between">
-                        <span>Y축 위치</span>
-                        <span className="text-blue-600">{subtitleSettings.yPosition}px</span>
-                      </label>
+                      <div className="flex items-center justify-between mt-2">
+                        <label className="text-xs font-medium text-slate-600">Y축 미세 조정</label>
+                        <span className="text-xs font-mono text-slate-500">{subtitleSettings.yPosition}px</span>
+                      </div>
                       <input
                         type="range"
                         min="40"
                         max="720"
                         value={subtitleSettings.yPosition}
                         onChange={(e) => setSubtitleSettings({...subtitleSettings, yPosition: parseInt(e.target.value)})}
-                        className="w-full"
+                        className="w-full h-1.5"
                       />
                     </div>
 
@@ -3008,50 +3022,52 @@ Generate a detailed English prompt for image generation including scene composit
                       </label>
                     </div>
 
-                    {/* 색상 설정 (맨 하단) */}
-                    <div className="space-y-3 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg">
-                      <h3 className="text-sm font-semibold text-slate-800 mb-2">🎨 색상 커스터마이징</h3>
-                      <div className="flex gap-3">
-                        <div className="flex-1">
-                          <label className="text-xs font-medium text-slate-700 mb-2 block">자막 색</label>
-                          <input
-                            type="color"
-                            value={subtitleSettings.textColor}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
-                            className="w-full h-14 rounded-lg border-2 border-slate-300 cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={subtitleSettings.textColor}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
-                            className="w-full mt-2 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono bg-white"
-                          />
+                    {/* 색상 설정 - 애플 스타일 */}
+                    <div className="space-y-3 p-3 bg-white border border-slate-200 rounded-lg">
+                      <h3 className="text-xs font-medium text-slate-600">색상</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <label className="text-sm text-slate-700 min-w-[80px]">자막</label>
+                          <div className="flex items-center gap-2 flex-1">
+                            <input
+                              type="color"
+                              value={subtitleSettings.textColor}
+                              onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
+                              className="w-10 h-8 rounded border border-slate-300 cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={subtitleSettings.textColor}
+                              onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
+                              className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono bg-slate-50"
+                            />
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <label className="text-xs font-medium text-slate-700 mb-2 block flex items-center justify-between">
-                            <span>자막 배경 색</span>
+                        <div className="flex items-center justify-between gap-3">
+                          <label className="text-sm text-slate-700 min-w-[80px]">배경</label>
+                          <div className="flex items-center gap-2 flex-1">
+                            <input
+                              type="color"
+                              value={subtitleSettings.backgroundColor || '#000000'}
+                              onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
+                              className="w-10 h-8 rounded border border-slate-300 cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={subtitleSettings.backgroundColor || '없음'}
+                              onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value === '없음' ? undefined : e.target.value})}
+                              className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono bg-slate-50"
+                              placeholder="없음"
+                            />
                             {subtitleSettings.backgroundColor && (
                               <button
                                 onClick={() => setSubtitleSettings({...subtitleSettings, backgroundColor: undefined})}
-                                className="text-xs text-red-600 hover:text-red-800 underline"
+                                className="px-2 py-1 text-xs text-red-600 hover:text-red-800"
                               >
-                                제거
+                                ✕
                               </button>
                             )}
-                          </label>
-                          <input
-                            type="color"
-                            value={subtitleSettings.backgroundColor || '#000000'}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
-                            className="w-full h-14 rounded-lg border-2 border-slate-300 cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={subtitleSettings.backgroundColor || '없음'}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value === '없음' ? undefined : e.target.value})}
-                            className="w-full mt-2 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono bg-white"
-                            placeholder="없음"
-                          />
+                          </div>
                         </div>
                       </div>
                     </div>
