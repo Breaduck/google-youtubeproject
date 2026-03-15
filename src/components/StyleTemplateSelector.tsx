@@ -45,9 +45,19 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
                 isSelected ? 'ring-2 ring-purple-600' : ''
               }`}
             >
-              {/* Placeholder 썸네일 (그라데이션) */}
-              <div className={`aspect-video bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 ${isSelected ? 'blur-sm' : ''}`}>
-                <p className="text-white text-xs font-medium text-center">{template.name}</p>
+              {/* 썸네일 이미지 */}
+              <div className={`aspect-video relative ${isSelected ? 'blur-sm' : ''}`}>
+                <img
+                  src={template.thumbnail}
+                  alt={template.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // 이미지 로드 실패 시 그라데이션 배경 표시
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    (e.target as HTMLImageElement).parentElement!.classList.add('bg-gradient-to-br', 'from-purple-900', 'via-blue-900', 'to-indigo-900', 'flex', 'items-center', 'justify-center', 'p-4');
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/20" />
               </div>
 
               {/* 하단 텍스트 오버레이 */}

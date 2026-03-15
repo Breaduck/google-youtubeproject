@@ -2416,7 +2416,7 @@ const App: React.FC = () => {
                     }}
                     className="px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50"
                   >
-                    {selectedStyleTemplate ? `🎨 ${selectedStyleTemplate.name}` : '🎨 템플릿'}
+                    {selectedStyleTemplate ? `🎨 ${selectedStyleTemplate.name}` : '🎨 그림체 템플릿'}
                   </button>
                   {savedStyles.length > 0 && (
                     <div className="relative group/styles">
