@@ -3,6 +3,18 @@ import * as path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import { styleTemplates } from '../src/data/styleTemplates.js';
 
+// .env.local 파일 로드
+const envPath = path.join(process.cwd(), '.env.local');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf-8');
+  envContent.split('\n').forEach(line => {
+    const [key, ...valueParts] = line.split('=');
+    if (key && valueParts.length > 0) {
+      process.env[key.trim()] = valueParts.join('=').trim();
+    }
+  });
+}
+
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const COST_PER_IMAGE = 0.02; // Imagen 3 Fast
 
@@ -11,19 +23,21 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 async function generateImage(genai: GoogleGenAI, prompt: string, retries = 3): Promise<Buffer | null> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const result = await genai.models.generateImages({
-        model: 'imagen-3.0-fast-generate-001',
-        prompt: prompt,
+      const enhancedPrompt = `Widescreen 16:9 aspect ratio, ${prompt}, high quality, detailed`;
+
+      const result = await genai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: enhancedPrompt,
         config: {
-          numberOfImages: 1,
-          aspectRatio: '16:9',
+          responseModalities: ['image', 'text']
         }
       });
 
-      if (result.generatedImages && result.generatedImages.length > 0) {
-        const imageData = result.generatedImages[0].image?.imageBytes;
-        if (imageData) {
-          return Buffer.from(imageData, 'base64');
+      if (result.candidates && result.candidates[0]?.content?.parts) {
+        for (const part of result.candidates[0].content.parts) {
+          if (part.inlineData?.data) {
+            return Buffer.from(part.inlineData.data, 'base64');
+          }
         }
       }
     } catch (error: any) {
