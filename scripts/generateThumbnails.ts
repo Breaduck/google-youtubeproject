@@ -4,7 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import { styleTemplates } from '../src/data/styleTemplates.js';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const COST_PER_IMAGE = 0.04; // Imagen 3 Fast
+const COST_PER_IMAGE = 0.02; // Imagen 3 Fast
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -12,16 +12,19 @@ async function generateImage(genai: GoogleGenAI, prompt: string, retries = 3): P
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const result = await genai.models.generateImages({
-        model: 'imagen-3.0-generate-001',
+        model: 'imagen-3.0-fast-generate-001',
         prompt: prompt,
-        number: 1,
-        aspectRatio: '16:9',
-        safetySettings: [{ category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }],
+        config: {
+          numberOfImages: 1,
+          aspectRatio: '16:9',
+        }
       });
 
-      if (result.images && result.images.length > 0) {
-        const base64Image = result.images[0].image.imageBytes;
-        return Buffer.from(base64Image, 'base64');
+      if (result.generatedImages && result.generatedImages.length > 0) {
+        const imageData = result.generatedImages[0].image?.imageBytes;
+        if (imageData) {
+          return Buffer.from(imageData, 'base64');
+        }
       }
     } catch (error: any) {
       console.error(`  ❌ Attempt ${attempt}/${retries} failed: ${error.message}`);
