@@ -47,26 +47,25 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
               }`}
             >
               {/* 썸네일 이미지 */}
-              <div className={`aspect-video relative ${isSelected ? 'blur-sm' : ''}`}>
+              <div
+                className={`aspect-video relative ${isSelected ? 'blur-sm' : ''}`}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setExpandedImage(template.thumbnail);
+                }}
+              >
                 <img
                   src={template.thumbnail}
                   alt={template.name}
                   className="w-full h-full object-cover"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    setExpandedImage(template.thumbnail);
-                  }}
                   onError={(e) => {
                     // 이미지 로드 실패 시 그라데이션 배경 표시
                     (e.target as HTMLImageElement).style.display = 'none';
                     (e.target as HTMLImageElement).parentElement!.classList.add('bg-gradient-to-br', 'from-purple-900', 'via-blue-900', 'to-indigo-900', 'flex', 'items-center', 'justify-center', 'p-4');
                   }}
                 />
-                <div className="absolute inset-0 bg-black/20" />
+                <div className="absolute inset-0 bg-black/20 pointer-events-none" />
               </div>
 
               {/* 하단 텍스트 오버레이 */}
