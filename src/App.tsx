@@ -25,9 +25,9 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   opacity: 1.0,
   template: 'default-white',
   textColor: '#FFFFFF',
-  strokeColor: '#000000',
-  strokeWidth: 6,
-  backgroundColor: undefined,
+  strokeColor: 'transparent',
+  strokeWidth: 0,
+  backgroundColor: '#000000',
   bgPadding: 12,
   bgOpacity: 0.8,
   position: 'bottom',
@@ -2932,48 +2932,30 @@ Generate a detailed English prompt for image generation including scene composit
                     </div>
 
                     {/* 크기 & 불투명도 - 컴팩트 */}
-                    <div className="space-y-1.5 p-3 bg-white border border-slate-200 rounded-lg">
+                    <div className="space-y-2 p-3 bg-white border border-slate-200 rounded-lg">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-medium text-slate-600">글자 크기</label>
-                        <span className="text-xs font-mono text-slate-500">{subtitleSettings.fontSize}px</span>
+                        <input
+                          type="number"
+                          min="16"
+                          max="80"
+                          value={subtitleSettings.fontSize}
+                          onChange={(e) => setSubtitleSettings({...subtitleSettings, fontSize: Math.max(16, Math.min(80, parseInt(e.target.value) || 32))})}
+                          className="w-20 px-2 py-1 text-xs border border-slate-200 rounded text-center"
+                        />
                       </div>
-                      <input
-                        type="range"
-                        min="16"
-                        max="80"
-                        value={subtitleSettings.fontSize}
-                        onChange={(e) => setSubtitleSettings({...subtitleSettings, fontSize: parseInt(e.target.value)})}
-                        className="w-full h-1.5"
-                      />
-                      <div className="flex items-center justify-between mt-2">
-                        <label className="text-xs font-medium text-slate-600">자막 불투명도</label>
-                        <span className="text-xs font-mono text-slate-500">{Math.round(subtitleSettings.opacity * 100)}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        value={subtitleSettings.opacity}
-                        onChange={(e) => setSubtitleSettings({...subtitleSettings, opacity: parseFloat(e.target.value)})}
-                        className="w-full h-1.5"
-                      />
                       {subtitleSettings.backgroundColor && (
-                        <>
-                          <div className="flex items-center justify-between mt-2">
-                            <label className="text-xs font-medium text-slate-600">배경 불투명도</label>
-                            <span className="text-xs font-mono text-slate-500">{Math.round(subtitleSettings.bgOpacity * 100)}%</span>
-                          </div>
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-medium text-slate-600">배경 불투명도</label>
                           <input
-                            type="range"
+                            type="number"
                             min="0"
-                            max="1"
-                            step="0.05"
-                            value={subtitleSettings.bgOpacity}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, bgOpacity: parseFloat(e.target.value)})}
-                            className="w-full h-1.5"
+                            max="100"
+                            value={Math.round(subtitleSettings.bgOpacity * 100)}
+                            onChange={(e) => setSubtitleSettings({...subtitleSettings, bgOpacity: Math.max(0, Math.min(100, parseInt(e.target.value) || 80)) / 100})}
+                            className="w-20 px-2 py-1 text-xs border border-slate-200 rounded text-center"
                           />
-                        </>
+                        </div>
                       )}
                     </div>
 
@@ -3002,16 +2984,31 @@ Generate a detailed English prompt for image generation including scene composit
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <label className="text-xs font-medium text-slate-600">Y축 미세 조정</label>
-                        <span className="text-xs font-mono text-slate-500">{subtitleSettings.yPosition}px</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="40"
+                            max="720"
+                            value={subtitleSettings.yPosition}
+                            onChange={(e) => setSubtitleSettings({...subtitleSettings, yPosition: Math.max(40, Math.min(720, parseInt(e.target.value) || 680))})}
+                            className="w-20 px-2 py-1 text-xs border border-slate-200 rounded text-center"
+                          />
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              onClick={() => setSubtitleSettings({...subtitleSettings, yPosition: Math.max(40, subtitleSettings.yPosition - 1)})}
+                              className="w-5 h-3 flex items-center justify-center bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-sm text-slate-600 text-xs"
+                            >
+                              ▲
+                            </button>
+                            <button
+                              onClick={() => setSubtitleSettings({...subtitleSettings, yPosition: Math.min(720, subtitleSettings.yPosition + 1)})}
+                              className="w-5 h-3 flex items-center justify-center bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-sm text-slate-600 text-xs"
+                            >
+                              ▼
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <input
-                        type="range"
-                        min="40"
-                        max="720"
-                        value={subtitleSettings.yPosition}
-                        onChange={(e) => setSubtitleSettings({...subtitleSettings, yPosition: parseInt(e.target.value)})}
-                        className="w-full h-1.5"
-                      />
                     </div>
 
                     {/* 고정 옵션 */}
@@ -3088,7 +3085,10 @@ Generate a detailed English prompt for image generation including scene composit
 
                     {/* 미리보기 Canvas */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">미리보기</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-slate-700">미리보기</label>
+                        <span className="text-xs text-slate-500">클릭하여 Y축 위치 조정</span>
+                      </div>
                       <div className="relative border-2 border-slate-300 rounded-lg overflow-hidden bg-slate-900">
                         <canvas
                           id="subtitle-preview-canvas"
@@ -3103,9 +3103,6 @@ Generate a detailed English prompt for image generation including scene composit
                             setSubtitleSettings({...subtitleSettings, yPosition: Math.round(clickY)});
                           }}
                         />
-                        <div className="absolute bottom-2 left-2 text-xs text-white bg-black/50 px-2 py-1 rounded">
-                          클릭하여 Y축 위치 조정
-                        </div>
                       </div>
                     </div>
                   </div>
