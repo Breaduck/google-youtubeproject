@@ -1,52 +1,30 @@
-import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { GoogleGenAI } from '@google/genai';
 import { styleTemplates } from '../src/data/styleTemplates.js';
 
-const VERTEX_AI_ENDPOINT = 'https://us-central1-aiplatform.googleapis.com';
-const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT_ID || '';
-const MODEL = 'imagen-4.0-generate-001';
-const COST_PER_IMAGE = 0.02; // USD
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const COST_PER_IMAGE = 0.04; // Imagen 3 Fast
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function getAccessToken(): Promise<string> {
-  const token = execSync('gcloud auth print-access-token', { encoding: 'utf-8' }).trim();
-  return token;
-}
-
-async function generateImage(prompt: string, retries = 3): Promise<Buffer | null> {
-  const token = await getAccessToken();
-  const url = `${VERTEX_AI_ENDPOINT}/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/${MODEL}:predict`;
-
+async function generateImage(genai: GoogleGenAI, prompt: string, retries = 3): Promise<Buffer | null> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          instances: [{ prompt }],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: '16:9',
-            safetySetting: 'block_some',
-            personGeneration: 'allow_adult',
-          },
-        }),
+      const result = await genai.models.generateImages({
+        model: 'imagen-3.0-generate-001',
+        prompt: prompt,
+        number: 1,
+        aspectRatio: '16:9',
+        safetySettings: [{ category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }],
       });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      if (result.images && result.images.length > 0) {
+        const base64Image = result.images[0].image.imageBytes;
+        return Buffer.from(base64Image, 'base64');
       }
-
-      const data: any = await response.json();
-      const base64Image = data.predictions[0].bytesBase64Encoded;
-      return Buffer.from(base64Image, 'base64');
-    } catch (error) {
-      console.error(`  ❌ Attempt ${attempt}/${retries} failed`);
+    } catch (error: any) {
+      console.error(`  ❌ Attempt ${attempt}/${retries} failed: ${error.message}`);
       if (attempt < retries) await sleep(2000);
     }
   }
@@ -56,10 +34,13 @@ async function generateImage(prompt: string, retries = 3): Promise<Buffer | null
 async function main() {
   console.log('🎨 스타일 템플릿 썸네일 생성 시작\n');
 
-  if (!PROJECT_ID) {
-    console.error('❌ GOOGLE_CLOUD_PROJECT_ID 환경변수가 설정되지 않았습니다.');
+  if (!GEMINI_API_KEY) {
+    console.error('❌ GEMINI_API_KEY 환경변수가 설정되지 않았습니다.');
+    console.error('설정 방법: export GEMINI_API_KEY=your_api_key');
     process.exit(1);
   }
+
+  const genai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
   const outputDir = path.join(process.cwd(), 'public', 'templates');
   if (!fs.existsSync(outputDir)) {
@@ -75,7 +56,7 @@ async function main() {
 
     const prompt = `${template.imagePromptPrefix}, cinematic wide shot, a young warrior standing on a cliff overlooking a vast landscape, dramatic lighting, high quality, detailed background, 16:9 aspect ratio`;
 
-    const imageBuffer = await generateImage(prompt);
+    const imageBuffer = await generateImage(genai, prompt);
 
     if (imageBuffer) {
       const outputPath = path.join(outputDir, `${template.id}.webp`);
