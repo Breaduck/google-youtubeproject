@@ -2161,7 +2161,7 @@ Generate a detailed English prompt for image generation including scene composit
                     onClick={mergeSelectedScenes}
                     className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-all"
                   >
-                    병합
+                    씬 합치기 ({selectedSceneIds.length}개)
                   </button>
                 )}
                 <button
@@ -2190,25 +2190,38 @@ Generate a detailed English prompt for image generation including scene composit
                 {project.scenes.map((scene, idx) => (
                   <div key={scene.id} className={`bg-white rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-slate-100 hover:border-slate-200'}`}>
                     {/* 이미지 영역 */}
-                    <div className="aspect-video bg-slate-50 relative group/img">
+                    <div
+                      className={`aspect-video bg-slate-50 relative group/img ${isSelectionMode ? 'cursor-pointer' : ''}`}
+                      onClick={() => {
+                        if (isSelectionMode) {
+                          setSelectedSceneIds(prev =>
+                            prev.includes(scene.id)
+                              ? prev.filter(id => id !== scene.id)
+                              : [...prev, scene.id]
+                          );
+                        }
+                      }}
+                    >
                       <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-slate-900/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-xs font-semibold">#{idx + 1}</div>
 
-                      {/* Selection checkbox */}
+                      {/* 아이폰 스타일 선택 오버레이 */}
                       {isSelectionMode && (
-                        <div className="absolute top-3 left-14 z-10">
-                          <input
-                            type="checkbox"
-                            checked={selectedSceneIds.includes(scene.id)}
-                            onChange={() => {
-                              setSelectedSceneIds(prev =>
-                                prev.includes(scene.id)
-                                  ? prev.filter(id => id !== scene.id)
-                                  : [...prev, scene.id]
-                              );
-                            }}
-                            className="w-5 h-5 rounded border-2 border-white cursor-pointer"
-                          />
-                        </div>
+                        <>
+                          {/* 선택되지 않은 카드 어둡게 */}
+                          {!selectedSceneIds.includes(scene.id) && (
+                            <div className="absolute inset-0 z-5 bg-slate-900/20 pointer-events-none" />
+                          )}
+                          {/* 체크마크 */}
+                          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                            {selectedSceneIds.includes(scene.id) && (
+                              <div className="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center shadow-xl animate-scale-in">
+                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </>
                       )}
 
                       {/* 상단 우측 버튼들 */}
