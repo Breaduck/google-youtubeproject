@@ -212,6 +212,7 @@ const App: React.FC = () => {
   const [chirpApiKey, setChirpApiKey] = useState(localStorage.getItem('chirp_api_key') || '');
   const [chirpVoice, setChirpVoice] = useState(localStorage.getItem('chirp_voice') || 'Kore');
   const [chirpSpeed, setChirpSpeed] = useState(parseFloat(localStorage.getItem('chirp_speed') || '1.0'));
+  const [neural2Voice, setNeural2Voice] = useState(localStorage.getItem('neural2_voice') || 'ko-KR-Neural2-A');
 
   // Azure TTS 설정
   const [azureApiKey, setAzureApiKey] = useState(localStorage.getItem('azure_tts_key') || '');
@@ -433,9 +434,10 @@ const App: React.FC = () => {
     localStorage.setItem('chirp_api_key', chirpApiKey);
     localStorage.setItem('chirp_voice', chirpVoice);
     localStorage.setItem('chirp_speed', chirpSpeed.toString());
+    localStorage.setItem('neural2_voice', neural2Voice);
     localStorage.setItem('azure_tts_key', azureApiKey);
     localStorage.setItem('azure_tts_voice', azureVoice);
-  }, [audioProvider, chirpApiKey, chirpVoice, chirpSpeed, azureApiKey, azureVoice]);
+  }, [audioProvider, chirpApiKey, chirpVoice, chirpSpeed, neural2Voice, azureApiKey, azureVoice]);
 
   useEffect(() => {
     localStorage.setItem('subtitle_settings', JSON.stringify(subtitleSettings));
@@ -1281,9 +1283,8 @@ const App: React.FC = () => {
         alert('Microsoft 무료 음성 API는 준비 중입니다.');
         throw new Error('Microsoft TTS not implemented');
       } else if (audioProvider === 'google-neural2') {
-        // Google Neural2 (구현 예정)
-        alert('Google Neural2는 준비 중입니다.');
-        throw new Error('Neural2 not implemented');
+        // Google Neural2
+        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, neural2Voice, chirpSpeed, chirpApiKey);
       } else {
         // Google Chirp3 (기본)
         audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, chirpVoice, chirpSpeed, chirpApiKey);
@@ -2877,21 +2878,21 @@ const App: React.FC = () => {
                         }}
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="default-white">기본 (흰색)</option>
-                        <option value="black-bg">검정 배경</option>
-                        <option value="transparent-black">반투명 검정</option>
-                        <option value="yellow">노란 자막</option>
-                        <option value="neon-green">네온 그린</option>
-                        <option value="youtube">유튜브</option>
-                        <option value="youtube-shorts">유튜브 쇼츠</option>
-                        <option value="custom">커스텀 색상</option>
+                        <option value="default-white">⚪ 기본 (흰색 + 검은 외곽선)</option>
+                        <option value="black-bg">⬛ 검정 배경 (반투명 박스)</option>
+                        <option value="transparent-black">🔲 반투명 검정</option>
+                        <option value="yellow">🟡 노란 자막</option>
+                        <option value="neon-green">🟢 네온 그린</option>
+                        <option value="youtube">🔴 유튜브 스타일</option>
+                        <option value="youtube-shorts">📺 유튜브 쇼츠 (굵은 외곽선)</option>
+                        <option value="custom">🎨 커스텀 색상</option>
                       </select>
                       <p className="text-xs text-slate-500 mt-1">프리셋 선택 후 크기/위치 조정 → 하단에서 색상 커스터마이징</p>
                     </div>
 
                     {/* 크기 & 글씨체 - 컴팩트 */}
                     <div className="space-y-2 p-3 bg-white border border-slate-200 rounded-lg">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-3">
                         <label className="text-xs font-medium text-slate-600">글자 크기</label>
                         <input
                           type="number"
@@ -2899,15 +2900,15 @@ const App: React.FC = () => {
                           max="80"
                           value={subtitleSettings.fontSize}
                           onChange={(e) => setSubtitleSettings({...subtitleSettings, fontSize: Math.max(16, Math.min(80, parseInt(e.target.value) || 32))})}
-                          className="w-20 px-2 py-1 text-xs border border-slate-200 rounded text-center"
+                          className="w-24 px-2 py-1.5 text-xs border border-slate-200 rounded text-center"
                         />
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-3">
                         <label className="text-xs font-medium text-slate-600">글씨체</label>
                         <select
                           value={subtitleSettings.fontFamily}
                           onChange={(e) => setSubtitleSettings({...subtitleSettings, fontFamily: e.target.value})}
-                          className="w-32 px-2 py-1 text-xs border border-slate-200 rounded"
+                          className="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded"
                         >
                           <option value="Pretendard">Pretendard (기본)</option>
                           <option value="Noto Sans KR">Noto Sans KR</option>
@@ -2919,7 +2920,7 @@ const App: React.FC = () => {
                         </select>
                       </div>
                       {subtitleSettings.backgroundColor && (
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-3">
                           <label className="text-xs font-medium text-slate-600">배경 불투명도</label>
                           <input
                             type="number"
@@ -2927,7 +2928,7 @@ const App: React.FC = () => {
                             max="100"
                             value={Math.round(subtitleSettings.bgOpacity * 100)}
                             onChange={(e) => setSubtitleSettings({...subtitleSettings, bgOpacity: Math.max(0, Math.min(100, parseInt(e.target.value) || 80)) / 100})}
-                            className="w-20 px-2 py-1 text-xs border border-slate-200 rounded text-center"
+                            className="w-24 px-2 py-1.5 text-xs border border-slate-200 rounded text-center"
                           />
                         </div>
                       )}
@@ -2956,7 +2957,7 @@ const App: React.FC = () => {
                           하단
                         </button>
                       </div>
-                      <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center justify-between gap-3 mt-2">
                         <label className="text-xs font-medium text-slate-600">Y축 미세 조정</label>
                         <div className="flex items-center gap-1">
                           <input
@@ -2965,7 +2966,7 @@ const App: React.FC = () => {
                             max="720"
                             value={subtitleSettings.yPosition}
                             onChange={(e) => setSubtitleSettings({...subtitleSettings, yPosition: Math.max(40, Math.min(720, parseInt(e.target.value) || 680))})}
-                            className="w-20 px-2 py-1 text-xs border border-slate-200 rounded text-center"
+                            className="w-24 px-2 py-1.5 text-xs border border-slate-200 rounded text-center"
                           />
                           <div className="flex flex-col gap-0.5">
                             <button
@@ -3099,7 +3100,7 @@ const App: React.FC = () => {
                         <button onClick={() => setAudioProvider('elevenlabs')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>ElevenLabs</button>
                       </div>
                     </div>
-                    {(audioProvider === 'google-chirp3' || audioProvider === 'google-neural2') && (
+                    {audioProvider === 'google-chirp3' && (
                       <>
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700">Chirp API 키 (Gemini와 동일)</label>
@@ -3125,6 +3126,56 @@ const App: React.FC = () => {
                             <option value="Fenrir">Fenrir - 힘찬, 강렬한, 역동적인 (남성)</option>
                             <option value="Puck">Puck - 경쾌한, 활발한, 친근한 (남성)</option>
                             <option value="Orus">Orus - 차분한, 부드러운, 따뜻한 (남성)</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">목소리 속도</label>
+                          <div className="flex gap-3 items-center">
+                            <input
+                              type="range"
+                              min="0.5"
+                              max="2.0"
+                              step="0.1"
+                              value={chirpSpeed}
+                              onChange={e => setChirpSpeed(parseFloat(e.target.value))}
+                              className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
+                            />
+                            <input
+                              type="number"
+                              min="0.5"
+                              max="2.0"
+                              step="0.1"
+                              value={chirpSpeed}
+                              onChange={e => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
+                              className="w-20 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                            />
+                            <span className="text-sm text-slate-600 min-w-[12px]">×</span>
+                          </div>
+                          <p className="text-xs text-slate-500">0.5 (느리게) ~ 2.0 (빠르게)</p>
+                        </div>
+                      </>
+                    )}
+                    {audioProvider === 'google-neural2' && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">Neural2 API 키 (Gemini와 동일)</label>
+                          <div className="relative">
+                            <input type={showChirpKey ? "text" : "password"} value={chirpApiKey} onChange={e => setChirpApiKey(e.target.value)} placeholder="API 키 입력 (비워두면 Gemini 키 사용)" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
+                            <button onClick={() => setShowChirpKey(!showChirpKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                              {showChirpKey ? (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">Neural2 음성</label>
+                          <select value={neural2Voice} onChange={e => setNeural2Voice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                            <option value="ko-KR-Neural2-A">Neural2-A - 표준, 여성 (Standard Female)</option>
+                            <option value="ko-KR-Neural2-B">Neural2-B - 부드러운, 여성 (Soft Female)</option>
+                            <option value="ko-KR-Neural2-C">Neural2-C - 자연스러운, 남성 (Natural Male)</option>
                           </select>
                         </div>
                         <div className="space-y-2">
