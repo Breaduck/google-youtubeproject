@@ -7,15 +7,9 @@
    npm install -D tsx
    ```
 
-2. **Google Cloud SDK 설치 및 인증**
+2. **Gemini API 키 설정**
    ```bash
-   gcloud auth login
-   gcloud config set project YOUR_PROJECT_ID
-   ```
-
-3. **환경변수 설정**
-   ```bash
-   export GOOGLE_CLOUD_PROJECT_ID=your-project-id
+   export GEMINI_API_KEY=your_gemini_api_key
    ```
 
 ## 실행
@@ -27,8 +21,9 @@ npm run generate-thumbnails
 ## 예상 비용
 
 - 템플릿 개수: 41개
-- 이미지당 비용: $0.02
-- **총 예상 비용: $0.82 (약 ₩1,197)**
+- 모델: Imagen 3 Fast
+- 이미지당 비용: $0.04
+- **총 예상 비용: $1.64 (약 ₩2,394)**
 
 ## 결과물
 
@@ -40,4 +35,4 @@ npm run generate-thumbnails
 
 - 1초 간격으로 API 호출 (Rate limit 방지)
 - 실패 시 3회 자동 재시도
-- Google Cloud 인증 필요 (`gcloud auth print-access-token`)
+- Gemini API 키 필요
