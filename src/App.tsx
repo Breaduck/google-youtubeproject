@@ -20,6 +20,7 @@ const TAG_MAP: Record<string, string> = {
 
 const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   fontSize: 32,
+  fontFamily: 'Pretendard',
   letterSpacing: 0,
   lineHeight: 1.2,
   opacity: 1.0,
@@ -452,7 +453,7 @@ const App: React.FC = () => {
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, 1280, 720);
 
-    ctx.font = `bold ${subtitleSettings.fontSize}px "Pretendard", sans-serif`;
+    ctx.font = `bold ${subtitleSettings.fontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
 
@@ -2229,20 +2230,28 @@ Generate a detailed English prompt for image generation including scene composit
                       {/* 아이폰 스타일 선택 오버레이 */}
                       {isSelectionMode && (
                         <>
-                          {/* 선택되지 않은 카드 어둡게 */}
-                          {!selectedSceneIds.includes(scene.id) && (
-                            <div className="absolute inset-0 z-5 bg-slate-900/20 pointer-events-none" />
-                          )}
-                          {/* 체크마크 */}
-                          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-                            {selectedSceneIds.includes(scene.id) && (
-                              <div className="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center shadow-xl animate-scale-in">
-                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          {selectedSceneIds.includes(scene.id) ? (
+                            <>
+                              {/* 선택된 카드: 블러 + 연두색 체크 */}
+                              <div className="absolute inset-0 z-5 backdrop-blur-sm bg-black/30 pointer-events-none" />
+                              <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                                <div className="w-20 h-20 bg-lime-500 rounded-full flex items-center justify-center shadow-2xl animate-scale-in">
+                                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            /* 선택 안 된 카드: hover 시 선택 가능 표시 */
+                            <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity group-hover/card:opacity-100">
+                              <div className="w-20 h-20 bg-white/80 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-300">
+                                <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                  <circle cx="12" cy="12" r="10" />
                                 </svg>
                               </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </>
                       )}
 
@@ -2701,11 +2710,11 @@ Generate a detailed English prompt for image generation including scene composit
                 )}
               </div>
 
-              {/* 비디오 API 설정 - 아코디언 */}
+              {/* 영상화 API 설정 - 아코디언 */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <button onClick={() => setExpandedSetting(expandedSetting === 'bytedance' ? null : 'bytedance')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">비디오 API 설정</span>
+                    <span className="text-sm font-medium text-slate-700">영상화 API 설정</span>
                     <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">ModelArk</span>
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'bytedance' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -2832,9 +2841,11 @@ Generate a detailed English prompt for image generation including scene composit
 
                     {/* 영상 생성할 장면 수 설정 (최대 180장) */}
                     <div className="space-y-2 pt-4 border-t border-slate-200 mt-4">
-                      <div className="flex items-baseline justify-between">
+                      <div className="flex items-center justify-between">
                         <label className="text-sm font-medium text-slate-700">영상 생성할 장면 수 (최대 180장)</label>
-                        <span className="text-xs text-slate-500">총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초</span>
+                        <div className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-lg">
+                          <span className="text-sm font-semibold text-indigo-700">총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초</span>
+                        </div>
                       </div>
                       <div className="flex gap-3 items-center">
                         <input
@@ -2930,7 +2941,7 @@ Generate a detailed English prompt for image generation including scene composit
                       <p className="text-xs text-slate-500 mt-1">프리셋 선택 후 크기/위치 조정 → 하단에서 색상 커스터마이징</p>
                     </div>
 
-                    {/* 크기 & 불투명도 - 컴팩트 */}
+                    {/* 크기 & 글씨체 - 컴팩트 */}
                     <div className="space-y-2 p-3 bg-white border border-slate-200 rounded-lg">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-medium text-slate-600">글자 크기</label>
@@ -2942,6 +2953,22 @@ Generate a detailed English prompt for image generation including scene composit
                           onChange={(e) => setSubtitleSettings({...subtitleSettings, fontSize: Math.max(16, Math.min(80, parseInt(e.target.value) || 32))})}
                           className="w-20 px-2 py-1 text-xs border border-slate-200 rounded text-center"
                         />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-slate-600">글씨체</label>
+                        <select
+                          value={subtitleSettings.fontFamily}
+                          onChange={(e) => setSubtitleSettings({...subtitleSettings, fontFamily: e.target.value})}
+                          className="w-32 px-2 py-1 text-xs border border-slate-200 rounded"
+                        >
+                          <option value="Pretendard">Pretendard (기본)</option>
+                          <option value="Noto Sans KR">Noto Sans KR</option>
+                          <option value="Nanum Gothic">나눔고딕</option>
+                          <option value="Malgun Gothic">맑은 고딕</option>
+                          <option value="Nanum Myeongjo">나눔명조</option>
+                          <option value="Arial">Arial</option>
+                          <option value="Impact">Impact</option>
+                        </select>
                       </div>
                       {subtitleSettings.backgroundColor && (
                         <div className="flex items-center justify-between">

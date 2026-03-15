@@ -80,6 +80,7 @@ export type SubtitlePosition = 'top' | 'center' | 'bottom';
 
 export interface SubtitleSettings {
   fontSize: number;           // 16~80px
+  fontFamily: string;         // 글씨체
   letterSpacing: number;      // -2~10px (Phase 2)
   lineHeight: number;         // 0.8~2.0 (Phase 2)
   opacity: number;            // 0~1
