@@ -212,6 +212,12 @@ const App: React.FC = () => {
   const [chirpVoice, setChirpVoice] = useState(localStorage.getItem('chirp_voice') || 'Kore');
   const [chirpSpeed, setChirpSpeed] = useState(parseFloat(localStorage.getItem('chirp_speed') || '1.0'));
 
+  // Azure TTS 설정
+  const [azureApiKey, setAzureApiKey] = useState(localStorage.getItem('azure_tts_key') || '');
+  const [azureRegion, setAzureRegion] = useState(localStorage.getItem('azure_tts_region') || 'koreacentral');
+  const [azureVoice, setAzureVoice] = useState(localStorage.getItem('azure_tts_voice') || 'ko-KR-SunHiNeural');
+  const [showAzureKey, setShowAzureKey] = useState(false);
+
   // 자막 설정
   const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(() => {
     try {
@@ -426,7 +432,10 @@ const App: React.FC = () => {
     localStorage.setItem('chirp_api_key', chirpApiKey);
     localStorage.setItem('chirp_voice', chirpVoice);
     localStorage.setItem('chirp_speed', chirpSpeed.toString());
-  }, [audioProvider, chirpApiKey, chirpVoice, chirpSpeed]);
+    localStorage.setItem('azure_tts_key', azureApiKey);
+    localStorage.setItem('azure_tts_region', azureRegion);
+    localStorage.setItem('azure_tts_voice', azureVoice);
+  }, [audioProvider, chirpApiKey, chirpVoice, chirpSpeed, azureApiKey, azureRegion, azureVoice]);
 
   useEffect(() => {
     localStorage.setItem('subtitle_settings', JSON.stringify(subtitleSettings));
@@ -2713,61 +2722,6 @@ Generate a detailed English prompt for image generation including scene composit
                       </select>
                     </div>
 
-                    {/* 영상 생성할 장면 수 설정 (최대 30분 = 180장) */}
-                    <div className="space-y-2 pt-2">
-                      <label className="text-sm font-medium text-slate-700">영상 생성할 장면 수 (최대 180장)</label>
-                      <div className="flex gap-2 items-center justify-center">
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            min="0"
-                            max="30"
-                            value={videoRangeMinutes}
-                            onChange={e => updateVideoRange(Math.max(0, Math.min(30, parseInt(e.target.value) || 0)), videoRangeSeconds)}
-                            className="w-16 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
-                          />
-                          <span className="text-sm font-medium text-slate-700">분</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            min="0"
-                            max="59"
-                            value={videoRangeSeconds}
-                            onChange={e => updateVideoRange(videoRangeMinutes, Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
-                            className="w-16 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
-                          />
-                          <span className="text-sm font-medium text-slate-700">초</span>
-                        </div>
-                      </div>
-                      {(() => {
-                        const { numScenes, costPerScene, totalCost } = calculateVideoCost();
-                        const totalScenes = project?.scenes.length || 0;
-                        return (
-                          <div className="px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg space-y-2">
-                            <div className="flex items-baseline justify-between">
-                              <p className="text-sm font-semibold text-indigo-900">
-                                💰 {numScenes}장 영상화 예정
-                              </p>
-                              <p className="text-lg font-bold text-indigo-700">
-                                ₩{totalCost.toLocaleString()}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-indigo-600">
-                              <span>1장당 ₩{costPerScene.toLocaleString()}</span>
-                              <span className="text-indigo-400">•</span>
-                              <span>720p 10초 고정</span>
-                            </div>
-                            {totalScenes > numScenes && (
-                              <p className="text-xs text-purple-600 mt-1">
-                                📌 나머지 {totalScenes - numScenes}장은 정적 효과(무료)로 처리됩니다
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-
                     {videoProvider === 'byteplus' && (
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-700">BytePlus API 키</label>
@@ -2867,10 +2821,6 @@ Generate a detailed English prompt for image generation including scene composit
                             <option value="seedance-1.5-pro">SeeDANCE 1.5 Pro</option>
                           </select>
                         </div>
-                        <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-xs text-blue-700 font-medium">⚙️ 고정 설정</p>
-                          <p className="text-xs text-blue-600 mt-1">해상도: 720p • 영상 길이: 10초 (1장당 ₩307)</p>
-                        </div>
                       </>
                     )}
                     {videoProvider === 'evolink' && (
@@ -2880,6 +2830,59 @@ Generate a detailed English prompt for image generation including scene composit
                         <a href="https://evolink.ai/seedance-1-pro-fast" target="_blank" rel="noopener noreferrer" className="text-xs text-purple-700 underline hover:text-purple-900 mt-1 inline-block">공식 문서 →</a>
                       </div>
                     )}
+
+                    {/* 영상 생성할 장면 수 설정 (최대 180장) */}
+                    <div className="space-y-2 pt-4 border-t border-slate-200 mt-4">
+                      <div className="flex items-baseline justify-between">
+                        <label className="text-sm font-medium text-slate-700">영상 생성할 장면 수 (최대 180장)</label>
+                        <span className="text-xs text-slate-500">총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초</span>
+                      </div>
+                      <div className="flex gap-3 items-center">
+                        <input
+                          type="range"
+                          min="0"
+                          max="180"
+                          value={Math.floor(videoGenerationRange / 10)}
+                          onChange={e => setVideoGenerationRange(parseInt(e.target.value) * 10)}
+                          className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max="180"
+                          value={Math.floor(videoGenerationRange / 10)}
+                          onChange={e => setVideoGenerationRange(Math.max(0, Math.min(180, parseInt(e.target.value) || 0)) * 10)}
+                          className="w-20 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        />
+                        <span className="text-sm text-slate-600">장</span>
+                      </div>
+                      {(() => {
+                        const { numScenes, costPerScene, totalCost } = calculateVideoCost();
+                        const totalScenes = project?.scenes.length || 0;
+                        return (
+                          <div className="px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg space-y-2">
+                            <div className="flex items-baseline justify-between">
+                              <p className="text-sm font-semibold text-indigo-900">
+                                💰 {numScenes}장 영상화 예정
+                              </p>
+                              <p className="text-lg font-bold text-indigo-700">
+                                ₩{totalCost.toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-indigo-600">
+                              <span>1장당 ₩{costPerScene.toLocaleString()}</span>
+                              <span className="text-indigo-400">•</span>
+                              <span>720p 10초 고정</span>
+                            </div>
+                            {totalScenes > numScenes && (
+                              <p className="text-xs text-purple-600 mt-1">
+                                📌 나머지 {totalScenes - numScenes}장은 정적 효과(무료)로 처리됩니다
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 )}
               </div>
@@ -3130,7 +3133,7 @@ Generate a detailed English prompt for image generation including scene composit
                       <div className="grid grid-cols-2 gap-2">
                         <button onClick={() => setAudioProvider('google-chirp3')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-chirp3' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Google Chirp3</button>
                         <button onClick={() => setAudioProvider('google-neural2')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-neural2' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Google Neural2</button>
-                        <button onClick={() => setAudioProvider('microsoft')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'microsoft' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Microsoft 무료</button>
+                        <button onClick={() => setAudioProvider('microsoft')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'microsoft' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Azure TTS</button>
                         <button onClick={() => setAudioProvider('elevenlabs')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>ElevenLabs</button>
                       </div>
                     </div>
@@ -3190,10 +3193,42 @@ Generate a detailed English prompt for image generation including scene composit
                       </>
                     )}
                     {audioProvider === 'microsoft' && (
-                      <div className="px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-xs text-green-700 font-medium">✅ API 키 불필요 (무료)</p>
-                        <p className="text-xs text-green-600 mt-1">Microsoft Azure 무료 음성 API를 사용합니다</p>
-                      </div>
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">Azure API 키</label>
+                          <div className="relative">
+                            <input type={showAzureKey ? "text" : "password"} value={azureApiKey} onChange={e => setAzureApiKey(e.target.value)} placeholder="Azure Speech API 키 입력" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
+                            <button onClick={() => setShowAzureKey(!showAzureKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                              {showAzureKey ? (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                              )}
+                            </button>
+                          </div>
+                          <p className="text-xs text-slate-500">무료 티어: 월 500만 글자</p>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">지역</label>
+                          <select value={azureRegion} onChange={e => setAzureRegion(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                            <option value="koreacentral">한국 중부 (Korea Central)</option>
+                            <option value="eastus">미국 동부 (East US)</option>
+                            <option value="westus">미국 서부 (West US)</option>
+                            <option value="westeurope">서유럽 (West Europe)</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">음성 선택</label>
+                          <select value={azureVoice} onChange={e => setAzureVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                            <optgroup label="한국어 Neural">
+                              <option value="ko-KR-SunHiNeural">선희 (여성, 밝고 친근함)</option>
+                              <option value="ko-KR-InJoonNeural">인준 (남성, 차분하고 안정적)</option>
+                              <option value="ko-KR-BongJinNeural">봉진 (남성, 중후하고 신뢰감)</option>
+                              <option value="ko-KR-GookMinNeural">국민 (남성, 명확하고 자연스러움)</option>
+                            </optgroup>
+                          </select>
+                        </div>
+                      </>
                     )}
                     {audioProvider === 'elevenlabs' && (
                       <>
