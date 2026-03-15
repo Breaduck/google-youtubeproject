@@ -1763,73 +1763,27 @@ const App: React.FC = () => {
     // Find position of first selected scene
     const firstSceneIndex = project.scenes.findIndex(s => s.id === selectedScenes[0].id);
 
-    setBgTask({ type: 'storyboard', message: '씬을 병합하고 새 프롬프트 생성 중...' });
-    setBgProgress(30);
+    // 단순히 대본 합치기 (Gemini API 호출 제거)
+    const mergedScene: Scene = {
+      id: crypto.randomUUID(),
+      scriptSegment: combinedScript,
+      imagePrompt: selectedScenes[0].imagePrompt, // 첫 번째 씬의 프롬프트 사용
+      imageUrl: null,
+      audioUrl: null,
+      videoUrl: null,
+      status: 'idle',
+      audioStatus: 'idle',
+      videoStatus: 'idle',
+      effect: selectedScenes[0].effect
+    };
 
-    try {
-      // Generate new image prompt using Gemini
-      const characterDescriptions = project.characters
-        .map(c => `- ${c.name}: ${c.visualDescription}`)
-        .join('\n');
+    // Remove selected scenes and insert merged scene at first position
+    const newScenes = project.scenes.filter(s => !selectedSceneIds.includes(s.id));
+    newScenes.splice(firstSceneIndex, 0, mergedScene);
 
-      const prompt = `Generate a detailed image generation prompt for this scene.
-
-Characters:
-${characterDescriptions}
-
-Style: ${project.customStyleDescription || project.style}
-
-Scene dialogue:
-${combinedScript}
-
-Generate a detailed English prompt for image generation including scene composition, character positions, background, lighting, mood. Return ONLY the prompt text, no explanation.`;
-
-      const apiKey = localStorage.getItem('gemini_api_key') || '';
-      const model = localStorage.getItem('gemini_model') || 'gemini-3-flash-preview';
-
-      // Google Cloud (Vertex AI) 설정 확인
-      const projectId = localStorage.getItem('google_cloud_project_id') || '';
-      const location = localStorage.getItem('google_cloud_location') || 'us-central1';
-      const ai = projectId && projectId.trim().length > 0
-        ? new GoogleGenAI({ apiKey, vertexai: true, project: projectId, location, apiVersion: 'v1' })
-        : new GoogleGenAI({ apiKey });
-
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: prompt
-      });
-
-      const newImagePrompt = response.text || combinedScript;
-
-      // Create merged scene
-      const mergedScene: Scene = {
-        id: crypto.randomUUID(),
-        scriptSegment: combinedScript,
-        imagePrompt: newImagePrompt,
-        imageUrl: null,
-        audioUrl: null,
-        videoUrl: null,
-        status: 'idle',
-        audioStatus: 'idle',
-        videoStatus: 'idle',
-        effect: selectedScenes[0].effect // Copy effect from first scene
-      };
-
-      // Remove selected scenes and insert merged scene at first position
-      const newScenes = project.scenes.filter(s => !selectedSceneIds.includes(s.id));
-      newScenes.splice(firstSceneIndex, 0, mergedScene);
-
-      updateCurrentProject({ scenes: newScenes });
-      setSelectedSceneIds([]);
-      setIsSelectionMode(false);
-      setBgTask(null);
-      setBgProgress(0);
-    } catch (err) {
-      console.error('Merge failed:', err);
-      setBgTask(null);
-      setBgProgress(0);
-      alert('씬 병합에 실패했습니다.');
-    }
+    updateCurrentProject({ scenes: newScenes });
+    setSelectedSceneIds([]);
+    setIsSelectionMode(false);
   };
 
   const addNewProject = () => {
@@ -2841,12 +2795,7 @@ Generate a detailed English prompt for image generation including scene composit
 
                     {/* 영상 생성할 장면 수 설정 (최대 180장) */}
                     <div className="space-y-2 pt-4 border-t border-slate-200 mt-4">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-slate-700">영상 생성할 장면 수 (최대 180장)</label>
-                        <div className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-lg">
-                          <span className="text-sm font-semibold text-indigo-700">총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초</span>
-                        </div>
-                      </div>
+                      <label className="text-sm font-medium text-slate-700">영상 생성할 장면 수 (최대 180장)</label>
                       <div className="flex gap-3 items-center">
                         <input
                           type="range"
@@ -2879,10 +2828,9 @@ Generate a detailed English prompt for image generation including scene composit
                                 ₩{totalCost.toLocaleString()}
                               </p>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-indigo-600">
-                              <span>1장당 ₩{costPerScene.toLocaleString()}</span>
-                              <span className="text-indigo-400">•</span>
-                              <span>720p 10초 고정</span>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-indigo-600">10초 영상 생성에 1장당 ₩{costPerScene.toLocaleString()}</span>
+                              <span className="text-xs font-medium text-indigo-700">총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초</span>
                             </div>
                             {totalScenes > numScenes && (
                               <p className="text-xs text-purple-600 mt-1">
@@ -2910,7 +2858,7 @@ Generate a detailed English prompt for image generation including scene composit
                   <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
                     {/* 템플릿 선택 */}
                     <div className="space-y-2 pt-4">
-                      <label className="text-sm font-medium text-slate-700">템플릿 프리셋</label>
+                      <label className="text-sm font-medium text-slate-700">템플릿</label>
                       <select
                         value={subtitleSettings.template}
                         onChange={(e) => {
@@ -3091,19 +3039,10 @@ Generate a detailed English prompt for image generation including scene composit
                             />
                             <input
                               type="text"
-                              value={subtitleSettings.backgroundColor || '없음'}
-                              onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value === '없음' ? undefined : e.target.value})}
+                              value={subtitleSettings.backgroundColor || '#000000'}
+                              onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
                               className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono bg-slate-50"
-                              placeholder="없음"
                             />
-                            {subtitleSettings.backgroundColor && (
-                              <button
-                                onClick={() => setSubtitleSettings({...subtitleSettings, backgroundColor: undefined})}
-                                className="px-2 py-1 text-xs text-red-600 hover:text-red-800"
-                              >
-                                ✕
-                              </button>
-                            )}
                           </div>
                         </div>
                       </div>
