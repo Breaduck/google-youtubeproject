@@ -4,6 +4,9 @@ import { GoogleGenAI } from "@google/genai";
 import { GeminiService } from './services/geminiService';
 import { generateSceneVideo, generateBatchVideos, VideoEngine, mergeVideos, generateSimpleZoomVideo } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect, SubtitleSettings } from './types';
+import { StyleTemplate } from './types/template';
+import StyleTemplateSelector from './components/StyleTemplateSelector';
+import { styleTemplates } from './data/styleTemplates';
 
 const BUILD_VERSION = 'v1.5-dual-download-buttons';
 
@@ -95,6 +98,9 @@ const App: React.FC = () => {
   const [script, setScript] = useState('');
   const [style, setStyle] = useState<VisualStyle>('2d-animation');
   const [refImages, setRefImages] = useState<string[]>([]);
+  const [selectedStyleTemplate, setSelectedStyleTemplate] = useState<StyleTemplate | null>(
+    styleTemplates.find(t => t.id === 'modern-anime') || null
+  );
 
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('준비 중...');
@@ -1080,8 +1086,14 @@ const App: React.FC = () => {
 
       // 학습된 그림체 스타일 100% 적용
       let finalPrompt = scene.imagePrompt;
+
+      // 스타일 템플릿 프리픽스 추가
+      if (selectedStyleTemplate) {
+        finalPrompt = `${selectedStyleTemplate.imagePromptPrefix} ${finalPrompt}`;
+      }
+
       if (activeProject.customStyleDescription) {
-        finalPrompt = `${scene.imagePrompt}, Art style: ${activeProject.customStyleDescription}`;
+        finalPrompt = `${finalPrompt}, Art style: ${activeProject.customStyleDescription}`;
       }
 
       const url = await gemini.generateImage(finalPrompt, false, geminiImageModel);
@@ -2465,6 +2477,10 @@ const App: React.FC = () => {
                >
                  소금 장인의 숨겨진 진실 → 스토리보드 바로 이동
                </button>
+               <StyleTemplateSelector
+                 selectedTemplate={selectedStyleTemplate}
+                 onSelectTemplate={setSelectedStyleTemplate}
+               />
                <div className="bg-white p-2 sm:p-3 rounded-[32px] sm:rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-200 relative">
                  <textarea className="w-full h-64 sm:h-80 bg-slate-50/50 border-none rounded-[24px] sm:rounded-[36px] p-6 sm:p-10 text-base sm:text-xl focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
