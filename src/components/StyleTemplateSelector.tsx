@@ -9,6 +9,7 @@ interface Props {
 
 export default function StyleTemplateSelector({ selectedTemplate, onSelectTemplate }: Props) {
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>('애니메이션');
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   const filteredTemplates = styleTemplates.filter(t => t.category === activeCategory);
 
@@ -51,6 +52,10 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
                   src={template.thumbnail}
                   alt={template.name}
                   className="w-full h-full object-cover"
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedImage(template.thumbnail);
+                  }}
                   onError={(e) => {
                     // 이미지 로드 실패 시 그라데이션 배경 표시
                     (e.target as HTMLImageElement).style.display = 'none';
@@ -82,6 +87,20 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
         <p className="text-sm text-gray-400">
           선택됨: <span className="text-purple-400">{selectedTemplate.name}</span>
         </p>
+      )}
+
+      {/* 확대 이미지 모달 */}
+      {expandedImage && (
+        <div
+          className="fixed inset-0 bg-black/90 z-[400] flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setExpandedImage(null)}
+        >
+          <img
+            src={expandedImage}
+            alt="Expanded view"
+            className="max-w-full max-h-full object-contain rounded-lg"
+          />
+        </div>
       )}
     </div>
   );
