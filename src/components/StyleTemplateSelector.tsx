@@ -46,19 +46,19 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
               }`}
             >
               {/* Placeholder 썸네일 (그라데이션) */}
-              <div className="aspect-video bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+              <div className={`aspect-video bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 ${isSelected ? 'blur-sm' : ''}`}>
                 <p className="text-white text-xs font-medium text-center">{template.name}</p>
               </div>
 
               {/* 하단 텍스트 오버레이 */}
-              <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm p-2">
+              <div className={`absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm p-2 ${isSelected ? 'blur-sm' : ''}`}>
                 <p className="text-white text-xs font-medium truncate">{template.name}</p>
               </div>
 
               {/* 선택 체크 아이콘 */}
               {isSelected && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center shadow-2xl z-10">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>

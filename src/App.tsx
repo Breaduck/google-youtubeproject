@@ -3189,9 +3189,9 @@ const App: React.FC = () => {
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700">Neural2 음성</label>
                           <select value={neural2Voice} onChange={e => setNeural2Voice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                            <option value="ko-KR-Neural2-A">Neural2-A - 표준, 여성 (Standard Female)</option>
-                            <option value="ko-KR-Neural2-B">Neural2-B - 부드러운, 여성 (Soft Female)</option>
-                            <option value="ko-KR-Neural2-C">Neural2-C - 자연스러운, 남성 (Natural Male)</option>
+                            <option value="ko-KR-Neural2-A">Neural2-A - 표준 여성</option>
+                            <option value="ko-KR-Neural2-B">Neural2-B - 부드러운 여성</option>
+                            <option value="ko-KR-Neural2-C">Neural2-C - 자연스러운 남성</option>
                           </select>
                         </div>
                         <div className="space-y-2">
