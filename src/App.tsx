@@ -205,8 +205,8 @@ const App: React.FC = () => {
     };
   };
 
-  const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
-    (localStorage.getItem('audio_provider') as any) || 'google'
+  const [audioProvider, setAudioProvider] = useState<'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs'>(
+    (localStorage.getItem('audio_provider') as any) || 'google-chirp3'
   );
   const [chirpApiKey, setChirpApiKey] = useState(localStorage.getItem('chirp_api_key') || '');
   const [chirpVoice, setChirpVoice] = useState(localStorage.getItem('chirp_voice') || 'Kore');
@@ -685,6 +685,11 @@ const App: React.FC = () => {
   const handleVoiceTest = async () => {
     setIsVoiceTesting(true);
     try {
+      if (audioProvider === 'microsoft') {
+        alert('Microsoft 무료 음성 API는 테스트를 지원하지 않습니다.');
+        setIsVoiceTesting(false);
+        return;
+      }
       if (audioProvider === 'elevenlabs') {
         if (!elSettings.apiKey) throw new Error("API Key required");
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elSettings.voiceId}`, {
@@ -1262,7 +1267,16 @@ const App: React.FC = () => {
         if (!response.ok) throw new Error();
         const blob = await response.blob();
         audioUrl = URL.createObjectURL(blob);
+      } else if (audioProvider === 'microsoft') {
+        // Microsoft 무료 음성 API (구현 예정)
+        alert('Microsoft 무료 음성 API는 준비 중입니다.');
+        throw new Error('Microsoft TTS not implemented');
+      } else if (audioProvider === 'google-neural2') {
+        // Google Neural2 (구현 예정)
+        alert('Google Neural2는 준비 중입니다.');
+        throw new Error('Neural2 not implemented');
       } else {
+        // Google Chirp3 (기본)
         audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, chirpVoice, chirpSpeed, chirpApiKey);
       }
 
@@ -3095,12 +3109,17 @@ Generate a detailed English prompt for image generation including scene composit
                 )}
               </div>
 
-              {/* 음성 설정 - 아코디언 */}
+              {/* 나레이션 설정 - 아코디언 */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <button onClick={() => setExpandedSetting(expandedSetting === 'voice' ? null : 'voice')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">음성 설정</span>
-                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{audioProvider === 'google' ? 'Google Chirp' : 'ElevenLabs'}</span>
+                    <span className="text-sm font-medium text-slate-700">나레이션 설정</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+                      {audioProvider === 'google-chirp3' && 'Google Chirp3'}
+                      {audioProvider === 'google-neural2' && 'Google Neural2'}
+                      {audioProvider === 'microsoft' && 'Microsoft'}
+                      {audioProvider === 'elevenlabs' && 'ElevenLabs'}
+                    </span>
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'voice' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
@@ -3108,12 +3127,14 @@ Generate a detailed English prompt for image generation including scene composit
                   <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
                     <div className="space-y-2 pt-4">
                       <label className="text-sm font-medium text-slate-700">음성 제공자</label>
-                      <div className="flex gap-2">
-                        <button onClick={() => setAudioProvider('google')} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Google Chirp</button>
-                        <button onClick={() => setAudioProvider('elevenlabs')} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>ElevenLabs</button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => setAudioProvider('google-chirp3')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-chirp3' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Google Chirp3</button>
+                        <button onClick={() => setAudioProvider('google-neural2')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-neural2' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Google Neural2</button>
+                        <button onClick={() => setAudioProvider('microsoft')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'microsoft' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Microsoft 무료</button>
+                        <button onClick={() => setAudioProvider('elevenlabs')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>ElevenLabs</button>
                       </div>
                     </div>
-                    {audioProvider === 'google' && (
+                    {(audioProvider === 'google-chirp3' || audioProvider === 'google-neural2') && (
                       <>
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700">Chirp API 키 (Gemini와 동일)</label>
@@ -3167,6 +3188,12 @@ Generate a detailed English prompt for image generation including scene composit
                           <p className="text-xs text-slate-500">0.5 (느리게) ~ 2.0 (빠르게)</p>
                         </div>
                       </>
+                    )}
+                    {audioProvider === 'microsoft' && (
+                      <div className="px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-xs text-green-700 font-medium">✅ API 키 불필요 (무료)</p>
+                        <p className="text-xs text-green-600 mt-1">Microsoft Azure 무료 음성 API를 사용합니다</p>
+                      </div>
                     )}
                     {audioProvider === 'elevenlabs' && (
                       <>
