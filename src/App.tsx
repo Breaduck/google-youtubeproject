@@ -163,8 +163,8 @@ const App: React.FC = () => {
   const [bytedanceApiKey, setBytedanceApiKey] = useState(localStorage.getItem('bytedance_api_key') || DEFAULT_BYTEPLUS_KEY);
   const [showBytedanceKey, setShowBytedanceKey] = useState(false);
   const [bytedanceModel, setBytedanceModel] = useState(localStorage.getItem('bytedance_model') || 'seedance-1.0-pro-fast');
-  const [bytedanceDuration, setBytedanceDuration] = useState(parseInt(localStorage.getItem('bytedance_duration') || '5'));
-  const [bytedanceResolution, setBytedanceResolution] = useState(localStorage.getItem('bytedance_resolution') || '720p');
+  const [bytedanceDuration] = useState(10); // 10초 고정
+  const [bytedanceResolution] = useState('720p'); // 720p 고정
 
   // Video Provider 설정 (byteplus | evolink | runware)
   const [videoProvider, setVideoProvider] = useState<'byteplus' | 'evolink' | 'runware'>(
@@ -188,6 +188,21 @@ const App: React.FC = () => {
   const updateVideoRange = (minutes: number, seconds: number) => {
     const totalSeconds = Math.max(0, Math.min(1800, minutes * 60 + seconds));
     setVideoGenerationRange(totalSeconds);
+  };
+
+  // 비용 계산 함수 (BytePlus 720p 10초 기준)
+  const calculateVideoCost = () => {
+    const numScenes = Math.floor(videoGenerationRange / 10);
+    const EXCHANGE_RATE = 1460; // 환율 (원/달러)
+    const COST_PER_VIDEO_USD = 0.21; // 720p 10초 기준
+    const costPerScene = Math.round(COST_PER_VIDEO_USD * EXCHANGE_RATE);
+    const totalCost = numScenes * costPerScene;
+
+    return {
+      numScenes,
+      costPerScene,
+      totalCost,
+    };
   };
 
   const [audioProvider, setAudioProvider] = useState<'elevenlabs' | 'google'>(
@@ -305,12 +320,7 @@ const App: React.FC = () => {
       setBytedanceModel('seedance-1.0-pro-fast');
     }
 
-    const storedRes = localStorage.getItem('bytedance_resolution');
-    if (!storedRes || storedRes === '1080p') {
-      console.log('[MIGRATION] Setting default resolution to 720p');
-      localStorage.setItem('bytedance_resolution', '720p');
-      setBytedanceResolution('720p');
-    }
+    // bytedanceResolution은 720p 고정 (migration 불필요)
   }, []);
 
   useEffect(() => {
@@ -393,9 +403,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('bytedance_model', bytedanceModel);
-    localStorage.setItem('bytedance_duration', bytedanceDuration.toString());
-    localStorage.setItem('bytedance_resolution', bytedanceResolution);
-  }, [bytedanceModel, bytedanceDuration, bytedanceResolution]);
+    // bytedanceDuration과 bytedanceResolution은 고정값 (10초, 720p)
+  }, [bytedanceModel]);
 
   useEffect(() => {
     localStorage.setItem('video_engine', videoEngine);
@@ -2677,9 +2686,9 @@ Generate a detailed English prompt for image generation including scene composit
                       </select>
                     </div>
 
-                    {/* 영상 생성 범위 설정 (모든 Provider 공통) - 최대 30분 */}
+                    {/* 영상 생성할 장면 수 설정 (최대 30분 = 180장) */}
                     <div className="space-y-2 pt-2">
-                      <label className="text-sm font-medium text-slate-700">영상 생성 범위 (최대 30분)</label>
+                      <label className="text-sm font-medium text-slate-700">영상 생성할 장면 수 (최대 180장)</label>
                       <div className="flex gap-2 items-center justify-center">
                         <div className="flex items-center gap-1">
                           <input
@@ -2704,14 +2713,32 @@ Generate a detailed English prompt for image generation including scene composit
                           <span className="text-sm font-medium text-slate-700">초</span>
                         </div>
                       </div>
-                      <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
-                        <p className="text-xs text-indigo-700 font-medium">
-                          💡 {Math.floor(videoGenerationRange / 10)}개의 이미지가 영상화됩니다
-                        </p>
-                        <p className="text-xs text-indigo-600 mt-1">
-                          이후 장면은 비용 절감을 위해 줌인-줌아웃 효과만 적용됩니다.
-                        </p>
-                      </div>
+                      {(() => {
+                        const { numScenes, costPerScene, totalCost } = calculateVideoCost();
+                        const totalScenes = project?.scenes.length || 0;
+                        return (
+                          <div className="px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg space-y-2">
+                            <div className="flex items-baseline justify-between">
+                              <p className="text-sm font-semibold text-indigo-900">
+                                💰 {numScenes}장 영상화 예정
+                              </p>
+                              <p className="text-lg font-bold text-indigo-700">
+                                ₩{totalCost.toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-indigo-600">
+                              <span>1장당 ₩{costPerScene.toLocaleString()}</span>
+                              <span className="text-indigo-400">•</span>
+                              <span>720p 10초 고정</span>
+                            </div>
+                            {totalScenes > numScenes && (
+                              <p className="text-xs text-purple-600 mt-1">
+                                📌 나머지 {totalScenes - numScenes}장은 정적 효과(무료)로 처리됩니다
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {videoProvider === 'byteplus' && (
@@ -2813,24 +2840,9 @@ Generate a detailed English prompt for image generation including scene composit
                             <option value="seedance-1.5-pro">SeeDANCE 1.5 Pro</option>
                           </select>
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">해상도</label>
-                          <select value={bytedanceResolution} onChange={e => setBytedanceResolution(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                            <option value="480p">480p</option>
-                            <option value="720p">720p</option>
-                            <option value="1080p">1080p (권장)</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">영상 길이 (초)</label>
-                          <select value={bytedanceDuration} onChange={e => setBytedanceDuration(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                            <option value="2">2초</option>
-                            <option value="3">3초</option>
-                            <option value="5">5초 (권장)</option>
-                            <option value="8">8초</option>
-                            <option value="10">10초</option>
-                            <option value="12">12초</option>
-                          </select>
+                        <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-xs text-blue-700 font-medium">⚙️ 고정 설정</p>
+                          <p className="text-xs text-blue-600 mt-1">해상도: 720p • 영상 길이: 10초 (1장당 ₩307)</p>
                         </div>
                       </>
                     )}
