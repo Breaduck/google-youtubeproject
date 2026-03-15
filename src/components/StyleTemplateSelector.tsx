@@ -52,8 +52,12 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
                   src={template.thumbnail}
                   alt={template.name}
                   className="w-full h-full object-cover"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
+                    e.preventDefault();
                     setExpandedImage(template.thumbnail);
                   }}
                   onError={(e) => {
