@@ -214,7 +214,7 @@ const App: React.FC = () => {
 
   // Azure TTS 설정
   const [azureApiKey, setAzureApiKey] = useState(localStorage.getItem('azure_tts_key') || '');
-  const [azureRegion, setAzureRegion] = useState(localStorage.getItem('azure_tts_region') || 'koreacentral');
+  const azureRegion = 'koreacentral'; // 한국 고정
   const [azureVoice, setAzureVoice] = useState(localStorage.getItem('azure_tts_voice') || 'ko-KR-SunHiNeural');
   const [showAzureKey, setShowAzureKey] = useState(false);
 
@@ -433,9 +433,8 @@ const App: React.FC = () => {
     localStorage.setItem('chirp_voice', chirpVoice);
     localStorage.setItem('chirp_speed', chirpSpeed.toString());
     localStorage.setItem('azure_tts_key', azureApiKey);
-    localStorage.setItem('azure_tts_region', azureRegion);
     localStorage.setItem('azure_tts_voice', azureVoice);
-  }, [audioProvider, chirpApiKey, chirpVoice, chirpSpeed, azureApiKey, azureRegion, azureVoice]);
+  }, [audioProvider, chirpApiKey, chirpVoice, chirpSpeed, azureApiKey, azureVoice]);
 
   useEffect(() => {
     localStorage.setItem('subtitle_settings', JSON.stringify(subtitleSettings));
@@ -3203,16 +3202,7 @@ Generate a detailed English prompt for image generation including scene composit
                               )}
                             </button>
                           </div>
-                          <p className="text-xs text-slate-500">무료 티어: 월 500만 글자</p>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">지역</label>
-                          <select value={azureRegion} onChange={e => setAzureRegion(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                            <option value="koreacentral">한국 중부 (Korea Central)</option>
-                            <option value="eastus">미국 동부 (East US)</option>
-                            <option value="westus">미국 서부 (West US)</option>
-                            <option value="westeurope">서유럽 (West Europe)</option>
-                          </select>
+                          <p className="text-xs text-slate-500">무료 티어: 월 500만 글자 (한국 서버)</p>
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700">음성 선택</label>
