@@ -5,7 +5,7 @@ import { GeminiService } from './services/geminiService';
 import { generateSceneVideo, generateBatchVideos, VideoEngine, mergeVideos, generateSimpleZoomVideo } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect, SubtitleSettings } from './types';
 import { StyleTemplate } from './types/template';
-import StyleTemplateSelector from './components/StyleTemplateSelector';
+import StyleTemplateModal from './components/StyleTemplateModal';
 import { styleTemplates } from './data/styleTemplates';
 
 const BUILD_VERSION = 'v1.5-dual-download-buttons';
@@ -101,6 +101,8 @@ const App: React.FC = () => {
   const [selectedStyleTemplate, setSelectedStyleTemplate] = useState<StyleTemplate | null>(
     styleTemplates.find(t => t.id === 'modern-anime') || null
   );
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [tempSelectedTemplate, setTempSelectedTemplate] = useState<StyleTemplate | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('준비 중...');
@@ -2407,6 +2409,15 @@ const App: React.FC = () => {
                   {['realistic', '2d-animation', 'custom'].map(s => (
                     <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg ${style === s ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{s === '2d-animation' ? '2D 애니메이션' : s === 'realistic' ? '실사화' : '맞춤형'}</button>
                   ))}
+                  <button
+                    onClick={() => {
+                      setTempSelectedTemplate(selectedStyleTemplate);
+                      setIsTemplateModalOpen(true);
+                    }}
+                    className="px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50"
+                  >
+                    {selectedStyleTemplate ? `🎨 ${selectedStyleTemplate.name}` : '🎨 템플릿'}
+                  </button>
                   {savedStyles.length > 0 && (
                     <div className="relative group/styles">
                       <button className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg flex items-center gap-2 ${savedStyles.some(s => s.id === style) ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
@@ -2477,10 +2488,6 @@ const App: React.FC = () => {
                >
                  소금 장인의 숨겨진 진실 → 스토리보드 바로 이동
                </button>
-               <StyleTemplateSelector
-                 selectedTemplate={selectedStyleTemplate}
-                 onSelectTemplate={setSelectedStyleTemplate}
-               />
                <div className="bg-white p-2 sm:p-3 rounded-[32px] sm:rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-200 relative">
                  <textarea className="w-full h-64 sm:h-80 bg-slate-50/50 border-none rounded-[24px] sm:rounded-[36px] p-6 sm:p-10 text-base sm:text-xl focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
@@ -3653,6 +3660,17 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      <StyleTemplateModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+        selectedTemplate={tempSelectedTemplate}
+        onSelectTemplate={setTempSelectedTemplate}
+        onApply={() => {
+          setSelectedStyleTemplate(tempSelectedTemplate);
+          setIsTemplateModalOpen(false);
+        }}
+      />
     </div>
   );
 };
