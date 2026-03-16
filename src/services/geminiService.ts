@@ -312,33 +312,42 @@ Return ONLY valid JSON, no markdown or explanation.`;
 
   async createStoryboard(project: StoryProject): Promise<Scene[]> {
     const ai = this.getClient();
-    const chunks = this.chunkScript(project.script);
-
-    if (chunks.length === 0) {
-      throw new Error('스크립트를 파싱할 수 없습니다.');
-    }
 
     const characterDescriptions = project.characters
       .map(c => `- ${c.name}: ${c.visualDescription}`)
       .join('\n');
 
-    const prompt = `Generate image prompts for these ${chunks.length} script segments.
+    // 스크립트 길이 기반 목표 씬 수 계산 (1장당 약 10초 = 20-30분 영상 120-180장)
+    const scriptLength = project.script.length;
+    const targetScenes = Math.max(120, Math.min(180, Math.floor(scriptLength / 150))); // 150자당 1씬
+
+    const prompt = `Analyze this script and divide it into ${targetScenes} scenes for a 20-30 minute video. Each scene will be a single static image shown for ~10 seconds with narration.
 
 Characters:
 ${characterDescriptions}
 
 Style: ${project.customStyleDescription || project.style}
 
-Script segments (numbered):
-${chunks.map((chunk, i) => `[${i + 1}] ${chunk}`).join('\n\n')}
+Full Script:
+${project.script}
 
-For EACH numbered segment, provide:
-1. "segment_number": The segment number (1 to ${chunks.length})
-2. "imagePrompt": A detailed English prompt describing the scene. CRITICAL: Characters MUST match their visualDescription exactly (same face, hair, clothing, features) for consistency across all scenes. Describe background, lighting, mood, and character actions. NEVER mention shot types, camera movement, or include any text/letters/symbols/signs/captions/subtitles/watermarks/logos/UI in the scene description. The frame must be completely free of any written language or typography.
-3. "effect_type": Always use "static_subtle" (no camera movement allowed)
-4. "intensity": 1-10 emotional intensity
+TASK: Intelligently divide the script into approximately ${targetScenes} scenes based on:
+- Natural narrative flow and context
+- Scene changes and location shifts
+- Emotional beats and dramatic moments
+- Logical grouping of dialogue/action that fits in one image
 
-IMPORTANT: You MUST generate exactly ${chunks.length} scene objects, one for each segment number. Character appearance consistency is CRITICAL - always refer to the visualDescription above.
+For EACH scene (numbered 1 to ~${targetScenes}), provide:
+1. "segment_number": Scene number
+2. "scriptSegment": The exact text from the script for this scene (keep original Korean text)
+3. "imagePrompt": A detailed English prompt describing the scene. CRITICAL: Characters MUST match their visualDescription exactly (same face, hair, clothing, features) for consistency across all scenes. Describe background, lighting, mood, and character actions. NEVER mention shot types, camera movement, or include any text/letters/symbols/signs/captions/subtitles/watermarks/logos/UI in the scene description. The frame must be completely free of any written language or typography.
+4. "effect_type": Always use "static_subtle"
+5. "intensity": 1-10 emotional intensity
+
+IMPORTANT:
+- Aim for ${targetScenes} scenes (±10 is acceptable based on natural breaks)
+- Character appearance consistency is CRITICAL - always refer to the visualDescription above
+- Group script text organically by context, not mechanically by sentence count
 
 Return ONLY valid JSON array, no markdown.`;
 
@@ -355,24 +364,16 @@ Return ONLY valid JSON array, no markdown.`;
     if (!jsonMatch) throw new Error('Failed to parse storyboard data');
 
     const aiScenes = JSON.parse(jsonMatch[0]);
-    const sceneMap = new Map<number, any>();
 
-    for (const scene of aiScenes) {
-      const num = scene.segment_number || scene.segmentNumber || sceneMap.size + 1;
-      sceneMap.set(num, scene);
-    }
-
-    return chunks.map((chunk, index) => {
-      const segNum = index + 1;
-      const aiScene = sceneMap.get(segNum) || {};
-      const effectType = 'static_subtle'; // Layer 3: always static, ignore Gemini suggestion
+    return aiScenes.map((aiScene: any) => {
+      const effectType = 'static_subtle';
       const intensity = aiScene.intensity || 5;
       const motionParams = this.generateMotionParams(effectType, intensity);
 
       return {
         id: crypto.randomUUID(),
-        scriptSegment: chunk,
-        imagePrompt: stripCameraTerms(aiScene.imagePrompt || `Scene depicting: ${chunk.substring(0, 100)}`),
+        scriptSegment: aiScene.scriptSegment || '',
+        imagePrompt: stripCameraTerms(aiScene.imagePrompt || 'Scene depicting the script'),
         imageUrl: null,
         audioUrl: null,
         videoUrl: null,
