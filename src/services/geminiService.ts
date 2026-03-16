@@ -269,7 +269,7 @@ Return ONLY valid JSON, no markdown or explanation.`;
 
     let currentChunk = '';
     let sentenceCount = 0;
-    const targetSentences = 4;
+    const targetSentences = 3;  // 3문장씩 묶음 (20-30분 영상 = 120-180장 목표)
 
     let processedIndex = 0;
 
@@ -334,11 +334,11 @@ ${chunks.map((chunk, i) => `[${i + 1}] ${chunk}`).join('\n\n')}
 
 For EACH numbered segment, provide:
 1. "segment_number": The segment number (1 to ${chunks.length})
-2. "imagePrompt": A detailed English prompt describing subject, background, lighting, and mood. NEVER mention shot types. NEVER mention camera movement. NEVER include any text/letters/symbols/signs/captions/subtitles/watermarks/logos/UI in the scene description. The frame must be completely free of any written language or typography.
+2. "imagePrompt": A detailed English prompt describing the scene. CRITICAL: Characters MUST match their visualDescription exactly (same face, hair, clothing, features) for consistency across all scenes. Describe background, lighting, mood, and character actions. NEVER mention shot types, camera movement, or include any text/letters/symbols/signs/captions/subtitles/watermarks/logos/UI in the scene description. The frame must be completely free of any written language or typography.
 3. "effect_type": Always use "static_subtle" (no camera movement allowed)
 4. "intensity": 1-10 emotional intensity
 
-IMPORTANT: You MUST generate exactly ${chunks.length} scene objects, one for each segment number.
+IMPORTANT: You MUST generate exactly ${chunks.length} scene objects, one for each segment number. Character appearance consistency is CRITICAL - always refer to the visualDescription above.
 
 Return ONLY valid JSON array, no markdown.`;
 
