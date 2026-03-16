@@ -865,7 +865,10 @@ const App: React.FC = () => {
   };
 
   const saveCustomStyleFromInput = async () => {
-    if (refImages.length < 3) { alert('명확한 그림체 학습을 위해 최소 3개 이상의 참고 이미지를 넣어주세요.'); return; }
+    if (refImages.length === 0) { alert('이미지를 최소 1장 이상 등록해주세요.'); return; }
+    if (refImages.length < 3) {
+      if (!confirm('명확한 그림체 학습을 위해 3개 이상 권장합니다. 계속 진행하시겠습니까?')) return;
+    }
     if (savedStyles.length >= 10) { alert('자주 쓰는 그림체은 최대 10개까지 저장 가능합니다.'); return; }
 
     // Show modal to get style name
@@ -3674,6 +3677,7 @@ const App: React.FC = () => {
           setSelectedStyleTemplate(tempSelectedTemplate);
           setIsTemplateModalOpen(false);
         }}
+        savedStyles={savedStyles}
       />
     </div>
   );

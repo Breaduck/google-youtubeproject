@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { StyleTemplate } from '../types/template';
+import { SavedStyle } from '../types';
 import StyleTemplateSelector from './StyleTemplateSelector';
 
 interface Props {
@@ -8,9 +9,10 @@ interface Props {
   selectedTemplate: StyleTemplate | null;
   onSelectTemplate: (template: StyleTemplate) => void;
   onApply: () => void;
+  savedStyles?: SavedStyle[];
 }
 
-export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, onSelectTemplate, onApply }: Props) {
+export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, onSelectTemplate, onApply, savedStyles = [] }: Props) {
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -50,6 +52,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
           <StyleTemplateSelector
             selectedTemplate={selectedTemplate}
             onSelectTemplate={onSelectTemplate}
+            savedStyles={savedStyles}
           />
         </div>
 
