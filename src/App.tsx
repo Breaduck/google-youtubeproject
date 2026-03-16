@@ -77,9 +77,9 @@ const App: React.FC = () => {
   const [projects, setProjects] = useState<StoryProject[]>(() => {
     try {
       const saved = localStorage.getItem('user_projects_v1');
-      return saved ? JSON.parse(saved) : []; // 빈 목록으로 시작
+      return saved ? JSON.parse(saved) : [EXP_TEST_PROJECT];
     } catch {
-      return [];
+      return [EXP_TEST_PROJECT];
     }
   });
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => {
@@ -1974,23 +1974,6 @@ const App: React.FC = () => {
       {step === 'dashboard' && (
         <div className="max-w-[1400px] mx-auto px-4 sm:px-10 py-10 sm:py-20 animate-in fade-in">
 
-          {/* [EXP] 빠른 테스트 패널 */}
-          <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div>
-              <p className="font-bold text-amber-800 text-sm mb-1">🧪 실험 모드 — 이미지 투 비디오 빠른 테스트</p>
-              <p className="text-amber-600 text-xs">이미지 1장 업로드 → 바로 스토리보드에서 영상 생성 테스트</p>
-            </div>
-            <label className="shrink-0 cursor-pointer bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-2xl font-semibold text-sm transition-colors">
-              이미지 선택 후 테스트 시작
-              <input type="file" accept="image/*" className="hidden" onChange={e => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = ev => quickTestStart(ev.target?.result as string);
-                reader.readAsDataURL(file);
-              }} />
-            </label>
-          </div>
 
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 sm:mb-16 gap-6">
             <div className="space-y-2 sm:space-y-4">
