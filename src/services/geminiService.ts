@@ -317,9 +317,9 @@ Return ONLY valid JSON, no markdown or explanation.`;
       .map(c => `- ${c.name}: ${c.visualDescription}`)
       .join('\n');
 
-    // 스크립트 길이 기반 목표 씬 수 계산 (1장당 약 10초 = 20-30분 영상 120-180장)
+    // 스크립트 길이 기반 목표 씬 수 계산 (비용 효율: 200자당 1씬)
     const scriptLength = project.script.length;
-    const targetScenes = Math.max(120, Math.min(180, Math.floor(scriptLength / 150))); // 150자당 1씬
+    const targetScenes = Math.max(120, Math.min(180, Math.floor(scriptLength / 200))); // 200자당 1씬 (비용 절감)
 
     const prompt = `Analyze this script and divide it into ${targetScenes} scenes for a 20-30 minute video. Each scene will be a single static image shown for ~10 seconds with narration.
 
@@ -337,9 +337,15 @@ TASK: Intelligently divide the script into approximately ${targetScenes} scenes 
 - Emotional beats and dramatic moments
 - Logical grouping of dialogue/action that fits in one image
 
+COST OPTIMIZATION (CRITICAL):
+- **Each scene MUST have at least 35-40 characters** (minimum 10 seconds of narration)
+- **Merge short sentences**: "안녕하세요!" alone is wasteful → combine with next lines
+- **Avoid single-sentence scenes**: Always group 2-3 related sentences together when possible
+- Only separate when there's a clear scene/location change or dramatic shift
+
 For EACH scene (numbered 1 to ~${targetScenes}), provide:
 1. "segment_number": Scene number
-2. "scriptSegment": The exact text from the script for this scene (keep original Korean text)
+2. "scriptSegment": The exact text from the script for this scene (keep original Korean text, MINIMUM 35 characters)
 3. "imagePrompt": A detailed English prompt describing the scene. CRITICAL: Characters MUST match their visualDescription exactly (same face, hair, clothing, features) for consistency across all scenes. Describe background, lighting, mood, and character actions. NEVER mention shot types, camera movement, or include any text/letters/symbols/signs/captions/subtitles/watermarks/logos/UI in the scene description. The frame must be completely free of any written language or typography.
 4. "effect_type": Always use "static_subtle"
 5. "intensity": 1-10 emotional intensity
@@ -347,7 +353,8 @@ For EACH scene (numbered 1 to ~${targetScenes}), provide:
 IMPORTANT:
 - Aim for ${targetScenes} scenes (±10 is acceptable based on natural breaks)
 - Character appearance consistency is CRITICAL - always refer to the visualDescription above
-- Group script text organically by context, not mechanically by sentence count
+- **MERGE short lines to minimize image generation cost**
+- Each scriptSegment should ideally be 50-100 characters for optimal cost/quality balance
 
 Return ONLY valid JSON array, no markdown.`;
 
