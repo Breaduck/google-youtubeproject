@@ -1597,6 +1597,43 @@ const App: React.FC = () => {
     return result.length > 0 ? result : [text];
   };
 
+  // 맥락 기반 줌/패닝 설정 결정
+  const determineZoomSettings = (dialogue: string, index: number): {
+    direction: 'in' | 'out',
+    pan: 'left' | 'right' | 'up' | 'down' | 'center',
+    intensity: number
+  } => {
+    const text = dialogue.toLowerCase();
+
+    // 긴박도 감지 (1-10)
+    let intensity = 5; // 기본값
+    if (text.includes('!') || text.includes('?!')) intensity = 8; // 강한 감정
+    else if (text.includes('?')) intensity = 6; // 질문
+    else if (text.length > 100) intensity = 3; // 긴 설명 = 차분함
+
+    // 방향 감지 (패턴 기반)
+    const hasLeft = /왼쪽|좌|서쪽|떠나|사라|나가/.test(text);
+    const hasRight = /오른쪽|우|동쪽|들어오|나타|다가/.test(text);
+    const hasUp = /위|하늘|날|올라|높/.test(text);
+    const hasDown = /아래|바닥|떨어|내려/.test(text);
+
+    let pan: 'left' | 'right' | 'up' | 'down' | 'center' = 'center';
+    if (hasLeft) pan = 'left';
+    else if (hasRight) pan = 'right';
+    else if (hasUp) pan = 'up';
+    else if (hasDown) pan = 'down';
+    else {
+      // 랜덤 방향 (자연스러운 다양성)
+      const directions: ('left' | 'right' | 'center')[] = ['left', 'right', 'center', 'center']; // center 비중 높게
+      pan = directions[index % directions.length];
+    }
+
+    // 줌 방향 (교차)
+    const direction = index % 2 === 0 ? 'in' : 'out';
+
+    return { direction, pan, intensity };
+  };
+
   const exportVideo = async () => {
     if (!project) return;
 
@@ -1635,9 +1672,13 @@ const App: React.FC = () => {
         setBgTask({ type: 'video', message: `${engineName} 비디오 생성 중 (${i + 1}/${project.scenes.length})...` });
         setBgProgress(Math.round((i / project.scenes.length) * 50));
 
+        // 영상 생성 범위 체크
+        const sceneStartTime = i * 10;
+        const useApiGeneration = hasApiKey && sceneStartTime < videoGenerationRange;
+
         let videoBlob: Blob;
-        if (hasApiKey) {
-          // API로 비디오 생성
+        if (useApiGeneration) {
+          // 범위 내 → API로 비디오 생성
           videoBlob = await generateSceneVideo(
             scene.imageUrl!,
             scene.imagePrompt,
@@ -1655,19 +1696,21 @@ const App: React.FC = () => {
             }
           );
         } else {
-          // API 키 없음 → 줌인/줌아웃 교차
-          const zoomDirection = i % 2 === 0 ? 'in' : 'out'; // 홀수=줌인, 짝수=줌아웃
+          // 범위 밖 or API 키 없음 → 맥락 기반 줌인/줌아웃
+          const zoomSettings = determineZoomSettings(scene.scriptSegment, i);
           videoBlob = await generateSimpleZoomVideo(
             scene.imageUrl!,
             scene.scriptSegment, // 자막
-            zoomDirection,
+            zoomSettings.direction,
             subtitleSettings,
             (progress, message) => {
               const baseProgress = Math.round((i / project.scenes.length) * 50);
               const sceneProgress = Math.round((progress / 100) * (50 / project.scenes.length));
               setBgProgress(baseProgress + sceneProgress);
               setBgTask({ type: 'video', message: `${message} (${i + 1}/${project.scenes.length})` });
-            }
+            },
+            zoomSettings.pan,
+            zoomSettings.intensity
           );
         }
 
@@ -3104,19 +3147,6 @@ const App: React.FC = () => {
                     {audioProvider === 'google-chirp3' && (
                       <>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">Chirp API 키 (Gemini와 동일)</label>
-                          <div className="relative">
-                            <input type={showChirpKey ? "text" : "password"} value={chirpApiKey} onChange={e => setChirpApiKey(e.target.value)} placeholder="API 키 입력 (비워두면 Gemini 키 사용)" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
-                            <button onClick={() => setShowChirpKey(!showChirpKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                              {showChirpKey ? (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                              ) : (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700">Chirp 음성</label>
                           <select value={chirpVoice} onChange={e => setChirpVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
                             <option value="Kore">Kore - 활기찬, 명랑한, 자연스러운 (여성)</option>
@@ -3158,19 +3188,6 @@ const App: React.FC = () => {
                     )}
                     {audioProvider === 'google-neural2' && (
                       <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">Neural2 API 키 (Gemini와 동일)</label>
-                          <div className="relative">
-                            <input type={showChirpKey ? "text" : "password"} value={chirpApiKey} onChange={e => setChirpApiKey(e.target.value)} placeholder="API 키 입력 (비워두면 Gemini 키 사용)" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
-                            <button onClick={() => setShowChirpKey(!showChirpKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                              {showChirpKey ? (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                              ) : (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                              )}
-                            </button>
-                          </div>
-                        </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700">Neural2 음성</label>
                           <select value={neural2Voice} onChange={e => setNeural2Voice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">

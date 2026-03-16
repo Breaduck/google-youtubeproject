@@ -41,7 +41,9 @@ export async function generateSimpleZoomVideo(
   subtitle: string = '',
   zoomDirection: 'in' | 'out' = 'in',
   subtitleSettings?: SubtitleSettings,
-  onProgress?: (progress: number, message: string) => void
+  onProgress?: (progress: number, message: string) => void,
+  panDirection?: 'left' | 'right' | 'up' | 'down' | 'center',
+  intensity?: number // 1-10, 긴박도 (속도/확대율 결정)
 ): Promise<Blob> {
   if (onProgress) onProgress(10, `${zoomDirection === 'in' ? '줌인' : '줌아웃'} 효과 생성 중...`);
 
@@ -62,9 +64,11 @@ export async function generateSimpleZoomVideo(
       canvas.width = 1280;
       canvas.height = 720;
 
-      const duration = 5; // 5초
+      // 긴박도에 따른 속도 조절 (1-10 → 7-4초)
+      const effectIntensity = intensity || 5;
+      const duration = Math.max(4, 7 - (effectIntensity / 5)); // 긴박도 높을수록 짧게 (빠르게)
       const fps = 24;
-      const totalFrames = duration * fps;
+      const totalFrames = Math.floor(duration * fps);
 
       // MediaRecorder 설정
       const stream = canvas.captureStream(fps);
@@ -93,23 +97,42 @@ export async function generateSimpleZoomVideo(
 
         const progress = frame / totalFrames;
 
+        // 긴박도에 따른 확대율 (1-10 → 0.08-0.20)
+        const zoomAmount = 0.08 + (effectIntensity / 50); // 긴박할수록 크게 확대
+
         // 줌 방향에 따라 스케일 계산
         let scale: number;
         if (zoomDirection === 'in') {
-          scale = 1.0 + (progress * 0.15); // 1.0 → 1.15 (부드럽게)
+          scale = 1.0 + (progress * zoomAmount); // 점진적 줌인
         } else {
-          scale = 1.15 - (progress * 0.15); // 1.15 → 1.0 (줌아웃)
+          scale = 1.0 + zoomAmount - (progress * zoomAmount); // 점진적 줌아웃
+        }
+
+        // 패닝 방향에 따른 오프셋 계산 (자연스러운 움직임)
+        const pan = panDirection || 'center';
+        let offsetX = 0;
+        let offsetY = 0;
+
+        const panAmount = 40; // 최대 이동 거리 (픽셀)
+        if (pan === 'left') {
+          offsetX = progress * panAmount; // 좌→우 이동
+        } else if (pan === 'right') {
+          offsetX = -progress * panAmount; // 우→좌 이동
+        } else if (pan === 'up') {
+          offsetY = progress * panAmount; // 상→하 이동
+        } else if (pan === 'down') {
+          offsetY = -progress * panAmount; // 하→상 이동
         }
 
         // 캔버스 클리어
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 이미지를 중앙에서 확대/축소
+        // 이미지 그리기 (확대 + 패닝)
         const scaledWidth = canvas.width * scale;
         const scaledHeight = canvas.height * scale;
-        const x = (canvas.width - scaledWidth) / 2;
-        const y = (canvas.height - scaledHeight) / 2;
+        const x = (canvas.width - scaledWidth) / 2 + offsetX;
+        const y = (canvas.height - scaledHeight) / 2 + offsetY;
 
         ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
 
