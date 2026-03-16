@@ -1317,11 +1317,24 @@ const App: React.FC = () => {
   const generateAllImages = async () => {
     if (!project) return;
     const scenesToGenerate = project.scenes.filter(s => !s.imageUrl);
-    try {
-      await Promise.all(scenesToGenerate.map(scene => generateSceneImage(scene.id)));
-    } catch (err) {
-      console.error("Batch image generation failed:", err);
-      alert("이미지 일괄 생성 중 오류가 발생했습니다.");
+
+    // 60장씩 배치 분할 (Rate Limit 회피)
+    const batchSize = 60;
+    for (let i = 0; i < scenesToGenerate.length; i += batchSize) {
+      const batch = scenesToGenerate.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(scenesToGenerate.length / batchSize);
+
+      console.log(`[Batch ${batchNumber}/${totalBatches}] Generating ${batch.length} images...`);
+
+      try {
+        await Promise.all(batch.map(scene => generateSceneImage(scene.id)));
+        console.log(`[Batch ${batchNumber}/${totalBatches}] Completed ✓`);
+      } catch (err) {
+        console.error(`[Batch ${batchNumber}/${totalBatches}] Failed:`, err);
+        alert(`배치 ${batchNumber}/${totalBatches} 이미지 생성 중 오류가 발생했습니다.`);
+        break; // 에러 발생 시 중단
+      }
     }
   };
 
