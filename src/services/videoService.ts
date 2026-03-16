@@ -64,25 +64,25 @@ export async function generateSimpleZoomVideo(
       canvas.width = 1280;
       canvas.height = 720;
 
-      // TTS 싱크를 위한 시간 계산 (자막 길이 기반, 최대 15초)
+      // TTS 싱크를 위한 시간 계산 (자막 길이 기반, 최대 10초로 단축)
       const effectIntensity = intensity || 5;
       const subtitleLength = subtitle.length;
 
       // 한글 기준: 3-4자/초 읽기 속도
-      const estimatedTtsTime = Math.max(6, Math.min(15, subtitleLength / 3.5));
+      const estimatedTtsTime = Math.max(5, Math.min(10, subtitleLength / 3.5));
 
       // 긴박도 보정 (긴박할수록 짧게)
       const intensityFactor = 1 - ((effectIntensity - 5) / 20); // 0.75 ~ 1.25
-      const duration = Math.max(6, Math.min(15, estimatedTtsTime * intensityFactor));
+      const duration = Math.max(5, Math.min(10, estimatedTtsTime * intensityFactor));
 
-      const fps = 24;
+      const fps = 20; // 24 → 20 FPS로 최적화 (속도 향상)
       const totalFrames = Math.floor(duration * fps);
 
-      // MediaRecorder 설정
+      // MediaRecorder 설정 (최적화: VP8 + 낮은 bitrate)
       const stream = canvas.captureStream(fps);
       const recorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9',
-        videoBitsPerSecond: 2500000
+        mimeType: 'video/webm;codecs=vp8',
+        videoBitsPerSecond: 1500000 // 2.5M → 1.5M (속도 향상)
       });
 
       const chunks: Blob[] = [];
