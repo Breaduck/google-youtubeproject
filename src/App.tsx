@@ -2745,17 +2745,15 @@ const App: React.FC = () => {
                 {expandedSetting === 'bytedance' && (
                   <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
                     <div className="space-y-2 pt-4">
-                      <label className="text-sm font-medium text-slate-700">비디오 Provider</label>
-                      <select value={videoProvider} onChange={e => setVideoProvider(e.target.value as 'byteplus' | 'evolink' | 'runware')} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                        <option value="byteplus">BytePlus (기본)</option>
-                        <option value="evolink">Evolink (SeeDance 1.0 Pro Fast)</option>
-                        <option value="runware">Runware (SeeDance 1.0 Pro Fast - $0.14/video)</option>
-                      </select>
+                      <label className="text-sm font-medium text-slate-700">비디오 모델</label>
+                      <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+                        <p className="text-sm font-medium text-indigo-900">SeeDance 1.0 Pro Fast</p>
+                        <p className="text-xs text-indigo-600 mt-1">BytePlus ModelArk (10초 영상, 720p)</p>
+                      </div>
                     </div>
 
-                    {videoProvider === 'byteplus' && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">BytePlus API 키</label>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">BytePlus API 키</label>
                       <div className="relative">
                         <input type={showBytedanceKey ? "text" : "password"} value={bytedanceApiKey} onChange={e => setBytedanceApiKey(e.target.value)} placeholder="ARK_API_KEY" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
                         <button onClick={() => setShowBytedanceKey(!showBytedanceKey)} className="absolute right-3 top-1\2 -translate-y-1\2 text-slate-400 hover:text-slate-600 transition-colors">
@@ -2768,99 +2766,6 @@ const App: React.FC = () => {
                       </div>
                         <p className="text-xs text-slate-500">BytePlus ModelArk에서 API 키를 발급받으세요</p>
                       </div>
-                    )}
-                    {videoProvider === 'evolink' && (
-                      <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">Evolink API 키</label>
-                          <div className="relative">
-                            <input type={showEvolinkKey ? "text" : "password"} value={evolinkApiKey} onChange={e => setEvolinkApiKey(e.target.value)} placeholder="YOUR_EVOLINK_API_KEY" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
-                            <button onClick={() => setShowEvolinkKey(!showEvolinkKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                              {showEvolinkKey ? (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                              ) : (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                              )}
-                            </button>
-                          </div>
-                          <p className="text-xs text-slate-500">Evolink Dashboard에서 API 키를 발급받으세요</p>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">해상도</label>
-                          <select value={evolinkResolution} onChange={e => setEvolinkResolution(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                            <option value="480p">480p</option>
-                            <option value="720p">720p (권장)</option>
-                            <option value="1080p">1080p</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">영상 길이 (초)</label>
-                          <select value={evolinkDuration} onChange={e => setEvolinkDuration(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                            <option value="2">2초</option>
-                            <option value="3">3초</option>
-                            <option value="5">5초 (권장)</option>
-                            <option value="8">8초</option>
-                            <option value="10">10초</option>
-                            <option value="12">12초</option>
-                          </select>
-                        </div>
-                      </>
-                    )}
-                    {videoProvider === 'runware' && (
-                      <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">Runware API 키</label>
-                          <div className="relative">
-                            <input type={showRunwareKey ? "text" : "password"} value={runwareApiKey} onChange={e => setRunwareApiKey(e.target.value)} placeholder="YOUR_RUNWARE_API_KEY" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
-                            <button onClick={() => setShowRunwareKey(!showRunwareKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                              {showRunwareKey ? (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                              ) : (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">해상도</label>
-                          <select value={runwareResolution} onChange={e => setRunwareResolution(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                            <option value="480p">480p (864×480)</option>
-                            <option value="720p">720p (1280×720) - 권장</option>
-                            <option value="1080p">1080p (1920×1088)</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">영상 길이 (초)</label>
-                          <select value={runwareDuration} onChange={e => setRunwareDuration(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                            <option value="2">2초</option>
-                            <option value="3">3초</option>
-                            <option value="5">5초 (권장)</option>
-                            <option value="8">8초</option>
-                            <option value="10">10초</option>
-                            <option value="12">12초</option>
-                          </select>
-                        </div>
-                      </>
-                    )}
-                    {videoProvider === 'byteplus' && (
-                      <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">비디오 모델</label>
-                          <select value={bytedanceModel} onChange={e => setBytedanceModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                            <option value="seedance-1.0-pro">SeeDANCE 1.0 Pro</option>
-                            <option value="seedance-1.0-pro-fast">SeeDANCE 1.0 Pro Fast</option>
-                            <option value="seedance-1.5-pro">SeeDANCE 1.5 Pro</option>
-                          </select>
-                        </div>
-                      </>
-                    )}
-                    {videoProvider === 'evolink' && (
-                      <div className="px-3 py-2 bg-purple-50 border border-purple-200 rounded-lg">
-                        <p className="text-xs text-purple-700 font-medium">🚀 Evolink API</p>
-                        <p className="text-xs text-purple-600 mt-1">SeeDance 1.0 Pro Fast 모델 (3x faster, 72% lower cost)</p>
-                        <a href="https://evolink.ai/seedance-1-pro-fast" target="_blank" rel="noopener noreferrer" className="text-xs text-purple-700 underline hover:text-purple-900 mt-1 inline-block">공식 문서 →</a>
-                      </div>
-                    )}
 
                     {/* 영상 생성할 장면 수 설정 (최대 180장) */}
                     <div className="space-y-2 pt-4 border-t border-slate-200 mt-4">
@@ -3131,6 +3036,8 @@ const App: React.FC = () => {
                     <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
                       {audioProvider === 'google-chirp3' && 'Chirp3 HD'}
                       {audioProvider === 'google-neural2' && 'Neural2'}
+                      {audioProvider === 'microsoft' && 'Azure TTS'}
+                      {audioProvider === 'elevenlabs' && 'ElevenLabs'}
                     </span>
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'voice' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -3142,6 +3049,8 @@ const App: React.FC = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <button onClick={() => setAudioProvider('google-chirp3')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-chirp3' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Chirp3 HD</button>
                         <button onClick={() => setAudioProvider('google-neural2')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-neural2' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Neural2</button>
+                        <button onClick={() => setAudioProvider('microsoft')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'microsoft' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Azure TTS</button>
+                        <button onClick={() => setAudioProvider('elevenlabs')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>ElevenLabs</button>
                       </div>
                     </div>
                     {audioProvider === 'google-chirp3' && (
