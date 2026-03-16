@@ -71,24 +71,24 @@ const formatSecondsToTime = (seconds: number): string => {
 };
 
 const App: React.FC = () => {
-  const [step, setStep] = useState<AppStep>('storyboard');
+  const [step, setStep] = useState<AppStep>('script'); // 첫 화면: 프로젝트 목록
   // 브랜치2: 비디오 API 전용
   const [videoEngine, setVideoEngine] = useState<VideoEngine>('bytedance');
   const [projects, setProjects] = useState<StoryProject[]>(() => {
     try {
       const saved = localStorage.getItem('user_projects_v1');
-      return saved ? JSON.parse(saved) : [EXP_TEST_PROJECT];
+      return saved ? JSON.parse(saved) : []; // 빈 목록으로 시작
     } catch {
-      return [EXP_TEST_PROJECT];
+      return [];
     }
   });
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => {
     const saved = localStorage.getItem('user_projects_v1');
     if (saved) {
       const projects = JSON.parse(saved);
-      return projects[0]?.id || EXP_TEST_PROJECT_ID;
+      return projects[0]?.id || null;
     }
-    return EXP_TEST_PROJECT_ID;
+    return null; // 프로젝트 없음
   });
 
   const project = useMemo(() => {
@@ -2547,17 +2547,6 @@ const App: React.FC = () => {
                    </div>
                  </div>
                )}
-               {/* [EXP] 소금 장인 테스트 직행 버튼 */}
-               <button
-                 onClick={() => {
-                   setProjects(prev => prev.some(p => p.id === EXP_TEST_PROJECT_ID) ? prev : [EXP_TEST_PROJECT, ...prev]);
-                   setCurrentProjectId(EXP_TEST_PROJECT_ID);
-                   setStep('storyboard');
-                 }}
-                 className="w-full py-5 bg-amber-500 text-white rounded-[24px] font-bold text-lg shadow-lg hover:bg-amber-600 transition-all"
-               >
-                 소금 장인의 숨겨진 진실 → 스토리보드 바로 이동
-               </button>
                <div className="bg-white p-2 sm:p-3 rounded-[32px] sm:rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-200 relative">
                  <textarea className="w-full h-64 sm:h-80 bg-slate-50/50 border-none rounded-[24px] sm:rounded-[36px] p-6 sm:p-10 text-base sm:text-xl focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
