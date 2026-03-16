@@ -36,8 +36,8 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   bgOpacity: 0.8,
   position: 'bottom',
   yPosition: 680,
-  lockPosition: false,
-  lockFont: false,
+  lockPosition: true,
+  lockFont: true,
 };
 
 const EXP_TEST_PROJECT_ID = 'exp-official-sdk-test-pid';
@@ -3009,27 +3009,7 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* 고정 옵션 */}
-                    <div className="space-y-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={subtitleSettings.lockPosition}
-                          onChange={(e) => setSubtitleSettings({...subtitleSettings, lockPosition: e.target.checked})}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-slate-700">모든 장면 동일 위치</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={subtitleSettings.lockFont}
-                          onChange={(e) => setSubtitleSettings({...subtitleSettings, lockFont: e.target.checked})}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-slate-700">모든 장면 동일 폰트</span>
-                      </label>
-                    </div>
+                    {/* 고정 옵션 제거 (디폴트로 항상 활성화) */}
 
                     {/* 색상 설정 - 애플 스타일 */}
                     <div className="space-y-3 p-3 bg-white border border-slate-200 rounded-lg">
