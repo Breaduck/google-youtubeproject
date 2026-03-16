@@ -13,6 +13,7 @@ export const styleTemplates: StyleTemplate[] = [
   { id: 'thriller-webtoon', category: '애니메이션', name: '스릴러/공포 웹툰', thumbnail: '/templates/thriller-webtoon.webp', imagePromptPrefix: 'Thriller horror webtoon, dark atmosphere, suspenseful,', negativePrompt: 'bright, cheerful, cute' },
   { id: 'rural-history', category: '애니메이션', name: '역사 시골 웹툰', thumbnail: '/templates/rural-history.webp', imagePromptPrefix: 'Historical rural webtoon, traditional village, nostalgic,', negativePrompt: 'modern, urban, futuristic' },
   { id: 'korean-history-illust', category: '애니메이션', name: '한국 역사 일러스트', thumbnail: '/templates/korean-history-illust.webp', imagePromptPrefix: 'Korean historical illustration, traditional clothing,', negativePrompt: 'modern, western, realistic photo' },
+  { id: 'stickman', category: '애니메이션', name: '졸라맨 (Stickman)', thumbnail: '/templates/stickman.webp', imagePromptPrefix: 'simple stickman character with round white head, dot eyes, simple smile, black stick figure body, bold clean outlines, minimal character with semi-realistic detailed background, warm muted tones, digital comic illustration,', negativePrompt: 'complex character, detailed face, realistic character, photorealistic person' },
 
   // 실사
   { id: 'cinematic-drama', category: '실사', name: '시네마틱 드라마', thumbnail: '/templates/cinematic-drama.webp', imagePromptPrefix: 'Cinematic drama style, film grain, professional lighting,', negativePrompt: 'cartoon, anime, illustration' },
