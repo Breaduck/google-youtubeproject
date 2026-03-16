@@ -64,9 +64,17 @@ export async function generateSimpleZoomVideo(
       canvas.width = 1280;
       canvas.height = 720;
 
-      // 긴박도에 따른 속도 조절 (1-10 → 7-4초)
+      // TTS 싱크를 위한 시간 계산 (자막 길이 기반, 최대 15초)
       const effectIntensity = intensity || 5;
-      const duration = Math.max(4, 7 - (effectIntensity / 5)); // 긴박도 높을수록 짧게 (빠르게)
+      const subtitleLength = subtitle.length;
+
+      // 한글 기준: 3-4자/초 읽기 속도
+      const estimatedTtsTime = Math.max(6, Math.min(15, subtitleLength / 3.5));
+
+      // 긴박도 보정 (긴박할수록 짧게)
+      const intensityFactor = 1 - ((effectIntensity - 5) / 20); // 0.75 ~ 1.25
+      const duration = Math.max(6, Math.min(15, estimatedTtsTime * intensityFactor));
+
       const fps = 24;
       const totalFrames = Math.floor(duration * fps);
 
