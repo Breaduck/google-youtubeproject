@@ -71,7 +71,7 @@ const formatSecondsToTime = (seconds: number): string => {
 };
 
 const App: React.FC = () => {
-  const [step, setStep] = useState<AppStep>('script'); // 첫 화면: 프로젝트 목록
+  const [step, setStep] = useState<AppStep>('dashboard'); // 첫 화면: 프로젝트 목록
   // 브랜치2: 비디오 API 전용
   const [videoEngine, setVideoEngine] = useState<VideoEngine>('bytedance');
   const [projects, setProjects] = useState<StoryProject[]>(() => {
