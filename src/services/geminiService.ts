@@ -159,13 +159,19 @@ Return ONLY valid JSON, no markdown or explanation.`;
     };
   }
 
-  async generateImage(prompt: string, isPortrait: boolean = false, model?: string): Promise<string> {
+  async generateImage(
+    prompt: string,
+    isPortrait: boolean = false,
+    model?: string,
+    referenceImages?: string[]  // 레퍼런스 이미지 추가 (캐릭터 일관성)
+  ): Promise<string> {
     const provider = localStorage.getItem('image_provider') || 'gemini';
     if (provider === 'runware') {
       return generateRunwareImage(prompt, isPortrait);
     }
     const ai = this.getClient();
-    const imageModel = model || localStorage.getItem('gemini_image_model') || 'gemini-2.5-flash-image';
+    // Imagen 4 Fast로 기본 변경 (49% 비용 절감 + 레퍼런스 지원)
+    const imageModel = model || localStorage.getItem('gemini_image_model') || 'imagen-4.0-fast-generate-001';
 
     let enhancedPrompt = prompt;
     if (isPortrait) {
@@ -176,13 +182,26 @@ Return ONLY valid JSON, no markdown or explanation.`;
 
     // Check if using Imagen or Gemini image-specific models
     if (imageModel.includes('imagen') || imageModel.includes('-image-')) {
+      const config: any = {
+        numberOfImages: 1,
+        aspectRatio: isPortrait ? '1:1' : '16:9'
+      };
+
+      // 레퍼런스 이미지 추가 (캐릭터 일관성 확보)
+      if (referenceImages && referenceImages.length > 0) {
+        config.referenceImages = referenceImages.map(img => {
+          const base64Data = img.includes(',') ? img.split(',')[1] : img;
+          return {
+            imageBytes: base64Data,
+            referenceType: 'SUBJECT'  // 캐릭터 일관성
+          };
+        });
+      }
+
       const response = await ai.models.generateImages({
         model: imageModel,
         prompt: enhancedPrompt,
-        config: {
-          numberOfImages: 1,
-          aspectRatio: isPortrait ? '1:1' : '16:9'
-        }
+        config
       });
 
       if (response.generatedImages && response.generatedImages.length > 0) {

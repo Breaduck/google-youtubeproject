@@ -1098,7 +1098,17 @@ const App: React.FC = () => {
         finalPrompt = `${finalPrompt}, Art style: ${activeProject.customStyleDescription}`;
       }
 
-      const url = await gemini.generateImage(finalPrompt, false, geminiImageModel);
+      // 캐릭터 일관성: portrait를 레퍼런스 이미지로 전달
+      const referenceImages = activeProject.characters
+        .map(char => char.portraitUrl)
+        .filter((url): url is string => url !== null);
+
+      const url = await gemini.generateImage(
+        finalPrompt,
+        false,
+        geminiImageModel,
+        referenceImages.length > 0 ? referenceImages : undefined
+      );
 
       setProjects(prev => prev.map(p => p.id === currentProjectId ? {
         ...p,
