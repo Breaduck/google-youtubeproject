@@ -907,9 +907,10 @@ const App: React.FC = () => {
          setStep('dashboard');
       }, 1500);
     } catch (err) {
-      console.error(err);
+      console.error('화풍 학습 에러:', err);
       clearInterval(progressTimer);
-      alert('화풍 학습에 실패했습니다.');
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류';
+      alert(`화풍 학습에 실패했습니다.\n\n에러: ${errorMessage}\n\nGemini API 키를 확인해주세요.`);
       setBgTask(null);
     }
   };
