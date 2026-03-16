@@ -1,17 +1,31 @@
 import React, { useState } from 'react';
 import { StyleTemplate, TemplateCategory } from '../types/template';
+import { SavedStyle } from '../types';
 import { styleTemplates, templateCategories } from '../data/styleTemplates';
 
 interface Props {
   selectedTemplate: StyleTemplate | null;
   onSelectTemplate: (template: StyleTemplate) => void;
+  savedStyles?: SavedStyle[];
 }
 
-export default function StyleTemplateSelector({ selectedTemplate, onSelectTemplate }: Props) {
-  const [activeCategory, setActiveCategory] = useState<TemplateCategory>('애니메이션');
+export default function StyleTemplateSelector({ selectedTemplate, onSelectTemplate, savedStyles = [] }: Props) {
+  const [activeCategory, setActiveCategory] = useState<TemplateCategory | '내 그림체'>('애니메이션');
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
-  const filteredTemplates = styleTemplates.filter(t => t.category === activeCategory);
+  // SavedStyle을 StyleTemplate 형식으로 변환
+  const savedStyleTemplates: StyleTemplate[] = savedStyles.map(s => ({
+    id: s.id,
+    category: '내 그림체' as TemplateCategory,
+    name: s.name,
+    thumbnail: s.refImages[0] || '/templates/default.webp',
+    imagePromptPrefix: s.description,
+    negativePrompt: ''
+  }));
+
+  const filteredTemplates = activeCategory === '내 그림체'
+    ? savedStyleTemplates
+    : styleTemplates.filter(t => t.category === activeCategory);
 
   return (
     <div className="bg-[#1a1a2e] rounded-xl p-6 space-y-4">
@@ -19,6 +33,18 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
 
       {/* 카테고리 탭 */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        {savedStyles.length > 0 && (
+          <button
+            onClick={() => setActiveCategory('내 그림체')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+              activeCategory === '내 그림체'
+                ? 'bg-purple-600 text-white'
+                : 'bg-transparent text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            💾 내 그림체 ({savedStyles.length})
+          </button>
+        )}
         {templateCategories.map((cat) => (
           <button
             key={cat}
