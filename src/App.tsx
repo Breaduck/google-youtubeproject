@@ -865,7 +865,7 @@ const App: React.FC = () => {
   };
 
   const saveCustomStyleFromInput = async () => {
-    if (refImages.length === 0) { alert('이미지를 최소 1장 이상 등록해주세요.'); return; }
+    if (refImages.length < 3) { alert('명확한 그림체 학습을 위해 최소 3개 이상의 참고 이미지를 넣어주세요.'); return; }
     if (savedStyles.length >= 10) { alert('자주 쓰는 그림체은 최대 10개까지 저장 가능합니다.'); return; }
 
     // Show modal to get style name
@@ -2482,6 +2482,7 @@ const App: React.FC = () => {
                       <div>
                         <h4 className="text-lg sm:text-xl font-semibold text-slate-900">맞춤형 스타일 학습</h4>
                         <p className="text-xs sm:text-sm text-slate-500 mt-1">학습 레퍼런스 이미지 업로드 (최대 7장)</p>
+                        <p className="text-[10px] text-indigo-600 font-semibold mt-1">💡 명확한 그림체 학습을 위해 최소 3개 이상의 참고 이미지를 넣어주세요</p>
                       </div>
                       <div className="flex gap-2 w-full sm:w-auto">
                         <button onClick={() => styleRefImageInputRef.current?.click()} className="flex-1 sm:flex-none px-6 py-3 bg-white border border-indigo-200 rounded-2xl text-xs font-semibold text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
