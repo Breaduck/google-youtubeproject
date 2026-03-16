@@ -167,8 +167,7 @@ const App: React.FC = () => {
   const [showChirpKey, setShowChirpKey] = useState(false);
 
   // 비디오 API 설정
-  // 기본 API 키 (사용자 요청으로 하드코딩 - 보안 주의)
-  const DEFAULT_BYTEPLUS_KEY = '002c08ea-0f36-4ad1-84ef-25740c463f5d';
+  const DEFAULT_BYTEPLUS_KEY = '';
   const [bytedanceApiKey, setBytedanceApiKey] = useState(localStorage.getItem('bytedance_api_key') || DEFAULT_BYTEPLUS_KEY);
   const [showBytedanceKey, setShowBytedanceKey] = useState(false);
   const [bytedanceModel, setBytedanceModel] = useState(localStorage.getItem('bytedance_model') || 'seedance-1.0-pro-fast');
@@ -2639,11 +2638,13 @@ const App: React.FC = () => {
                           )}
                         </button>
                       </div>
-                      <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
-                        <p className="text-xs text-slate-600">
-                          💡 <strong>Gemini API 키</strong> (ai.google.dev) 또는 <strong>Google Cloud API 키</strong> (cloud.google.com) 모두 사용 가능합니다.
-                        </p>
-                      </div>
+                      {!geminiApiKey && (
+                        <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
+                          <p className="text-xs text-slate-600">
+                            💡 google.ai studio에서 발급가능합니다
+                          </p>
+                        </div>
+                      )}
                       {geminiApiKey.length > 20 && (
                         <div className="flex items-center gap-2 text-sm">
                           {isValidatingGemini ? (
@@ -2665,25 +2666,6 @@ const App: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">Gemini 모델</label>
-                      <select value={geminiModel} onChange={e => setGeminiModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                        <option value="gemini-3-flash">Gemini 3 Flash (빠름)</option>
-                        <option value="gemini-1.5-pro">Gemini 1.5 Pro (고품질)</option>
-                      </select>
-                    </div>
-
-                    {/* Google Cloud API 키 */}
-                    <div className="space-y-2 pt-2 border-t border-slate-200">
-                      <label className="text-sm font-medium text-slate-700">Google Cloud API 키</label>
-                      <input
-                        type="text"
-                        value={googleCloudProjectId}
-                        onChange={e => setGoogleCloudProjectId(e.target.value)}
-                        placeholder="API 키 입력"
-                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none text-sm bg-white"
-                      />
-                    </div>
 
                     {/* 기본 Gemini 엔진 */}
                     <div className="space-y-2">
@@ -2702,14 +2684,6 @@ const App: React.FC = () => {
                         <option value="imagen-3.0-generate-002">Imagen 3 Fast (29원)</option>
                         <option value="gemini-3.1-flash-image-preview">Nano Banana 2 (98원)</option>
                         <option value="gemini-3-pro-image-preview">Nano Banana Pro (196원)</option>
-                      </select>
-                    </div>
-
-                    {/* 목소리 모델 */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">목소리 모델</label>
-                      <select value={chirpVoice} onChange={e => setChirpVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
-                        <option value="chirp-3">Chirp 3</option>
                       </select>
                     </div>
                   </div>
@@ -2959,7 +2933,7 @@ const App: React.FC = () => {
                         <select
                           value={subtitleSettings.fontFamily}
                           onChange={(e) => setSubtitleSettings({...subtitleSettings, fontFamily: e.target.value})}
-                          className="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded"
+                          className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded"
                         >
                           <option value="Pretendard">Pretendard (기본)</option>
                           <option value="Noto Sans KR">Noto Sans KR</option>
@@ -3112,10 +3086,8 @@ const App: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-slate-700">나레이션 설정</span>
                     <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
-                      {audioProvider === 'google-chirp3' && 'Google Chirp3'}
-                      {audioProvider === 'google-neural2' && 'Google Neural2'}
-                      {audioProvider === 'microsoft' && 'Microsoft'}
-                      {audioProvider === 'elevenlabs' && 'ElevenLabs'}
+                      {audioProvider === 'google-chirp3' && 'Chirp3 HD'}
+                      {audioProvider === 'google-neural2' && 'Neural2'}
                     </span>
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'voice' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -3123,12 +3095,10 @@ const App: React.FC = () => {
                 {expandedSetting === 'voice' && (
                   <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
                     <div className="space-y-2 pt-4">
-                      <label className="text-sm font-medium text-slate-700">음성 제공자</label>
+                      <label className="text-sm font-medium text-slate-700">목소리 모델</label>
                       <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setAudioProvider('google-chirp3')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-chirp3' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Google Chirp3</button>
-                        <button onClick={() => setAudioProvider('google-neural2')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-neural2' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Google Neural2</button>
-                        <button onClick={() => setAudioProvider('microsoft')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'microsoft' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Azure TTS</button>
-                        <button onClick={() => setAudioProvider('elevenlabs')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>ElevenLabs</button>
+                        <button onClick={() => setAudioProvider('google-chirp3')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-chirp3' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Chirp3 HD</button>
+                        <button onClick={() => setAudioProvider('google-neural2')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-neural2' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Neural2</button>
                       </div>
                     </div>
                     {audioProvider === 'google-chirp3' && (
