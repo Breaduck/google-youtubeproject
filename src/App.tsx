@@ -74,6 +74,12 @@ const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>('dashboard'); // 첫 화면: 프로젝트 목록
   // 브랜치2: 비디오 API 전용
   const [videoEngine, setVideoEngine] = useState<VideoEngine>('bytedance');
+  // 다크모드 상태
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const [projects, setProjects] = useState<StoryProject[]>(() => {
     try {
       const saved = localStorage.getItem('user_projects_v1');
@@ -313,6 +319,18 @@ const App: React.FC = () => {
       console.error('Migration failed:', e);
     }
   }, []); // 한 번만 실행
+
+  // 다크모드 토글 핸들러
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   // [EXP] 항상 소금 장인 프로젝트 + 스토리보드로 강제 이동
   useEffect(() => {
@@ -1947,7 +1965,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-[#FDFDFD] text-slate-800 font-sans selection:bg-indigo-100 pb-20 transition-colors duration-500`}>
+    <div className={`min-h-screen bg-[#FDFDFD] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans selection:bg-indigo-100 dark:selection:bg-indigo-900 pb-20 transition-colors duration-500`}>
       <input type="file" className="hidden" ref={sceneImageUploadRef} accept="image/*" onChange={handleSceneImageUpload} />
       <input type="file" className="hidden" ref={sceneAudioUploadRef} accept="audio/*" onChange={handleSceneAudioUpload} />
       <input type="file" className="hidden" ref={styleRefImageInputRef} accept="image/*" multiple onChange={handleStyleRefImageUpload} />
@@ -1955,10 +1973,18 @@ const App: React.FC = () => {
       <input type="file" className="hidden" ref={charLibInputRef} accept="image/*" multiple onChange={handleCharLibraryImageUpload} />
       <input type="file" className="hidden" ref={charPortraitUploadRef} accept="image/*" onChange={handleCharPortraitUpload} />
 
-      <div className="fixed top-4 right-4 sm:top-8 sm:right-8 z-[205]">
-        <button onClick={() => setIsMyPageOpen(true)} className="w-12 h-12 sm:w-14 sm:h-14 bg-white shadow-xl rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:scale-105 transition-all group relative border border-slate-100">
+      <div className="fixed top-4 right-4 sm:top-8 sm:right-8 z-[205] flex gap-2 sm:gap-3">
+        <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-12 h-12 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 shadow-xl rounded-full flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 transition-all group relative border border-slate-100 dark:border-slate-700">
+          {isDarkMode ? (
+            <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          ) : (
+            <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+          )}
+          <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white text-[10px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">{isDarkMode ? '라이트 모드' : '다크 모드'}</div>
+        </button>
+        <button onClick={() => setIsMyPageOpen(true)} className="w-12 h-12 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 shadow-xl rounded-full flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 transition-all group relative border border-slate-100 dark:border-slate-700">
           <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-          <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">내 페이지</div>
+          <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white text-[10px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">내 페이지</div>
         </button>
       </div>
 
