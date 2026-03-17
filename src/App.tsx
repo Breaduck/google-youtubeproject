@@ -1965,7 +1965,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-[#FDFDFD] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans selection:bg-indigo-100 dark:selection:bg-indigo-900 pb-20 transition-colors duration-500`}>
+    <div className={`min-h-screen bg-[#FDFDFD] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans selection:bg-indigo-100 dark:selection:bg-indigo-900 pb-40 transition-colors duration-500`}>
       <input type="file" className="hidden" ref={sceneImageUploadRef} accept="image/*" onChange={handleSceneImageUpload} />
       <input type="file" className="hidden" ref={sceneAudioUploadRef} accept="audio/*" onChange={handleSceneAudioUpload} />
       <input type="file" className="hidden" ref={styleRefImageInputRef} accept="image/*" multiple onChange={handleStyleRefImageUpload} />
@@ -1990,9 +1990,9 @@ const App: React.FC = () => {
 
       {step !== 'dashboard' && (
         <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[205]">
-          <button onClick={handleBack} className="w-12 h-12 sm:w-14 sm:h-14 bg-white shadow-xl rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all border border-slate-100 group relative">
+          <button onClick={handleBack} className="w-12 h-12 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 shadow-xl rounded-full flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border border-slate-100 dark:border-slate-700 group relative">
             <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
-            <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">이전으로 돌아가기</div>
+            <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white text-[10px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">이전으로 돌아가기</div>
           </button>
         </div>
       )}
@@ -2003,47 +2003,47 @@ const App: React.FC = () => {
 
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 sm:mb-16 gap-6">
             <div className="space-y-2 sm:space-y-4">
-              <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900">내 프로젝트</h1>
-              <p className="text-slate-400 font-medium text-sm sm:text-base">진행 중인 이야기들을 관리하세요</p>
+              <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900 dark:text-slate-100">내 프로젝트</h1>
+              <p className="text-slate-400 dark:text-slate-500 font-medium text-sm sm:text-base">진행 중인 이야기들을 관리하세요</p>
             </div>
-            <button onClick={addNewProject} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 transition-all active:scale-95">
+            <button onClick={addNewProject} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg shadow-indigo-100 dark:shadow-indigo-900/20 flex items-center justify-center gap-2 transition-all active:scale-95">
               <span className="text-xl">+</span> 새 프로젝트 추가
             </button>
           </header>
 
           {projects.length === 0 ? (
-            <div className="bg-white border border-slate-100 rounded-[32px] sm:rounded-[40px] py-20 sm:py-40 flex flex-col items-center justify-center space-y-8 shadow-sm">
-               <button onClick={addNewProject} className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-50 rounded-full flex items-center justify-center text-4xl sm:text-5xl text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 border-2 border-dashed border-slate-200 transition-all active:scale-90">+</button>
-               <p className="text-slate-400 font-semibold text-lg sm:text-xl px-6 text-center">첫 번째 프로젝트를 만들어보세요</p>
+            <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[32px] sm:rounded-[40px] py-20 sm:py-40 flex flex-col items-center justify-center space-y-8 shadow-sm">
+               <button onClick={addNewProject} className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-4xl sm:text-5xl text-slate-300 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border-2 border-dashed border-slate-200 dark:border-slate-600 transition-all active:scale-90">+</button>
+               <p className="text-slate-400 dark:text-slate-500 font-semibold text-lg sm:text-xl px-6 text-center">첫 번째 프로젝트를 만들어보세요</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
                {projects.map(p => (
-                 <div key={p.id} onClick={() => { setCurrentProjectId(p.id); setScript(p.script); setStyle(p.style as VisualStyle); setStep(p.scenes.length > 0 ? 'storyboard' : 'input'); }} className="bg-white border border-slate-100 p-6 sm:p-10 rounded-[36px] sm:rounded-[48px] group hover:border-indigo-400 hover:shadow-2xl transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[300px] sm:min-h-[350px] shadow-sm">
-                    <button onClick={(e) => deleteProject(p.id, e)} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/10 hover:bg-red-500 text-white rounded-full sm:opacity-0 sm:group-hover:opacity-100 transition-all backdrop-blur-sm">
+                 <div key={p.id} onClick={() => { setCurrentProjectId(p.id); setScript(p.script); setStyle(p.style as VisualStyle); setStep(p.scenes.length > 0 ? 'storyboard' : 'input'); }} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 p-6 sm:p-10 rounded-[36px] sm:rounded-[48px] group hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-2xl dark:hover:shadow-indigo-900/20 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[300px] sm:min-h-[350px] shadow-sm">
+                    <button onClick={(e) => deleteProject(p.id, e)} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/10 dark:bg-white/10 hover:bg-red-500 text-white rounded-full sm:opacity-0 sm:group-hover:opacity-100 transition-all backdrop-blur-sm">
                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                     <div className="space-y-3">
                        <div className="flex justify-between items-start">
-                         <h3 className="text-xl sm:text-2xl font-semibold text-slate-900 line-clamp-1 flex-1 pr-8">{p.title}</h3>
+                         <h3 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100 line-clamp-1 flex-1 pr-8">{p.title}</h3>
                        </div>
-                       <p className="text-slate-400 text-xs sm:text-sm font-medium">최종 수정: {new Date(p.updatedAt).toLocaleDateString()}</p>
+                       <p className="text-slate-400 dark:text-slate-500 text-xs sm:text-sm font-medium">최종 수정: {new Date(p.updatedAt).toLocaleDateString()}</p>
                     </div>
                     <div className="flex -space-x-3 sm:-space-x-4 mb-4 sm:mb-6">
                        {p.characters.slice(0, 5).map((c, idx) => (
-                         <div key={idx} className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-white bg-slate-100 overflow-hidden shadow-md">
+                         <div key={idx} className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 overflow-hidden shadow-md">
                            {c.portraitUrl && <img src={c.portraitUrl} className="w-full h-full object-cover" />}
                          </div>
                        ))}
                        {p.characters.length > 5 && (
-                         <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-white bg-indigo-50 flex items-center justify-center text-[10px] sm:text-xs font-semibold text-indigo-600 shadow-md">
+                         <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-white dark:border-slate-800 bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-[10px] sm:text-xs font-semibold text-indigo-600 dark:text-indigo-400 shadow-md">
                            +{p.characters.length - 5}
                          </div>
                        )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2 gap-3">
-                       <span className="px-3 py-1 sm:px-4 sm:py-2 bg-slate-50 border border-slate-100 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-semibold uppercase text-slate-500">장면 {p.scenes.length}개</span>
-                       <span className="px-3 py-1 sm:px-4 sm:py-2 bg-indigo-50 border border-indigo-100 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-semibold uppercase text-indigo-600">{getStyleDisplayName(p.style)}</span>
+                       <span className="px-3 py-1 sm:px-4 sm:py-2 bg-slate-50 dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">장면 {p.scenes.length}개</span>
+                       <span className="px-3 py-1 sm:px-4 sm:py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-semibold uppercase text-indigo-600 dark:text-indigo-400">{getStyleDisplayName(p.style)}</span>
                     </div>
                  </div>
                ))}
@@ -2638,11 +2638,11 @@ const App: React.FC = () => {
       )}
 
       {isMyPageOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsMyPageOpen(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white rounded-t-3xl z-10">
-              <h2 className="text-xl font-semibold text-slate-900">설정</h2>
-              <button onClick={() => setIsMyPageOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400">
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsMyPageOpen(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 rounded-t-3xl z-10">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">설정</h2>
+              <button onClick={() => setIsMyPageOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -2650,21 +2650,21 @@ const App: React.FC = () => {
               {/* 로그인/회원가입 섹션 */}
               {isLoggedIn ? (
                 <div className="flex gap-3 items-center">
-                  <div className="flex-1 py-3 bg-green-50 border border-green-200 text-green-700 text-center font-semibold rounded-xl text-sm">로그인됨</div>
-                  <button onClick={handleLogout} className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-center font-semibold rounded-xl transition-all text-sm">로그아웃</button>
+                  <div className="flex-1 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-400 text-center font-semibold rounded-xl text-sm">로그인됨</div>
+                  <button onClick={handleLogout} className="px-4 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-center font-semibold rounded-xl transition-all text-sm">로그아웃</button>
                 </div>
               ) : (
                 <div className="flex gap-3">
-                  <button onClick={() => setIsLoginModalOpen(true)} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-center font-semibold rounded-xl transition-all text-sm">로그인</button>
-                  <button onClick={() => setIsSignupModalOpen(true)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-center font-semibold rounded-xl transition-all text-sm">회원가입</button>
+                  <button onClick={() => setIsLoginModalOpen(true)} className="flex-1 py-3 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white text-center font-semibold rounded-xl transition-all text-sm">로그인</button>
+                  <button onClick={() => setIsSignupModalOpen(true)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-center font-semibold rounded-xl transition-all text-sm">회원가입</button>
                 </div>
               )}
 
               {/* Gemini API 설정 - 아코디언 */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <button onClick={() => setExpandedSetting(expandedSetting === 'gemini' ? null : 'gemini')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <button onClick={() => setExpandedSetting(expandedSetting === 'gemini' ? null : 'gemini')} className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">Gemini API 설정</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Gemini API 설정</span>
                     {isGeminiValid && (
                       <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
                     )}
@@ -2672,12 +2672,12 @@ const App: React.FC = () => {
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'gemini' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {expandedSetting === 'gemini' && (
-                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
+                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
                     <div className="space-y-2 pt-4">
-                      <label className="text-sm font-medium text-slate-700">API 키</label>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">API 키</label>
                       <div className="relative">
-                        <input type={showGeminiKey ? "text" : "password"} value={geminiApiKey} onChange={e => setGeminiApiKey(e.target.value)} onBlur={() => geminiApiKey.length > 20 && checkGeminiKey(geminiApiKey)} placeholder="API 키 입력" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
-                        <button onClick={() => setShowGeminiKey(!showGeminiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                        <input type={showGeminiKey ? "text" : "password"} value={geminiApiKey} onChange={e => setGeminiApiKey(e.target.value)} onBlur={() => geminiApiKey.length > 20 && checkGeminiKey(geminiApiKey)} placeholder="API 키 입력" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
+                        <button onClick={() => setShowGeminiKey(!showGeminiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                           {showGeminiKey ? (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                           ) : (
@@ -2686,8 +2686,8 @@ const App: React.FC = () => {
                         </button>
                       </div>
                       {!geminiApiKey && (
-                        <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
-                          <p className="text-xs text-slate-600">
+                        <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg">
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
                             💡 google.ai studio에서 발급가능합니다
                           </p>
                         </div>
@@ -2697,7 +2697,7 @@ const App: React.FC = () => {
                           {isValidatingGemini ? (
                             <>
                               <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                              <span className="text-slate-600">검증 중...</span>
+                              <span className="text-slate-600 dark:text-slate-400">검증 중...</span>
                             </>
                           ) : isGeminiValid ? (
                             <>
@@ -2716,8 +2716,8 @@ const App: React.FC = () => {
 
                     {/* 기본 Gemini 엔진 */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">기본 Gemini 엔진 (대본/프롬프트 생성)</label>
-                      <select value={geminiModel} onChange={e => setGeminiModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">기본 Gemini 엔진 (대본/프롬프트 생성)</label>
+                      <select value={geminiModel} onChange={e => setGeminiModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
                         <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
                         <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
                       </select>
@@ -2725,8 +2725,8 @@ const App: React.FC = () => {
 
                     {/* 이미지 모델 */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">이미지 모델</label>
-                      <select value={geminiImageModel} onChange={e => setGeminiImageModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">이미지 모델</label>
+                      <select value={geminiImageModel} onChange={e => setGeminiImageModel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
                         <option value="imagen-4.0-generate-001">Imagen 4 Fast (29원)</option>
                         <option value="imagen-3.0-generate-002">Imagen 3 Fast (29원)</option>
                         <option value="gemini-3.1-flash-image-preview">Nano Banana 2 (98원)</option>
@@ -2738,29 +2738,29 @@ const App: React.FC = () => {
               </div>
 
               {/* 영상화 API 설정 - 아코디언 */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <button onClick={() => setExpandedSetting(expandedSetting === 'bytedance' ? null : 'bytedance')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <button onClick={() => setExpandedSetting(expandedSetting === 'bytedance' ? null : 'bytedance')} className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">영상화 API 설정</span>
-                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">ModelArk</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">영상화 API 설정</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">ModelArk</span>
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'bytedance' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {expandedSetting === 'bytedance' && (
-                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
+                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
                     <div className="space-y-2 pt-4">
-                      <label className="text-sm font-medium text-slate-700">비디오 모델</label>
-                      <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
-                        <p className="text-sm font-medium text-indigo-900">SeeDance 1.0 Pro Fast</p>
-                        <p className="text-xs text-indigo-600 mt-1">BytePlus ModelArk (10초 영상, 720p)</p>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">비디오 모델</label>
+                      <div className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
+                        <p className="text-sm font-medium text-indigo-900 dark:text-indigo-300">SeeDance 1.0 Pro Fast</p>
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">BytePlus ModelArk (10초 영상, 720p)</p>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">BytePlus API 키</label>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">BytePlus API 키</label>
                       <div className="relative">
-                        <input type={showBytedanceKey ? "text" : "password"} value={bytedanceApiKey} onChange={e => setBytedanceApiKey(e.target.value)} placeholder="ARK_API_KEY" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
-                        <button onClick={() => setShowBytedanceKey(!showBytedanceKey)} className="absolute right-3 top-1\2 -translate-y-1\2 text-slate-400 hover:text-slate-600 transition-colors">
+                        <input type={showBytedanceKey ? "text" : "password"} value={bytedanceApiKey} onChange={e => setBytedanceApiKey(e.target.value)} placeholder="ARK_API_KEY" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
+                        <button onClick={() => setShowBytedanceKey(!showBytedanceKey)} className="absolute right-3 top-1\2 -translate-y-1\2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                           {showBytedanceKey ? (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                           ) : (
@@ -2768,12 +2768,12 @@ const App: React.FC = () => {
                           )}
                         </button>
                       </div>
-                        <p className="text-xs text-slate-500">BytePlus ModelArk에서 API 키를 발급받으세요</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">BytePlus ModelArk에서 API 키를 발급받으세요</p>
                       </div>
 
                     {/* 영상 생성할 장면 수 설정 (최대 180장) */}
-                    <div className="space-y-2 pt-4 border-t border-slate-200 mt-4">
-                      <label className="text-sm font-medium text-slate-700">영상 생성할 장면 수 (최대 180장)</label>
+                    <div className="space-y-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">영상 생성할 장면 수 (최대 180장)</label>
                       <div className="flex gap-3 items-center">
                         <input
                           type="range"
@@ -2789,9 +2789,9 @@ const App: React.FC = () => {
                           max="180"
                           value={Math.floor(videoGenerationRange / 10)}
                           onChange={e => setVideoGenerationRange(Math.max(0, Math.min(180, parseInt(e.target.value) || 0)) * 10)}
-                          className="w-20 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                          className="w-20 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none dark:bg-slate-800 dark:text-slate-100"
                         />
-                        <span className="text-sm text-slate-600">장</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">장</span>
                       </div>
                       {(() => {
                         const { numScenes, costPerScene, totalCost } = calculateVideoCost();
@@ -2824,19 +2824,19 @@ const App: React.FC = () => {
               </div>
 
               {/* 자막 설정 - 아코디언 */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">자막 설정</span>
-                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{subtitleSettings.template === 'custom' ? '커스텀' : subtitleSettings.template}</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">자막 설정</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">{subtitleSettings.template === 'custom' ? '커스텀' : subtitleSettings.template}</span>
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'subtitle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {expandedSetting === 'subtitle' && (
-                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
+                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
                     {/* 템플릿 선택 */}
                     <div className="space-y-2 pt-4">
-                      <label className="text-sm font-medium text-slate-700">템플릿</label>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">템플릿</label>
                       <select
                         value={subtitleSettings.template}
                         onChange={(e) => {
@@ -2853,7 +2853,7 @@ const App: React.FC = () => {
                           };
                           setSubtitleSettings({...subtitleSettings, template, ...presets[template]});
                         }}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-slate-100"
                       >
                         <option value="default-white">⚪ 기본 (흰색 + 검은 외곽선)</option>
                         <option value="black-bg">⬛ 검정 배경 (반투명 박스)</option>
@@ -2864,28 +2864,28 @@ const App: React.FC = () => {
                         <option value="youtube-shorts">📺 유튜브 쇼츠 (굵은 외곽선)</option>
                         <option value="custom">🎨 커스텀 색상</option>
                       </select>
-                      <p className="text-xs text-slate-500 mt-1">프리셋 선택 후 크기/위치 조정 → 하단에서 색상 커스터마이징</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">프리셋 선택 후 크기/위치 조정 → 하단에서 색상 커스터마이징</p>
                     </div>
 
                     {/* 크기 & 글씨체 - 컴팩트 */}
-                    <div className="space-y-2 p-3 bg-white border border-slate-200 rounded-lg">
+                    <div className="space-y-2 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
                       <div className="flex items-center justify-between gap-3">
-                        <label className="text-xs font-medium text-slate-600">글자 크기</label>
+                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400">글자 크기</label>
                         <input
                           type="number"
                           min="16"
                           max="80"
                           value={subtitleSettings.fontSize}
                           onChange={(e) => setSubtitleSettings({...subtitleSettings, fontSize: Math.max(16, Math.min(80, parseInt(e.target.value) || 32))})}
-                          className="w-24 px-2 py-1.5 text-xs border border-slate-200 rounded text-center"
+                          className="w-24 px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded text-center dark:bg-slate-700 dark:text-slate-100"
                         />
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <label className="text-xs font-medium text-slate-600">글씨체</label>
+                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400">글씨체</label>
                         <select
                           value={subtitleSettings.fontFamily}
                           onChange={(e) => setSubtitleSettings({...subtitleSettings, fontFamily: e.target.value})}
-                          className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded"
+                          className="flex-1 px-2 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded dark:bg-slate-700 dark:text-slate-100"
                         >
                           <option value="Pretendard">Pretendard (기본)</option>
                           <option value="Noto Sans KR">Noto Sans KR</option>
@@ -2898,22 +2898,22 @@ const App: React.FC = () => {
                       </div>
                       {subtitleSettings.backgroundColor && (
                         <div className="flex items-center justify-between gap-3">
-                          <label className="text-xs font-medium text-slate-600">배경 불투명도</label>
+                          <label className="text-xs font-medium text-slate-600 dark:text-slate-400">배경 불투명도</label>
                           <input
                             type="number"
                             min="0"
                             max="100"
                             value={Math.round(subtitleSettings.bgOpacity * 100)}
                             onChange={(e) => setSubtitleSettings({...subtitleSettings, bgOpacity: Math.max(0, Math.min(100, parseInt(e.target.value) || 80)) / 100})}
-                            className="w-24 px-2 py-1.5 text-xs border border-slate-200 rounded text-center"
+                            className="w-24 px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded text-center dark:bg-slate-700 dark:text-slate-100"
                           />
                         </div>
                       )}
                     </div>
 
                     {/* 위치 설정 - 컴팩트 */}
-                    <div className="space-y-2 p-3 bg-white border border-slate-200 rounded-lg">
-                      <label className="text-xs font-medium text-slate-600">위치</label>
+                    <div className="space-y-2 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">위치</label>
                       <div className="flex gap-1.5">
                         <button
                           onClick={() => setSubtitleSettings({...subtitleSettings, position: 'top', yPosition: 80})}
@@ -2935,7 +2935,7 @@ const App: React.FC = () => {
                         </button>
                       </div>
                       <div className="flex items-center justify-between gap-3 mt-2">
-                        <label className="text-xs font-medium text-slate-600">Y축 미세 조정</label>
+                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Y축 미세 조정</label>
                         <div className="flex items-center gap-1">
                           <input
                             type="number"
@@ -2943,18 +2943,18 @@ const App: React.FC = () => {
                             max="720"
                             value={subtitleSettings.yPosition}
                             onChange={(e) => setSubtitleSettings({...subtitleSettings, yPosition: Math.max(40, Math.min(720, parseInt(e.target.value) || 680))})}
-                            className="w-24 px-2 py-1.5 text-xs border border-slate-200 rounded text-center"
+                            className="w-24 px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded text-center dark:bg-slate-700 dark:text-slate-100"
                           />
                           <div className="flex flex-col gap-0.5">
                             <button
                               onClick={() => setSubtitleSettings({...subtitleSettings, yPosition: Math.max(40, subtitleSettings.yPosition - 1)})}
-                              className="w-5 h-3 flex items-center justify-center bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-sm text-slate-600 text-xs"
+                              className="w-5 h-3 flex items-center justify-center bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-700 rounded-sm text-slate-600 dark:text-slate-400 text-xs"
                             >
                               ▲
                             </button>
                             <button
                               onClick={() => setSubtitleSettings({...subtitleSettings, yPosition: Math.min(720, subtitleSettings.yPosition + 1)})}
-                              className="w-5 h-3 flex items-center justify-center bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-sm text-slate-600 text-xs"
+                              className="w-5 h-3 flex items-center justify-center bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-700 rounded-sm text-slate-600 dark:text-slate-400 text-xs"
                             >
                               ▼
                             </button>
@@ -2966,40 +2966,40 @@ const App: React.FC = () => {
                     {/* 고정 옵션 제거 (디폴트로 항상 활성화) */}
 
                     {/* 색상 설정 - 애플 스타일 */}
-                    <div className="space-y-3 p-3 bg-white border border-slate-200 rounded-lg">
-                      <h3 className="text-xs font-medium text-slate-600">색상</h3>
+                    <div className="space-y-3 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+                      <h3 className="text-xs font-medium text-slate-600 dark:text-slate-400">색상</h3>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-3">
-                          <label className="text-sm text-slate-700 min-w-[80px]">자막</label>
+                          <label className="text-sm text-slate-700 dark:text-slate-300 min-w-[80px]">자막</label>
                           <div className="flex items-center gap-2 flex-1">
                             <input
                               type="color"
                               value={subtitleSettings.textColor}
                               onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
-                              className="w-10 h-8 rounded border border-slate-300 cursor-pointer"
+                              className="w-10 h-8 rounded border border-slate-300 dark:border-slate-600 cursor-pointer"
                             />
                             <input
                               type="text"
                               value={subtitleSettings.textColor}
                               onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
-                              className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono bg-slate-50"
+                              className="flex-1 px-2 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded text-center font-mono bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
                             />
                           </div>
                         </div>
                         <div className="flex items-center justify-between gap-3">
-                          <label className="text-sm text-slate-700 min-w-[80px]">배경</label>
+                          <label className="text-sm text-slate-700 dark:text-slate-300 min-w-[80px]">배경</label>
                           <div className="flex items-center gap-2 flex-1">
                             <input
                               type="color"
                               value={subtitleSettings.backgroundColor || '#000000'}
                               onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
-                              className="w-10 h-8 rounded border border-slate-300 cursor-pointer"
+                              className="w-10 h-8 rounded border border-slate-300 dark:border-slate-600 cursor-pointer"
                             />
                             <input
                               type="text"
                               value={subtitleSettings.backgroundColor || '#000000'}
                               onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
-                              className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded text-center font-mono bg-slate-50"
+                              className="flex-1 px-2 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded text-center font-mono bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
                             />
                           </div>
                         </div>
@@ -3009,8 +3009,8 @@ const App: React.FC = () => {
                     {/* 미리보기 Canvas */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-slate-700">미리보기</label>
-                        <span className="text-xs text-slate-500">클릭하여 Y축 위치 조정</span>
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">미리보기</label>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">클릭하여 Y축 위치 조정</span>
                       </div>
                       <div className="relative border-2 border-slate-300 rounded-lg overflow-hidden bg-slate-900">
                         <canvas
@@ -3033,11 +3033,11 @@ const App: React.FC = () => {
               </div>
 
               {/* 나레이션 설정 - 아코디언 */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <button onClick={() => setExpandedSetting(expandedSetting === 'voice' ? null : 'voice')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <button onClick={() => setExpandedSetting(expandedSetting === 'voice' ? null : 'voice')} className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">나레이션 설정</span>
-                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">나레이션 설정</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">
                       {audioProvider === 'google-chirp3' && 'Chirp3 HD'}
                       {audioProvider === 'google-neural2' && 'Neural2'}
                       {audioProvider === 'microsoft' && 'Azure TTS'}
@@ -3047,21 +3047,21 @@ const App: React.FC = () => {
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'voice' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {expandedSetting === 'voice' && (
-                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 bg-slate-50/50">
+                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
                     <div className="space-y-2 pt-4">
-                      <label className="text-sm font-medium text-slate-700">목소리 모델</label>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">목소리 모델</label>
                       <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setAudioProvider('google-chirp3')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-chirp3' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Chirp3 HD</button>
-                        <button onClick={() => setAudioProvider('google-neural2')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-neural2' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Neural2</button>
-                        <button onClick={() => setAudioProvider('microsoft')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'microsoft' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>Azure TTS</button>
-                        <button onClick={() => setAudioProvider('elevenlabs')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>ElevenLabs</button>
+                        <button onClick={() => setAudioProvider('google-chirp3')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-chirp3' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Chirp3 HD</button>
+                        <button onClick={() => setAudioProvider('google-neural2')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-neural2' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Neural2</button>
+                        <button onClick={() => setAudioProvider('microsoft')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'microsoft' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Azure TTS</button>
+                        <button onClick={() => setAudioProvider('elevenlabs')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>ElevenLabs</button>
                       </div>
                     </div>
                     {audioProvider === 'google-chirp3' && (
                       <>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">Chirp 음성</label>
-                          <select value={chirpVoice} onChange={e => setChirpVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Chirp 음성</label>
+                          <select value={chirpVoice} onChange={e => setChirpVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
                             <option value="Kore">Kore - 활기찬, 명랑한, 자연스러운 (여성)</option>
                             <option value="Aoede">Aoede - 차분한, 우아한, 부드러운 (여성)</option>
                             <option value="Leda">Leda - 중립적, 안정적, 명확한 (여성)</option>
@@ -3073,7 +3073,7 @@ const App: React.FC = () => {
                           </select>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">목소리 속도</label>
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">목소리 속도</label>
                           <div className="flex gap-3 items-center">
                             <input
                               type="range"
@@ -3082,7 +3082,7 @@ const App: React.FC = () => {
                               step="0.1"
                               value={chirpSpeed}
                               onChange={e => setChirpSpeed(parseFloat(e.target.value))}
-                              className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
+                              className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
                             />
                             <input
                               type="number"
@@ -3091,26 +3091,26 @@ const App: React.FC = () => {
                               step="0.1"
                               value={chirpSpeed}
                               onChange={e => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
-                              className="w-20 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                              className="w-20 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none dark:bg-slate-800 dark:text-slate-100"
                             />
-                            <span className="text-sm text-slate-600 min-w-[12px]">×</span>
+                            <span className="text-sm text-slate-600 dark:text-slate-400 min-w-[12px]">×</span>
                           </div>
-                          <p className="text-xs text-slate-500">0.5 (느리게) ~ 2.0 (빠르게)</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">0.5 (느리게) ~ 2.0 (빠르게)</p>
                         </div>
                       </>
                     )}
                     {audioProvider === 'google-neural2' && (
                       <>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">Neural2 음성</label>
-                          <select value={neural2Voice} onChange={e => setNeural2Voice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Neural2 음성</label>
+                          <select value={neural2Voice} onChange={e => setNeural2Voice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
                             <option value="ko-KR-Neural2-A">Neural2-A - 표준 여성</option>
                             <option value="ko-KR-Neural2-B">Neural2-B - 부드러운 여성</option>
                             <option value="ko-KR-Neural2-C">Neural2-C - 자연스러운 남성</option>
                           </select>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">목소리 속도</label>
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">목소리 속도</label>
                           <div className="flex gap-3 items-center">
                             <input
                               type="range"
@@ -3119,7 +3119,7 @@ const App: React.FC = () => {
                               step="0.1"
                               value={chirpSpeed}
                               onChange={e => setChirpSpeed(parseFloat(e.target.value))}
-                              className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
+                              className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
                             />
                             <input
                               type="number"
@@ -3128,21 +3128,21 @@ const App: React.FC = () => {
                               step="0.1"
                               value={chirpSpeed}
                               onChange={e => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
-                              className="w-20 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                              className="w-20 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none dark:bg-slate-800 dark:text-slate-100"
                             />
-                            <span className="text-sm text-slate-600 min-w-[12px]">×</span>
+                            <span className="text-sm text-slate-600 dark:text-slate-400 min-w-[12px]">×</span>
                           </div>
-                          <p className="text-xs text-slate-500">0.5 (느리게) ~ 2.0 (빠르게)</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">0.5 (느리게) ~ 2.0 (빠르게)</p>
                         </div>
                       </>
                     )}
                     {audioProvider === 'microsoft' && (
                       <>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">Azure API 키</label>
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Azure API 키</label>
                           <div className="relative">
-                            <input type={showAzureKey ? "text" : "password"} value={azureApiKey} onChange={e => setAzureApiKey(e.target.value)} placeholder="Azure Speech API 키 입력" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
-                            <button onClick={() => setShowAzureKey(!showAzureKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                            <input type={showAzureKey ? "text" : "password"} value={azureApiKey} onChange={e => setAzureApiKey(e.target.value)} placeholder="Azure Speech API 키 입력" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
+                            <button onClick={() => setShowAzureKey(!showAzureKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                               {showAzureKey ? (
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                               ) : (
@@ -3150,11 +3150,11 @@ const App: React.FC = () => {
                               )}
                             </button>
                           </div>
-                          <p className="text-xs text-slate-500">무료 티어: 월 500만 글자 (한국 서버)</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">무료 티어: 월 500만 글자 (한국 서버)</p>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">음성 선택</label>
-                          <select value={azureVoice} onChange={e => setAzureVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택</label>
+                          <select value={azureVoice} onChange={e => setAzureVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
                             <optgroup label="한국어 Neural">
                               <option value="ko-KR-SunHiNeural">선희 (여성, 밝고 친근함)</option>
                               <option value="ko-KR-InJoonNeural">인준 (남성, 차분하고 안정적)</option>
@@ -3169,14 +3169,14 @@ const App: React.FC = () => {
                       <>
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-slate-700">ElevenLabs API 키</label>
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">ElevenLabs API 키</label>
                             {isElConnected && (
                               <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
                             )}
                           </div>
                           <div className="relative">
-                            <input type={showElKey ? "text" : "password"} value={elSettings.apiKey} onChange={e => setElSettings({...elSettings, apiKey: e.target.value})} placeholder="API 키 입력" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white" />
-                            <button onClick={() => setShowElKey(!showElKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                            <input type={showElKey ? "text" : "password"} value={elSettings.apiKey} onChange={e => setElSettings({...elSettings, apiKey: e.target.value})} placeholder="API 키 입력" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
+                            <button onClick={() => setShowElKey(!showElKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                               {showElKey ? (
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                               ) : (
@@ -3187,19 +3187,19 @@ const App: React.FC = () => {
                         </div>
                         {voices.length > 0 && (
                           <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">음성 선택</label>
-                            <select value={elSettings.voiceId} onChange={e => setElSettings({...elSettings, voiceId: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택</label>
+                            <select value={elSettings.voiceId} onChange={e => setElSettings({...elSettings, voiceId: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
                               {voices.map(v => <option key={v.voice_id} value={v.voice_id}>{v.name}</option>)}
                             </select>
                           </div>
                         )}
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700">음성 속도: {elSettings.speed.toFixed(1)}x</label>
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">음성 속도: {elSettings.speed.toFixed(1)}x</label>
                           <input type="range" min="0.5" max="2.0" step="0.1" value={elSettings.speed} onChange={e => setElSettings({...elSettings, speed: parseFloat(e.target.value)})} className="w-full accent-indigo-600" />
                         </div>
                       </>
                     )}
-                    <button onClick={handleVoiceTest} disabled={isVoiceTesting} className="w-full py-3 rounded-xl text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-all disabled:opacity-50">
+                    <button onClick={handleVoiceTest} disabled={isVoiceTesting} className="w-full py-3 rounded-xl text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all disabled:opacity-50">
                       {isVoiceTesting ? '테스트 중...' : '음성 테스트'}
                     </button>
                   </div>
@@ -3207,20 +3207,20 @@ const App: React.FC = () => {
               </div>
 
               {/* 저장된 그림체 - 아코디언 */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <button onClick={() => setExpandedSetting(expandedSetting === 'styles' ? null : 'styles')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <button onClick={() => setExpandedSetting(expandedSetting === 'styles' ? null : 'styles')} className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">저장된 그림체</span>
-                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{savedStyles.length}/10</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">저장된 그림체</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">{savedStyles.length}/10</span>
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'styles' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {expandedSetting === 'styles' && (
-                  <div className="px-4 pb-4 border-t border-slate-100 bg-slate-50/50 space-y-4">
+                  <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 space-y-4">
                     {/* 새 그림체 추가 폼 */}
                     <div className="pt-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold text-slate-700">새 그림체 추가</h4>
+                        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">새 그림체 추가</h4>
                         <button
                           onClick={() => setIsStyleDescModalOpen(true)}
                           className="group relative p-1.5 hover:bg-slate-100 rounded-lg transition-all"
@@ -3235,17 +3235,17 @@ const App: React.FC = () => {
                         </button>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-slate-600">제목</label>
+                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400">제목</label>
                         <input
                           type="text"
                           value={newStyleName}
                           onChange={e => setNewStyleName(e.target.value)}
                           placeholder="예: 지브리 스타일, 수채화 풍경 등"
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none dark:bg-slate-800 dark:text-slate-100"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-slate-600">레퍼런스 이미지 (최대 10장)</label>
+                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400">레퍼런스 이미지 (최대 10장)</label>
                         <input
                           ref={styleLibraryInputRef}
                           type="file"
@@ -3256,14 +3256,14 @@ const App: React.FC = () => {
                         />
                         <button
                           onClick={() => styleLibraryInputRef.current?.click()}
-                          className="w-full py-2 border-2 border-dashed border-slate-200 rounded-lg text-sm text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all"
+                          className="w-full py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-500 dark:text-slate-400 hover:border-indigo-300 hover:text-indigo-600 transition-all"
                         >
                           + 이미지 선택
                         </button>
                         {newStyleImages.length > 0 && (
                           <div className="flex gap-2 flex-wrap">
                             {newStyleImages.map((img, idx) => (
-                              <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 group">
+                              <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group">
                                 <img src={img} className="w-full h-full object-cover" />
                                 <button
                                   onClick={() => setNewStyleImages(prev => prev.filter((_, i) => i !== idx))}
@@ -3279,7 +3279,7 @@ const App: React.FC = () => {
                       <button
                         onClick={addNewStyle}
                         disabled={!newStyleName.trim() || newStyleImages.length === 0}
-                        className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         그림체 저장
                       </button>
@@ -3287,13 +3287,13 @@ const App: React.FC = () => {
 
                     {/* 저장된 그림체 목록 */}
                     {savedStyles.length > 0 && (
-                      <div className="space-y-2 pt-2 border-t border-slate-200">
-                        <h4 className="text-xs font-semibold text-slate-600">저장된 그림체 ({savedStyles.length}/10)</h4>
+                      <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <h4 className="text-xs font-semibold text-slate-600 dark:text-slate-400">저장된 그림체 ({savedStyles.length}/10)</h4>
                         {savedStyles.map(s => (
-                          <div key={s.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                          <div key={s.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
                             <div className="flex items-center gap-3">
                               {s.refImages[0] && <img src={s.refImages[0]} className="w-10 h-10 rounded-lg object-cover" />}
-                              <span className="text-sm font-medium text-slate-700">{s.name}</span>
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{s.name}</span>
                             </div>
                             <button onClick={() => setSavedStyles(prev => prev.filter(x => x.id !== s.id))} className="text-xs text-red-500 hover:text-red-600">삭제</button>
                           </div>
@@ -3305,31 +3305,31 @@ const App: React.FC = () => {
               </div>
 
               {/* 저장된 인물 - 아코디언 */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <button onClick={() => setExpandedSetting(expandedSetting === 'characters' ? null : 'characters')} className="w-full px-4 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-all">
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <button onClick={() => setExpandedSetting(expandedSetting === 'characters' ? null : 'characters')} className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">저장된 인물</span>
-                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{savedCharacters.length}/10</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">저장된 인물</span>
+                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">{savedCharacters.length}/10</span>
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'characters' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {expandedSetting === 'characters' && (
-                  <div className="px-4 pb-4 border-t border-slate-100 bg-slate-50/50 space-y-4">
+                  <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 space-y-4">
                     {/* 새 인물 추가 폼 */}
                     <div className="pt-4 space-y-3">
-                      <h4 className="text-sm font-semibold text-slate-700">새 인물 추가</h4>
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">새 인물 추가</h4>
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-slate-600">이름</label>
+                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400">이름</label>
                         <input
                           type="text"
                           value={newCharLibName}
                           onChange={e => setNewCharLibName(e.target.value)}
                           placeholder="이름을 입력해주세요"
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none dark:bg-slate-800 dark:text-slate-100"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-slate-600">레퍼런스 이미지 (최대 10장)</label>
+                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400">레퍼런스 이미지 (최대 10장)</label>
                         <input
                           ref={charLibInputRef}
                           type="file"
@@ -3340,14 +3340,14 @@ const App: React.FC = () => {
                         />
                         <button
                           onClick={() => charLibInputRef.current?.click()}
-                          className="w-full py-2 border-2 border-dashed border-slate-200 rounded-lg text-sm text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition-all"
+                          className="w-full py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-500 dark:text-slate-400 hover:border-indigo-300 hover:text-indigo-600 transition-all"
                         >
                           + 이미지 선택
                         </button>
                         {newCharLibImages.length > 0 && (
                           <div className="flex gap-2 flex-wrap">
                             {newCharLibImages.map((img, idx) => (
-                              <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 group">
+                              <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group">
                                 <img src={img} className="w-full h-full object-cover" />
                                 <button
                                   onClick={() => setNewCharLibImages(prev => prev.filter((_, i) => i !== idx))}
@@ -3363,7 +3363,7 @@ const App: React.FC = () => {
                       <button
                         onClick={addNewCharToLibFromSidebar}
                         disabled={!newCharLibName.trim() || newCharLibImages.length === 0 || charLibSaveProgress !== null}
-                        className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {charLibSaveProgress !== null ? `저장 중... ${charLibSaveProgress}%` : '인물 저장'}
                       </button>
@@ -3371,13 +3371,13 @@ const App: React.FC = () => {
 
                     {/* 저장된 인물 목록 */}
                     {savedCharacters.length > 0 && (
-                      <div className="space-y-2 pt-2 border-t border-slate-200">
-                        <h4 className="text-xs font-semibold text-slate-600">저장된 인물 ({savedCharacters.length}/10)</h4>
+                      <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <h4 className="text-xs font-semibold text-slate-600 dark:text-slate-400">저장된 인물 ({savedCharacters.length}/10)</h4>
                         {savedCharacters.map(c => (
-                          <div key={c.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                          <div key={c.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
                             <div className="flex items-center gap-3">
                               {c.portraitUrl && <img src={c.portraitUrl} onClick={() => setSelectedImage(c.portraitUrl)} className="w-10 h-10 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform" />}
-                              <span className="text-sm font-medium text-slate-700">{c.name}</span>
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{c.name}</span>
                             </div>
                             <button onClick={() => setSavedCharacters(prev => prev.filter(x => x.id !== c.id))} className="text-xs text-red-500 hover:text-red-600">삭제</button>
                           </div>
@@ -3395,24 +3395,24 @@ const App: React.FC = () => {
       {/* 캐릭터 추가 모달 */}
       {isCharModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsCharModalOpen(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold text-slate-900 mb-6">새 캐릭터 추가</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">새 캐릭터 추가</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">이름</label>
-                <input type="text" value={newCharData.name} onChange={e => setNewCharData({...newCharData, name: e.target.value})} placeholder="캐릭터 이름" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">이름</label>
+                <input type="text" value={newCharData.name} onChange={e => setNewCharData({...newCharData, name: e.target.value})} placeholder="캐릭터 이름" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm dark:bg-slate-700 dark:text-slate-100" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">성별</label>
-                  <select value={newCharData.gender} onChange={e => setNewCharData({...newCharData, gender: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">성별</label>
+                  <select value={newCharData.gender} onChange={e => setNewCharData({...newCharData, gender: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-700 dark:text-slate-100">
                     <option value="여성">여성</option>
                     <option value="남성">남성</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">나이</label>
-                  <select value={newCharData.age} onChange={e => setNewCharData({...newCharData, age: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm bg-white">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">나이</label>
+                  <select value={newCharData.age} onChange={e => setNewCharData({...newCharData, age: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-700 dark:text-slate-100">
                     <option value="어린이">어린이</option>
                     <option value="청소년">청소년</option>
                     <option value="성인">성인</option>
@@ -3422,13 +3422,13 @@ const App: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">외형 특징</label>
-                <textarea value={newCharData.traits} onChange={e => setNewCharData({...newCharData, traits: e.target.value})} placeholder="머리색, 옷차림, 특징 등" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm h-24 resize-none" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">외형 특징</label>
+                <textarea value={newCharData.traits} onChange={e => setNewCharData({...newCharData, traits: e.target.value})} placeholder="머리색, 옷차림, 특징 등" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm h-24 resize-none dark:bg-slate-700 dark:text-slate-100" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setIsCharModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">취소</button>
-              <button onClick={addCharacterManually} disabled={loading || !newCharData.name.trim() || !newCharData.traits.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
+              <button onClick={() => setIsCharModalOpen(false)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">취소</button>
+              <button onClick={addCharacterManually} disabled={loading || !newCharData.name.trim() || !newCharData.traits.trim()} className="flex-1 py-3 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all disabled:opacity-50">
                 {loading ? '생성 중...' : '추가'}
               </button>
             </div>
@@ -3439,26 +3439,26 @@ const App: React.FC = () => {
       {/* 캐릭터 불러오기 모달 */}
       {isCharLoadModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsCharLoadModalOpen(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-slate-900 mb-4">저장된 캐릭터 불러오기</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">저장된 캐릭터 불러오기</h3>
             {savedCharacters.length === 0 ? (
               <p className="text-sm text-slate-400 py-8 text-center">저장된 캐릭터가 없습니다.</p>
             ) : (
               <div className="space-y-3 max-h-[400px] overflow-y-auto">
                 {savedCharacters.map(sc => (
-                  <div key={sc.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all cursor-pointer" onClick={() => { if(project) { updateCurrentProject({ characters: [...project.characters, { id: crypto.randomUUID(), name: sc.name, role: '', visualDescription: sc.description, portraitUrl: sc.portraitUrl, status: sc.portraitUrl ? 'done' : 'idle' }] }); setIsCharLoadModalOpen(false); } }}>
-                    <div className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">
+                  <div key={sc.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-indigo-200 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/30 transition-all cursor-pointer" onClick={() => { if(project) { updateCurrentProject({ characters: [...project.characters, { id: crypto.randomUUID(), name: sc.name, role: '', visualDescription: sc.description, portraitUrl: sc.portraitUrl, status: sc.portraitUrl ? 'done' : 'idle' }] }); setIsCharLoadModalOpen(false); } }}>
+                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden flex-shrink-0">
                       {sc.portraitUrl ? <img src={sc.portraitUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900 text-sm">{sc.name}</p>
+                      <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">{sc.name}</p>
                       <p className="text-xs text-slate-400 truncate">{sc.description}</p>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            <button onClick={() => setIsCharLoadModalOpen(false)} className="w-full mt-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">닫기</button>
+            <button onClick={() => setIsCharLoadModalOpen(false)} className="w-full mt-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">닫기</button>
           </div>
         </div>
       )}
@@ -3466,13 +3466,13 @@ const App: React.FC = () => {
       {/* 프롬프트 수정 모달 */}
       {isPromptModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsPromptModalOpen(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-lg p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">수정 사항 입력</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">수정 사항 입력</h3>
             <p className="text-sm text-slate-400 mb-6">변경하고 싶은 특징을 한국어로 입력해주세요. 캐릭터 일관성을 유지하며 새로 생성합니다.</p>
-            <textarea value={promptEditInput} onChange={e => setPromptEditInput(e.target.value)} placeholder="예: 조금 더 밝은 조명으로 변경해주고 배경에 나무를 추가해줘" className="w-full px-4 py-4 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-indigo-200 outline-none text-sm h-28 resize-none" />
+            <textarea value={promptEditInput} onChange={e => setPromptEditInput(e.target.value)} placeholder="예: 조금 더 밝은 조명으로 변경해주고 배경에 나무를 추가해줘" className="w-full px-4 py-4 rounded-xl bg-gray-50 dark:bg-slate-700 border-none focus:ring-2 focus:ring-indigo-200 outline-none text-sm h-28 resize-none dark:text-slate-100" />
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setIsPromptModalOpen(false)} className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-all">취소</button>
-              <button onClick={handleRegeneratePrompt} disabled={!promptEditInput.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
+              <button onClick={() => setIsPromptModalOpen(false)} className="flex-1 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-600 transition-all">취소</button>
+              <button onClick={handleRegeneratePrompt} disabled={!promptEditInput.trim()} className="flex-1 py-3 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all disabled:opacity-50">
                 적용하기
               </button>
             </div>
@@ -3483,15 +3483,15 @@ const App: React.FC = () => {
       {/* 맞춤형 스타일 이름 입력 모달 */}
       {isStyleNameModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsStyleNameModalOpen(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-lg p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">그림체 제목을 입력해주세요</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">그림체 제목을 입력해주세요</h3>
             <p className="text-sm text-slate-400 mb-6">저장할 맞춤형 스타일의 이름을 입력해주세요.</p>
             <input
               type="text"
               value={customStyleName}
               onChange={e => setCustomStyleName(e.target.value)}
               placeholder="예: 지브리 스타일"
-              className="w-full px-4 py-4 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-indigo-200 outline-none text-sm"
+              className="w-full px-4 py-4 rounded-xl bg-gray-50 dark:bg-slate-700 border-none focus:ring-2 focus:ring-indigo-200 outline-none text-sm dark:text-slate-100"
               onKeyDown={e => {
                 if (e.key === 'Enter' && customStyleName.trim()) {
                   confirmSaveCustomStyle();
@@ -3499,8 +3499,8 @@ const App: React.FC = () => {
               }}
             />
             <div className="flex gap-3 mt-6">
-              <button onClick={() => { setIsStyleNameModalOpen(false); setCustomStyleName(''); }} className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-all">취소</button>
-              <button onClick={confirmSaveCustomStyle} disabled={!customStyleName.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
+              <button onClick={() => { setIsStyleNameModalOpen(false); setCustomStyleName(''); }} className="flex-1 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-600 transition-all">취소</button>
+              <button onClick={confirmSaveCustomStyle} disabled={!customStyleName.trim()} className="flex-1 py-3 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all disabled:opacity-50">
                 저장하기
               </button>
             </div>
@@ -3522,21 +3522,21 @@ const App: React.FC = () => {
       {/* 로그인 모달 */}
       {isLoginModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsLoginModalOpen(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold text-slate-900 mb-6">로그인</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">로그인</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">아이디</label>
-                <input type="text" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} placeholder="아이디를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">아이디</label>
+                <input type="text" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} placeholder="아이디를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm dark:bg-slate-700 dark:text-slate-100" />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">비밀번호</label>
-                <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="비밀번호를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">비밀번호</label>
+                <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="비밀번호를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm dark:bg-slate-700 dark:text-slate-100" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setIsLoginModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">취소</button>
-              <button onClick={handleLogin} disabled={!loginUsername.trim() || !loginPassword.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">로그인</button>
+              <button onClick={() => setIsLoginModalOpen(false)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">취소</button>
+              <button onClick={handleLogin} disabled={!loginUsername.trim() || !loginPassword.trim()} className="flex-1 py-3 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all disabled:opacity-50">로그인</button>
             </div>
           </div>
         </div>
@@ -3545,25 +3545,25 @@ const App: React.FC = () => {
       {/* 회원가입 모달 */}
       {isSignupModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsSignupModalOpen(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold text-slate-900 mb-6">회원가입</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">회원가입</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">아이디</label>
-                <input type="text" value={signupUsername} onChange={e => setSignupUsername(e.target.value)} placeholder="아이디를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">아이디</label>
+                <input type="text" value={signupUsername} onChange={e => setSignupUsername(e.target.value)} placeholder="아이디를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm dark:bg-slate-700 dark:text-slate-100" />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">비밀번호</label>
-                <input type="password" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} placeholder="비밀번호를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">비밀번호</label>
+                <input type="password" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} placeholder="비밀번호를 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm dark:bg-slate-700 dark:text-slate-100" />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">이메일</label>
-                <input type="email" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} placeholder="이메일을 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-400 outline-none text-sm" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">이메일</label>
+                <input type="email" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} placeholder="이메일을 입력하세요" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm dark:bg-slate-700 dark:text-slate-100" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setIsSignupModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">취소</button>
-              <button onClick={handleSignup} disabled={!signupUsername.trim() || !signupPassword.trim() || !signupEmail.trim()} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">회원가입</button>
+              <button onClick={() => setIsSignupModalOpen(false)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">취소</button>
+              <button onClick={handleSignup} disabled={!signupUsername.trim() || !signupPassword.trim() || !signupEmail.trim()} className="flex-1 py-3 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all disabled:opacity-50">회원가입</button>
             </div>
           </div>
         </div>
