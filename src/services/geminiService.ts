@@ -174,10 +174,13 @@ Return ONLY valid JSON, no markdown or explanation.`;
     const imageModel = model || localStorage.getItem('gemini_image_model') || 'imagen-4.0-fast-generate-001';
 
     let enhancedPrompt = prompt;
+    // 🚫 절대 금지: 이미지 내 모든 텍스트/글씨/문자 생성
+    const TEXT_BAN_PROMPT = "ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, NO CHARACTERS, NO WRITING, NO TYPOGRAPHY, NO KOREAN TEXT, NO ENGLISH TEXT, NO NUMBERS, NO SYMBOLS, NO SIGNS, NO LABELS, NO CAPTIONS, NO SUBTITLES, NO WATERMARKS, NO LOGOS, NO BANNERS, NO INSCRIPTIONS, NO SPEECH BUBBLES, NO COMIC TEXT, NO UI ELEMENTS, NO HUD, completely text-free image, pure visual scene only";
+
     if (isPortrait) {
-      enhancedPrompt = `Portrait shot, centered composition, square 1:1 aspect ratio, ${prompt}, high quality, detailed, professional lighting`;
+      enhancedPrompt = `Portrait shot, centered composition, square 1:1 aspect ratio, ${prompt}, ${TEXT_BAN_PROMPT}, high quality, detailed, professional lighting`;
     } else {
-      enhancedPrompt = `Widescreen 16:9 aspect ratio, no text anywhere in the frame, no captions, no subtitles, no letters, no symbols, no signage, no watermark, ${stripBannedTerms(prompt)}, static locked framing, high quality, detailed, professional lighting`;
+      enhancedPrompt = `Widescreen 16:9 aspect ratio, ${TEXT_BAN_PROMPT}, ${stripBannedTerms(prompt)}, static locked framing, high quality, detailed, professional lighting`;
     }
 
     // Check if using Imagen or Gemini image-specific models
@@ -346,7 +349,12 @@ COST OPTIMIZATION (CRITICAL):
 For EACH scene (numbered 1 to ~${targetScenes}), provide:
 1. "segment_number": Scene number
 2. "scriptSegment": The exact text from the script for this scene (keep original Korean text, MINIMUM 35 characters)
-3. "imagePrompt": A detailed English prompt describing the scene. CRITICAL: Characters MUST match their visualDescription exactly (same face, hair, clothing, features) for consistency across all scenes. Describe background, lighting, mood, and character actions. NEVER mention shot types, camera movement, or include any text/letters/symbols/signs/captions/subtitles/watermarks/logos/UI in the scene description. The frame must be completely free of any written language or typography.
+3. "imagePrompt": A detailed English prompt describing the scene. CRITICAL:
+   - Characters MUST match their visualDescription exactly (same face, hair, clothing, features) for consistency across all scenes
+   - Describe background, lighting, mood, and character actions
+   - ⚠️ ABSOLUTELY FORBIDDEN: NO TEXT, NO LETTERS, NO WORDS, NO KOREAN CHARACTERS, NO ENGLISH CHARACTERS, NO NUMBERS, NO SYMBOLS, NO SIGNS, NO LABELS, NO CAPTIONS, NO SUBTITLES, NO WATERMARKS, NO LOGOS, NO TYPOGRAPHY OF ANY KIND
+   - NEVER mention shot types or camera movement
+   - The image must be 100% text-free, pure visual scene only
 4. "effect_type": Always use "static_subtle"
 5. "intensity": 1-10 emotional intensity
 
@@ -455,6 +463,7 @@ Generate a new, detailed English prompt that:
 2. Maintains the same visual style
 3. Keeps character appearances consistent with their descriptions
 4. Preserves the overall composition quality
+5. ⚠️ CRITICAL: NEVER include any text, letters, words, characters, symbols, signs, captions, subtitles, watermarks, logos, or typography in the scene. The image must be 100% text-free.
 
 Return ONLY the new prompt text, no explanation or markdown.`;
 
