@@ -229,6 +229,9 @@ const App: React.FC = () => {
   const [chirpSpeed, setChirpSpeed] = useState(parseFloat(localStorage.getItem('chirp_speed') || '1.0'));
   const [neural2Voice, setNeural2Voice] = useState(localStorage.getItem('neural2_voice') || 'ko-KR-Neural2-A');
 
+  // 업로드된 WAV 파일 상태
+  const [uploadedWavFile, setUploadedWavFile] = useState<{ file: File; dataUrl: string } | null>(null);
+
   // Azure TTS 설정
   const [azureApiKey, setAzureApiKey] = useState(localStorage.getItem('azure_tts_key') || '');
   const azureRegion = 'koreacentral'; // 한국 고정
@@ -785,34 +788,14 @@ const App: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !project) return;
 
-    setLoading(true);
-    setLoadingText('Gemini로 타임스탬프 생성 중...');
-
-    try {
-      // const geminiService = new GeminiService();
-      const fullScript = project.scenes.map(s => s.scriptSegment).join('\n');
-
-      // TODO: Gemini로 타임스탬프 생성
-      // const timestamps = await geminiService.generateAudioTimestamps(fullScript, project.scenes.length);
-
-      // 오디오 파일을 데이터 URL로 변환
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        const audioDataUrl = ev.target?.result as string;
-
-        // TODO: FFmpeg로 분할 (videoService.ts의 splitAudio 함수 사용 예정)
-        setLoadingText('오디오 분할 중...');
-        console.log('Full script:', fullScript);
-        console.log('Audio data URL:', audioDataUrl.substring(0, 50) + '...');
-
-        // 임시: 로딩만 해제
-        setLoading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('WAV upload error:', error);
-      setLoading(false);
-    }
+    // 오디오 파일을 데이터 URL로 변환하여 저장
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const audioDataUrl = ev.target?.result as string;
+      setUploadedWavFile({ file, dataUrl: audioDataUrl });
+      alert('WAV 파일이 업로드되었습니다. 이제 오디오 생성 버튼을 눌러 자동 분할하거나 새로 생성할 수 있습니다.');
+    };
+    reader.readAsDataURL(file);
 
     if (e.target) e.target.value = '';
   };
@@ -1340,6 +1323,21 @@ const App: React.FC = () => {
   const generateAudio = async (sceneId: string) => {
     if (!checkAndOpenAudioSettings()) return;
     if (!project) return;
+
+    // WAV 파일이 업로드되어 있으면 분할 옵션 제공
+    if (uploadedWavFile) {
+      const useUploaded = window.confirm('업로드된 WAV 파일을 장면에 맞게 자동 분할할까요?');
+
+      if (useUploaded) {
+        // 자동 분할 로직 (TODO: Gemini + FFmpeg)
+        alert('자동 분할 기능은 준비 중입니다.');
+        return;
+      } else {
+        const generateNew = window.confirm('새로 생성하시겠습니까?');
+        if (!generateNew) return;
+        // 새로 생성하는 경우 아래 기존 로직 실행
+      }
+    }
 
     updateCurrentProject({
       scenes: project.scenes.map(s => s.id === sceneId ? { ...s, audioStatus: 'loading' } : s)
@@ -3283,12 +3281,13 @@ const App: React.FC = () => {
                       {isVoiceTesting ? '테스트 중...' : '음성 테스트'}
                     </button>
                     <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">WAV 파일 자동 분할</label>
                       <input type="file" ref={wavUploadRef} accept=".wav,.mp3" className="hidden" onChange={handleWavUpload} />
                       <button onClick={() => wavUploadRef.current?.click()} className="w-full py-3 rounded-xl text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">
-                        WAV 업로드 (자동 분할)
+                        WAV파일 업로드
                       </button>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">전체 오디오 파일을 장면별로 자동 분할합니다</p>
+                      {uploadedWavFile && (
+                        <p className="text-xs text-green-600 dark:text-green-400">✓ {uploadedWavFile.file.name}</p>
+                      )}
                     </div>
                   </div>
                 )}

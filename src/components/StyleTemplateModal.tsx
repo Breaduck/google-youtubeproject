@@ -31,7 +31,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
       onClick={onClose}
     >
       <div
-        className="bg-[#16213e] rounded-2xl w-full max-w-7xl max-h-[85vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
+        className="bg-[#16213e] rounded-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
@@ -48,7 +48,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
         </div>
 
         {/* 본문 (스크롤) */}
-        <div className="p-6 overflow-y-auto max-h-[calc(80vh-180px)] custom-scrollbar">
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)] custom-scrollbar">
           <StyleTemplateSelector
             selectedTemplate={selectedTemplate}
             onSelectTemplate={onSelectTemplate}
