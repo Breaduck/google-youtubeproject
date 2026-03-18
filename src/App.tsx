@@ -265,6 +265,7 @@ const App: React.FC = () => {
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
   const [showCostDetails, setShowCostDetails] = useState(false);
   const [isSettingsFullscreen, setIsSettingsFullscreen] = useState(false);
+  const [costPeriod, setCostPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   // Login/Signup states
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -2856,26 +2857,107 @@ const App: React.FC = () => {
                         <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">환율 1,460원 기준</p>
 
                         {showCostDetails && (
-                          <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-700 space-y-2">
+                          <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-700 space-y-3">
+                            {/* 기간 선택 */}
+                            <div className="flex gap-2">
+                              {[
+                                { value: 'daily', label: '일별' },
+                                { value: 'weekly', label: '주별' },
+                                { value: 'monthly', label: '월별' }
+                              ].map(period => (
+                                <button
+                                  key={period.value}
+                                  onClick={() => setCostPeriod(period.value as any)}
+                                  className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                    costPeriod === period.value
+                                      ? 'bg-emerald-600 dark:bg-emerald-700 text-white'
+                                      : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
+                                  }`}
+                                >
+                                  {period.label}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* 그래프 & 통계 */}
                             {(() => {
-                              const stored = JSON.parse(localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}');
+                              const logs = JSON.parse(localStorage.getItem('gemini_usage_log') || '[]');
                               const EXCHANGE_RATE = 1460;
-                              const inputCost = (stored.input / 1000000) * 0.50 * EXCHANGE_RATE;
-                              const outputCost = (stored.output / 1000000) * 3.00 * EXCHANGE_RATE;
-                              const imageCost = stored.images * 0.02 * EXCHANGE_RATE;
+
+                              // 기간별로 그룹핑
+                              const groupedData: Record<string, { input: number; output: number; images: number; cost: number }> = {};
+                              const now = Date.now();
+                              const msPerDay = 24 * 60 * 60 * 1000;
+
+                              logs.forEach((log: any) => {
+                                let key = '';
+                                const date = new Date(log.timestamp);
+
+                                if (costPeriod === 'daily') {
+                                  key = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                                } else if (costPeriod === 'weekly') {
+                                  const weekStart = new Date(date);
+                                  weekStart.setDate(date.getDate() - date.getDay());
+                                  key = weekStart.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                                } else {
+                                  key = date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short' });
+                                }
+
+                                if (!groupedData[key]) {
+                                  groupedData[key] = { input: 0, output: 0, images: 0, cost: 0 };
+                                }
+
+                                groupedData[key].input += log.input || 0;
+                                groupedData[key].output += log.output || 0;
+                                groupedData[key].images += log.images || 0;
+                              });
+
+                              // 비용 계산
+                              Object.keys(groupedData).forEach(key => {
+                                const data = groupedData[key];
+                                const inputCost = (data.input / 1000000) * 0.50 * EXCHANGE_RATE;
+                                const outputCost = (data.output / 1000000) * 3.00 * EXCHANGE_RATE;
+                                const imageCost = data.images * 0.02 * EXCHANGE_RATE;
+                                data.cost = Math.ceil(inputCost + outputCost + imageCost);
+                              });
+
+                              const entries = Object.entries(groupedData).slice(-7); // 최근 7개
+                              const maxCost = Math.max(...entries.map(([, d]) => d.cost), 1);
+
                               return (
                                 <>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-emerald-700 dark:text-emerald-300">이미지 생성</span>
-                                    <span className="font-medium text-emerald-900 dark:text-emerald-200">₩{Math.ceil(imageCost).toLocaleString()} ({stored.images}장)</span>
+                                  {/* 간단한 바 그래프 */}
+                                  <div className="space-y-1.5">
+                                    {entries.length > 0 ? entries.map(([key, data]) => (
+                                      <div key={key} className="flex items-center gap-2">
+                                        <span className="text-[10px] text-emerald-700 dark:text-emerald-300 w-16 text-right">{key}</span>
+                                        <div className="flex-1 h-5 bg-emerald-100 dark:bg-emerald-900/20 rounded-full overflow-hidden">
+                                          <div
+                                            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 rounded-full transition-all"
+                                            style={{ width: `${(data.cost / maxCost) * 100}%` }}
+                                          />
+                                        </div>
+                                        <span className="text-[10px] font-semibold text-emerald-900 dark:text-emerald-200 w-16">₩{data.cost.toLocaleString()}</span>
+                                      </div>
+                                    )) : (
+                                      <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center py-2">사용 기록이 없습니다</p>
+                                    )}
                                   </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-emerald-700 dark:text-emerald-300">스크립트 분할 & 프롬프트 생성 (입력)</span>
-                                    <span className="font-medium text-emerald-900 dark:text-emerald-200">₩{Math.ceil(inputCost).toLocaleString()} ({(stored.input / 1000).toFixed(1)}K토큰)</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-emerald-700 dark:text-emerald-300">응답 생성 (출력)</span>
-                                    <span className="font-medium text-emerald-900 dark:text-emerald-200">₩{Math.ceil(outputCost).toLocaleString()} ({(stored.output / 1000).toFixed(1)}K토큰)</span>
+
+                                  {/* 세부 내역 */}
+                                  <div className="pt-2 border-t border-emerald-200 dark:border-emerald-700 space-y-1.5">
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-emerald-700 dark:text-emerald-300">총 이미지 생성</span>
+                                      <span className="font-medium text-emerald-900 dark:text-emerald-200">{entries.reduce((sum, [, d]) => sum + d.images, 0)}장</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-emerald-700 dark:text-emerald-300">총 입력 토큰</span>
+                                      <span className="font-medium text-emerald-900 dark:text-emerald-200">{(entries.reduce((sum, [, d]) => sum + d.input, 0) / 1000).toFixed(1)}K</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-emerald-700 dark:text-emerald-300">총 출력 토큰</span>
+                                      <span className="font-medium text-emerald-900 dark:text-emerald-200">{(entries.reduce((sum, [, d]) => sum + d.output, 0) / 1000).toFixed(1)}K</span>
+                                    </div>
                                   </div>
                                 </>
                               );
