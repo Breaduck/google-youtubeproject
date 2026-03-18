@@ -264,7 +264,7 @@ const App: React.FC = () => {
 
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
   const [showCostDetails, setShowCostDetails] = useState(false);
-  const [isFullscreenSettingsOpen, setIsFullscreenSettingsOpen] = useState(false);
+  const [isSettingsFullscreen, setIsSettingsFullscreen] = useState(false);
 
   // Login/Signup states
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -2721,20 +2721,20 @@ const App: React.FC = () => {
       )}
 
       {isMyPageOpen && (
-        <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsMyPageOpen(false)}>
-          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className={`fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[300] flex items-center justify-center ${isSettingsFullscreen ? 'p-0' : 'p-4'}`} onClick={() => { setIsMyPageOpen(false); setIsSettingsFullscreen(false); }}>
+          <div className={`bg-white dark:bg-slate-800 rounded-3xl w-full ${isSettingsFullscreen ? 'max-w-[95vw] h-[95vh] text-[1.4rem]' : 'max-w-lg max-h-[85vh]'} overflow-y-auto shadow-2xl`} onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 rounded-t-3xl z-10">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">설정</h2>
               <div className="flex items-center gap-2">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsFullscreenSettingsOpen(true);
+                    setIsSettingsFullscreen(!isSettingsFullscreen);
                   }}
                   className="px-3 py-1.5 flex items-center gap-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-sm font-medium transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
-                  전체 화면
+                  {isSettingsFullscreen ? '축소' : '전체 화면'}
                 </button>
                 <button onClick={() => setIsMyPageOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -3729,165 +3729,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* 전체 화면 설정 모달 */}
-      {isFullscreenSettingsOpen && (
-        <div className={`fixed inset-0 ${isDarkMode ? 'bg-slate-900' : 'bg-white'} z-[400] overflow-y-auto`}>
-          <div className="max-w-[1600px] mx-auto p-12">
-            {/* 헤더 */}
-            <div className="flex justify-between items-center mb-12">
-              <h1 className={`text-5xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>설정</h1>
-              <button
-                onClick={() => setIsFullscreenSettingsOpen(false)}
-                className={`w-16 h-16 flex items-center justify-center rounded-2xl text-2xl ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} hover:text-slate-900 dark:hover:text-white transition-all`}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* 설정 섹션 */}
-            <div className="space-y-8">
-              {/* Gemini API 설정 */}
-              <div className="bg-slate-800 rounded-2xl p-6 space-y-4">
-                <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-3">
-                  Gemini API 설정
-                  {isGeminiValid && (
-                    <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
-                  )}
-                </h2>
-                <div className="space-y-3">
-                  <label className="text-lg font-medium text-slate-300">API 키</label>
-                  <input
-                    type={showGeminiKey ? "text" : "password"}
-                    value={geminiApiKey}
-                    onChange={e => setGeminiApiKey(e.target.value)}
-                    placeholder="API 키 입력"
-                    className="w-full px-5 py-4 rounded-xl border border-slate-700 bg-slate-900 text-white text-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <label className="text-lg font-medium text-slate-300">모델</label>
-                  <select
-                    value={geminiModel}
-                    onChange={e => setGeminiModel(e.target.value)}
-                    className="w-full px-5 py-4 rounded-xl border border-slate-700 bg-slate-900 text-white text-lg focus:border-indigo-500 outline-none"
-                  >
-                    <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
-                    <option value="gemini-3.1-flash-preview">Gemini 3.1 Flash</option>
-                    <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
-                  </select>
-                </div>
-                <div className="space-y-3">
-                  <label className="text-lg font-medium text-slate-300">이미지 모델</label>
-                  <select
-                    value={geminiImageModel}
-                    onChange={e => setGeminiImageModel(e.target.value)}
-                    className="w-full px-5 py-4 rounded-xl border border-slate-700 bg-slate-900 text-white text-lg focus:border-indigo-500 outline-none"
-                  >
-                    <option value="imagen-4.0-generate-001">Imagen 4 Fast (29원)</option>
-                    <option value="imagen-3.0-generate-002">Imagen 3 Fast (29원)</option>
-                    <option value="gemini-3.1-flash-image-preview">Nano Banana 2 (98원)</option>
-                    <option value="gemini-3-pro-image-preview">Nano Banana Pro (196원)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* 영상화 API 설정 */}
-              <div className="bg-slate-800 rounded-2xl p-6 space-y-4">
-                <h2 className="text-2xl font-semibold text-white mb-4">영상화 API 설정</h2>
-                <div className="space-y-3">
-                  <label className="text-lg font-medium text-slate-300">BytePlus API 키</label>
-                  <input
-                    type={showBytedanceKey ? "text" : "password"}
-                    value={bytedanceApiKey}
-                    onChange={e => setBytedanceApiKey(e.target.value)}
-                    placeholder="ARK_API_KEY"
-                    className="w-full px-5 py-4 rounded-xl border border-slate-700 bg-slate-900 text-white text-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <label className="text-lg font-medium text-slate-300">비디오 모델</label>
-                  <div className="px-4 py-3 bg-indigo-900/30 border border-indigo-700 rounded-xl">
-                    <p className="text-lg font-medium text-indigo-300">SeeDance 1.0 Pro Fast</p>
-                    <p className="text-sm text-indigo-400 mt-1">BytePlus ModelArk (10초 영상, 720p)</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 음성 API 설정 */}
-              <div className="bg-slate-800 rounded-2xl p-6 space-y-4">
-                <h2 className="text-2xl font-semibold text-white mb-4">음성 API 설정</h2>
-                <div className="space-y-3">
-                  <label className="text-lg font-medium text-slate-300">음성 제공자</label>
-                  <select
-                    value={audioProvider}
-                    onChange={e => setAudioProvider(e.target.value as any)}
-                    className="w-full px-5 py-4 rounded-xl border border-slate-700 bg-slate-900 text-white text-lg focus:border-indigo-500 outline-none"
-                  >
-                    <option value="google-chirp3">Google Chirp 3 (권장)</option>
-                    <option value="google-neural2">Google Neural2</option>
-                    <option value="elevenlabs">ElevenLabs</option>
-                  </select>
-                </div>
-                {audioProvider === 'google-chirp3' && (
-                  <div className="space-y-3">
-                    <label className="text-lg font-medium text-slate-300">Chirp API 키</label>
-                    <input
-                      type={showChirpKey ? "text" : "password"}
-                      value={chirpApiKey}
-                      onChange={e => setChirpApiKey(e.target.value)}
-                      placeholder="Google Cloud API 키"
-                      className="w-full px-5 py-4 rounded-xl border border-slate-700 bg-slate-900 text-white text-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* 예상 비용 */}
-              <div className="bg-gradient-to-br from-emerald-900/40 to-teal-900/40 border border-emerald-700 rounded-2xl p-6 space-y-4">
-                <h2 className="text-2xl font-semibold text-emerald-300 mb-4">예상 비용 (누적)</h2>
-                <div className="text-6xl font-bold text-emerald-400">
-                  {(() => {
-                    const stored = JSON.parse(localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}');
-                    const EXCHANGE_RATE = 1460;
-                    const inputCost = (stored.input / 1000000) * 0.50;
-                    const outputCost = (stored.output / 1000000) * 3.00;
-                    const imageCost = stored.images * 0.02;
-                    const totalUSD = inputCost + outputCost + imageCost;
-                    const totalKRW = Math.ceil(totalUSD * EXCHANGE_RATE);
-                    return `₩${totalKRW.toLocaleString()}`;
-                  })()}
-                </div>
-                <p className="text-lg text-emerald-500">환율 1,460원 기준</p>
-                <div className="pt-4 space-y-3 border-t border-emerald-700">
-                  {(() => {
-                    const stored = JSON.parse(localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}');
-                    const EXCHANGE_RATE = 1460;
-                    const inputCost = (stored.input / 1000000) * 0.50 * EXCHANGE_RATE;
-                    const outputCost = (stored.output / 1000000) * 3.00 * EXCHANGE_RATE;
-                    const imageCost = stored.images * 0.02 * EXCHANGE_RATE;
-                    return (
-                      <>
-                        <div className="flex justify-between text-base text-emerald-300">
-                          <span>이미지 생성</span>
-                          <span className="font-semibold">₩{Math.ceil(imageCost).toLocaleString()} ({stored.images}장)</span>
-                        </div>
-                        <div className="flex justify-between text-base text-emerald-300">
-                          <span>입력 토큰</span>
-                          <span className="font-semibold">₩{Math.ceil(inputCost).toLocaleString()} ({(stored.input / 1000).toFixed(1)}K)</span>
-                        </div>
-                        <div className="flex justify-between text-base text-emerald-300">
-                          <span>출력 토큰</span>
-                          <span className="font-semibold">₩{Math.ceil(outputCost).toLocaleString()} ({(stored.output / 1000).toFixed(1)}K)</span>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <StyleTemplateModal
         isOpen={isTemplateModalOpen}
