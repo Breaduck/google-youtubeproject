@@ -263,6 +263,7 @@ const App: React.FC = () => {
   const [regenerateInput, setRegenerateInput] = useState('');
 
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
+  const [showCostDetails, setShowCostDetails] = useState(false);
 
   // Login/Signup states
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -2810,6 +2811,62 @@ const App: React.FC = () => {
                         <option value="gemini-3.1-flash-image-preview">Nano Banana 2 (98원)</option>
                         <option value="gemini-3-pro-image-preview">Nano Banana Pro (196원)</option>
                       </select>
+                    </div>
+
+                    {/* 예상 비용 표시 */}
+                    <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <div className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-emerald-900 dark:text-emerald-300">예상 비용 (누적)</span>
+                          <button
+                            onClick={() => setShowCostDetails(!showCostDetails)}
+                            className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 font-medium underline"
+                          >
+                            {showCostDetails ? '간단히 보기' : '자세히 보기'}
+                          </button>
+                        </div>
+                        <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                          {(() => {
+                            const stored = JSON.parse(localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}');
+                            const EXCHANGE_RATE = 1460;
+                            const inputCost = (stored.input / 1000000) * 0.50;
+                            const outputCost = (stored.output / 1000000) * 3.00;
+                            const imageCost = stored.images * 0.02;
+                            const totalUSD = inputCost + outputCost + imageCost;
+                            const totalKRW = Math.ceil(totalUSD * EXCHANGE_RATE);
+                            return `₩${totalKRW.toLocaleString()}`;
+                          })()}
+                        </p>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">환율 1,460원 기준</p>
+
+                        {showCostDetails && (
+                          <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-700 space-y-2">
+                            {(() => {
+                              const stored = JSON.parse(localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}');
+                              const EXCHANGE_RATE = 1460;
+                              const inputCost = (stored.input / 1000000) * 0.50 * EXCHANGE_RATE;
+                              const outputCost = (stored.output / 1000000) * 3.00 * EXCHANGE_RATE;
+                              const imageCost = stored.images * 0.02 * EXCHANGE_RATE;
+                              return (
+                                <>
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-emerald-700 dark:text-emerald-300">이미지 생성</span>
+                                    <span className="font-medium text-emerald-900 dark:text-emerald-200">₩{Math.ceil(imageCost).toLocaleString()} ({stored.images}장)</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-emerald-700 dark:text-emerald-300">스크립트 분할 & 프롬프트 생성 (입력)</span>
+                                    <span className="font-medium text-emerald-900 dark:text-emerald-200">₩{Math.ceil(inputCost).toLocaleString()} ({(stored.input / 1000).toFixed(1)}K토큰)</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-emerald-700 dark:text-emerald-300">응답 생성 (출력)</span>
+                                    <span className="font-medium text-emerald-900 dark:text-emerald-200">₩{Math.ceil(outputCost).toLocaleString()} ({(stored.output / 1000).toFixed(1)}K토큰)</span>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
