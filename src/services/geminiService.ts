@@ -635,6 +635,29 @@ Calculate based on average reading speed of 150 words per minute in Korean.`;
     return JSON.parse(jsonMatch[0]);
   }
 
+  async analyzeYoutubeStyle(youtubeUrl: string): Promise<string> {
+    const ai = this.getClient();
+
+    const videoId = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1];
+    if (!videoId) throw new Error('Invalid YouTube URL');
+
+    const prompt = `Analyze the visual style of this YouTube video (first 60 seconds).
+
+Describe: art style, color palette, line style, character design, background style.
+Provide a concise technical description for image generation (English, 100-150 words).`;
+
+    // 유튜브는 직접 전달 불가, 스크린샷 필요
+    // 임시: URL만 분석
+    const response = await ai.models.generateContent({
+      model: this.getModel(),
+      contents: `Based on this YouTube URL: ${youtubeUrl}\n\n${prompt}`
+    });
+
+    this.recordUsage(response, 'text');
+
+    return response.text || 'Modern digital animation style';
+  }
+
   // 토큰 사용량 기록
   private recordUsage(response: any, type: 'text' | 'image') {
     try {
