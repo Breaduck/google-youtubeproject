@@ -31,7 +31,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
       onClick={onClose}
     >
       <div
-        className="bg-[#16213e] rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
+        className="bg-[#16213e] rounded-2xl w-full max-w-7xl max-h-[85vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}

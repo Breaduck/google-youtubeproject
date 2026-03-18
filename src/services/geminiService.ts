@@ -628,4 +628,24 @@ Calculate based on average reading speed of 150 words per minute in Korean.`;
 
     return JSON.parse(jsonMatch[0]);
   }
+
+  async getUsageStats(): Promise<{ totalRequests: number; estimatedCost: string }> {
+    const apiKey = this.getApiKey();
+    if (!apiKey) throw new Error('API key required');
+
+    try {
+      // Gemini API 사용량 조회 (예상치)
+      // 실제 API는 없으므로 localStorage 기반 추정
+      const requests = parseInt(localStorage.getItem('gemini_request_count') || '0');
+      const costPerRequest = 0.00025; // $0.00025 per request (추정)
+      const estimatedCost = (requests * costPerRequest).toFixed(4);
+
+      return {
+        totalRequests: requests,
+        estimatedCost: `$${estimatedCost}`,
+      };
+    } catch (error) {
+      return { totalRequests: 0, estimatedCost: '$0.00' };
+    }
+  }
 }
