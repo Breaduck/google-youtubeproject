@@ -1330,8 +1330,14 @@ const App: React.FC = () => {
       const useUploaded = window.confirm('업로드된 WAV 파일을 장면에 맞게 자동 분할할까요?');
 
       if (useUploaded) {
+        // Gemini API 키 체크
+        if (!geminiApiKey) {
+          alert('자동 분할을 위해 Gemini API 키를 입력해주세요.\n\n설정 > Gemini API 설정에서 API 키를 등록하세요.');
+          setExpandedSetting('gemini');
+          return;
+        }
         // 자동 분할 로직 (TODO: Gemini + FFmpeg)
-        alert('자동 분할 기능은 준비 중입니다.');
+        alert('자동 분할 기능은 개발 중입니다. 곧 지원될 예정입니다.');
         return;
       } else {
         const generateNew = window.confirm('새로 생성하시겠습니까?');
@@ -2742,11 +2748,6 @@ const App: React.FC = () => {
                     {isGeminiValid && (
                       <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
                     )}
-                    {(() => {
-                      const usage = JSON.parse(localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}');
-                      const cost = ((usage.input / 1000000) * 0.15 + (usage.output / 1000000) * 0.6 + usage.images * 0.02).toFixed(4);
-                      return <span className="text-xs text-slate-500 dark:text-slate-400">${cost}</span>;
-                    })()}
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'gemini' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>

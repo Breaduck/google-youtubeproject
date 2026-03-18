@@ -572,39 +572,57 @@ Return ONLY the new prompt text, no explanation or markdown.`;
   async generateMotionPrompt(dialogue: string, imagePrompt: string): Promise<string> {
     const ai = this.getClient();
 
-    const prompt = `You must output ONLY one of these exact allowed motion templates (no scene description):
+    const prompt = `You must output ONLY one of these exact allowed motion templates (choose based on dialogue emotion):
 
-A) "blink only"
-B) "blink + breathing"
-C) "blink + breathing + micro head <0.3°"
+A) "blink only, calm breathing"
+B) "blink, breathing, subtle smile"
+C) "blink, breathing, gentle nod"
+D) "blink, breathing, slight head tilt with curiosity"
+E) "blink, breathing, eyebrow raise with surprise"
+F) "blink, breathing, hand gesture emphasizing words"
+G) "blink, breathing, lean forward slightly"
+H) "blink, breathing, contemplative expression"
+I) "blink, breathing, excited expression with wider eyes"
+J) "blink, breathing, concerned expression with furrowed brow"
 
 INPUT:
 Dialogue: "${dialogue}"
 
-Choose the template that best matches the emotional intensity (A for calm, B for neutral, C for slight emotion).
-Return ONLY one of the three strings above, nothing else.`;
+Choose based on emotion:
+- Calm/neutral: A, B
+- Explaining/teaching: C, F, G
+- Questioning/curious: D, H
+- Surprised/excited: E, I
+- Serious/concerned: J, H
+
+Return ONLY the letter (A-J), nothing else.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
       contents: prompt
     });
 
-    let generatedPrompt = response.text?.trim().toLowerCase() || 'blink only';
+    const choice = response.text?.trim().toUpperCase() || 'A';
 
-    // Deterministic enforcement: ONLY allow exact templates
-    const allowedTemplates = ['blink only', 'blink + breathing', 'blink + breathing + micro head <0.3°'];
+    // Motion template mapping
+    const motionTemplates: Record<string, string> = {
+      'A': 'blink only, calm breathing',
+      'B': 'blink, breathing, subtle smile',
+      'C': 'blink, breathing, gentle nod',
+      'D': 'blink, breathing, slight head tilt with curiosity',
+      'E': 'blink, breathing, eyebrow raise with surprise',
+      'F': 'blink, breathing, hand gesture emphasizing words',
+      'G': 'blink, breathing, lean forward slightly',
+      'H': 'blink, breathing, contemplative expression',
+      'I': 'blink, breathing, excited expression with wider eyes',
+      'J': 'blink, breathing, concerned expression with furrowed brow',
+    };
 
-    // Check if output matches allowed templates
-    const matched = allowedTemplates.find(t => generatedPrompt.includes(t.toLowerCase()));
+    // Extract letter from response
+    const match = choice.match(/[A-J]/);
+    const selectedLetter = match ? match[0] : 'A';
 
-    if (!matched) {
-      // Any other output -> force "blink only"
-      generatedPrompt = 'blink only';
-    } else {
-      generatedPrompt = matched;
-    }
-
-    return generatedPrompt;
+    return motionTemplates[selectedLetter] || motionTemplates['A'];
   }
 
   async generateAudioTimestamps(fullScript: string, numScenes: number): Promise<number[]> {
