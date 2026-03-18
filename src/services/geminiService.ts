@@ -140,6 +140,8 @@ Return ONLY valid JSON, no markdown or explanation.`;
       }
     });
 
+    this.recordUsage(response, 'text');
+
     const text = response.text || '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Failed to parse character data');
@@ -206,6 +208,8 @@ Return ONLY valid JSON, no markdown or explanation.`;
         prompt: enhancedPrompt,
         config
       });
+
+      this.recordUsage(response, 'image');
 
       if (response.generatedImages && response.generatedImages.length > 0) {
         const imageData = response.generatedImages[0].image?.imageBytes;
@@ -373,6 +377,8 @@ Return ONLY valid JSON array, no markdown.`;
         responseMimeType: 'application/json'
       }
     });
+
+    this.recordUsage(response, 'text');
 
     const text = response.text || '';
     const jsonMatch = text.match(/\[[\s\S]*\]/);
@@ -629,23 +635,49 @@ Calculate based on average reading speed of 150 words per minute in Korean.`;
     return JSON.parse(jsonMatch[0]);
   }
 
-  async getUsageStats(): Promise<{ totalRequests: number; estimatedCost: string }> {
-    const apiKey = this.getApiKey();
-    if (!apiKey) throw new Error('API key required');
-
+  // 토큰 사용량 기록
+  private recordUsage(response: any, type: 'text' | 'image') {
     try {
-      // Gemini API 사용량 조회 (예상치)
-      // 실제 API는 없으므로 localStorage 기반 추정
-      const requests = parseInt(localStorage.getItem('gemini_request_count') || '0');
-      const costPerRequest = 0.00025; // $0.00025 per request (추정)
-      const estimatedCost = (requests * costPerRequest).toFixed(4);
+      const usage = response.usageMetadata || response.usage || {};
+      const inputTokens = usage.promptTokenCount || 0;
+      const outputTokens = usage.candidatesTokenCount || usage.completionTokens || 0;
+
+      // 기존 사용량 불러오기
+      const stored = JSON.parse(localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}');
+
+      if (type === 'image') {
+        stored.images += 1;
+      } else {
+        stored.input += inputTokens;
+        stored.output += outputTokens;
+      }
+
+      localStorage.setItem('gemini_usage', JSON.stringify(stored));
+    } catch (e) {
+      console.warn('Failed to record usage:', e);
+    }
+  }
+
+  async getUsageStats(): Promise<{ inputTokens: number; outputTokens: number; images: number; estimatedCost: string }> {
+    try {
+      const stored = JSON.parse(localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}');
+
+      // 가격 (2025 기준)
+      // Gemini 2.5 Flash: $0.15 / 1M input, $0.6 / 1M output
+      // Imagen 4 Fast: $0.02 / image
+      const inputCost = (stored.input / 1000000) * 0.15;
+      const outputCost = (stored.output / 1000000) * 0.6;
+      const imageCost = stored.images * 0.02;
+      const totalCost = inputCost + outputCost + imageCost;
 
       return {
-        totalRequests: requests,
-        estimatedCost: `$${estimatedCost}`,
+        inputTokens: stored.input,
+        outputTokens: stored.output,
+        images: stored.images,
+        estimatedCost: `$${totalCost.toFixed(4)}`,
       };
     } catch (error) {
-      return { totalRequests: 0, estimatedCost: '$0.00' };
+      return { inputTokens: 0, outputTokens: 0, images: 0, estimatedCost: '$0.00' };
     }
   }
 }
