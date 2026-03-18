@@ -600,4 +600,32 @@ Return ONLY one of the three strings above, nothing else.`;
 
     return generatedPrompt;
   }
+
+  async generateAudioTimestamps(fullScript: string, numScenes: number): Promise<number[]> {
+    const ai = this.getClient();
+
+    const prompt = `Given this full narration script divided into ${numScenes} scenes, calculate the cumulative timestamp (in seconds) where each scene should start.
+
+Full Script:
+${fullScript}
+
+Return ONLY a JSON array of ${numScenes} numbers representing the start time in seconds for each scene.
+Example: [0, 5.2, 12.8, 20.1, ...] where first scene starts at 0s, second at 5.2s, etc.
+
+Calculate based on average reading speed of 150 words per minute in Korean.`;
+
+    const response = await ai.models.generateContent({
+      model: this.getModel(),
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json'
+      }
+    });
+
+    const text = response.text || '';
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('Failed to parse timestamps');
+
+    return JSON.parse(jsonMatch[0]);
+  }
 }

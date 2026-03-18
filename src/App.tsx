@@ -7,6 +7,8 @@ import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabs
 import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
 import { styleTemplates } from './data/styleTemplates';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 const BUILD_VERSION = 'v1.5-dual-download-buttons';
 
@@ -286,6 +288,7 @@ const App: React.FC = () => {
   const sceneAudioUploadRef = useRef<HTMLInputElement>(null);
   const styleRefImageInputRef = useRef<HTMLInputElement>(null);
   const charPortraitUploadRef = useRef<HTMLInputElement>(null);
+  const wavUploadRef = useRef<HTMLInputElement>(null);
   const activeCharId = useRef<string | null>(null);
   const activeSceneId = useRef<string | null>(null);
 
@@ -775,6 +778,42 @@ const App: React.FC = () => {
       scenes: project.scenes.map(s => s.id === activeSceneId.current ? { ...s, audioUrl: url, audioStatus: 'done' } : s)
     });
     activeSceneId.current = null;
+    if (e.target) e.target.value = '';
+  };
+
+  const handleWavUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !project) return;
+
+    setLoading(true);
+    setLoadingText('Gemini로 타임스탬프 생성 중...');
+
+    try {
+      // const geminiService = new GeminiService();
+      const fullScript = project.scenes.map(s => s.scriptSegment).join('\n');
+
+      // TODO: Gemini로 타임스탬프 생성
+      // const timestamps = await geminiService.generateAudioTimestamps(fullScript, project.scenes.length);
+
+      // 오디오 파일을 데이터 URL로 변환
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const audioDataUrl = ev.target?.result as string;
+
+        // TODO: FFmpeg로 분할 (videoService.ts의 splitAudio 함수 사용 예정)
+        setLoadingText('오디오 분할 중...');
+        console.log('Full script:', fullScript);
+        console.log('Audio data URL:', audioDataUrl.substring(0, 50) + '...');
+
+        // 임시: 로딩만 해제
+        setLoading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('WAV upload error:', error);
+      setLoading(false);
+    }
+
     if (e.target) e.target.value = '';
   };
 
@@ -2193,6 +2232,8 @@ const App: React.FC = () => {
                     <div className="flex flex-wrap gap-3 items-center">
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-base font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <input type="file" ref={wavUploadRef} accept=".wav,.mp3" className="hidden" onChange={handleWavUpload} />
+                      <button onClick={() => wavUploadRef.current?.click()} className="px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-base font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">WAV 업로드 (자동 분할)</button>
                       <div className="relative group">
                         <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
                         {project.scenes.some(s => !s.imageUrl || !s.audioUrl) && (
@@ -2255,8 +2296,32 @@ const App: React.FC = () => {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                   </button>
                   <div className="absolute top-full right-0 mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl py-2 min-w-[200px] opacity-0 invisible group-hover/download:opacity-100 group-hover/download:visible transition-all z-50">
-                    <button onClick={() => { project.scenes.forEach((s, i) => { if(s.imageUrl) { const a = document.createElement('a'); a.href = s.imageUrl; a.download = `scene-${i+1}.png`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">이미지 전체 다운로드</button>
-                    <button onClick={() => { project.scenes.forEach((s, i) => { if(s.audioUrl) { const a = document.createElement('a'); a.href = s.audioUrl; a.download = `audio-${i+1}.mp3`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">오디오 전체 다운로드</button>
+                    <button onClick={async () => {
+                      const zip = new JSZip();
+                      const folder = zip.folder(project.title || '프로젝트');
+                      for (let i = 0; i < project.scenes.length; i++) {
+                        if (project.scenes[i].imageUrl) {
+                          const res = await fetch(project.scenes[i].imageUrl!);
+                          const blob = await res.blob();
+                          folder!.file(`${i+1}_scene.png`, blob);
+                        }
+                      }
+                      const content = await zip.generateAsync({ type: 'blob' });
+                      saveAs(content, `${project.title}_images.zip`);
+                    }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">이미지 전체 다운로드</button>
+                    <button onClick={async () => {
+                      const zip = new JSZip();
+                      const folder = zip.folder(project.title || '프로젝트');
+                      for (let i = 0; i < project.scenes.length; i++) {
+                        if (project.scenes[i].audioUrl) {
+                          const res = await fetch(project.scenes[i].audioUrl!);
+                          const blob = await res.blob();
+                          folder!.file(`${i+1}_audio.mp3`, blob);
+                        }
+                      }
+                      const content = await zip.generateAsync({ type: 'blob' });
+                      saveAs(content, `${project.title}_audios.zip`);
+                    }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">오디오 전체 다운로드</button>
                   </div>
                 </div>
               </div>
