@@ -2295,30 +2295,42 @@ const App: React.FC = () => {
                   </button>
                   <div className="absolute top-full right-0 mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl py-2 min-w-[200px] opacity-0 invisible group-hover/download:opacity-100 group-hover/download:visible transition-all z-50">
                     <button onClick={async () => {
-                      const zip = new JSZip();
-                      const folder = zip.folder(project.title || '프로젝트');
-                      for (let i = 0; i < project.scenes.length; i++) {
-                        if (project.scenes[i].imageUrl) {
-                          const res = await fetch(project.scenes[i].imageUrl!);
-                          const blob = await res.blob();
-                          folder!.file(`${i+1}_scene.png`, blob);
+                      try {
+                        // @ts-ignore - File System Access API
+                        const dirHandle = await window.showDirectoryPicker();
+                        for (let i = 0; i < project.scenes.length; i++) {
+                          if (project.scenes[i].imageUrl) {
+                            const res = await fetch(project.scenes[i].imageUrl!);
+                            const blob = await res.blob();
+                            const fileHandle = await dirHandle.getFileHandle(`${i+1}_scene.png`, { create: true });
+                            const writable = await fileHandle.createWritable();
+                            await writable.write(blob);
+                            await writable.close();
+                          }
                         }
+                        alert('이미지 다운로드 완료!');
+                      } catch (e: any) {
+                        if (e.name !== 'AbortError') alert('다운로드 실패: ' + e.message);
                       }
-                      const content = await zip.generateAsync({ type: 'blob' });
-                      saveAs(content, `${project.title}_images.zip`);
                     }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">이미지 전체 다운로드</button>
                     <button onClick={async () => {
-                      const zip = new JSZip();
-                      const folder = zip.folder(project.title || '프로젝트');
-                      for (let i = 0; i < project.scenes.length; i++) {
-                        if (project.scenes[i].audioUrl) {
-                          const res = await fetch(project.scenes[i].audioUrl!);
-                          const blob = await res.blob();
-                          folder!.file(`${i+1}_audio.mp3`, blob);
+                      try {
+                        // @ts-ignore - File System Access API
+                        const dirHandle = await window.showDirectoryPicker();
+                        for (let i = 0; i < project.scenes.length; i++) {
+                          if (project.scenes[i].audioUrl) {
+                            const res = await fetch(project.scenes[i].audioUrl!);
+                            const blob = await res.blob();
+                            const fileHandle = await dirHandle.getFileHandle(`${i+1}_audio.mp3`, { create: true });
+                            const writable = await fileHandle.createWritable();
+                            await writable.write(blob);
+                            await writable.close();
+                          }
                         }
+                        alert('오디오 다운로드 완료!');
+                      } catch (e: any) {
+                        if (e.name !== 'AbortError') alert('다운로드 실패: ' + e.message);
                       }
-                      const content = await zip.generateAsync({ type: 'blob' });
-                      saveAs(content, `${project.title}_audios.zip`);
                     }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">오디오 전체 다운로드</button>
                   </div>
                 </div>
