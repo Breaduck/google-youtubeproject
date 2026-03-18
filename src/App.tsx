@@ -2064,14 +2064,14 @@ const App: React.FC = () => {
                 </div>
               ) : (
               <>
-              <div className="bg-white rounded-[24px] shadow-xl p-6 sm:p-8 py-12 sm:py-16 mb-8">
+              <div className="bg-white dark:bg-slate-800 rounded-[24px] shadow-xl p-6 sm:p-8 py-12 sm:py-16 mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">등장인물 외형 설정</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">등장인물 외형 설정</h1>
                   <div className="flex gap-3">
-                    <button onClick={() => setIsCharLoadModalOpen(true)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-base font-medium hover:bg-slate-50 transition-all">인물 불러오기</button>
+                    <button onClick={() => setIsCharLoadModalOpen(true)} className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-base font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">인물 불러오기</button>
                     <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50">스토리보드 생성</button>
                     {project && project.scenes.length > 0 && (
-                      <button onClick={() => proceedToStoryboard(false)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-base font-medium hover:bg-slate-50 transition-all">기존 스토리보드 보기</button>
+                      <button onClick={() => proceedToStoryboard(false)} className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-base font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">기존 스토리보드 보기</button>
                     )}
                   </div>
                 </div>
@@ -2081,7 +2081,7 @@ const App: React.FC = () => {
                 {(project?.characters || []).map(char => {
                   const isSaved = savedCharacters.some(sc => sc.id === char.id);
                   return (
-                  <div key={char.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 items-start relative group/card">
+                  <div key={char.id} className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all p-6 flex gap-6 items-start relative group/card">
                     <div className="absolute top-4 right-4 flex gap-2 items-center opacity-0 group-hover/card:opacity-100 transition-all z-10">
                       <button
                         onClick={(e) => {
@@ -2093,20 +2093,20 @@ const App: React.FC = () => {
                             setSavedCharacters([...savedCharacters, { id: char.id, name: char.name, refImages: [], description: char.visualDescription, portraitUrl: char.portraitUrl }]);
                           }
                         }}
-                        className={`p-1.5 border rounded-lg transition-all flex items-center gap-1 ${isSaved ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300'}`}
+                        className={`p-1.5 border rounded-lg transition-all flex items-center gap-1 ${isSaved ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-600'}`}
                         title={isSaved ? "저장됨 (클릭하여 해제)" : "저장"}
                       >
                         <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
                         {isSaved && <span className="text-xs font-medium">저장됨</span>}
                       </button>
-                      <button onClick={() => updateCurrentProject({ characters: project!.characters.filter(c => c.id !== char.id) })} className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-red-500 hover:border-red-300 transition-all" title="삭제"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                      <button onClick={() => updateCurrentProject({ characters: project!.characters.filter(c => c.id !== char.id) })} className="p-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-500 hover:border-red-300 transition-all" title="삭제"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                     </div>
                     <div
-                      className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative group/portrait cursor-pointer flex items-center justify-center"
+                      className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0 relative group/portrait cursor-pointer flex items-center justify-center"
                       onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}
                     >
                       {char.status === 'loading' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 z-10">
+                        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-700 z-10">
                           <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                         </div>
                       )}
@@ -2127,9 +2127,9 @@ const App: React.FC = () => {
                         </button>
                       )}
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/portrait:opacity-100 transition-all flex items-center justify-center gap-2 z-20">
-                        <label className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" onClick={(e) => e.stopPropagation()}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><input type="file" className="hidden" accept="image/*" onChange={(e) => { e.stopPropagation(); const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, portraitUrl: ev.target?.result as string, status: 'done' } : c) }); }; reader.readAsDataURL(file); } }} /></label>
-                        <button onClick={(e) => { e.stopPropagation(); openRegenerateModal('character', char.id); }} className="p-2 bg-white rounded-full text-indigo-600 hover:bg-indigo-50 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
-                        <button onClick={(e) => { e.stopPropagation(); if(char.portraitUrl) { const a = document.createElement('a'); a.href = char.portraitUrl; a.download = `${char.name}.png`; a.click(); }}} className="p-2 bg-white rounded-full text-slate-600 hover:bg-slate-100 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
+                        <label className="p-2 bg-white dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer" onClick={(e) => e.stopPropagation()}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><input type="file" className="hidden" accept="image/*" onChange={(e) => { e.stopPropagation(); const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, portraitUrl: ev.target?.result as string, status: 'done' } : c) }); }; reader.readAsDataURL(file); } }} /></label>
+                        <button onClick={(e) => { e.stopPropagation(); openRegenerateModal('character', char.id); }} className="p-2 bg-white dark:bg-slate-800 rounded-full text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
+                        <button onClick={(e) => { e.stopPropagation(); if(char.portraitUrl) { const a = document.createElement('a'); a.href = char.portraitUrl; a.download = `${char.name}.png`; a.click(); }}} className="p-2 bg-white dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col h-48 sm:h-56">
@@ -2137,14 +2137,14 @@ const App: React.FC = () => {
                         type="text"
                         value={char.name}
                         onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, name: e.target.value } : c) })}
-                        className="font-bold text-slate-900 text-2xl sm:text-3xl mb-3 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-200 rounded-lg px-2 py-1 flex-shrink-0"
+                        className="font-bold text-slate-900 dark:text-slate-100 text-2xl sm:text-3xl mb-3 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-700 rounded-lg px-2 py-1 flex-shrink-0"
                         placeholder="이름을 입력하세요..."
                       />
                       <div className="relative flex-1">
                         <textarea
                           value={char.visualDescription || ''}
                           onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, visualDescription: e.target.value } : c) })}
-                          className="text-sm text-gray-500 leading-relaxed bg-slate-50 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 w-full h-full"
+                          className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-700 rounded-lg p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-700 w-full h-full"
                           placeholder="캐릭터 외형 설명을 입력하세요..."
                         />
                         <button onClick={() => copyToClipboard(char.visualDescription)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
@@ -2155,8 +2155,8 @@ const App: React.FC = () => {
                   </div>
                   );
                 })}
-                <button onClick={() => setIsCharModalOpen(true)} className="bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all p-6 flex gap-6 items-center min-h-[240px]">
-                  <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-all">
+                <button onClick={() => setIsCharModalOpen(true)} className="bg-slate-50 dark:bg-slate-700 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all p-6 flex gap-6 items-center min-h-[240px]">
+                  <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl bg-slate-100 dark:bg-slate-600 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-all">
                     <span className="text-7xl text-slate-300">+</span>
                   </div>
                   <div className="flex-1">
@@ -2178,7 +2178,7 @@ const App: React.FC = () => {
               ) : (
               <>
               {/* 상단바 - 토스 스타일 */}
-              <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 sm:p-10 mb-8">
+              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 sm:p-10 mb-8">
                 <div className="flex flex-col gap-6">
                   {/* 첫 번째 줄: 제목 & 버튼들 */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
@@ -2187,12 +2187,12 @@ const App: React.FC = () => {
                         type="text"
                         value={project.title}
                         onChange={(e) => updateCurrentProject({ title: e.target.value })}
-                        className="text-2xl sm:text-3xl font-bold text-slate-900 bg-transparent border-none focus:outline-none w-auto min-w-[250px]"
+                        className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none focus:outline-none w-auto min-w-[250px]"
                       />
                     </div>
                     <div className="flex flex-wrap gap-3 items-center">
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
-                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-base font-medium hover:bg-slate-200 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-base font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all disabled:opacity-50">오디오 전체 생성</button>
                       <div className="relative group">
                         <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
                         {project.scenes.some(s => !s.imageUrl || !s.audioUrl) && (
@@ -2213,7 +2213,7 @@ const App: React.FC = () => {
                           className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group"
                           onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}
                         >
-                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-100 overflow-hidden border-3 border-slate-200 shadow-md hover:shadow-xl hover:scale-105 transition-all">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden border-3 border-slate-200 dark:border-slate-600 shadow-md hover:shadow-xl hover:scale-105 transition-all">
                             {char.portraitUrl ? (
                               <img src={char.portraitUrl} className="w-full h-full object-cover" />
                             ) : (
@@ -2222,7 +2222,7 @@ const App: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          <span className="text-xs font-medium text-slate-600 group-hover:text-indigo-600 transition-colors text-center max-w-[80px] truncate">{char.name}</span>
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors text-center max-w-[80px] truncate">{char.name}</span>
                         </div>
                       ))}
                     </div>
@@ -2245,18 +2245,18 @@ const App: React.FC = () => {
                     setIsSelectionMode(!isSelectionMode);
                     if (isSelectionMode) setSelectedSceneIds([]);
                   }}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${isSelectionMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${isSelectionMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
                 >
                   {isSelectionMode ? '취소' : '선택'}
                 </button>
                 <div className="relative group/download">
-                  <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all flex items-center gap-1">
+                  <button className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center gap-1">
                     자산 다운로드
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                   </button>
-                  <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 min-w-[200px] opacity-0 invisible group-hover/download:opacity-100 group-hover/download:visible transition-all z-50">
-                    <button onClick={() => { project.scenes.forEach((s, i) => { if(s.imageUrl) { const a = document.createElement('a'); a.href = s.imageUrl; a.download = `scene-${i+1}.png`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 transition-all">이미지 전체 다운로드</button>
-                    <button onClick={() => { project.scenes.forEach((s, i) => { if(s.audioUrl) { const a = document.createElement('a'); a.href = s.audioUrl; a.download = `audio-${i+1}.mp3`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 transition-all">오디오 전체 다운로드</button>
+                  <div className="absolute top-full right-0 mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl py-2 min-w-[200px] opacity-0 invisible group-hover/download:opacity-100 group-hover/download:visible transition-all z-50">
+                    <button onClick={() => { project.scenes.forEach((s, i) => { if(s.imageUrl) { const a = document.createElement('a'); a.href = s.imageUrl; a.download = `scene-${i+1}.png`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">이미지 전체 다운로드</button>
+                    <button onClick={() => { project.scenes.forEach((s, i) => { if(s.audioUrl) { const a = document.createElement('a'); a.href = s.audioUrl; a.download = `audio-${i+1}.mp3`; a.click(); }}); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">오디오 전체 다운로드</button>
                   </div>
                 </div>
               </div>
@@ -2264,10 +2264,10 @@ const App: React.FC = () => {
               {/* 씬 그리드 - 깔끔한 카드 스타일 */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {project.scenes.map((scene, idx) => (
-                  <div key={scene.id} className={`bg-white rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-slate-100 hover:border-slate-200'}`}>
+                  <div key={scene.id} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-700' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}>
                     {/* 이미지 영역 */}
                     <div
-                      className={`aspect-video bg-slate-50 relative group/img ${isSelectionMode ? 'cursor-pointer' : ''}`}
+                      className={`aspect-video bg-slate-50 dark:bg-slate-700 relative group/img ${isSelectionMode ? 'cursor-pointer' : ''}`}
                       onClick={() => {
                         if (isSelectionMode) {
                           setSelectedSceneIds(prev =>
@@ -2298,7 +2298,7 @@ const App: React.FC = () => {
                           ) : (
                             /* 선택 안 된 카드: hover 시 선택 가능 표시 */
                             <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity group-hover/card:opacity-100">
-                              <div className="w-20 h-20 bg-white/80 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-300">
+                              <div className="w-20 h-20 bg-white/80 dark:bg-slate-800/80 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-300 dark:border-slate-600">
                                 <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                                   <circle cx="12" cy="12" r="10" />
                                 </svg>
@@ -2310,29 +2310,29 @@ const App: React.FC = () => {
 
                       {/* 상단 우측 버튼들 */}
                       <div className="absolute top-3 right-3 z-30 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all">
-                        <label className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-all cursor-pointer shadow-sm">
+                        <label className="w-7 h-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer shadow-sm">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                           <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imageUrl: ev.target?.result as string, status: 'done' } : s) }); }; reader.readAsDataURL(file); } }} />
                         </label>
                         {scene.imageUrl ? (
                           <div className="relative group/delete">
-                            <button className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 hover:text-red-500 transition-all shadow-sm">
+                            <button className="w-7 h-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-red-500 transition-all shadow-sm">
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
-                            <div className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-xl py-1 min-w-[140px] opacity-0 invisible group-hover/delete:opacity-100 group-hover/delete:visible transition-all z-50">
-                              <button onClick={() => deleteSceneImage(scene.id)} className="w-full px-3 py-2 text-left text-xs text-slate-600 hover:bg-slate-50 transition-all">이미지만 삭제</button>
+                            <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl py-1 min-w-[140px] opacity-0 invisible group-hover/delete:opacity-100 group-hover/delete:visible transition-all z-50">
+                              <button onClick={() => deleteSceneImage(scene.id)} className="w-full px-3 py-2 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">이미지만 삭제</button>
                               <button onClick={() => deleteScene(scene.id)} className="w-full px-3 py-2 text-left text-xs text-red-500 hover:bg-red-50 transition-all">씬 삭제</button>
                             </div>
                           </div>
                         ) : (
-                          <button onClick={() => deleteScene(scene.id)} className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 hover:text-red-500 transition-all shadow-sm">
+                          <button onClick={() => deleteScene(scene.id)} className="w-7 h-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-red-500 transition-all shadow-sm">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                           </button>
                         )}
                       </div>
 
                       {scene.status === 'loading' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm z-20">
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm z-20">
                           <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                         </div>
                       )}
@@ -2340,10 +2340,10 @@ const App: React.FC = () => {
                         <>
                           <img src={scene.imageUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)} />
                           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10 cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)}>
-                            <button onClick={(e) => { e.stopPropagation(); openRegenerateModal('scene', scene.id); }} className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-indigo-600 hover:bg-white transition-all shadow-lg" title="재생성">
+                            <button onClick={(e) => { e.stopPropagation(); openRegenerateModal('scene', scene.id); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="재생성">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); if(scene.imageUrl) { const a = document.createElement('a'); a.href = scene.imageUrl; a.download = `scene-${idx+1}.png`; a.click(); }}} className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 hover:bg-white transition-all shadow-lg" title="다운로드">
+                            <button onClick={(e) => { e.stopPropagation(); if(scene.imageUrl) { const a = document.createElement('a'); a.href = scene.imageUrl; a.download = `scene-${idx+1}.png`; a.click(); }}} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="다운로드">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                             </button>
                           </div>
@@ -2388,7 +2388,7 @@ const App: React.FC = () => {
                             오디오 생성
                           </button>
                         )}
-                        <label className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-all cursor-pointer flex-shrink-0">
+                        <label className="w-9 h-9 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all cursor-pointer flex-shrink-0">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                           <input type="file" className="hidden" accept="audio/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, audioUrl: url, audioStatus: 'done' } : s) }); } }} />
                         </label>
@@ -2454,7 +2454,7 @@ const App: React.FC = () => {
                             <textarea
                               value={scene.imagePrompt}
                               onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imagePrompt: e.target.value } : s) })}
-                              className="w-full text-[11px] text-slate-500 leading-relaxed bg-slate-50 rounded-xl p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-100 min-h-[60px]"
+                              className="w-full text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-700 rounded-xl p-3 pr-10 border-none resize-none focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-700 min-h-[60px]"
                               placeholder="이미지 프롬프트..."
                             />
                             <button onClick={() => copyToClipboard(scene.imagePrompt)} className="absolute top-2 right-2 p-1.5 text-slate-400 hover:text-indigo-600 transition-all" title="프롬프트 복사">
@@ -2471,8 +2471,8 @@ const App: React.FC = () => {
                 ))}
 
                 {/* 추가 버튼 */}
-                <button onClick={addSceneManually} className="bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300 min-h-[320px] flex flex-col items-center justify-center gap-3 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all group/add">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover/add:bg-indigo-100 flex items-center justify-center text-slate-400 group-hover/add:text-indigo-500 transition-all">
+                <button onClick={addSceneManually} className="bg-slate-50 dark:bg-slate-700 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-600 min-h-[320px] flex flex-col items-center justify-center gap-3 hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/20 transition-all group/add">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-600 group-hover/add:bg-indigo-100 dark:group-hover/add:bg-indigo-900/30 flex items-center justify-center text-slate-400 group-hover/add:text-indigo-500 dark:group-hover/add:text-indigo-400 transition-all">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                   </div>
                   <span className="text-sm text-slate-400 group-hover/add:text-indigo-500 font-medium transition-all">스토리보드 추가</span>
@@ -2491,29 +2491,29 @@ const App: React.FC = () => {
                </div>
                <div className="flex flex-wrap justify-center gap-3 sm:gap-6">
                   {['realistic', '2d-animation', 'custom'].map(s => (
-                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg ${style === s ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{s === '2d-animation' ? '2D 애니메이션' : s === 'realistic' ? '실사화' : '맞춤형'}</button>
+                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg ${style === s ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{s === '2d-animation' ? '2D 애니메이션' : s === 'realistic' ? '실사화' : '맞춤형'}</button>
                   ))}
                   <button
                     onClick={() => {
                       setTempSelectedTemplate(selectedStyleTemplate);
                       setIsTemplateModalOpen(true);
                     }}
-                    className="px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50"
+                    className="px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg bg-white dark:bg-slate-800 border-2 border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
                   >
                     {selectedStyleTemplate ? `🎨 ${selectedStyleTemplate.name}` : '🎨 그림체 템플릿'}
                   </button>
                   {savedStyles.length > 0 && (
                     <div className="relative group/styles">
-                      <button className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg flex items-center gap-2 ${savedStyles.some(s => s.id === style) ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+                      <button className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg flex items-center gap-2 ${savedStyles.some(s => s.id === style) ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                         자주 쓰는 그림체
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                       </button>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl py-2 min-w-[200px] opacity-0 invisible group-hover/styles:opacity-100 group-hover/styles:visible transition-all z-50">
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl py-2 min-w-[200px] opacity-0 invisible group-hover/styles:opacity-100 group-hover/styles:visible transition-all z-50">
                         {savedStyles.map(s => (
                           <button
                             key={s.id}
                             onClick={() => { setStyle(s.id as VisualStyle); updateCurrentProject({ style: s.id }); }}
-                            className={`w-full px-4 py-3 text-left text-sm font-medium transition-all flex items-center gap-3 ${style === s.id ? 'bg-indigo-50 text-indigo-600' : 'text-slate-700 hover:bg-slate-50'}`}
+                            className={`w-full px-4 py-3 text-left text-sm font-medium transition-all flex items-center gap-3 ${style === s.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                           >
                             {s.refImages[0] && <img src={s.refImages[0]} className="w-8 h-8 rounded-lg object-cover" />}
                             <span>{s.name}</span>
@@ -2524,7 +2524,7 @@ const App: React.FC = () => {
                   )}
                </div>
                {currentSavedStyle && (
-                 <div className="animate-in fade-in slide-in-bottom bg-slate-50 border p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-4">
+                 <div className="animate-in fade-in slide-in-bottom bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-4">
                    <h4 className="text-lg sm:text-xl font-semibold text-slate-900">{currentSavedStyle.name} 상세 정보</h4>
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
@@ -2546,7 +2546,7 @@ const App: React.FC = () => {
                         <p className="text-[10px] text-indigo-600 font-semibold mt-1">💡 명확한 그림체 학습을 위해 최소 3개 이상의 참고 이미지를 넣어주세요</p>
                       </div>
                       <div className="flex gap-2 w-full sm:w-auto">
-                        <button onClick={() => styleRefImageInputRef.current?.click()} className="flex-1 sm:flex-none px-6 py-3 bg-white border border-indigo-200 rounded-2xl text-xs font-semibold text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
+                        <button onClick={() => styleRefImageInputRef.current?.click()} className="flex-1 sm:flex-none px-6 py-3 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 rounded-2xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
                         {refImages.length > 0 && (
                           <button onClick={saveCustomStyleFromInput} className="px-6 py-3 bg-indigo-600 border border-indigo-600 rounded-2xl text-xs font-semibold text-white hover:bg-indigo-700 transition-all">저장하기</button>
                         )}
@@ -2562,13 +2562,13 @@ const App: React.FC = () => {
                    </div>
                  </div>
                )}
-               <div className="bg-white p-2 sm:p-3 rounded-[32px] sm:rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-200 relative">
-                 <textarea className="w-full h-64 sm:h-80 bg-slate-50/50 border-none rounded-[24px] sm:rounded-[36px] p-6 sm:p-10 text-base sm:text-xl focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
+               <div className="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-[32px] sm:rounded-[48px] shadow-2xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-700 relative">
+                 <textarea className="w-full h-64 sm:h-80 bg-slate-50/50 dark:bg-slate-700/50 border-none rounded-[24px] sm:rounded-[36px] p-6 sm:p-10 text-base sm:text-xl text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-500" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
                <div className="flex flex-col sm:flex-row gap-4">
                  <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-6 sm:py-8 bg-indigo-600 text-white rounded-[24px] sm:rounded-[32px] font-semibold text-lg sm:text-2xl shadow-2xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
                  {project && project.characters.length > 0 && (
-                   <button onClick={() => setStep('character_setup')} className="px-8 py-6 sm:py-8 bg-white border border-slate-200 text-slate-600 rounded-[24px] sm:rounded-[32px] font-semibold text-base sm:text-xl hover:bg-slate-50 hover:text-indigo-600 transition-all shadow-lg">
+                   <button onClick={() => setStep('character_setup')} className="px-8 py-6 sm:py-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-[24px] sm:rounded-[32px] font-semibold text-base sm:text-xl hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-lg">
                      등장인물 설정 &gt;
                    </button>
                  )}
@@ -2582,10 +2582,10 @@ const App: React.FC = () => {
 
       {isRegenerateModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsRegenerateModalOpen(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100">
-              <h2 className="text-xl font-semibold text-slate-900">이미지 재생성</h2>
-              <p className="text-sm text-slate-500 mt-1">변경하고 싶은 특징을 입력해주세요</p>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">이미지 재생성</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">변경하고 싶은 특징을 입력해주세요</p>
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -2598,7 +2598,7 @@ const App: React.FC = () => {
                 />
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setIsRegenerateModalOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">
+                <button onClick={() => setIsRegenerateModalOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">
                   취소
                 </button>
                 <button onClick={handleRegenerateWithModification} disabled={!regenerateInput.trim()} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
@@ -2612,10 +2612,10 @@ const App: React.FC = () => {
 
       {isStyleDescModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsStyleDescModalOpen(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100">
-              <h2 className="text-xl font-semibold text-slate-900">고급 설정</h2>
-              <p className="text-sm text-slate-500 mt-1">그림체의 특징을 상세히 설명해주세요</p>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">고급 설정</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">그림체의 특징을 상세히 설명해주세요</p>
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -2628,7 +2628,7 @@ const App: React.FC = () => {
                 />
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setIsStyleDescModalOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">
+                <button onClick={() => setIsStyleDescModalOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">
                   닫기
                 </button>
               </div>
@@ -2781,7 +2781,7 @@ const App: React.FC = () => {
                           max="180"
                           value={Math.floor(videoGenerationRange / 10)}
                           onChange={e => setVideoGenerationRange(parseInt(e.target.value) * 10)}
-                          className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
+                          className="flex-1 h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
                         />
                         <input
                           type="number"
@@ -3223,7 +3223,7 @@ const App: React.FC = () => {
                         <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">새 그림체 추가</h4>
                         <button
                           onClick={() => setIsStyleDescModalOpen(true)}
-                          className="group relative p-1.5 hover:bg-slate-100 rounded-lg transition-all"
+                          className="group relative p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all"
                           title="고급 설정"
                         >
                           <svg className="w-4 h-4 text-slate-500 hover:text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
