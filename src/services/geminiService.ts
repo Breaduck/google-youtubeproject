@@ -572,57 +572,29 @@ Return ONLY the new prompt text, no explanation or markdown.`;
   async generateMotionPrompt(dialogue: string, imagePrompt: string): Promise<string> {
     const ai = this.getClient();
 
-    const prompt = `You must output ONLY one of these exact allowed motion templates (choose based on dialogue emotion):
+    const prompt = `Generate a natural motion prompt for a 10-second video based on this dialogue.
+Be specific and contextual. Max 15 words. Include facial expressions, gestures, and body language.
 
-A) "blink only, calm breathing"
-B) "blink, breathing, subtle smile"
-C) "blink, breathing, gentle nod"
-D) "blink, breathing, slight head tilt with curiosity"
-E) "blink, breathing, eyebrow raise with surprise"
-F) "blink, breathing, hand gesture emphasizing words"
-G) "blink, breathing, lean forward slightly"
-H) "blink, breathing, contemplative expression"
-I) "blink, breathing, excited expression with wider eyes"
-J) "blink, breathing, concerned expression with furrowed brow"
-
-INPUT:
 Dialogue: "${dialogue}"
 
-Choose based on emotion:
-- Calm/neutral: A, B
-- Explaining/teaching: C, F, G
-- Questioning/curious: D, H
-- Surprised/excited: E, I
-- Serious/concerned: J, H
-
-Return ONLY the letter (A-J), nothing else.`;
+Output only the motion description, nothing else.`;
 
     const response = await ai.models.generateContent({
       model: this.getModel(),
       contents: prompt
     });
 
-    const choice = response.text?.trim().toUpperCase() || 'A';
+    this.recordUsage(response, 'text');
 
-    // Motion template mapping
-    const motionTemplates: Record<string, string> = {
-      'A': 'blink only, calm breathing',
-      'B': 'blink, breathing, subtle smile',
-      'C': 'blink, breathing, gentle nod',
-      'D': 'blink, breathing, slight head tilt with curiosity',
-      'E': 'blink, breathing, eyebrow raise with surprise',
-      'F': 'blink, breathing, hand gesture emphasizing words',
-      'G': 'blink, breathing, lean forward slightly',
-      'H': 'blink, breathing, contemplative expression',
-      'I': 'blink, breathing, excited expression with wider eyes',
-      'J': 'blink, breathing, concerned expression with furrowed brow',
-    };
+    let motionPrompt = response.text?.trim() || 'subtle breathing and natural blinking';
 
-    // Extract letter from response
-    const match = choice.match(/[A-J]/);
-    const selectedLetter = match ? match[0] : 'A';
+    // Ensure reasonable length (truncate if too long)
+    const words = motionPrompt.split(' ');
+    if (words.length > 20) {
+      motionPrompt = words.slice(0, 20).join(' ');
+    }
 
-    return motionTemplates[selectedLetter] || motionTemplates['A'];
+    return motionPrompt;
   }
 
   async generateAudioTimestamps(fullScript: string, numScenes: number): Promise<number[]> {
