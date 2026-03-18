@@ -2232,8 +2232,6 @@ const App: React.FC = () => {
                     <div className="flex flex-wrap gap-3 items-center">
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-base font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all disabled:opacity-50">오디오 전체 생성</button>
-                      <input type="file" ref={wavUploadRef} accept=".wav,.mp3" className="hidden" onChange={handleWavUpload} />
-                      <button onClick={() => wavUploadRef.current?.click()} className="px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-base font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">WAV 업로드 (자동 분할)</button>
                       <div className="relative group">
                         <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
                         {project.scenes.some(s => !s.imageUrl || !s.audioUrl) && (
@@ -2430,7 +2428,7 @@ const App: React.FC = () => {
                         <textarea
                           value={scene.scriptSegment}
                           onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                          className="w-full text-base font-semibold text-slate-800 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300"
+                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300 dark:placeholder:text-slate-600"
                           placeholder="장면 대사..."
                         />
                       </div>
@@ -2603,12 +2601,12 @@ const App: React.FC = () => {
                  </div>
                )}
                {style === 'custom' && (
-                 <div className="animate-in fade-in slide-in-bottom bg-indigo-50/50 border border-indigo-100 p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-6">
+                 <div className="animate-in fade-in slide-in-bottom bg-indigo-50/50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-6">
                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div>
-                        <h4 className="text-lg sm:text-xl font-semibold text-slate-900">맞춤형 스타일 학습</h4>
-                        <p className="text-xs sm:text-sm text-slate-500 mt-1">학습 레퍼런스 이미지 업로드 (최대 7장)</p>
-                        <p className="text-[10px] text-indigo-600 font-semibold mt-1">💡 명확한 그림체 학습을 위해 최소 3개 이상의 참고 이미지를 넣어주세요</p>
+                        <h4 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-200">맞춤형 스타일 학습</h4>
+                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">학습 레퍼런스 이미지 업로드 (최대 7장)</p>
+                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-1">💡 명확한 그림체 학습을 위해 최소 3개 이상의 참고 이미지를 넣어주세요</p>
                       </div>
                       <div className="flex gap-2 w-full sm:w-auto">
                         <button onClick={() => styleRefImageInputRef.current?.click()} className="flex-1 sm:flex-none px-6 py-3 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 rounded-2xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
@@ -3267,6 +3265,14 @@ const App: React.FC = () => {
                     <button onClick={handleVoiceTest} disabled={isVoiceTesting} className="w-full py-3 rounded-xl text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all disabled:opacity-50">
                       {isVoiceTesting ? '테스트 중...' : '음성 테스트'}
                     </button>
+                    <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">WAV 파일 자동 분할</label>
+                      <input type="file" ref={wavUploadRef} accept=".wav,.mp3" className="hidden" onChange={handleWavUpload} />
+                      <button onClick={() => wavUploadRef.current?.click()} className="w-full py-3 rounded-xl text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">
+                        WAV 업로드 (자동 분할)
+                      </button>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">전체 오디오 파일을 장면별로 자동 분할합니다</p>
+                    </div>
                   </div>
                 )}
               </div>
