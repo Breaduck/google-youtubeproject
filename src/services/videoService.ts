@@ -355,7 +355,7 @@ async function generateByteDanceVideo(
   console.log(`[BYTEDANCE] Model=${model} Duration=${duration_sec}s Resolution=${resolution}`);
 
   // BytePlus ModelArk API 엔드포인트 (Modal 프록시 사용 - CORS 문제 해결)
-  const BYTEPLUS_API = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
+  const BYTEPLUS_API = 'https://byteplus-video-proxy.hiyoonsh1.workers.dev';
 
   // Step 0: data URL → 업로드 → image_url 변환
   let finalImageUrl = imageUrl;
@@ -516,7 +516,7 @@ async function generateEvolinkVideo(
   const duration = testParams?.duration_sec || parseInt(localStorage.getItem('evolink_duration') || '5');
   const quality = testParams?.resolution || localStorage.getItem('evolink_resolution') || '720p';
 
-  const API_BASE = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
+  const API_BASE = 'https://byteplus-video-proxy.hiyoonsh1.workers.dev';
 
   // Step 1: 이미지 업로드 (공개 URL 변환)
   let finalImageUrl = imageUrl;
@@ -633,7 +633,7 @@ async function generateRunwareVideo(
   };
   const aspectRatio = resolutionMap[resolution] || '16:9';
 
-  const API_BASE = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
+  const API_BASE = 'https://byteplus-video-proxy.hiyoonsh1.workers.dev';
 
   // Step 1: 이미지 업로드
   let finalImageUrl = imageUrl;
