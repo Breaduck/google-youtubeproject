@@ -686,10 +686,10 @@ Provide a concise technical description for image generation (English, 100-150 w
       const stored = JSON.parse(localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}');
 
       // 가격 (2025 기준)
-      // Gemini 2.5 Flash: $0.15 / 1M input, $0.6 / 1M output
+      // Gemini 3 Flash: $0.50 / 1M input, $3.00 / 1M output
       // Imagen 4 Fast: $0.02 / image
-      const inputCost = (stored.input / 1000000) * 0.15;
-      const outputCost = (stored.output / 1000000) * 0.6;
+      const inputCost = (stored.input / 1000000) * 0.50;
+      const outputCost = (stored.output / 1000000) * 3.00;
       const imageCost = stored.images * 0.02;
       const totalCost = inputCost + outputCost + imageCost;
 
