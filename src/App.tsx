@@ -3731,21 +3731,21 @@ const App: React.FC = () => {
 
       {/* 전체 화면 설정 모달 */}
       {isFullscreenSettingsOpen && (
-        <div className="fixed inset-0 bg-slate-900 dark:bg-slate-950 z-[400] overflow-y-auto">
-          <div className="min-h-screen p-8">
+        <div className={`fixed inset-0 ${isDarkMode ? 'bg-slate-900' : 'bg-white'} z-[400] overflow-y-auto`}>
+          <div className="max-w-[1600px] mx-auto p-12">
             {/* 헤더 */}
-            <div className="flex justify-between items-center mb-8">
-              <h1 className="text-4xl font-bold text-white">설정</h1>
+            <div className="flex justify-between items-center mb-12">
+              <h1 className={`text-5xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>설정</h1>
               <button
                 onClick={() => setIsFullscreenSettingsOpen(false)}
-                className="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+                className={`w-16 h-16 flex items-center justify-center rounded-2xl text-2xl ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} hover:text-slate-900 dark:hover:text-white transition-all`}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                ✕
               </button>
             </div>
 
-            {/* 설정 그리드 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl">
+            {/* 설정 섹션 */}
+            <div className="space-y-8">
               {/* Gemini API 설정 */}
               <div className="bg-slate-800 rounded-2xl p-6 space-y-4">
                 <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-3">

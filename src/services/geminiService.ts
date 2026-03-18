@@ -666,6 +666,23 @@ Provide a concise technical description for image generation (English, 100-150 w
       }
 
       localStorage.setItem('gemini_usage', JSON.stringify(stored));
+
+      // 타임스탬프 로그 기록
+      const log = JSON.parse(localStorage.getItem('gemini_usage_log') || '[]');
+      log.push({
+        timestamp: Date.now(),
+        type,
+        input: type === 'text' ? inputTokens : 0,
+        output: type === 'text' ? outputTokens : 0,
+        images: type === 'image' ? 1 : 0,
+      });
+
+      // 최대 1000개 로그 유지
+      if (log.length > 1000) {
+        log.splice(0, log.length - 1000);
+      }
+
+      localStorage.setItem('gemini_usage_log', JSON.stringify(log));
     } catch (e) {
       console.warn('Failed to record usage:', e);
     }
