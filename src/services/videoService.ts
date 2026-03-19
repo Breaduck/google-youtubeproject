@@ -60,6 +60,9 @@ export async function generateSimpleZoomVideo(
     img.crossOrigin = 'anonymous';
 
     img.onload = async () => {
+      // 폰트 로딩 대기 (자막 깨짐 방지)
+      await document.fonts.ready;
+
       // 720p 해상도
       canvas.width = 1280;
       canvas.height = 720;
@@ -148,7 +151,7 @@ export async function generateSimpleZoomVideo(
         if (subtitle && subtitleSettings) {
           ctx.save();
 
-          ctx.font = `bold ${subtitleSettings.fontSize}px "Pretendard", sans-serif`;
+          ctx.font = `bold ${subtitleSettings.fontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
 
@@ -213,8 +216,16 @@ export async function generateSimpleZoomVideo(
     // WebM 파일을 FFmpeg 가상 파일 시스템에 쓰기
     await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
 
-    // WebM → MP4 변환
-    await ffmpeg.exec(['-i', 'input.webm', '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', 'output.mp4']);
+    // WebM → MP4 변환 (자막 선명도 개선)
+    await ffmpeg.exec([
+      '-i', 'input.webm',
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '18',
+      '-pix_fmt', 'yuv420p',
+      '-movflags', '+faststart',
+      'output.mp4'
+    ]);
 
     // 변환된 MP4 읽기
     const data = await ffmpeg.readFile('output.mp4');
