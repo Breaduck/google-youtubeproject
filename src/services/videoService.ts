@@ -60,12 +60,19 @@ export async function generateSimpleZoomVideo(
     img.crossOrigin = 'anonymous';
 
     img.onload = async () => {
-      // 폰트 로딩 대기 (자막 깨짐 방지)
-      await document.fonts.ready;
-
       // 720p 해상도
       canvas.width = 1280;
       canvas.height = 720;
+
+      // 폰트 명시적 로드 대기 (자막 깨짐 완전 방지)
+      const fontFamily = subtitleSettings?.fontFamily || 'Pretendard';
+      const fontSize = subtitleSettings?.fontSize || 32;
+      try {
+        await document.fonts.load(`bold ${fontSize}px "${fontFamily}"`);
+        await document.fonts.ready;
+      } catch (e) {
+        console.warn('Font loading failed, using fallback:', e);
+      }
 
       // TTS 싱크를 위한 시간 계산 (자막 길이 기반, 최대 10초로 단축)
       const effectIntensity = intensity || 5;
@@ -81,11 +88,11 @@ export async function generateSimpleZoomVideo(
       const fps = 20; // 24 → 20 FPS로 최적화 (속도 향상)
       const totalFrames = Math.floor(duration * fps);
 
-      // MediaRecorder 설정 (최적화: VP8 + 낮은 bitrate)
+      // MediaRecorder 설정 (자막 선명도 우선)
       const stream = canvas.captureStream(fps);
       const recorder = new MediaRecorder(stream, {
         mimeType: 'video/webm;codecs=vp8',
-        videoBitsPerSecond: 1500000 // 2.5M → 1.5M (속도 향상)
+        videoBitsPerSecond: 3000000 // 1.5M → 3M (자막 선명도 개선)
       });
 
       const chunks: Blob[] = [];
