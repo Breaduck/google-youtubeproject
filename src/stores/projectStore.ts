@@ -119,7 +119,7 @@ export const useProjectStore = create<ProjectStore>()(
         })),
     }),
     {
-      name: 'user-projects-storage',
+      name: 'user_projects_v1',
       partialize: (state) => ({
         projects: state.projects,
         currentProjectId: state.currentProjectId,
