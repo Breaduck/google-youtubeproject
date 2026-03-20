@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SubtitleSettings } from '../types';
+import { SubtitleSettings, SubtitlePosition } from '../types';
 import { TEMPLATES } from './SubtitleTemplateModal';
 
 type SettingTab = 'account' | 'gemini' | 'video-api' | 'subtitle' | 'narration' | 'saved-styles' | 'saved-characters';
@@ -604,7 +604,24 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">수직 위치: {settings.yPosition}px</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">자막 위치</label>
+              <select
+                value={settings.position}
+                onChange={(e) => {
+                  const pos = e.target.value as SubtitlePosition;
+                  const yPos = pos === 'top' ? 150 : pos === 'center' ? 360 : 650;
+                  onChange({ ...settings, position: pos, yPosition: yPos });
+                }}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="top">상단</option>
+                <option value="center">중앙</option>
+                <option value="bottom">하단</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">수직 위치 (세밀 조정): {settings.yPosition}px</label>
               <input
                 type="range"
                 min="100"
@@ -619,33 +636,41 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
 
         {/* 우측: 미리보기 + 템플릿 (Sticky) */}
         <div className="sticky top-8 space-y-4 h-fit">
-          {/* 미리보기 */}
-          <div className="bg-slate-900 dark:bg-slate-800 rounded-xl p-6 aspect-video flex items-center justify-center relative">
-            <div className="relative inline-block" style={{ opacity: settings.opacity }}>
+          {/* 미리보기 (실제 크기/위치 반영) */}
+          <div className="bg-slate-900 dark:bg-slate-800 rounded-xl overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
+            <div
+              className="absolute"
+              style={{
+                left: '50%',
+                transform: 'translateX(-50%)',
+                top: `${(settings.yPosition / 720) * 100}%`,
+                opacity: settings.opacity,
+              }}
+            >
               {settings.backgroundColor && (
                 <div
-                  className="absolute inset-0"
+                  className="absolute left-1/2 -translate-x-1/2"
                   style={{
                     backgroundColor: settings.backgroundColor,
                     opacity: settings.bgOpacity,
-                    padding: `${settings.bgPadding}px`,
-                    marginLeft: `-${settings.bgPadding}px`,
-                    marginRight: `-${settings.bgPadding}px`,
-                    marginTop: `-${settings.bgPadding}px`,
-                    marginBottom: `-${settings.bgPadding}px`,
-                    borderRadius: '8px',
+                    padding: `${settings.bgPadding / 2}px ${settings.bgPadding}px`,
+                    borderRadius: '4px',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 'max-content',
+                    height: 'max-content',
                   }}
                 />
               )}
               <p
-                className="relative"
+                className="relative whitespace-nowrap"
                 style={{
                   fontFamily: settings.fontFamily,
-                  fontSize: `${Math.min(settings.fontSize, 48)}px`,
+                  fontSize: `${settings.fontSize / 2}px`,
                   color: settings.textColor,
                   letterSpacing: `${settings.letterSpacing}px`,
                   lineHeight: settings.lineHeight,
-                  WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth}px ${settings.strokeColor}` : undefined,
+                  WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth / 2}px ${settings.strokeColor}` : undefined,
                 }}
               >
                 자막 미리보기
