@@ -6,6 +6,7 @@ import { generateSceneVideo, generateBatchVideos, VideoEngine, mergeVideos, gene
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect, SubtitleSettings } from './types';
 import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
+import SubtitleTemplateModal from './components/SubtitleTemplateModal';
 import { styleTemplates } from './data/styleTemplates';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -3834,20 +3835,16 @@ const App: React.FC = () => {
         savedStyles={savedStyles}
       />
 
-      {/* 자막 고급 편집기 - 추후 구현 */}
+      {/* 자막 템플릿 선택 */}
       {showSubtitleEditor && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md">
-            <h3 className="text-lg font-semibold mb-2">고급 편집 (개발 중)</h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-4">현재 기본 설정을 사용해주세요.</p>
-            <button
-              onClick={() => setShowSubtitleEditor(false)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg w-full"
-            >
-              확인
-            </button>
-          </div>
-        </div>
+        <SubtitleTemplateModal
+          current={subtitleSettings}
+          onApply={(newSettings) => {
+            setSubtitleSettings(newSettings);
+            setShowSubtitleEditor(false);
+          }}
+          onClose={() => setShowSubtitleEditor(false)}
+        />
       )}
     </div>
   );
