@@ -424,7 +424,7 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
         <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-[1fr_400px] gap-6">
         {/* 좌측: 설정 */}
         <div className="space-y-4">
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
@@ -579,8 +579,9 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
           </div>
         </div>
 
-        {/* 우측: 미리보기 */}
-        <div>
+        {/* 우측: 미리보기 + 템플릿 (Sticky) */}
+        <div className="sticky top-8 space-y-4 h-fit">
+          {/* 미리보기 */}
           <div className="bg-slate-900 dark:bg-slate-800 rounded-xl p-6 aspect-video flex items-center justify-center relative">
             <div className="relative inline-block" style={{ opacity: settings.opacity }}>
               {settings.backgroundColor && (
@@ -613,73 +614,73 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
               </p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* 템플릿 선택 (하단) */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">템플릿</h3>
-          <span className="text-sm text-slate-500 dark:text-slate-400">{filteredTemplates.length}개</span>
-        </div>
+          {/* 템플릿 선택 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">템플릿</h3>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{filteredTemplates.length}개</span>
+            </div>
 
-        {/* 카테고리 필터 */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                selectedCategory === cat
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* 템플릿 그리드 */}
-        <div className="grid grid-cols-8 gap-2">
-          {filteredTemplates.map((tmpl) => (
-            <button
-              key={tmpl.id}
-              onClick={() => applyTemplate(tmpl)}
-              className="group relative aspect-video bg-slate-900 rounded-lg overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all transform hover:scale-105"
-              title={tmpl.name}
-            >
-              {/* 배경 효과 */}
-              {tmpl.settings.backgroundColor && (
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    backgroundColor: tmpl.settings.backgroundColor,
-                    opacity: tmpl.settings.bgOpacity || 0.8,
-                  }}
-                />
-              )}
-
-              {/* 텍스트 */}
-              <div className="relative h-full flex items-center justify-center p-1.5">
-                <span
-                  className="text-[10px] font-bold text-center leading-tight"
-                  style={{
-                    color: tmpl.settings.textColor,
-                    WebkitTextStroke:
-                      tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
-                        ? `${Math.min(0.5, tmpl.settings.strokeWidth / 4)}px ${tmpl.settings.strokeColor}`
-                        : undefined,
-                  }}
+            {/* 카테고리 필터 */}
+            <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-all ${
+                    selectedCategory === cat
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+                  }`}
                 >
-                  {tmpl.name}
-                </span>
-              </div>
+                  {cat}
+                </button>
+              ))}
+            </div>
 
-              {/* 호버 오버레이 */}
-              <div className="absolute inset-0 bg-indigo-600 opacity-0 group-hover:opacity-20 transition-opacity"></div>
-            </button>
-          ))}
+            {/* 템플릿 그리드 */}
+            <div className="grid grid-cols-4 gap-1.5 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600">
+              {filteredTemplates.map((tmpl) => (
+                <button
+                  key={tmpl.id}
+                  onClick={() => applyTemplate(tmpl)}
+                  className="group relative aspect-video bg-slate-900 rounded-lg overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all transform hover:scale-105"
+                  title={tmpl.name}
+                >
+                  {/* 배경 효과 */}
+                  {tmpl.settings.backgroundColor && (
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        backgroundColor: tmpl.settings.backgroundColor,
+                        opacity: tmpl.settings.bgOpacity || 0.8,
+                      }}
+                    />
+                  )}
+
+                  {/* 텍스트 */}
+                  <div className="relative h-full flex items-center justify-center p-1.5">
+                    <span
+                      className="text-[10px] font-bold text-center leading-tight"
+                      style={{
+                        color: tmpl.settings.textColor,
+                        WebkitTextStroke:
+                          tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
+                            ? `${Math.min(0.5, tmpl.settings.strokeWidth / 4)}px ${tmpl.settings.strokeColor}`
+                            : undefined,
+                      }}
+                    >
+                      {tmpl.name}
+                    </span>
+                  </div>
+
+                  {/* 호버 오버레이 */}
+                  <div className="absolute inset-0 bg-indigo-600 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -956,7 +957,7 @@ function VideoApiSettings({
             >
               <div className="text-center">
                 <p className="font-semibold text-slate-900 dark:text-slate-100">Evolink</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩136/5초 (720p)</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩272/10초 (720p)</p>
               </div>
             </button>
             <button
@@ -969,7 +970,7 @@ function VideoApiSettings({
             >
               <div className="text-center">
                 <p className="font-semibold text-slate-900 dark:text-slate-100">Runware</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩203/5초</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩406/10초</p>
               </div>
             </button>
           </div>
@@ -1130,7 +1131,7 @@ function VideoApiSettings({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-indigo-600 dark:text-indigo-400">
-                  1장당 ₩{costPerScene.toLocaleString()} ({videoProvider === 'byteplus' ? '10초/₩307' : videoProvider === 'evolink' ? '5초/₩136' : '5초/₩203'})
+                  1장당 ₩{costPerScene.toLocaleString()} (10초 기준: {videoProvider === 'byteplus' ? '₩307' : videoProvider === 'evolink' ? '₩272' : '₩406'})
                 </span>
                 <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400">
                   총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초
