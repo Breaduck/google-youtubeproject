@@ -618,17 +618,20 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
 
       {/* 템플릿 선택 (하단) */}
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">템플릿 (30개)</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">템플릿</h3>
+          <span className="text-sm text-slate-500 dark:text-slate-400">{filteredTemplates.length}개</span>
+        </div>
 
         {/* 카테고리 필터 */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 selectedCategory === cat
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-indigo-600 text-white shadow-md'
                   : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
               }`}
             >
@@ -638,24 +641,43 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
         </div>
 
         {/* 템플릿 그리드 */}
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-8 gap-2">
           {filteredTemplates.map((tmpl) => (
             <button
               key={tmpl.id}
               onClick={() => applyTemplate(tmpl)}
-              className="aspect-video bg-slate-900 dark:bg-slate-800 rounded-lg flex items-center justify-center p-3 hover:ring-2 hover:ring-indigo-500 transition-all"
+              className="group relative aspect-video bg-slate-900 rounded-lg overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all transform hover:scale-105"
+              title={tmpl.name}
             >
-              <span
-                className="text-xs font-bold text-center"
-                style={{
-                  color: tmpl.settings.textColor,
-                  WebkitTextStroke: tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0
-                    ? `${Math.max(1, tmpl.settings.strokeWidth / 2)}px ${tmpl.settings.strokeColor}`
-                    : undefined,
-                }}
-              >
-                {tmpl.name}
-              </span>
+              {/* 배경 효과 */}
+              {tmpl.settings.backgroundColor && (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundColor: tmpl.settings.backgroundColor,
+                    opacity: tmpl.settings.bgOpacity || 0.8,
+                  }}
+                />
+              )}
+
+              {/* 텍스트 */}
+              <div className="relative h-full flex items-center justify-center p-1.5">
+                <span
+                  className="text-[10px] font-bold text-center leading-tight"
+                  style={{
+                    color: tmpl.settings.textColor,
+                    WebkitTextStroke:
+                      tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
+                        ? `${Math.min(0.5, tmpl.settings.strokeWidth / 4)}px ${tmpl.settings.strokeColor}`
+                        : undefined,
+                  }}
+                >
+                  {tmpl.name}
+                </span>
+              </div>
+
+              {/* 호버 오버레이 */}
+              <div className="absolute inset-0 bg-indigo-600 opacity-0 group-hover:opacity-20 transition-opacity"></div>
             </button>
           ))}
         </div>
@@ -716,98 +738,136 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">계정</h2>
-        <p className="text-slate-600 dark:text-slate-400">로그인하여 클라우드 동기화 기능을 사용하세요.</p>
+        <p className="text-slate-600 dark:text-slate-400">클라우드 동기화 및 프로젝트 저장</p>
       </div>
 
       {isLoggedIn ? (
-        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-              {currentUser?.username?.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">{currentUser?.username}</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">{currentUser?.email}</p>
+        <div className="max-w-md mx-auto">
+          <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-8 text-white shadow-2xl">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mb-16"></div>
+
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl font-bold border-2 border-white/30">
+                  {currentUser?.username?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold">{currentUser?.username}</h3>
+                  <p className="text-indigo-100 text-sm">{currentUser?.email}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('currentUser');
+                    onLoginStateChange(false);
+                    alert('로그아웃되었습니다.');
+                  }}
+                  className="flex-1 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 rounded-xl font-medium transition-all"
+                >
+                  로그아웃
+                </button>
+                <button className="flex-1 py-3 bg-white hover:bg-gray-50 text-indigo-600 rounded-xl font-medium transition-all">
+                  프로필 수정
+                </button>
+              </div>
             </div>
           </div>
-          <button
-            onClick={() => {
-              localStorage.removeItem('currentUser');
-              onLoginStateChange(false);
-              alert('로그아웃되었습니다.');
-            }}
-            className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-          >
-            로그아웃
-          </button>
         </div>
       ) : (
-        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-8">
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => setMode('login')}
-              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                mode === 'login'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-              }`}
-            >
-              로그인
-            </button>
-            <button
-              onClick={() => setMode('signup')}
-              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                mode === 'signup'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-              }`}
-            >
-              회원가입
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">아이디</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="아이디를 입력하세요"
-                className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+        <div className="max-w-md mx-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            {/* 탭 */}
+            <div className="flex border-b border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setMode('login')}
+                className={`flex-1 py-4 font-semibold transition-all relative ${
+                  mode === 'login'
+                    ? 'text-indigo-600 dark:text-indigo-400'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                로그인
+                {mode === 'login' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400"></div>
+                )}
+              </button>
+              <button
+                onClick={() => setMode('signup')}
+                className={`flex-1 py-4 font-semibold transition-all relative ${
+                  mode === 'signup'
+                    ? 'text-indigo-600 dark:text-indigo-400'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                회원가입
+                {mode === 'signup' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400"></div>
+                )}
+              </button>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">비밀번호</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="비밀번호를 입력하세요"
-                className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            {mode === 'signup' && (
+            {/* 폼 */}
+            <div className="p-8 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">이메일</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
+                  아이디
+                </label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="이메일을 입력하세요"
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="사용자 아이디"
+                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-0 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                 />
               </div>
-            )}
 
-            <button
-              onClick={handleSubmit}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
-            >
-              {mode === 'login' ? '로그인' : '회원가입'}
-            </button>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
+                  비밀번호
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-0 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                />
+              </div>
+
+              {mode === 'signup' && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
+                    이메일
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="example@email.com"
+                    className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-0 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  />
+                </div>
+              )}
+
+              <button
+                onClick={handleSubmit}
+                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/50 transition-all transform hover:scale-[1.02]"
+              >
+                {mode === 'login' ? '로그인' : '계정 만들기'}
+              </button>
+
+              {mode === 'login' && (
+                <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                  계정이 없으신가요?{' '}
+                  <button onClick={() => setMode('signup')} className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                    회원가입
+                  </button>
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
