@@ -1213,39 +1213,64 @@ const App: React.FC = () => {
   };
 
   const splitScriptIntoScenes = (script: string): Array<{ scriptSegment: string }> => {
-    // 문장 단위 분할 (한글 마침표, 느낌표, 물음표, 줄바꿈)
-    const sentences = script.split(/(?<=[.!?。！？])\s+|(?<=\n)/).filter(s => s.trim().length > 0);
+    if (!script || script.trim().length === 0) return [];
+
     const scenes: Array<{ scriptSegment: string }> = [];
-    let currentSegment = '';
+    let start = 0;
 
-    for (const sentence of sentences) {
-      const trimmed = sentence.trim();
-      if (!trimmed) continue;
+    // 분할 지점 찾기: 마침표/느낌표/물음표/줄바꿈 2개 이상
+    const breakPoints: number[] = [];
+    const text = script;
 
-      // 현재 세그먼트 + 새 문장이 200자 이하면 합침
-      if (currentSegment.length > 0 && (currentSegment + trimmed).length <= 200) {
-        currentSegment += ' ' + trimmed;
-      } else {
-        // 기존 세그먼트 저장 (30자 이상인 경우만)
-        if (currentSegment.length >= 30) {
-          scenes.push({ scriptSegment: currentSegment.trim() });
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      // 문장 종결 또는 연속 줄바꿈
+      if (['.', '!', '?', '。', '！', '？'].includes(char)) {
+        breakPoints.push(i + 1);
+      } else if (char === '\n' && text[i + 1] === '\n') {
+        breakPoints.push(i + 2);
+      }
+    }
+
+    // 최소 30자, 최대 200자 기준으로 그룹화
+    let currentEnd = 0;
+    for (const bp of breakPoints) {
+      const segmentLength = bp - start;
+
+      if (segmentLength >= 30 && segmentLength <= 200) {
+        // 적절한 크기면 분할
+        scenes.push({ scriptSegment: text.substring(start, bp).trim() });
+        start = bp;
+        currentEnd = bp;
+      } else if (segmentLength > 200) {
+        // 너무 크면 이전 지점에서 분할
+        if (currentEnd > start) {
+          scenes.push({ scriptSegment: text.substring(start, currentEnd).trim() });
+          start = currentEnd;
         }
-        currentSegment = trimmed;
+        // 현재 지점 기록
+        currentEnd = bp;
+      } else {
+        // 너무 작으면 계속 누적
+        currentEnd = bp;
       }
     }
 
     // 마지막 세그먼트 추가
-    if (currentSegment.length >= 30) {
-      scenes.push({ scriptSegment: currentSegment.trim() });
-    } else if (currentSegment.length > 0 && scenes.length > 0) {
-      // 30자 미만이면 이전 장면에 합침
-      scenes[scenes.length - 1].scriptSegment += ' ' + currentSegment.trim();
-    } else if (currentSegment.length > 0) {
-      // 첫 장면이 30자 미만이어도 추가
-      scenes.push({ scriptSegment: currentSegment.trim() });
+    if (start < text.length) {
+      const remaining = text.substring(start).trim();
+      if (remaining.length >= 30) {
+        scenes.push({ scriptSegment: remaining });
+      } else if (scenes.length > 0) {
+        // 30자 미만이면 마지막 장면에 합침
+        scenes[scenes.length - 1].scriptSegment += '\n' + remaining;
+      } else {
+        // 첫 장면이 30자 미만이어도 추가
+        scenes.push({ scriptSegment: remaining });
+      }
     }
 
-    return scenes;
+    return scenes.length > 0 ? scenes : [{ scriptSegment: script }];
   };
 
   const proceedToStoryboard = async (isRegen: boolean = true) => {
