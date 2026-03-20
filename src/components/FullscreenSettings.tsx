@@ -1476,6 +1476,19 @@ function VideoApiSettings({
 }
 
 function SavedStylesPanel() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddStyle = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      alert(`${files.length}개 이미지 선택됨 (그림체 저장 기능은 프로젝트 화면에서 사용 가능)`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -1484,9 +1497,20 @@ function SavedStylesPanel() {
       </div>
       <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-12 text-center">
         <p className="text-slate-600 dark:text-slate-400 mb-4">저장된 그림체가 없습니다.</p>
-        <p className="text-slate-500 dark:text-slate-500 text-sm mb-6">유튜브 링크를 분석하거나 직접 스타일을 저장하세요.</p>
-        <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors">
-          새 그림체 추가
+        <p className="text-slate-500 dark:text-slate-500 text-sm mb-6">프로젝트 화면에서 그림체를 저장하면 여기에 표시됩니다.</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <button
+          onClick={handleAddStyle}
+          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+        >
+          새 그림체 추가 (참조 이미지)
         </button>
       </div>
     </div>
@@ -2022,6 +2046,19 @@ function NarrationSettings({
 }
 
 function SavedCharactersPanel() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddCharacter = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      alert(`${files.length}개 이미지 선택됨 (인물 저장 기능은 프로젝트 화면에서 사용 가능)`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -2030,8 +2067,20 @@ function SavedCharactersPanel() {
       </div>
       <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-12 text-center">
         <p className="text-slate-600 dark:text-slate-400 mb-4">저장된 인물이 없습니다.</p>
-        <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors">
-          새 인물 추가
+        <p className="text-slate-500 dark:text-slate-500 text-sm mb-6">프로젝트 화면에서 인물을 저장하면 여기에 표시됩니다.</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <button
+          onClick={handleAddCharacter}
+          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+        >
+          새 인물 추가 (참조 이미지)
         </button>
       </div>
     </div>
