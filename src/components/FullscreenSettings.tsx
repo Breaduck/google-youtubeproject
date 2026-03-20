@@ -264,7 +264,6 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
               totalScenes={totalScenes}
             />
           )}
-          {activeTab === 'narration' && <NarrationSettings />}
           {activeTab === 'saved-styles' && <SavedStylesPanel />}
           {activeTab === 'saved-characters' && <SavedCharactersPanel />}
         </div>
@@ -1354,7 +1353,7 @@ function NarrationSettings({
   onShowElKeyToggle: () => void;
   onVoiceTest: () => void;
   isVoiceTesting: boolean;
-  wavUploadRef: React.RefObject<HTMLInputElement>;
+  wavUploadRef: React.RefObject<HTMLInputElement | null>;
   onWavUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   uploadedWavFile: { file: File; url: string } | null;
 }) {
