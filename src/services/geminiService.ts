@@ -324,49 +324,57 @@ Return ONLY valid JSON, no markdown or explanation.`;
       .map(c => `- ${c.name}: ${c.visualDescription}`)
       .join('\n');
 
-    // 스크립트 길이 기반 목표 씬 수 계산 (비용 효율: 200자당 1씬)
+    // 스크립트 길이 기반 목표 씬 수 계산 (원본 보존 우선)
     const scriptLength = project.script.length;
-    const targetScenes = Math.max(120, Math.min(180, Math.floor(scriptLength / 200))); // 200자당 1씬 (비용 절감)
+    // 최소 장면당 50자 보장: 짧은 스크립트도 안전하게 처리
+    const minCharsPerScene = 50;
+    const maxScenes = Math.floor(scriptLength / minCharsPerScene);
+    // 목표: 장면당 80-120자 (10-15초 나레이션 최적)
+    const targetScenes = Math.max(1, Math.min(maxScenes, Math.floor(scriptLength / 100)));
 
-    const prompt = `Analyze this script and divide it into ${targetScenes} scenes for a 20-30 minute video. Each scene will be a single static image shown for ~10 seconds with narration.
+    const prompt = `Divide this script into scenes for video generation. Each scene = 1 static image + narration audio.
 
 Characters:
 ${characterDescriptions}
 
 Style: ${project.customStyleDescription || project.style}
 
-Full Script:
+Full Script (${scriptLength} characters):
 ${project.script}
 
-TASK: Intelligently divide the script into approximately ${targetScenes} scenes based on:
-- Natural narrative flow and context
-- Scene changes and location shifts
-- Emotional beats and dramatic moments
-- Logical grouping of dialogue/action that fits in one image
+CRITICAL RULES - ORIGINAL TEXT PRESERVATION:
+⚠️ **NEVER modify, rephrase, summarize, or change ANY word from the original script**
+⚠️ **scriptSegment MUST be exact copy-paste from the original script - not a single character changed**
+⚠️ Even if the text has typos, keep them exactly as-is
+⚠️ This is non-negotiable - treat the script as sacred, read-only text
 
-COST OPTIMIZATION (CRITICAL):
-- **Each scene MUST have at least 35-40 characters** (minimum 10 seconds of narration)
-- **Merge short sentences**: "안녕하세요!" alone is wasteful → combine with next lines
-- **Avoid single-sentence scenes**: Always group 2-3 related sentences together when possible
-- Only separate when there's a clear scene/location change or dramatic shift
+TASK: Divide the script into approximately ${targetScenes} scenes (flexible ±20%) based on:
+- Natural narrative flow (paragraph breaks, dialogue turns, scene shifts)
+- Logical visual grouping (events that fit in one static image)
+- Target: 80-120 characters per scene (10-15 seconds narration)
+- Minimum: 50 characters per scene (avoid too-short segments)
+- If script is short (under ${minCharsPerScene * 2} chars), use 1-2 scenes only
 
-For EACH scene (numbered 1 to ~${targetScenes}), provide:
-1. "segment_number": Scene number
-2. "scriptSegment": The exact text from the script for this scene (keep original Korean text, MINIMUM 35 characters)
-3. "imagePrompt": A detailed English prompt describing the scene. CRITICAL:
-   - Characters MUST match their visualDescription exactly (same face, hair, clothing, features) for consistency across all scenes
-   - Describe background, lighting, mood, and character actions
-   - ⚠️ ABSOLUTELY FORBIDDEN: NO TEXT, NO LETTERS, NO WORDS, NO KOREAN CHARACTERS, NO ENGLISH CHARACTERS, NO NUMBERS, NO SYMBOLS, NO SIGNS, NO LABELS, NO CAPTIONS, NO SUBTITLES, NO WATERMARKS, NO LOGOS, NO TYPOGRAPHY OF ANY KIND
-   - NEVER mention shot types or camera movement
-   - The image must be 100% text-free, pure visual scene only
-4. "effect_type": Always use "static_subtle"
+For EACH scene, provide:
+1. "segment_number": Scene number (1, 2, 3...)
+2. "scriptSegment": **EXACT copy-paste text from original script** (no changes, no edits, no paraphrasing)
+   - Find natural break points in the original text
+   - Copy the text verbatim, including all punctuation and spacing
+   - 50-150 characters ideal (adjust based on script length)
+3. "imagePrompt": Detailed English visual description. CRITICAL:
+   - Characters MUST match visualDescription exactly (same face/hair/clothing)
+   - Describe background, lighting, mood, character actions/expressions
+   - ⚠️ ABSOLUTELY NO TEXT/LETTERS/WORDS/SYMBOLS/SIGNS in the image
+   - NEVER mention camera shots or movement terms
+   - Pure visual scene only
+4. "effect_type": Always "static_subtle"
 5. "intensity": 1-10 emotional intensity
 
 IMPORTANT:
-- Aim for ${targetScenes} scenes (±10 is acceptable based on natural breaks)
-- Character appearance consistency is CRITICAL - always refer to the visualDescription above
-- **MERGE short lines to minimize image generation cost**
-- Each scriptSegment should ideally be 50-100 characters for optimal cost/quality balance
+- Flexible scene count: ${targetScenes} is a guideline, adjust naturally (±20% OK)
+- **DO NOT add, remove, or modify any words from the original script**
+- Short scripts (under 1000 chars) = fewer scenes, longer segments
+- Long scripts (over 10000 chars) = more scenes, balanced segments
 
 Return ONLY valid JSON array, no markdown.`;
 

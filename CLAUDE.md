@@ -13,6 +13,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 항상 cloud flare에 자동배포하기
 - **Billing Gate (필수):** 외부 API 연동 전 `docs/BILLING_GATE.md` 체크리스트 확인 필수. 최소 충전/환불/무료크레딧 적용범위 확인 없이 결제 유도 금지.
 
+작업 품질 원칙 (Quality Standards)
+- **완전한 구현:** 기능 추가 시 반드시 모든 옵션을 완전하게 구현할 것. 일부만 구현하거나 뼈대만 만드는 것 금지.
+  - 예: 음성 선택 기능이면 모든 음성을 실제로 작동하도록 구현
+  - 예: API 선택 기능이면 모든 provider를 완전히 연동
+- **책임감 있는 검증:** 구현 후 반드시 직접 코드를 읽고 누락된 부분이 없는지 확인할 것.
+- **사용자 입력 보존:** 사용자가 입력한 텍스트(스크립트, 프롬프트 등)는 **절대 임의로 수정 금지**.
+  - 600자든 3만자든 입력받은 내용을 **토씨 하나 바꾸지 말고** 그대로 사용
+  - Gemini API 호출 시 사용자 입력을 재작성/요약/변경하지 않도록 프롬프트 설계
+  - 분석은 별도로 하되, 원본 텍스트는 반드시 보존
+- **중도 포기 금지:** 작업 중 임의로 마무리하거나 생략하지 말 것. 끝까지 완수.
+
 ## ⚙️ Current Configuration (Aggressive Quality Mode)
 - **Model:** LTX-2 Distilled + LoRA Rank 175 FP8 (1.79 GB)
 - **Steps:** 20 (2배 증가, 품질 우선)
