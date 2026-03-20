@@ -316,35 +316,9 @@ const App: React.FC = () => {
   const activeCharId = useRef<string | null>(null);
   const activeSceneId = useRef<string | null>(null);
 
-  // 기존 프로젝트 마이그레이션: videoUrl, videoStatus 필드 추가
+  // 프로젝트 마이그레이션은 projectStore persist가 자동 처리
   useEffect(() => {
-    const stored = localStorage.getItem('user_projects_v1');
-    if (!stored) return;
-
-    try {
-      const oldProjects = JSON.parse(stored);
-      let needsMigration = false;
-
-      const migratedProjects = oldProjects.map((p: any) => {
-        const migratedScenes = p.scenes.map((s: any) => {
-          if (!('videoUrl' in s) || !('videoStatus' in s)) {
-            needsMigration = true;
-            return { ...s, videoUrl: null, videoStatus: 'idle' };
-          }
-          return s;
-        });
-        return { ...p, scenes: migratedScenes };
-      });
-
-      if (needsMigration) {
-        console.log('🔧 프로젝트 마이그레이션: videoUrl, videoStatus 필드 추가됨');
-        setProjects([EXP_TEST_PROJECT, ...migratedProjects.filter((p: any) => p.id !== EXP_TEST_PROJECT_ID)]);
-      } else {
-        setProjects([EXP_TEST_PROJECT, ...oldProjects.filter((p: any) => p.id !== EXP_TEST_PROJECT_ID)]);
-      }
-    } catch (e) {
-      console.error('Migration failed:', e);
-    }
+    // Zustand persist가 자동으로 user_projects_v1에서 로드함
   }, []); // 한 번만 실행
 
   // 다크모드 토글 핸들러
@@ -439,9 +413,7 @@ const App: React.FC = () => {
     ctx.stroke();
   }, [subtitleSettings, expandedSetting]);
 
-  useEffect(() => {
-    localStorage.setItem('el_speed', elSettings.speed.toString());
-  }, [elSettings.speed]);
+  // el_speed는 settingsStore persist가 자동 저장
 
   useEffect(() => {
     if (elSettings.apiKey.length > 10) {
@@ -480,16 +452,16 @@ const App: React.FC = () => {
   const checkGeminiKey = async (key: string) => {
     setIsValidatingGemini(true);
     try {
-      // Google Cloud (Vertex AI) 설정 확인
-      const projectId = localStorage.getItem('google_cloud_project_id') || '';
-      const location = localStorage.getItem('google_cloud_location') || 'us-central1';
+      // Google Cloud (Vertex AI) 설정 확인 (store에서 읽기)
+      const projectId = googleCloudProjectId || '';
+      const location = googleCloudLocation || 'us-central1';
 
       // Project ID가 있으면 Vertex AI 모드
       const ai = projectId && projectId.trim().length > 0
         ? new GoogleGenAI({ apiKey: key, vertexai: true, project: projectId, location, apiVersion: 'v1' })
         : new GoogleGenAI({ apiKey: key });
 
-      const model = localStorage.getItem('gemini_model') || 'gemini-3-flash-preview';
+      const model = geminiModel;
       const response = await ai.models.generateContent({
         model: model,
         contents: 'test'
@@ -654,7 +626,7 @@ const App: React.FC = () => {
         const data = await resp.json();
         setVoices(data.voices);
         setIsElConnected(true);
-        localStorage.setItem('el_api_key', elSettings.apiKey);
+        // el_api_key는 settingsStore persist가 자동 저장
       } else {
         setIsElConnected(false);
       }
@@ -2045,11 +2017,7 @@ const App: React.FC = () => {
     if (window.confirm("정말로 이 프로젝트를 삭제하시겠습니까?")) {
       const updatedProjects = projects.filter((p: StoryProject) => p.id !== id);
       setProjects(updatedProjects);
-      try {
-        localStorage.setItem('user_projects_v1', JSON.stringify(updatedProjects));
-      } catch (err) {
-        console.error("Storage sync failed during delete", err);
-      }
+      // projectStore persist가 자동 저장
 
       if (currentProjectId === id) {
         setCurrentProjectId(null);
