@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { SubtitleSettings } from '../types';
-import SubtitleTemplateModal from './SubtitleTemplateModal';
+import { TEMPLATES } from './SubtitleTemplateModal';
 
 type SettingTab = 'account' | 'gemini' | 'video-api' | 'subtitle' | 'narration' | 'saved-styles' | 'saved-characters';
 
@@ -12,17 +12,60 @@ interface FullscreenSettingsProps {
   onSubtitleChange: (settings: SubtitleSettings) => void;
   isLoggedIn: boolean;
   onLoginStateChange: (loggedIn: boolean) => void;
+
+  // Video API settings
+  videoProvider: 'byteplus' | 'evolink' | 'runware';
+  onVideoProviderChange: (provider: 'byteplus' | 'evolink' | 'runware') => void;
+  bytedanceApiKey: string;
+  onBytedanceApiKeyChange: (key: string) => void;
+  bytedanceModel: string;
+  onBytedanceModelChange: (model: string) => void;
+  evolinkApiKey: string;
+  onEvolinkApiKeyChange: (key: string) => void;
+  evolinkResolution: string;
+  onEvolinkResolutionChange: (resolution: string) => void;
+  evolinkDuration: number;
+  onEvolinkDurationChange: (duration: number) => void;
+  runwareResolution: string;
+  onRunwareResolutionChange: (resolution: string) => void;
+  runwareDuration: number;
+  onRunwareDurationChange: (duration: number) => void;
+  videoGenerationRange: number;
+  onVideoGenerationRangeChange: (range: number) => void;
+  calculateVideoCost: () => { numScenes: number; costPerScene: number; totalCost: number };
+  totalScenes: number;
 }
 
-export default function FullscreenSettings({
-  onClose,
-  geminiApiKey,
-  onGeminiKeyChange,
-  subtitleSettings,
-  onSubtitleChange,
-  isLoggedIn,
-  onLoginStateChange,
-}: FullscreenSettingsProps) {
+export default function FullscreenSettings(props: FullscreenSettingsProps) {
+  const {
+    onClose,
+    geminiApiKey,
+    onGeminiKeyChange,
+    subtitleSettings,
+    onSubtitleChange,
+    isLoggedIn,
+    onLoginStateChange,
+    videoProvider,
+    onVideoProviderChange,
+    bytedanceApiKey,
+    onBytedanceApiKeyChange,
+    bytedanceModel,
+    onBytedanceModelChange,
+    evolinkApiKey,
+    onEvolinkApiKeyChange,
+    evolinkResolution,
+    onEvolinkResolutionChange,
+    evolinkDuration,
+    onEvolinkDurationChange,
+    runwareResolution,
+    onRunwareResolutionChange,
+    runwareDuration,
+    onRunwareDurationChange,
+    videoGenerationRange,
+    onVideoGenerationRangeChange,
+    calculateVideoCost,
+    totalScenes,
+  } = props;
   const [activeTab, setActiveTab] = useState<SettingTab>('gemini');
 
   // ESC 키로 닫기
@@ -95,7 +138,30 @@ export default function FullscreenSettings({
           {activeTab === 'gemini' && <GeminiSettings apiKey={geminiApiKey} onChange={onGeminiKeyChange} />}
           {activeTab === 'subtitle' && <SubtitleSettingsPanel settings={subtitleSettings} onChange={onSubtitleChange} />}
           {activeTab === 'account' && <AccountSettings isLoggedIn={isLoggedIn} onLoginStateChange={onLoginStateChange} />}
-          {activeTab === 'video-api' && <VideoApiSettings />}
+          {activeTab === 'video-api' && (
+            <VideoApiSettings
+              videoProvider={videoProvider}
+              onVideoProviderChange={onVideoProviderChange}
+              bytedanceApiKey={bytedanceApiKey}
+              onBytedanceApiKeyChange={onBytedanceApiKeyChange}
+              bytedanceModel={bytedanceModel}
+              onBytedanceModelChange={onBytedanceModelChange}
+              evolinkApiKey={evolinkApiKey}
+              onEvolinkApiKeyChange={onEvolinkApiKeyChange}
+              evolinkResolution={evolinkResolution}
+              onEvolinkResolutionChange={onEvolinkResolutionChange}
+              evolinkDuration={evolinkDuration}
+              onEvolinkDurationChange={onEvolinkDurationChange}
+              runwareResolution={runwareResolution}
+              onRunwareResolutionChange={onRunwareResolutionChange}
+              runwareDuration={runwareDuration}
+              onRunwareDurationChange={onRunwareDurationChange}
+              videoGenerationRange={videoGenerationRange}
+              onVideoGenerationRangeChange={onVideoGenerationRangeChange}
+              calculateVideoCost={calculateVideoCost}
+              totalScenes={totalScenes}
+            />
+          )}
           {activeTab === 'narration' && <NarrationSettings />}
           {activeTab === 'saved-styles' && <SavedStylesPanel />}
           {activeTab === 'saved-characters' && <SavedCharactersPanel />}
@@ -140,36 +206,21 @@ function GeminiSettings({ apiKey, onChange }: { apiKey: string; onChange: (key: 
 }
 
 function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSettings; onChange: (s: SubtitleSettings) => void }) {
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('전체');
+
+  const categories = ['전체', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
+  const filteredTemplates = selectedCategory === '전체' ? TEMPLATES : TEMPLATES.filter(t => t.category === selectedCategory);
+
+  const applyTemplate = (template: typeof TEMPLATES[0]) => {
+    onChange({ ...settings, ...template.settings });
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 설정</h2>
-          <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
-        </div>
-        <button
-          onClick={() => setShowTemplateModal(true)}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
-          </svg>
-          템플릿
-        </button>
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 설정</h2>
+        <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
       </div>
-
-      {showTemplateModal && (
-        <SubtitleTemplateModal
-          current={settings}
-          onApply={(newSettings) => {
-            onChange(newSettings);
-            setShowTemplateModal(false);
-          }}
-          onClose={() => setShowTemplateModal(false)}
-        />
-      )}
 
       <div className="grid grid-cols-2 gap-6">
         {/* 좌측: 설정 */}
@@ -362,6 +413,51 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
           </div>
         </div>
       </div>
+
+      {/* 템플릿 선택 (하단) */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">템플릿 (30개)</h3>
+
+        {/* 카테고리 필터 */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                selectedCategory === cat
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* 템플릿 그리드 */}
+        <div className="grid grid-cols-5 gap-3">
+          {filteredTemplates.map((tmpl) => (
+            <button
+              key={tmpl.id}
+              onClick={() => applyTemplate(tmpl)}
+              className="aspect-video bg-slate-900 dark:bg-slate-800 rounded-lg flex items-center justify-center p-3 hover:ring-2 hover:ring-indigo-500 transition-all"
+            >
+              <span
+                className="text-xs font-bold text-center"
+                style={{
+                  color: tmpl.settings.textColor,
+                  WebkitTextStroke: tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0
+                    ? `${Math.max(1, tmpl.settings.strokeWidth / 2)}px ${tmpl.settings.strokeColor}`
+                    : undefined,
+                }}
+              >
+                {tmpl.name}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -517,15 +613,275 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
   );
 }
 
-function VideoApiSettings() {
+function VideoApiSettings({
+  videoProvider,
+  onVideoProviderChange,
+  bytedanceApiKey,
+  onBytedanceApiKeyChange,
+  bytedanceModel,
+  onBytedanceModelChange,
+  evolinkApiKey,
+  onEvolinkApiKeyChange,
+  evolinkResolution,
+  onEvolinkResolutionChange,
+  evolinkDuration,
+  onEvolinkDurationChange,
+  runwareResolution,
+  onRunwareResolutionChange,
+  runwareDuration,
+  onRunwareDurationChange,
+  videoGenerationRange,
+  onVideoGenerationRangeChange,
+  calculateVideoCost,
+  totalScenes,
+}: {
+  videoProvider: 'byteplus' | 'evolink' | 'runware';
+  onVideoProviderChange: (provider: 'byteplus' | 'evolink' | 'runware') => void;
+  bytedanceApiKey: string;
+  onBytedanceApiKeyChange: (key: string) => void;
+  bytedanceModel: string;
+  onBytedanceModelChange: (model: string) => void;
+  evolinkApiKey: string;
+  onEvolinkApiKeyChange: (key: string) => void;
+  evolinkResolution: string;
+  onEvolinkResolutionChange: (resolution: string) => void;
+  evolinkDuration: number;
+  onEvolinkDurationChange: (duration: number) => void;
+  runwareResolution: string;
+  onRunwareResolutionChange: (resolution: string) => void;
+  runwareDuration: number;
+  onRunwareDurationChange: (duration: number) => void;
+  videoGenerationRange: number;
+  onVideoGenerationRangeChange: (range: number) => void;
+  calculateVideoCost: () => { numScenes: number; costPerScene: number; totalCost: number };
+  totalScenes: number;
+}) {
+  const [showBytedanceKey, setShowBytedanceKey] = useState(false);
+  const [showEvolinkKey, setShowEvolinkKey] = useState(false);
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">영상화 API 설정</h2>
         <p className="text-slate-600 dark:text-slate-400">이미지를 영상으로 변환하는 API를 설정합니다.</p>
       </div>
-      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-        <p className="text-slate-700 dark:text-slate-300">현재 Provider: <span className="text-indigo-600 dark:text-indigo-400 font-semibold">BytePlus ModelArk</span></p>
+
+      {/* Provider 선택 */}
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Provider 선택</label>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={() => onVideoProviderChange('byteplus')}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                videoProvider === 'byteplus'
+                  ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
+                  : 'border-slate-300 dark:border-slate-600 hover:border-indigo-400'
+              }`}
+            >
+              <div className="text-center">
+                <p className="font-semibold text-slate-900 dark:text-slate-100">BytePlus</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩54/10초</p>
+              </div>
+            </button>
+            <button
+              onClick={() => onVideoProviderChange('evolink')}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                videoProvider === 'evolink'
+                  ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
+                  : 'border-slate-300 dark:border-slate-600 hover:border-indigo-400'
+              }`}
+            >
+              <div className="text-center">
+                <p className="font-semibold text-slate-900 dark:text-slate-100">Evolink</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩203/5초</p>
+              </div>
+            </button>
+            <button
+              onClick={() => onVideoProviderChange('runware')}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                videoProvider === 'runware'
+                  ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
+                  : 'border-slate-300 dark:border-slate-600 hover:border-indigo-400'
+              }`}
+            >
+              <div className="text-center">
+                <p className="font-semibold text-slate-900 dark:text-slate-100">Runware</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩203/5초</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* BytePlus 설정 */}
+        {videoProvider === 'byteplus' && (
+          <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">모델</label>
+              <div className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
+                <p className="text-sm font-medium text-indigo-900 dark:text-indigo-300">SeeDance 1.0 Pro Fast</p>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">10초 영상, 720p 고정</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">BytePlus API 키</label>
+              <div className="relative">
+                <input
+                  type={showBytedanceKey ? 'text' : 'password'}
+                  value={bytedanceApiKey}
+                  onChange={(e) => onBytedanceApiKeyChange(e.target.value)}
+                  placeholder="ARK_API_KEY"
+                  className="w-full px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={() => setShowBytedanceKey(!showBytedanceKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  {showBytedanceKey ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">BytePlus ModelArk에서 API 키를 발급받으세요</p>
+            </div>
+          </div>
+        )}
+
+        {/* Evolink 설정 */}
+        {videoProvider === 'evolink' && (
+          <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Evolink API 키</label>
+              <div className="relative">
+                <input
+                  type={showEvolinkKey ? 'text' : 'password'}
+                  value={evolinkApiKey}
+                  onChange={(e) => onEvolinkApiKeyChange(e.target.value)}
+                  placeholder="Evolink API Key"
+                  className="w-full px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={() => setShowEvolinkKey(!showEvolinkKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  {showEvolinkKey ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">해상도</label>
+              <select
+                value={evolinkResolution}
+                onChange={(e) => onEvolinkResolutionChange(e.target.value)}
+                className="w-full px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
+              >
+                <option value="480p">480p</option>
+                <option value="720p">720p</option>
+                <option value="1080p">1080p</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">영상 길이: {evolinkDuration}초</label>
+              <input
+                type="range"
+                min="3"
+                max="10"
+                value={evolinkDuration}
+                onChange={(e) => onEvolinkDurationChange(parseInt(e.target.value))}
+                className="w-full accent-indigo-600"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Runware 설정 */}
+        {videoProvider === 'runware' && (
+          <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">해상도</label>
+              <select
+                value={runwareResolution}
+                onChange={(e) => onRunwareResolutionChange(e.target.value)}
+                className="w-full px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
+              >
+                <option value="480p">480p</option>
+                <option value="720p">720p</option>
+                <option value="1080p">1080p</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">영상 길이: {runwareDuration}초</label>
+              <input
+                type="range"
+                min="3"
+                max="10"
+                value={runwareDuration}
+                onChange={(e) => onRunwareDurationChange(parseInt(e.target.value))}
+                className="w-full accent-indigo-600"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 영상 생성 범위 설정 */}
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+            영상 생성할 장면 수 (최대 180장)
+          </label>
+          <div className="flex gap-3 items-center">
+            <input
+              type="range"
+              min="0"
+              max="180"
+              value={Math.floor(videoGenerationRange / 10)}
+              onChange={(e) => onVideoGenerationRangeChange(parseInt(e.target.value) * 10)}
+              className="flex-1 accent-indigo-600"
+            />
+            <input
+              type="number"
+              min="0"
+              max="180"
+              value={Math.floor(videoGenerationRange / 10)}
+              onChange={(e) => onVideoGenerationRangeChange(Math.max(0, Math.min(180, parseInt(e.target.value) || 0)) * 10)}
+              className="w-20 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-slate-100"
+            />
+            <span className="text-sm text-slate-600 dark:text-slate-400">장</span>
+          </div>
+        </div>
+
+        {/* 비용 계산 */}
+        {(() => {
+          const { numScenes, costPerScene, totalCost } = calculateVideoCost();
+          return (
+            <div className="px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg space-y-2">
+              <div className="flex items-baseline justify-between">
+                <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-300">
+                  💰 {numScenes}장 영상화 예정
+                </p>
+                <p className="text-lg font-bold text-indigo-700 dark:text-indigo-400">
+                  ₩{totalCost.toLocaleString()}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-indigo-600 dark:text-indigo-400">
+                  {videoProvider === 'byteplus' ? '10초' : '5초'} 영상 생성에 1장당 ₩{costPerScene.toLocaleString()}
+                </span>
+                <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400">
+                  총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초
+                </span>
+              </div>
+              {totalScenes > numScenes && (
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                  📌 나머지 {totalScenes - numScenes}장은 정적 효과(무료)로 처리됩니다
+                </p>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

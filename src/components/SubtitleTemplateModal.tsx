@@ -7,7 +7,7 @@ interface SubtitleTemplateModalProps {
   onClose: () => void;
 }
 
-const TEMPLATES: { id: string; name: string; category: string; settings: Partial<SubtitleSettings> }[] = [
+export const TEMPLATES: { id: string; name: string; category: string; settings: Partial<SubtitleSettings> }[] = [
   // 기본 (5개)
   { id: 'white-clean', name: '깔끔한 흰색', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 2, backgroundColor: undefined, fontSize: 48 } },
   { id: 'black-box', name: '검정 박스', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#000000', bgOpacity: 0.75, bgPadding: 12, fontSize: 44 } },

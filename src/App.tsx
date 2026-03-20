@@ -2734,6 +2734,26 @@ const App: React.FC = () => {
           onSubtitleChange={setSubtitleSettings}
           isLoggedIn={isLoggedIn}
           onLoginStateChange={setIsLoggedIn}
+          videoProvider={videoProvider}
+          onVideoProviderChange={setVideoProvider}
+          bytedanceApiKey={bytedanceApiKey}
+          onBytedanceApiKeyChange={setBytedanceApiKey}
+          bytedanceModel={bytedanceModel}
+          onBytedanceModelChange={setBytedanceModel}
+          evolinkApiKey={evolinkApiKey}
+          onEvolinkApiKeyChange={setEvolinkApiKey}
+          evolinkResolution={evolinkResolution}
+          onEvolinkResolutionChange={setEvolinkResolution}
+          evolinkDuration={evolinkDuration}
+          onEvolinkDurationChange={setEvolinkDuration}
+          runwareResolution={runwareResolution}
+          onRunwareResolutionChange={setRunwareResolution}
+          runwareDuration={runwareDuration}
+          onRunwareDurationChange={setRunwareDuration}
+          videoGenerationRange={videoGenerationRange}
+          onVideoGenerationRangeChange={setVideoGenerationRange}
+          calculateVideoCost={calculateVideoCost}
+          totalScenes={project?.scenes.length || 0}
         />
       )}
 
