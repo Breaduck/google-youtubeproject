@@ -1212,11 +1212,11 @@ const App: React.FC = () => {
     }
   };
 
-  const proceedToStoryboard = async (isRegen: boolean = true) => {
+  const proceedToStoryboard = async (isRegen: boolean = true, retryCount: number = 0) => {
     if (!project) return;
     if (!isRegen && project.scenes?.length > 0) { setStep('storyboard'); return; }
 
-    setBgTask({ type: 'storyboard', message: '장면별 스토리보드 구성 중...' });
+    setBgTask({ type: 'storyboard', message: retryCount > 0 ? `재시도 중... (${retryCount}회)` : '장면별 스토리보드 구성 중...' });
     setBgProgress(10);
 
     try {
@@ -1231,16 +1231,28 @@ const App: React.FC = () => {
         console.warn('⚠️ Script modification detected');
         console.log('Original:', original.length, 'chars');
         console.log('Reconstructed:', reconstructed.length, 'chars');
-        const shouldContinue = window.confirm(
-          '⚠️ Gemini가 스크립트를 일부 수정했습니다.\n\n' +
-          `원본: ${original.length}자\n` +
-          `결과: ${reconstructed.length}자\n\n` +
-          '그래도 계속하시겠습니까? (취소하면 재시도)'
-        );
-        if (!shouldContinue) {
-          setBgTask(null);
-          setBgProgress(0);
-          return;
+
+        if (retryCount >= 3) {
+          alert('⚠️ 3회 재시도했지만 계속 수정됩니다.\n\n수정된 버전으로 진행합니다.');
+          console.log('⚠️ Max retries reached, continuing with modifications');
+        } else {
+          const choice = window.confirm(
+            '⚠️ Gemini가 스크립트를 일부 수정했습니다.\n\n' +
+            `원본: ${original.length}자\n` +
+            `결과: ${reconstructed.length}자\n` +
+            (retryCount > 0 ? `재시도: ${retryCount}회\n\n` : '\n') +
+            '확인 = 그대로 진행\n' +
+            '취소 = 자동 재시도'
+          );
+
+          if (!choice) {
+            // 자동 재시도
+            console.log(`🔄 Auto-retry triggered (attempt ${retryCount + 1})`);
+            await proceedToStoryboard(true, retryCount + 1);
+            return;
+          }
+
+          console.log('⚠️ User chose to continue with modifications');
         }
       }
 
