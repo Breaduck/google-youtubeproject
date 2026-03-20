@@ -1212,82 +1212,37 @@ const App: React.FC = () => {
     }
   };
 
-  const splitScriptIntoScenes = (script: string): Array<{ scriptSegment: string }> => {
-    if (!script || script.trim().length === 0) return [];
-
-    const scenes: Array<{ scriptSegment: string }> = [];
-    let start = 0;
-
-    // 분할 지점 찾기: 마침표/느낌표/물음표/줄바꿈 2개 이상
-    const breakPoints: number[] = [];
-    const text = script;
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      // 문장 종결 또는 연속 줄바꿈
-      if (['.', '!', '?', '。', '！', '？'].includes(char)) {
-        breakPoints.push(i + 1);
-      } else if (char === '\n' && text[i + 1] === '\n') {
-        breakPoints.push(i + 2);
-      }
-    }
-
-    // 최소 30자, 최대 200자 기준으로 그룹화
-    let currentEnd = 0;
-    for (const bp of breakPoints) {
-      const segmentLength = bp - start;
-
-      if (segmentLength >= 30 && segmentLength <= 200) {
-        // 적절한 크기면 분할
-        scenes.push({ scriptSegment: text.substring(start, bp).trim() });
-        start = bp;
-        currentEnd = bp;
-      } else if (segmentLength > 200) {
-        // 너무 크면 이전 지점에서 분할
-        if (currentEnd > start) {
-          scenes.push({ scriptSegment: text.substring(start, currentEnd).trim() });
-          start = currentEnd;
-        }
-        // 현재 지점 기록
-        currentEnd = bp;
-      } else {
-        // 너무 작으면 계속 누적
-        currentEnd = bp;
-      }
-    }
-
-    // 마지막 세그먼트 추가
-    if (start < text.length) {
-      const remaining = text.substring(start).trim();
-      if (remaining.length >= 30) {
-        scenes.push({ scriptSegment: remaining });
-      } else if (scenes.length > 0) {
-        // 30자 미만이면 마지막 장면에 합침
-        scenes[scenes.length - 1].scriptSegment += '\n' + remaining;
-      } else {
-        // 첫 장면이 30자 미만이어도 추가
-        scenes.push({ scriptSegment: remaining });
-      }
-    }
-
-    return scenes.length > 0 ? scenes : [{ scriptSegment: script }];
-  };
-
   const proceedToStoryboard = async (isRegen: boolean = true) => {
     if (!project) return;
     if (!isRegen && project.scenes?.length > 0) { setStep('storyboard'); return; }
 
-    setBgTask({ type: 'storyboard', message: '스크립트 분석 중...' });
+    setBgTask({ type: 'storyboard', message: '장면별 스토리보드 구성 중...' });
     setBgProgress(10);
 
     try {
-      // 1단계: 클라이언트에서 스크립트 분할 (원본 보존 100%)
-      const scriptScenes = splitScriptIntoScenes(project.script);
       setBgProgress(30);
+      const scenes = await gemini.createStoryboard(project);
 
-      // 2단계: Gemini로 이미지 프롬프트만 생성
-      setBgTask({ type: 'storyboard', message: `${scriptScenes.length}개 장면 이미지 프롬프트 생성 중...` });
-      const scenes = await gemini.generateImagePromptsForScenes(scriptScenes, project);
+      // 원본 보존 검증 (공백 제거 후 비교)
+      const reconstructed = scenes.map(s => s.scriptSegment).join('').replace(/\s+/g, '');
+      const original = project.script.replace(/\s+/g, '');
+
+      if (reconstructed !== original) {
+        console.warn('⚠️ Script modification detected');
+        console.log('Original:', original.length, 'chars');
+        console.log('Reconstructed:', reconstructed.length, 'chars');
+        const shouldContinue = window.confirm(
+          '⚠️ Gemini가 스크립트를 일부 수정했습니다.\n\n' +
+          `원본: ${original.length}자\n` +
+          `결과: ${reconstructed.length}자\n\n` +
+          '그래도 계속하시겠습니까? (취소하면 재시도)'
+        );
+        if (!shouldContinue) {
+          setBgTask(null);
+          setBgProgress(0);
+          return;
+        }
+      }
 
       updateCurrentProject({ scenes });
       setBgProgress(100);
