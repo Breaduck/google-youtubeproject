@@ -482,19 +482,23 @@ const App: React.FC = () => {
   };
 
   const checkByteplusKey = async (key: string) => {
+    console.log('[checkByteplusKey] 검증 시작:', key.substring(0, 10) + '...');
     if (!key || key.length < 10) {
       setIsByteplusValid(false);
+      console.log('[checkByteplusKey] 키가 너무 짧음');
       return;
     }
     setIsValidatingByteplus(true);
     try {
       const BYTEPLUS_API = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
+      console.log('[checkByteplusKey] API 호출:', BYTEPLUS_API);
       const response = await fetch(`${BYTEPLUS_API}/api/v3/byteplus/models`, {
         headers: { 'Authorization': `Bearer ${key}` }
       });
+      console.log('[checkByteplusKey] 응답:', response.status, response.ok);
       setIsByteplusValid(response.ok);
     } catch (error) {
-      console.error('BytePlus API key validation error:', error);
+      console.error('[checkByteplusKey] 에러:', error);
       setIsByteplusValid(false);
     } finally {
       setIsValidatingByteplus(false);
