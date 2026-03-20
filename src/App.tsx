@@ -1216,12 +1216,23 @@ const App: React.FC = () => {
     if (!project) return;
     if (!isRegen && project.scenes?.length > 0) { setStep('storyboard'); return; }
 
+    // 빈 스크립트 체크
+    if (!project.script || project.script.trim().length === 0) {
+      alert('스크립트를 입력해주세요.');
+      return;
+    }
+
     setBgTask({ type: 'storyboard', message: retryCount > 0 ? `재시도 중... (${retryCount}회)` : '장면별 스토리보드 구성 중...' });
     setBgProgress(10);
 
     try {
       setBgProgress(30);
       const scenes = await gemini.createStoryboard(project);
+
+      // 빈 결과 체크
+      if (!scenes || scenes.length === 0) {
+        throw new Error('장면 생성 실패: Gemini가 빈 결과를 반환했습니다.');
+      }
 
       // 원본 보존 검증 (공백 제거 후 비교)
       const reconstructed = scenes.map(s => s.scriptSegment).join('').replace(/\s+/g, '');
