@@ -1234,7 +1234,7 @@ const App: React.FC = () => {
         throw new Error('장면 생성 실패: Gemini가 빈 결과를 반환했습니다.');
       }
 
-      // 원본 보존 검증 (공백 제거 후 비교)
+      // 1단계: 전체 검증 (공백 제거 후 비교)
       const reconstructed = scenes.map(s => s.scriptSegment).join('').replace(/\s+/g, '');
       const original = project.script.replace(/\s+/g, '');
 
@@ -1243,18 +1243,42 @@ const App: React.FC = () => {
         console.log('Original:', original.length, 'chars');
         console.log('Reconstructed:', reconstructed.length, 'chars');
 
+        // 2단계: 문제 장면 식별
+        const originalNormalized = project.script.replace(/\s+/g, '');
+        const problematicScenes: number[] = [];
+
+        scenes.forEach((scene, idx) => {
+          const segmentNormalized = scene.scriptSegment.replace(/\s+/g, '');
+          // 원본에 없는 텍스트가 있으면 문제
+          if (!originalNormalized.includes(segmentNormalized)) {
+            problematicScenes.push(idx + 1);
+          }
+        });
+
+        // 3단계: 사용자에게 알림
         if (retryCount >= 3) {
-          alert('⚠️ 3회 재시도했지만 계속 수정됩니다.\n\n수정된 버전으로 진행합니다.');
+          alert(
+            '⚠️ 3회 재시도했지만 계속 수정됩니다.\n\n' +
+            (problematicScenes.length > 0
+              ? `문제 장면: ${problematicScenes.join(', ')}번\n\n`
+              : '') +
+            '수정된 버전으로 진행합니다.\n\n' +
+            '스토리보드 화면에서 개별 장면을 수정할 수 있습니다.'
+          );
           console.log('⚠️ Max retries reached, continuing with modifications');
         } else {
-          const choice = window.confirm(
+          const message =
             '⚠️ Gemini가 스크립트를 일부 수정했습니다.\n\n' +
             `원본: ${original.length}자\n` +
             `결과: ${reconstructed.length}자\n` +
+            (problematicScenes.length > 0
+              ? `\n문제 장면: ${problematicScenes.slice(0, 5).join(', ')}번${problematicScenes.length > 5 ? ' 외 ' + (problematicScenes.length - 5) + '개' : ''}\n`
+              : '') +
             (retryCount > 0 ? `재시도: ${retryCount}회\n\n` : '\n') +
-            '확인 = 그대로 진행\n' +
-            '취소 = 자동 재시도'
-          );
+            '확인 = 그대로 진행 (스토리보드에서 수정 가능)\n' +
+            '취소 = 자동 재시도';
+
+          const choice = window.confirm(message);
 
           if (!choice) {
             // 자동 재시도
@@ -1264,6 +1288,7 @@ const App: React.FC = () => {
           }
 
           console.log('⚠️ User chose to continue with modifications');
+          console.log('Problematic scenes:', problematicScenes);
         }
       }
 
@@ -3257,10 +3282,24 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">BytePlus API 키</label>
+                      <div className="flex items-center gap-2 mb-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">BytePlus API 키</label>
+                        {isByteplusValid && (
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
                       <div className="relative">
-                        <input type={showBytedanceKey ? "text" : "password"} value={bytedanceApiKey} onChange={e => setBytedanceApiKey(e.target.value)} placeholder="ARK_API_KEY" className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
-                        <button onClick={() => setShowBytedanceKey(!showBytedanceKey)} className="absolute right-3 top-1\2 -translate-y-1\2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                        <input
+                          type={showBytedanceKey ? "text" : "password"}
+                          value={bytedanceApiKey}
+                          onChange={e => setBytedanceApiKey(e.target.value)}
+                          onBlur={() => bytedanceApiKey.length > 10 && checkByteplusKey(bytedanceApiKey)}
+                          placeholder="ARK_API_KEY"
+                          className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
+                        />
+                        <button onClick={() => setShowBytedanceKey(!showBytedanceKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                           {showBytedanceKey ? (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                           ) : (
@@ -3268,8 +3307,32 @@ const App: React.FC = () => {
                           )}
                         </button>
                       </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">BytePlus ModelArk에서 API 키를 발급받으세요</p>
-                      </div>
+                      {bytedanceApiKey.length > 10 && (
+                        <div className="flex items-center gap-2 text-sm mt-2">
+                          {isValidatingByteplus ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                              <span className="text-slate-600 dark:text-slate-400">검증 중...</span>
+                            </>
+                          ) : isByteplusValid ? (
+                            <>
+                              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span className="text-green-600 font-medium">유효함</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              <span className="text-red-600 font-medium">유효하지 않음</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-500 dark:text-slate-400">BytePlus ModelArk에서 API 키를 발급받으세요</p>
+                    </div>
 
                     {/* 영상 생성할 장면 수 설정 (최대 180장) */}
                     <div className="space-y-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
