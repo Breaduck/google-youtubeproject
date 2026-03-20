@@ -883,7 +883,7 @@ function VideoApiSettings({
             >
               <div className="text-center">
                 <p className="font-semibold text-slate-900 dark:text-slate-100">BytePlus</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩54/10초</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩307/10초</p>
               </div>
             </button>
             <button
@@ -896,7 +896,7 @@ function VideoApiSettings({
             >
               <div className="text-center">
                 <p className="font-semibold text-slate-900 dark:text-slate-100">Evolink</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩203/5초</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩136/5초 (720p)</p>
               </div>
             </button>
             <button
@@ -1070,7 +1070,7 @@ function VideoApiSettings({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-indigo-600 dark:text-indigo-400">
-                  {videoProvider === 'byteplus' ? '10초' : '5초'} 영상 생성에 1장당 ₩{costPerScene.toLocaleString()}
+                  1장당 ₩{costPerScene.toLocaleString()} ({videoProvider === 'byteplus' ? '10초/₩307' : videoProvider === 'evolink' ? '5초/₩136' : '5초/₩203'})
                 </span>
                 <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400">
                   총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초
