@@ -2761,6 +2761,26 @@ const App: React.FC = () => {
           onVideoGenerationRangeChange={setVideoGenerationRange}
           calculateVideoCost={calculateVideoCost}
           totalScenes={project?.scenes.length || 0}
+          audioProvider={audioProvider}
+          onAudioProviderChange={setAudioProvider}
+          chirpVoice={chirpVoice}
+          onChirpVoiceChange={setChirpVoice}
+          chirpSpeed={chirpSpeed}
+          onChirpSpeedChange={setChirpSpeed}
+          neural2Voice={neural2Voice}
+          onNeural2VoiceChange={setNeural2Voice}
+          azureApiKey={azureApiKey}
+          onAzureApiKeyChange={setAzureApiKey}
+          azureVoice={azureVoice}
+          onAzureVoiceChange={setAzureVoice}
+          elSettings={elSettings}
+          onElSettingsChange={setElSettings}
+          isElConnected={isElConnected}
+          voices={voices}
+          onVoiceTest={handleVoiceTest}
+          isVoiceTesting={isVoiceTesting}
+          onWavUpload={handleWavUpload}
+          uploadedWavFile={uploadedWavFile}
         />
       )}
 

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { SubtitleSettings, SubtitlePosition } from '../types';
+import { useState, useEffect, useRef } from 'react';
+import { SubtitleSettings, SubtitlePosition, ElevenLabsSettings } from '../types';
 import { TEMPLATES } from './SubtitleTemplateModal';
 
 type SettingTab = 'account' | 'gemini' | 'video-api' | 'subtitle' | 'narration' | 'saved-styles' | 'saved-characters';
@@ -43,6 +43,28 @@ interface FullscreenSettingsProps {
   onVideoGenerationRangeChange: (range: number) => void;
   calculateVideoCost: () => { numScenes: number; costPerScene: number; totalCost: number };
   totalScenes: number;
+
+  // Narration settings
+  audioProvider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs';
+  onAudioProviderChange: (provider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs') => void;
+  chirpVoice: string;
+  onChirpVoiceChange: (voice: string) => void;
+  chirpSpeed: number;
+  onChirpSpeedChange: (speed: number) => void;
+  neural2Voice: string;
+  onNeural2VoiceChange: (voice: string) => void;
+  azureApiKey: string;
+  onAzureApiKeyChange: (key: string) => void;
+  azureVoice: string;
+  onAzureVoiceChange: (voice: string) => void;
+  elSettings: ElevenLabsSettings;
+  onElSettingsChange: (settings: ElevenLabsSettings) => void;
+  isElConnected: boolean;
+  voices: any[];
+  onVoiceTest: () => void;
+  isVoiceTesting: boolean;
+  onWavUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  uploadedWavFile: { file: File; url: string } | null;
 }
 
 export default function FullscreenSettings(props: FullscreenSettingsProps) {
@@ -81,8 +103,31 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
     onVideoGenerationRangeChange,
     calculateVideoCost,
     totalScenes,
+    audioProvider,
+    onAudioProviderChange,
+    chirpVoice,
+    onChirpVoiceChange,
+    chirpSpeed,
+    onChirpSpeedChange,
+    neural2Voice,
+    onNeural2VoiceChange,
+    azureApiKey,
+    onAzureApiKeyChange,
+    azureVoice,
+    onAzureVoiceChange,
+    elSettings,
+    onElSettingsChange,
+    isElConnected,
+    voices,
+    onVoiceTest,
+    isVoiceTesting,
+    onWavUpload,
+    uploadedWavFile,
   } = props;
   const [activeTab, setActiveTab] = useState<SettingTab>('gemini');
+  const [showAzureKey, setShowAzureKey] = useState(false);
+  const [showElKey, setShowElKey] = useState(false);
+  const wavUploadRef = useRef<HTMLInputElement>(null);
 
   // ESC 키로 닫기
   useEffect(() => {
@@ -165,6 +210,35 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
             />
           )}
           {activeTab === 'subtitle' && <SubtitleSettingsPanel settings={subtitleSettings} onChange={onSubtitleChange} />}
+          {activeTab === 'narration' && (
+            <NarrationSettings
+              audioProvider={audioProvider}
+              onAudioProviderChange={onAudioProviderChange}
+              chirpVoice={chirpVoice}
+              onChirpVoiceChange={onChirpVoiceChange}
+              chirpSpeed={chirpSpeed}
+              onChirpSpeedChange={onChirpSpeedChange}
+              neural2Voice={neural2Voice}
+              onNeural2VoiceChange={onNeural2VoiceChange}
+              azureApiKey={azureApiKey}
+              onAzureApiKeyChange={onAzureApiKeyChange}
+              azureVoice={azureVoice}
+              onAzureVoiceChange={onAzureVoiceChange}
+              showAzureKey={showAzureKey}
+              onShowAzureKeyToggle={() => setShowAzureKey(!showAzureKey)}
+              elSettings={elSettings}
+              onElSettingsChange={onElSettingsChange}
+              isElConnected={isElConnected}
+              voices={voices}
+              showElKey={showElKey}
+              onShowElKeyToggle={() => setShowElKey(!showElKey)}
+              onVoiceTest={onVoiceTest}
+              isVoiceTesting={isVoiceTesting}
+              wavUploadRef={wavUploadRef}
+              onWavUpload={onWavUpload}
+              uploadedWavFile={uploadedWavFile}
+            />
+          )}
           {activeTab === 'account' && <AccountSettings isLoggedIn={isLoggedIn} onLoginStateChange={onLoginStateChange} />}
           {activeTab === 'video-api' && (
             <VideoApiSettings
@@ -1240,6 +1314,345 @@ function SavedStylesPanel() {
         <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors">
           새 그림체 추가
         </button>
+      </div>
+    </div>
+  );
+}
+
+function NarrationSettings({
+  audioProvider,
+  onAudioProviderChange,
+  chirpVoice,
+  onChirpVoiceChange,
+  chirpSpeed,
+  onChirpSpeedChange,
+  neural2Voice,
+  onNeural2VoiceChange,
+  azureApiKey,
+  onAzureApiKeyChange,
+  azureVoice,
+  onAzureVoiceChange,
+  showAzureKey,
+  onShowAzureKeyToggle,
+  elSettings,
+  onElSettingsChange,
+  isElConnected,
+  voices,
+  showElKey,
+  onShowElKeyToggle,
+  onVoiceTest,
+  isVoiceTesting,
+  wavUploadRef,
+  onWavUpload,
+  uploadedWavFile,
+}: {
+  audioProvider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs';
+  onAudioProviderChange: (provider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs') => void;
+  chirpVoice: string;
+  onChirpVoiceChange: (voice: string) => void;
+  chirpSpeed: number;
+  onChirpSpeedChange: (speed: number) => void;
+  neural2Voice: string;
+  onNeural2VoiceChange: (voice: string) => void;
+  azureApiKey: string;
+  onAzureApiKeyChange: (key: string) => void;
+  azureVoice: string;
+  onAzureVoiceChange: (voice: string) => void;
+  showAzureKey: boolean;
+  onShowAzureKeyToggle: () => void;
+  elSettings: ElevenLabsSettings;
+  onElSettingsChange: (settings: ElevenLabsSettings) => void;
+  isElConnected: boolean;
+  voices: any[];
+  showElKey: boolean;
+  onShowElKeyToggle: () => void;
+  onVoiceTest: () => void;
+  isVoiceTesting: boolean;
+  wavUploadRef: React.RefObject<HTMLInputElement>;
+  onWavUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  uploadedWavFile: { file: File; url: string } | null;
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">나레이션 설정</h2>
+        <p className="text-slate-600 dark:text-slate-400">TTS 음성 제공자와 음성 스타일을 선택하세요.</p>
+      </div>
+
+      {/* 목소리 모델 선택 */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">목소리 모델</label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => onAudioProviderChange('google-chirp3')}
+            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              audioProvider === 'google-chirp3'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Chirp3 HD
+          </button>
+          <button
+            onClick={() => onAudioProviderChange('google-neural2')}
+            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              audioProvider === 'google-neural2'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Neural2
+          </button>
+          <button
+            onClick={() => onAudioProviderChange('microsoft')}
+            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              audioProvider === 'microsoft'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Azure TTS
+          </button>
+          <button
+            onClick={() => onAudioProviderChange('elevenlabs')}
+            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              audioProvider === 'elevenlabs'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            ElevenLabs
+          </button>
+        </div>
+      </div>
+
+      {/* Google Chirp3 설정 */}
+      {audioProvider === 'google-chirp3' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Chirp 음성</label>
+            <select
+              value={chirpVoice}
+              onChange={(e) => onChirpVoiceChange(e.target.value)}
+              className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="Kore">Kore - 활기찬, 명랑한, 자연스러운 (여성)</option>
+              <option value="Aoede">Aoede - 차분한, 우아한, 부드러운 (여성)</option>
+              <option value="Leda">Leda - 중립적, 안정적, 명확한 (여성)</option>
+              <option value="Zephyr">Zephyr - 경쾌한, 산뜻한, 상쾌한 (여성)</option>
+              <option value="Charon">Charon - 중후한, 깊은, 신뢰감 있는 (남성)</option>
+              <option value="Fenrir">Fenrir - 힘찬, 강렬한, 역동적인 (남성)</option>
+              <option value="Puck">Puck - 경쾌한, 활발한, 친근한 (남성)</option>
+              <option value="Orus">Orus - 차분한, 부드러운, 따뜻한 (남성)</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">목소리 속도</label>
+            <div className="flex gap-3 items-center">
+              <input
+                type="range"
+                min="0.5"
+                max="2.0"
+                step="0.1"
+                value={chirpSpeed}
+                onChange={(e) => onChirpSpeedChange(parseFloat(e.target.value))}
+                className="flex-1 accent-indigo-600"
+              />
+              <input
+                type="number"
+                min="0.5"
+                max="2.0"
+                step="0.1"
+                value={chirpSpeed}
+                onChange={(e) => onChirpSpeedChange(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
+                className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-center focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 dark:text-slate-100"
+              />
+              <span className="text-sm text-slate-600 dark:text-slate-400">×</span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">0.5 (느리게) ~ 2.0 (빠르게)</p>
+          </div>
+        </div>
+      )}
+
+      {/* Google Neural2 설정 */}
+      {audioProvider === 'google-neural2' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Neural2 음성</label>
+            <select
+              value={neural2Voice}
+              onChange={(e) => onNeural2VoiceChange(e.target.value)}
+              className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="ko-KR-Neural2-A">Neural2-A - 표준 여성</option>
+              <option value="ko-KR-Neural2-B">Neural2-B - 부드러운 여성</option>
+              <option value="ko-KR-Neural2-C">Neural2-C - 자연스러운 남성</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">목소리 속도</label>
+            <div className="flex gap-3 items-center">
+              <input
+                type="range"
+                min="0.5"
+                max="2.0"
+                step="0.1"
+                value={chirpSpeed}
+                onChange={(e) => onChirpSpeedChange(parseFloat(e.target.value))}
+                className="flex-1 accent-indigo-600"
+              />
+              <input
+                type="number"
+                min="0.5"
+                max="2.0"
+                step="0.1"
+                value={chirpSpeed}
+                onChange={(e) => onChirpSpeedChange(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
+                className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-center focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 dark:text-slate-100"
+              />
+              <span className="text-sm text-slate-600 dark:text-slate-400">×</span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">0.5 (느리게) ~ 2.0 (빠르게)</p>
+          </div>
+        </div>
+      )}
+
+      {/* Microsoft Azure 설정 */}
+      {audioProvider === 'microsoft' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Azure API 키</label>
+            <div className="relative">
+              <input
+                type={showAzureKey ? 'text' : 'password'}
+                value={azureApiKey}
+                onChange={(e) => onAzureApiKeyChange(e.target.value)}
+                placeholder="Azure Speech API 키 입력"
+                className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-slate-700 dark:text-slate-100"
+              />
+              <button
+                onClick={onShowAzureKeyToggle}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                {showAzureKey ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">무료 티어: 월 500만 글자 (한국 서버)</p>
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택</label>
+            <select
+              value={azureVoice}
+              onChange={(e) => onAzureVoiceChange(e.target.value)}
+              className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <optgroup label="한국어 Neural">
+                <option value="ko-KR-SunHiNeural">선희 (여성, 밝고 친근함)</option>
+                <option value="ko-KR-InJoonNeural">인준 (남성, 차분하고 안정적)</option>
+                <option value="ko-KR-BongJinNeural">봉진 (남성, 중후하고 신뢰감)</option>
+                <option value="ko-KR-GookMinNeural">국민 (남성, 명확하고 자연스러움)</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* ElevenLabs 설정 */}
+      {audioProvider === 'elevenlabs' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">ElevenLabs API 키</label>
+              {isElConnected && (
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type={showElKey ? 'text' : 'password'}
+                value={elSettings.apiKey}
+                onChange={(e) => onElSettingsChange({ ...elSettings, apiKey: e.target.value })}
+                placeholder="API 키 입력"
+                className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-slate-700 dark:text-slate-100"
+              />
+              <button
+                onClick={onShowElKeyToggle}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                {showElKey ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+          {voices.length > 0 && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택</label>
+              <select
+                value={elSettings.voiceId}
+                onChange={(e) => onElSettingsChange({ ...elSettings, voiceId: e.target.value })}
+                className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                {voices.map((v) => (
+                  <option key={v.voice_id} value={v.voice_id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 속도: {elSettings.speed.toFixed(1)}x</label>
+            <input
+              type="range"
+              min="0.5"
+              max="2.0"
+              step="0.1"
+              value={elSettings.speed}
+              onChange={(e) => onElSettingsChange({ ...elSettings, speed: parseFloat(e.target.value) })}
+              className="w-full accent-indigo-600"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 음성 테스트 버튼 */}
+      <button
+        onClick={onVoiceTest}
+        disabled={isVoiceTesting}
+        className="w-full py-3 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isVoiceTesting ? '테스트 중...' : '음성 테스트'}
+      </button>
+
+      {/* WAV 업로드 */}
+      <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+        <input type="file" ref={wavUploadRef} accept=".wav,.mp3" className="hidden" onChange={onWavUpload} />
+        <button
+          onClick={() => wavUploadRef.current?.click()}
+          className="w-full py-3 rounded-xl text-sm font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 transition-all"
+        >
+          WAV파일 업로드
+        </button>
+        {uploadedWavFile && <p className="text-xs text-green-600 dark:text-green-400">✓ {uploadedWavFile.file.name}</p>}
       </div>
     </div>
   );
