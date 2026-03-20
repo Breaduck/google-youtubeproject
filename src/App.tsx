@@ -7,6 +7,8 @@ import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabs
 import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
 import { styleTemplates } from './data/styleTemplates';
+import SubtitleEditor from './components/SubtitleEditor/SubtitleEditor';
+import { SubtitleStyle } from './types/subtitle';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -153,6 +155,9 @@ const App: React.FC = () => {
   const [isManualCharAdding, setIsManualCharAdding] = useState(false);
 
   const [expandedSetting, setExpandedSetting] = useState<string | null>(null);
+  const [showSubtitleEditor, setShowSubtitleEditor] = useState(false);
+  const [advancedSubtitleStyle, setAdvancedSubtitleStyle] = useState<SubtitleStyle | null>(null);
+
   // localStorage 구버전 모델명 마이그레이션
   if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3-flash'].includes(localStorage.getItem('gemini_model') || '')) {
     localStorage.setItem('gemini_model', 'gemini-3-flash-preview');
@@ -3058,13 +3063,23 @@ const App: React.FC = () => {
 
               {/* 자막 설정 - 아코디언 */}
               <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-                <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
-                  <div className="flex items-center gap-3">
+                <div className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800">
+                  <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="flex-1 flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">자막 설정</span>
                     <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">{subtitleSettings.template === 'custom' ? '커스텀' : subtitleSettings.template}</span>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowSubtitleEditor(true)}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    >
+                      고급 편집
+                    </button>
+                    <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="p-1">
+                      <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'subtitle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
                   </div>
-                  <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'subtitle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                </button>
+                </div>
                 {expandedSetting === 'subtitle' && (
                   <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
                     {/* 템플릿 선택 */}
@@ -3823,6 +3838,15 @@ const App: React.FC = () => {
         }}
         savedStyles={savedStyles}
       />
+
+      {/* 자막 고급 편집기 */}
+      {showSubtitleEditor && (
+        <SubtitleEditor
+          initialStyle={advancedSubtitleStyle || undefined}
+          onStyleChange={setAdvancedSubtitleStyle}
+          onClose={() => setShowSubtitleEditor(false)}
+        />
+      )}
     </div>
   );
 };
