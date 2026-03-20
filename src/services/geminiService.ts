@@ -487,12 +487,9 @@ Return ONLY the new prompt text, no explanation or markdown.`;
       throw new Error('API key is required for TTS');
     }
 
-    // Using Google Cloud Text-to-Speech API via Gemini's multimodal capabilities
-    // This is a workaround - ideally you'd use the dedicated TTS API
-    const ai = new GoogleGenAI({ apiKey: key });
-
-    // Map voice names to actual voice configs (8개 전체 목소리 지원)
-    const voiceConfigs: Record<string, { languageCode: string; name: string }> = {
+    // Map voice names to actual Google Cloud TTS voice configs
+    const voiceConfigs: Record<string, { languageCode: string; name: string; ssmlGender?: string }> = {
+      // Chirp3 HD voices
       'Kore': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Kore' },
       'Aoede': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Aoede' },
       'Leda': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Leda' },
@@ -500,73 +497,52 @@ Return ONLY the new prompt text, no explanation or markdown.`;
       'Charon': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Charon' },
       'Fenrir': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Fenrir' },
       'Puck': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Puck' },
-      'Orus': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Orus' }
+      'Orus': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Orus' },
+      // Neural2 voices
+      'ko-KR-Neural2-A': { languageCode: 'ko-KR', name: 'ko-KR-Neural2-A', ssmlGender: 'FEMALE' },
+      'ko-KR-Neural2-B': { languageCode: 'ko-KR', name: 'ko-KR-Neural2-B', ssmlGender: 'FEMALE' },
+      'ko-KR-Neural2-C': { languageCode: 'ko-KR', name: 'ko-KR-Neural2-C', ssmlGender: 'MALE' }
     };
 
     const selectedVoice = voiceConfigs[voice] || voiceConfigs['Kore'];
 
-    // Try using the Gemini TTS model
+    // Use Google Cloud Text-to-Speech API directly
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-preview-tts',
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: text }]
+      const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: { text },
+          voice: {
+            languageCode: selectedVoice.languageCode,
+            name: selectedVoice.name,
+            ...(selectedVoice.ssmlGender ? { ssmlGender: selectedVoice.ssmlGender } : {})
+          },
+          audioConfig: {
+            audioEncoding: 'MP3',
+            speakingRate: speakingRate,
+            pitch: 0,
+            volumeGainDb: 0
           }
-        ],
-        config: {
-          responseModalities: ['audio'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: selectedVoice.name
-              }
-            },
-            ...(speakingRate !== 1.0 ? { speakingRate } : {})
-          } as any
-        }
+        })
       });
 
-      if (response.candidates && response.candidates[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData?.data) {
-            const mimeType = part.inlineData.mimeType || 'audio/mp3';
-            return `data:${mimeType};base64,${part.inlineData.data}`;
-          }
-        }
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Google TTS API error:', error);
+        throw new Error(`TTS API failed: ${response.status}`);
       }
+
+      const data = await response.json();
+      if (data.audioContent) {
+        return `data:audio/mp3;base64,${data.audioContent}`;
+      }
+
+      throw new Error('No audio content in response');
     } catch (e) {
-      console.warn('TTS generation failed, trying fallback:', e);
+      console.error('Google TTS failed:', e);
+      throw new Error(`TTS generation failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
-
-    // Fallback: Use Web Speech API
-    return new Promise((resolve, reject) => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ko-KR';
-      utterance.rate = speakingRate;
-
-      // Create audio from speech synthesis
-      const audioContext = new AudioContext();
-      const destination = audioContext.createMediaStreamDestination();
-      const mediaRecorder = new MediaRecorder(destination.stream);
-      const chunks: Blob[] = [];
-
-      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        resolve(URL.createObjectURL(blob));
-      };
-
-      utterance.onstart = () => mediaRecorder.start();
-      utterance.onend = () => {
-        mediaRecorder.stop();
-        audioContext.close();
-      };
-      utterance.onerror = () => reject(new Error('TTS failed'));
-
-      speechSynthesis.speak(utterance);
-    });
   }
 
   async generateMotionPrompt(dialogue: string, imagePrompt: string): Promise<string> {
