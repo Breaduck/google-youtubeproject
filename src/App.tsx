@@ -7,8 +7,6 @@ import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabs
 import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
 import { styleTemplates } from './data/styleTemplates';
-import SubtitleEditor from './components/SubtitleEditor/SubtitleEditor';
-import { SubtitleStyle } from './types/subtitle';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -33,9 +31,9 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   opacity: 1.0,
   template: 'default-white',
   textColor: '#FFFFFF',
-  strokeColor: 'transparent',
-  strokeWidth: 0,
-  backgroundColor: '#000000',
+  strokeColor: '#000000',
+  strokeWidth: 2,
+  backgroundColor: undefined,
   bgPadding: 12,
   bgOpacity: 0.8,
   position: 'bottom',
@@ -156,7 +154,6 @@ const App: React.FC = () => {
 
   const [expandedSetting, setExpandedSetting] = useState<string | null>(null);
   const [showSubtitleEditor, setShowSubtitleEditor] = useState(false);
-  const [advancedSubtitleStyle, setAdvancedSubtitleStyle] = useState<SubtitleStyle | null>(null);
 
   // localStorage 구버전 모델명 마이그레이션
   if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3-flash'].includes(localStorage.getItem('gemini_model') || '')) {
@@ -501,14 +498,13 @@ const App: React.FC = () => {
     const text = '미리보기 자막 텍스트';
     const textY = subtitleSettings.yPosition;
 
-    // 배경 박스 (RGBA로 직접 불투명도 적용 - 화질 개선)
+    // 배경 박스
     if (subtitleSettings.backgroundColor) {
       const metrics = ctx.measureText(text);
       const textWidth = metrics.width;
       const bgPadding = subtitleSettings.bgPadding || 8;
       const bgHeight = subtitleSettings.fontSize + bgPadding * 2;
 
-      // HEX to RGBA 변환 (화질 저하 방지)
       const hex = subtitleSettings.backgroundColor;
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
@@ -3066,14 +3062,13 @@ const App: React.FC = () => {
                 <div className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800">
                   <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="flex-1 flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">자막 설정</span>
-                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">{subtitleSettings.template === 'custom' ? '커스텀' : subtitleSettings.template}</span>
                   </button>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowSubtitleEditor(true)}
                       className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
                     >
-                      고급 편집
+                      템플릿 & 고급 편집
                     </button>
                     <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="p-1">
                       <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'subtitle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -3839,13 +3834,20 @@ const App: React.FC = () => {
         savedStyles={savedStyles}
       />
 
-      {/* 자막 고급 편집기 */}
+      {/* 자막 고급 편집기 - 추후 구현 */}
       {showSubtitleEditor && (
-        <SubtitleEditor
-          initialStyle={advancedSubtitleStyle || undefined}
-          onStyleChange={setAdvancedSubtitleStyle}
-          onClose={() => setShowSubtitleEditor(false)}
-        />
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md">
+            <h3 className="text-lg font-semibold mb-2">고급 편집 (개발 중)</h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">현재 기본 설정을 사용해주세요.</p>
+            <button
+              onClick={() => setShowSubtitleEditor(false)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg w-full"
+            >
+              확인
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
