@@ -234,7 +234,7 @@ const App: React.FC = () => {
   const [neural2Voice, setNeural2Voice] = useState(localStorage.getItem('neural2_voice') || 'ko-KR-Neural2-A');
 
   // 업로드된 WAV 파일 상태
-  const [uploadedWavFile, setUploadedWavFile] = useState<{ file: File; dataUrl: string } | null>(null);
+  const [uploadedWavFile, setUploadedWavFile] = useState<{ file: File; url: string } | null>(null);
 
   // Azure TTS 설정
   const [azureApiKey, setAzureApiKey] = useState(localStorage.getItem('azure_tts_key') || '');
@@ -798,7 +798,7 @@ const App: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const audioDataUrl = ev.target?.result as string;
-      setUploadedWavFile({ file, dataUrl: audioDataUrl });
+      setUploadedWavFile({ file, url: audioDataUrl });
       alert('WAV 파일이 업로드되었습니다. 이제 오디오 생성 버튼을 눌러 자동 분할하거나 새로 생성할 수 있습니다.');
     };
     reader.readAsDataURL(file);
