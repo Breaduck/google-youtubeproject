@@ -317,6 +317,87 @@ Return ONLY valid JSON, no markdown or explanation.`;
     return chunks.filter(c => c.length > 0);
   }
 
+  async generateImagePromptsForScenes(
+    scriptScenes: Array<{ scriptSegment: string }>,
+    project: StoryProject
+  ): Promise<Scene[]> {
+    const ai = this.getClient();
+
+    const characterDescriptions = project.characters
+      .map(c => `- ${c.name}: ${c.visualDescription}`)
+      .join('\n');
+
+    const scenesWithNumbers = scriptScenes.map((s, i) => ({
+      segment_number: i + 1,
+      scriptSegment: s.scriptSegment
+    }));
+
+    const prompt = `Generate image prompts for these pre-divided script scenes.
+
+Characters:
+${characterDescriptions}
+
+Style: ${project.customStyleDescription || project.style}
+
+Scenes (${scriptScenes.length} total):
+${JSON.stringify(scenesWithNumbers, null, 2)}
+
+TASK: For EACH scene, generate ONLY the "imagePrompt" field. The scriptSegment is already final and must NOT be changed.
+
+For EACH scene, provide:
+1. "segment_number": Scene number (same as input)
+2. "scriptSegment": EXACT copy from input (DO NOT CHANGE)
+3. "imagePrompt": Detailed English visual description. CRITICAL:
+   - Characters MUST match visualDescription exactly (same face/hair/clothing)
+   - Describe background, lighting, mood, character actions/expressions based on scriptSegment
+   - ⚠️ ABSOLUTELY NO TEXT/LETTERS/WORDS/SYMBOLS/SIGNS in the image
+   - NEVER mention camera shots or movement terms
+   - Pure visual scene only
+4. "effect_type": Always "static_subtle"
+5. "intensity": 1-10 emotional intensity based on scriptSegment content
+
+Return ONLY valid JSON array, no markdown.`;
+
+    const response = await ai.models.generateContent({
+      model: this.getModel(),
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json'
+      }
+    });
+
+    this.recordUsage(response, 'text');
+
+    const text = response.text || '';
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('Failed to parse image prompts');
+
+    const aiScenes = JSON.parse(jsonMatch[0]);
+
+    return aiScenes.map((aiScene: any, index: number) => {
+      const effectType = 'static_subtle';
+      const intensity = aiScene.intensity || 5;
+      const motionParams = this.generateMotionParams(effectType, intensity);
+
+      return {
+        id: crypto.randomUUID(),
+        scriptSegment: scriptScenes[index].scriptSegment, // 클라이언트에서 분할한 원본 사용
+        imagePrompt: stripCameraTerms(aiScene.imagePrompt || 'Scene depicting the script'),
+        imageUrl: null,
+        audioUrl: null,
+        videoUrl: null,
+        status: 'idle' as const,
+        audioStatus: 'idle' as const,
+        videoStatus: 'idle' as const,
+        effect: {
+          effect_type: effectType,
+          intensity,
+          motion_params: motionParams
+        } as SceneEffect
+      };
+    });
+  }
+
   async createStoryboard(project: StoryProject): Promise<Scene[]> {
     const ai = this.getClient();
 

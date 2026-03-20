@@ -1212,16 +1212,58 @@ const App: React.FC = () => {
     }
   };
 
+  const splitScriptIntoScenes = (script: string): Array<{ scriptSegment: string }> => {
+    // 문장 단위 분할 (한글 마침표, 느낌표, 물음표, 줄바꿈)
+    const sentences = script.split(/(?<=[.!?。！？])\s+|(?<=\n)/).filter(s => s.trim().length > 0);
+    const scenes: Array<{ scriptSegment: string }> = [];
+    let currentSegment = '';
+
+    for (const sentence of sentences) {
+      const trimmed = sentence.trim();
+      if (!trimmed) continue;
+
+      // 현재 세그먼트 + 새 문장이 200자 이하면 합침
+      if (currentSegment.length > 0 && (currentSegment + trimmed).length <= 200) {
+        currentSegment += ' ' + trimmed;
+      } else {
+        // 기존 세그먼트 저장 (30자 이상인 경우만)
+        if (currentSegment.length >= 30) {
+          scenes.push({ scriptSegment: currentSegment.trim() });
+        }
+        currentSegment = trimmed;
+      }
+    }
+
+    // 마지막 세그먼트 추가
+    if (currentSegment.length >= 30) {
+      scenes.push({ scriptSegment: currentSegment.trim() });
+    } else if (currentSegment.length > 0 && scenes.length > 0) {
+      // 30자 미만이면 이전 장면에 합침
+      scenes[scenes.length - 1].scriptSegment += ' ' + currentSegment.trim();
+    } else if (currentSegment.length > 0) {
+      // 첫 장면이 30자 미만이어도 추가
+      scenes.push({ scriptSegment: currentSegment.trim() });
+    }
+
+    return scenes;
+  };
+
   const proceedToStoryboard = async (isRegen: boolean = true) => {
     if (!project) return;
     if (!isRegen && project.scenes?.length > 0) { setStep('storyboard'); return; }
 
-    setBgTask({ type: 'storyboard', message: '장면별 스토리보드 구성 중...' });
+    setBgTask({ type: 'storyboard', message: '스크립트 분석 중...' });
     setBgProgress(10);
 
     try {
+      // 1단계: 클라이언트에서 스크립트 분할 (원본 보존 100%)
+      const scriptScenes = splitScriptIntoScenes(project.script);
       setBgProgress(30);
-      const scenes = await gemini.createStoryboard(project);
+
+      // 2단계: Gemini로 이미지 프롬프트만 생성
+      setBgTask({ type: 'storyboard', message: `${scriptScenes.length}개 장면 이미지 프롬프트 생성 중...` });
+      const scenes = await gemini.generateImagePromptsForScenes(scriptScenes, project);
+
       updateCurrentProject({ scenes });
       setBgProgress(100);
       setTimeout(() => {
