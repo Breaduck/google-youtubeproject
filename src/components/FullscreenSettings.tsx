@@ -35,6 +35,8 @@ interface FullscreenSettingsProps {
   onEvolinkResolutionChange: (resolution: string) => void;
   evolinkDuration: number;
   onEvolinkDurationChange: (duration: number) => void;
+  runwareApiKey: string;
+  onRunwareApiKeyChange: (key: string) => void;
   runwareResolution: string;
   onRunwareResolutionChange: (resolution: string) => void;
   runwareDuration: number;
@@ -43,6 +45,15 @@ interface FullscreenSettingsProps {
   onVideoGenerationRangeChange: (range: number) => void;
   calculateVideoCost: () => { numScenes: number; costPerScene: number; totalCost: number };
   totalScenes: number;
+  isByteplusValid: boolean;
+  isValidatingByteplus: boolean;
+  onCheckByteplusKey: (key: string) => void;
+  isEvolinkValid: boolean;
+  isValidatingEvolink: boolean;
+  onCheckEvolinkKey: (key: string) => void;
+  isRunwareValid: boolean;
+  isValidatingRunware: boolean;
+  onCheckRunwareKey: (key: string) => void;
 
   // Narration settings
   audioProvider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs';
@@ -95,6 +106,8 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
     onEvolinkResolutionChange,
     evolinkDuration,
     onEvolinkDurationChange,
+    runwareApiKey,
+    onRunwareApiKeyChange,
     runwareResolution,
     onRunwareResolutionChange,
     runwareDuration,
@@ -103,6 +116,15 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
     onVideoGenerationRangeChange,
     calculateVideoCost,
     totalScenes,
+    isByteplusValid,
+    isValidatingByteplus,
+    onCheckByteplusKey,
+    isEvolinkValid,
+    isValidatingEvolink,
+    onCheckEvolinkKey,
+    isRunwareValid,
+    isValidatingRunware,
+    onCheckRunwareKey,
     audioProvider,
     onAudioProviderChange,
     chirpVoice,
@@ -254,6 +276,8 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
               onEvolinkResolutionChange={onEvolinkResolutionChange}
               evolinkDuration={evolinkDuration}
               onEvolinkDurationChange={onEvolinkDurationChange}
+              runwareApiKey={runwareApiKey}
+              onRunwareApiKeyChange={onRunwareApiKeyChange}
               runwareResolution={runwareResolution}
               onRunwareResolutionChange={onRunwareResolutionChange}
               runwareDuration={runwareDuration}
@@ -262,6 +286,15 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
               onVideoGenerationRangeChange={onVideoGenerationRangeChange}
               calculateVideoCost={calculateVideoCost}
               totalScenes={totalScenes}
+              isByteplusValid={isByteplusValid}
+              isValidatingByteplus={isValidatingByteplus}
+              onCheckByteplusKey={onCheckByteplusKey}
+              isEvolinkValid={isEvolinkValid}
+              isValidatingEvolink={isValidatingEvolink}
+              onCheckEvolinkKey={onCheckEvolinkKey}
+              isRunwareValid={isRunwareValid}
+              isValidatingRunware={isValidatingRunware}
+              onCheckRunwareKey={onCheckRunwareKey}
             />
           )}
           {activeTab === 'saved-styles' && <SavedStylesPanel />}
@@ -1033,6 +1066,15 @@ function VideoApiSettings({
   onVideoGenerationRangeChange,
   calculateVideoCost,
   totalScenes,
+  isByteplusValid,
+  isValidatingByteplus,
+  onCheckByteplusKey,
+  isEvolinkValid,
+  isValidatingEvolink,
+  onCheckEvolinkKey,
+  isRunwareValid,
+  isValidatingRunware,
+  onCheckRunwareKey,
 }: {
   videoProvider: 'byteplus' | 'evolink' | 'runware';
   onVideoProviderChange: (provider: 'byteplus' | 'evolink' | 'runware') => void;
@@ -1046,6 +1088,8 @@ function VideoApiSettings({
   onEvolinkResolutionChange: (resolution: string) => void;
   evolinkDuration: number;
   onEvolinkDurationChange: (duration: number) => void;
+  runwareApiKey: string;
+  onRunwareApiKeyChange: (key: string) => void;
   runwareResolution: string;
   onRunwareResolutionChange: (resolution: string) => void;
   runwareDuration: number;
@@ -1054,9 +1098,19 @@ function VideoApiSettings({
   onVideoGenerationRangeChange: (range: number) => void;
   calculateVideoCost: () => { numScenes: number; costPerScene: number; totalCost: number };
   totalScenes: number;
+  isByteplusValid: boolean;
+  isValidatingByteplus: boolean;
+  onCheckByteplusKey: (key: string) => void;
+  isEvolinkValid: boolean;
+  isValidatingEvolink: boolean;
+  onCheckEvolinkKey: (key: string) => void;
+  isRunwareValid: boolean;
+  isValidatingRunware: boolean;
+  onCheckRunwareKey: (key: string) => void;
 }) {
   const [showBytedanceKey, setShowBytedanceKey] = useState(false);
   const [showEvolinkKey, setShowEvolinkKey] = useState(false);
+  const [showRunwareKey, setShowRunwareKey] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -1124,12 +1178,20 @@ function VideoApiSettings({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">BytePlus API 키</label>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">BytePlus API 키</label>
+                {isByteplusValid && (
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type={showBytedanceKey ? 'text' : 'password'}
                   value={bytedanceApiKey}
                   onChange={(e) => onBytedanceApiKeyChange(e.target.value)}
+                  onBlur={() => bytedanceApiKey.length > 10 && onCheckByteplusKey(bytedanceApiKey)}
                   placeholder="ARK_API_KEY"
                   className="w-full px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -1140,6 +1202,30 @@ function VideoApiSettings({
                   {showBytedanceKey ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
+              {bytedanceApiKey.length > 10 && (
+                <div className="flex items-center gap-2 text-sm mt-2">
+                  {isValidatingByteplus ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-slate-600 dark:text-slate-400">검증 중...</span>
+                    </>
+                  ) : isByteplusValid ? (
+                    <>
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-green-600 font-medium">유효함</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="text-red-600 font-medium">유효하지 않음</span>
+                    </>
+                  )}
+                </div>
+              )}
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">BytePlus ModelArk에서 API 키를 발급받으세요</p>
             </div>
           </div>
@@ -1149,12 +1235,20 @@ function VideoApiSettings({
         {videoProvider === 'evolink' && (
           <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Evolink API 키</label>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Evolink API 키</label>
+                {isEvolinkValid && (
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type={showEvolinkKey ? 'text' : 'password'}
                   value={evolinkApiKey}
                   onChange={(e) => onEvolinkApiKeyChange(e.target.value)}
+                  onBlur={() => evolinkApiKey.length > 10 && onCheckEvolinkKey(evolinkApiKey)}
                   placeholder="Evolink API Key"
                   className="w-full px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -1165,6 +1259,30 @@ function VideoApiSettings({
                   {showEvolinkKey ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
+              {evolinkApiKey.length > 10 && (
+                <div className="flex items-center gap-2 text-sm mt-2">
+                  {isValidatingEvolink ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-slate-600 dark:text-slate-400">검증 중...</span>
+                    </>
+                  ) : isEvolinkValid ? (
+                    <>
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-green-600 font-medium">유효함</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="text-red-600 font-medium">유효하지 않음</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -1197,6 +1315,57 @@ function VideoApiSettings({
         {/* Runware 설정 */}
         {videoProvider === 'runware' && (
           <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Runware API 키</label>
+                {isRunwareValid && (
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type={showRunwareKey ? 'text' : 'password'}
+                  value={runwareApiKey}
+                  onChange={(e) => onRunwareApiKeyChange(e.target.value)}
+                  onBlur={() => runwareApiKey.length > 10 && onCheckRunwareKey(runwareApiKey)}
+                  placeholder="Runware API Key"
+                  className="w-full px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={() => setShowRunwareKey(!showRunwareKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  {showRunwareKey ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+              {runwareApiKey.length > 10 && (
+                <div className="flex items-center gap-2 text-sm mt-2">
+                  {isValidatingRunware ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-slate-600 dark:text-slate-400">검증 중...</span>
+                    </>
+                  ) : isRunwareValid ? (
+                    <>
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-green-600 font-medium">유효함</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="text-red-600 font-medium">유효하지 않음</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">해상도</label>
               <select

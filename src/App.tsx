@@ -195,6 +195,14 @@ const App: React.FC = () => {
   const [evolinkResolution, setEvolinkResolution] = useState(localStorage.getItem('evolink_resolution') || '720p');
   const [evolinkDuration, setEvolinkDuration] = useState(parseInt(localStorage.getItem('evolink_duration') || '5'));
 
+  // Video API 유효성 검증 상태
+  const [isByteplusValid, setIsByteplusValid] = useState(false);
+  const [isValidatingByteplus, setIsValidatingByteplus] = useState(false);
+  const [isEvolinkValid, setIsEvolinkValid] = useState(false);
+  const [isValidatingEvolink, setIsValidatingEvolink] = useState(false);
+  const [isRunwareValid, setIsRunwareValid] = useState(false);
+  const [isValidatingRunware, setIsValidatingRunware] = useState(false);
+
   const [runwareDuration, setRunwareDuration] = useState(parseInt(localStorage.getItem('runware_duration') || '5'));
   const [runwareResolution, setRunwareResolution] = useState(localStorage.getItem('runware_resolution') || '720p');
 
@@ -616,6 +624,66 @@ const App: React.FC = () => {
       setIsGeminiValid(false);
     } finally {
       setIsValidatingGemini(false);
+    }
+  };
+
+  const checkByteplusKey = async (key: string) => {
+    if (!key || key.length < 10) {
+      setIsByteplusValid(false);
+      return;
+    }
+    setIsValidatingByteplus(true);
+    try {
+      const BYTEPLUS_API = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
+      const response = await fetch(`${BYTEPLUS_API}/api/v3/byteplus/models`, {
+        headers: { 'Authorization': `Bearer ${key}` }
+      });
+      setIsByteplusValid(response.ok);
+    } catch (error) {
+      console.error('BytePlus API key validation error:', error);
+      setIsByteplusValid(false);
+    } finally {
+      setIsValidatingByteplus(false);
+    }
+  };
+
+  const checkEvolinkKey = async (key: string) => {
+    if (!key || key.length < 10) {
+      setIsEvolinkValid(false);
+      return;
+    }
+    setIsValidatingEvolink(true);
+    try {
+      // Evolink API 테스트 (간단한 모델 조회)
+      const response = await fetch('https://api.evolink.ai/v1/models', {
+        headers: { 'Authorization': `Bearer ${key}` }
+      });
+      setIsEvolinkValid(response.ok);
+    } catch (error) {
+      console.error('Evolink API key validation error:', error);
+      setIsEvolinkValid(false);
+    } finally {
+      setIsValidatingEvolink(false);
+    }
+  };
+
+  const checkRunwareKey = async (key: string) => {
+    if (!key || key.length < 10) {
+      setIsRunwareValid(false);
+      return;
+    }
+    setIsValidatingRunware(true);
+    try {
+      // Runware API 간단 테스트 (연결 확인)
+      const response = await fetch('https://api.runware.ai/v1/health', {
+        headers: { 'Authorization': `Bearer ${key}` }
+      });
+      setIsRunwareValid(response.ok);
+    } catch (error) {
+      console.error('Runware API key validation error:', error);
+      setIsRunwareValid(false);
+    } finally {
+      setIsValidatingRunware(false);
     }
   };
 
@@ -2753,6 +2821,8 @@ const App: React.FC = () => {
           onEvolinkResolutionChange={setEvolinkResolution}
           evolinkDuration={evolinkDuration}
           onEvolinkDurationChange={setEvolinkDuration}
+          runwareApiKey={runwareApiKey}
+          onRunwareApiKeyChange={setRunwareApiKey}
           runwareResolution={runwareResolution}
           onRunwareResolutionChange={setRunwareResolution}
           runwareDuration={runwareDuration}
@@ -2781,6 +2851,15 @@ const App: React.FC = () => {
           isVoiceTesting={isVoiceTesting}
           onWavUpload={handleWavUpload}
           uploadedWavFile={uploadedWavFile}
+          isByteplusValid={isByteplusValid}
+          isValidatingByteplus={isValidatingByteplus}
+          onCheckByteplusKey={checkByteplusKey}
+          isEvolinkValid={isEvolinkValid}
+          isValidatingEvolink={isValidatingEvolink}
+          onCheckEvolinkKey={checkEvolinkKey}
+          isRunwareValid={isRunwareValid}
+          isValidatingRunware={isValidatingRunware}
+          onCheckRunwareKey={checkRunwareKey}
         />
       )}
 
