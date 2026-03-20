@@ -435,9 +435,47 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                 onChange={(e) => onChange({ ...settings, fontFamily: e.target.value })}
                 className="w-full px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
               >
-                <option value="Pretendard">Pretendard</option>
-                <option value="Noto Sans KR">Noto Sans KR</option>
-                <option value="Nanum Gothic">나눔고딕</option>
+                <optgroup label="📐 고딕 (Sans-Serif)">
+                  <option value="Pretendard">Pretendard</option>
+                  <option value="Noto Sans KR">Noto Sans KR</option>
+                  <option value="Nanum Gothic">나눔고딕</option>
+                  <option value="Nanum Gothic Coding">나눔고딕 코딩</option>
+                  <option value="Gothic A1">Gothic A1</option>
+                  <option value="IBM Plex Sans KR">IBM Plex Sans KR</option>
+                  <option value="Gowun Dodum">고운 도둠</option>
+                </optgroup>
+                <optgroup label="📚 명조 (Serif)">
+                  <option value="Noto Serif KR">Noto Serif KR</option>
+                  <option value="Nanum Myeongjo">나눔명조</option>
+                  <option value="Gowun Batang">고운 바탕</option>
+                  <option value="Song Myung">송명</option>
+                  <option value="Hahmlet">Hahmlet</option>
+                </optgroup>
+                <optgroup label="✍️ 손글씨/캘리">
+                  <option value="Nanum Pen Script">나눔손글씨 펜</option>
+                  <option value="Nanum Brush Script">나눔손글씨 붓</option>
+                  <option value="Gaegu">개그체</option>
+                  <option value="Poor Story">가난한 이야기</option>
+                  <option value="Single Day">싱글 데이</option>
+                  <option value="Yeon Sung">연성</option>
+                </optgroup>
+                <optgroup label="🎨 디자인/장식">
+                  <option value="Black Han Sans">검은고딕</option>
+                  <option value="Do Hyeon">도현</option>
+                  <option value="Jua">주아</option>
+                  <option value="Sunflower">해바라기</option>
+                  <option value="Stylish">스타일리시</option>
+                  <option value="Gamja Flower">감자꽃</option>
+                  <option value="Gugi">구기</option>
+                  <option value="East Sea Dokdo">동해독도</option>
+                  <option value="Dokdo">독도</option>
+                  <option value="Kirang Haerang">기랑해랑</option>
+                  <option value="Hi Melody">하이멜로디</option>
+                  <option value="Cute Font">귀여운폰트</option>
+                  <option value="Orbit">오빗</option>
+                  <option value="Dongle">동글</option>
+                  <option value="Black And White Picture">흑백사진</option>
+                </optgroup>
               </select>
             </div>
 
