@@ -2732,6 +2732,8 @@ const App: React.FC = () => {
           onGeminiKeyChange={setGeminiApiKey}
           subtitleSettings={subtitleSettings}
           onSubtitleChange={setSubtitleSettings}
+          isLoggedIn={isLoggedIn}
+          onLoginStateChange={setIsLoggedIn}
         />
       )}
 
