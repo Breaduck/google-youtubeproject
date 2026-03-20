@@ -1287,20 +1287,6 @@ function VideoApiSettings({
   );
 }
 
-function NarrationSettings() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">나레이션 설정</h2>
-        <p className="text-slate-600 dark:text-slate-400">음성 합성(TTS) 엔진을 설정합니다.</p>
-      </div>
-      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-        <p className="text-slate-700 dark:text-slate-300">현재 엔진: <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Chirp3 HD</span></p>
-      </div>
-    </div>
-  );
-}
-
 function SavedStylesPanel() {
   return (
     <div className="space-y-6">
