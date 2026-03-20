@@ -795,6 +795,12 @@ const App: React.FC = () => {
       setExpandedSetting('audio');
       return false;
     }
+    if (audioProvider === 'microsoft' && !azureApiKey) {
+      alert('Azure Speech API 키를 입력해주세요.');
+      setIsMyPageOpen(true);
+      setExpandedSetting('audio');
+      return false;
+    }
     return true;
   };
 
@@ -802,11 +808,28 @@ const App: React.FC = () => {
     setIsVoiceTesting(true);
     try {
       if (audioProvider === 'microsoft') {
-        alert('Microsoft 무료 음성 API는 테스트를 지원하지 않습니다.');
-        setIsVoiceTesting(false);
-        return;
-      }
-      if (audioProvider === 'elevenlabs') {
+        // Azure TTS 테스트
+        if (!azureApiKey) throw new Error('Azure API key required');
+        const response = await fetch(`https://${azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+          method: 'POST',
+          headers: {
+            'Ocp-Apim-Subscription-Key': azureApiKey,
+            'Content-Type': 'application/ssml+xml',
+            'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3'
+          },
+          body: `<speak version='1.0' xml:lang='ko-KR'>
+            <voice xml:lang='ko-KR' name='${azureVoice}'>
+              <prosody rate='${chirpSpeed}'>
+                안녕하세요, 테스트 목소리입니다.
+              </prosody>
+            </voice>
+          </speak>`
+        });
+        if (!response.ok) throw new Error(`Azure TTS failed: ${response.status}`);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        new Audio(url).play();
+      } else if (audioProvider === 'elevenlabs') {
         if (!elSettings.apiKey) throw new Error("API Key required");
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elSettings.voiceId}`, {
           method: 'POST',
@@ -821,11 +844,17 @@ const App: React.FC = () => {
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         new Audio(url).play();
+      } else if (audioProvider === 'google-neural2') {
+        // Neural2 테스트
+        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", neural2Voice, chirpSpeed, chirpApiKey);
+        new Audio(audioUrl).play();
       } else {
+        // Chirp3 테스트
         const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", chirpVoice, chirpSpeed, chirpApiKey);
         new Audio(audioUrl).play();
       }
     } catch (e) {
+      console.error('Voice test error:', e);
       alert("목소리 테스트 실패. 설정을 확인해주세요.");
     } finally {
       setIsVoiceTesting(false);
@@ -1443,9 +1472,30 @@ const App: React.FC = () => {
         const blob = await response.blob();
         audioUrl = URL.createObjectURL(blob);
       } else if (audioProvider === 'microsoft') {
-        // Microsoft 무료 음성 API (구현 예정)
-        alert('Microsoft 무료 음성 API는 준비 중입니다.');
-        throw new Error('Microsoft TTS not implemented');
+        // Azure TTS
+        if (!azureApiKey) throw new Error('Azure API key required');
+        const response = await fetch(`https://${azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+          method: 'POST',
+          headers: {
+            'Ocp-Apim-Subscription-Key': azureApiKey,
+            'Content-Type': 'application/ssml+xml',
+            'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3'
+          },
+          body: `<speak version='1.0' xml:lang='ko-KR'>
+            <voice xml:lang='ko-KR' name='${azureVoice}'>
+              <prosody rate='${chirpSpeed}'>
+                ${scene.scriptSegment}
+              </prosody>
+            </voice>
+          </speak>`
+        });
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('Azure TTS error:', error);
+          throw new Error(`Azure TTS failed: ${response.status}`);
+        }
+        const blob = await response.blob();
+        audioUrl = URL.createObjectURL(blob);
       } else if (audioProvider === 'google-neural2') {
         // Google Neural2
         audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, neural2Voice, chirpSpeed, chirpApiKey);
