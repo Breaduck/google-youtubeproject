@@ -489,7 +489,7 @@ Return ONLY the new prompt text, no explanation or markdown.`;
 
     // Map voice names to actual Google Cloud TTS voice configs
     const voiceConfigs: Record<string, { languageCode: string; name: string; ssmlGender?: string }> = {
-      // Chirp3 HD voices
+      // Chirp3 HD voices (8개)
       'Kore': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Kore' },
       'Aoede': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Aoede' },
       'Leda': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Leda' },
@@ -498,10 +498,25 @@ Return ONLY the new prompt text, no explanation or markdown.`;
       'Fenrir': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Fenrir' },
       'Puck': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Puck' },
       'Orus': { languageCode: 'ko-KR', name: 'ko-KR-Chirp3-HD-Orus' },
-      // Neural2 voices
+      // Neural2 voices (3개)
       'ko-KR-Neural2-A': { languageCode: 'ko-KR', name: 'ko-KR-Neural2-A', ssmlGender: 'FEMALE' },
       'ko-KR-Neural2-B': { languageCode: 'ko-KR', name: 'ko-KR-Neural2-B', ssmlGender: 'FEMALE' },
-      'ko-KR-Neural2-C': { languageCode: 'ko-KR', name: 'ko-KR-Neural2-C', ssmlGender: 'MALE' }
+      'ko-KR-Neural2-C': { languageCode: 'ko-KR', name: 'ko-KR-Neural2-C', ssmlGender: 'MALE' },
+      // Standard voices (4개) - 저렴한 옵션
+      'ko-KR-Standard-A': { languageCode: 'ko-KR', name: 'ko-KR-Standard-A', ssmlGender: 'FEMALE' },
+      'ko-KR-Standard-B': { languageCode: 'ko-KR', name: 'ko-KR-Standard-B', ssmlGender: 'FEMALE' },
+      'ko-KR-Standard-C': { languageCode: 'ko-KR', name: 'ko-KR-Standard-C', ssmlGender: 'MALE' },
+      'ko-KR-Standard-D': { languageCode: 'ko-KR', name: 'ko-KR-Standard-D', ssmlGender: 'MALE' },
+      // WaveNet voices (4개) - 고품질
+      'ko-KR-Wavenet-A': { languageCode: 'ko-KR', name: 'ko-KR-Wavenet-A', ssmlGender: 'FEMALE' },
+      'ko-KR-Wavenet-B': { languageCode: 'ko-KR', name: 'ko-KR-Wavenet-B', ssmlGender: 'FEMALE' },
+      'ko-KR-Wavenet-C': { languageCode: 'ko-KR', name: 'ko-KR-Wavenet-C', ssmlGender: 'MALE' },
+      'ko-KR-Wavenet-D': { languageCode: 'ko-KR', name: 'ko-KR-Wavenet-D', ssmlGender: 'MALE' },
+      // Studio voices (4개) - 스튜디오 품질
+      'ko-KR-Studio-A': { languageCode: 'ko-KR', name: 'ko-KR-Studio-A', ssmlGender: 'FEMALE' },
+      'ko-KR-Studio-B': { languageCode: 'ko-KR', name: 'ko-KR-Studio-B', ssmlGender: 'FEMALE' },
+      'ko-KR-Studio-C': { languageCode: 'ko-KR', name: 'ko-KR-Studio-C', ssmlGender: 'MALE' },
+      'ko-KR-Studio-D': { languageCode: 'ko-KR', name: 'ko-KR-Studio-D', ssmlGender: 'MALE' }
     };
 
     const selectedVoice = voiceConfigs[voice] || voiceConfigs['Kore'];
