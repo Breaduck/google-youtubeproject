@@ -1756,10 +1756,20 @@ function NarrationSettings({
                 )}
               </button>
             </div>
+            {elSettings.apiKey.length > 10 && !isElConnected && voices.length === 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                유효한 API 키를 입력하고 페이지를 새로고침하면 음성 목록이 로드됩니다.
+              </p>
+            )}
+            {!isElConnected && elSettings.apiKey.length > 10 && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                API 키가 유효하지 않습니다. 확인 후 페이지를 새로고침하세요.
+              </p>
+            )}
           </div>
           {voices.length > 0 && (
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택 ({voices.length}개 사용 가능)</label>
               <select
                 value={elSettings.voiceId}
                 onChange={(e) => onElSettingsChange({ ...elSettings, voiceId: e.target.value })}
@@ -1772,6 +1782,11 @@ function NarrationSettings({
                 ))}
               </select>
             </div>
+          )}
+          {voices.length === 0 && elSettings.apiKey.length < 10 && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              API 키를 입력하면 사용 가능한 음성 목록이 자동으로 표시됩니다.
+            </p>
           )}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 속도: {elSettings.speed.toFixed(1)}x</label>
