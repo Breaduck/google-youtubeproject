@@ -324,13 +324,7 @@ Return ONLY valid JSON, no markdown or explanation.`;
       .map(c => `- ${c.name}: ${c.visualDescription}`)
       .join('\n');
 
-    // 스크립트 길이 기반 목표 씬 수 계산 (원본 보존 우선)
     const scriptLength = project.script.length;
-    // 최소 장면당 50자 보장: 짧은 스크립트도 안전하게 처리
-    const minCharsPerScene = 50;
-    const maxScenes = Math.floor(scriptLength / minCharsPerScene);
-    // 목표: 장면당 80-120자 (10-15초 나레이션 최적)
-    const targetScenes = Math.max(1, Math.min(maxScenes, Math.floor(scriptLength / 100)));
 
     const prompt = `Divide this script into scenes for video generation. Each scene = 1 static image + narration audio.
 
@@ -348,19 +342,27 @@ CRITICAL RULES - ORIGINAL TEXT PRESERVATION:
 ⚠️ Even if the text has typos, keep them exactly as-is
 ⚠️ This is non-negotiable - treat the script as sacred, read-only text
 
-TASK: Divide the script into approximately ${targetScenes} scenes (flexible ±20%) based on:
-- Natural narrative flow (paragraph breaks, dialogue turns, scene shifts)
-- Logical visual grouping (events that fit in one static image)
-- Target: 80-120 characters per scene (10-15 seconds narration)
-- Minimum: 50 characters per scene (avoid too-short segments)
-- If script is short (under ${minCharsPerScene * 2} chars), use 1-2 scenes only
+TASK: Intelligently divide the script into natural scenes based on:
+- **Natural breaks**: Paragraph breaks, new lines, dialogue turns, scene/location changes
+- **Narrative flow**: Group related sentences/events that belong in one visual
+- **Flexible length**: Each scene can be 30-200 characters depending on context
+  - Short scene (30-60 chars): Single impactful line, quick action
+  - Medium scene (60-120 chars): Standard dialogue or description
+  - Long scene (120-200 chars): Complex scene with multiple elements
+- **Visual grouping**: Events that fit in one static image
+
+Scene Length Guidelines (FLEXIBLE, not strict):
+- Minimum: 30 characters (very short line OK if natural break)
+- Optimal: 60-120 characters (10-15 seconds narration)
+- Maximum: 200 characters (complex scene)
+- **Prioritize natural breaks over length targets**
 
 For EACH scene, provide:
 1. "segment_number": Scene number (1, 2, 3...)
 2. "scriptSegment": **EXACT copy-paste text from original script** (no changes, no edits, no paraphrasing)
-   - Find natural break points in the original text
-   - Copy the text verbatim, including all punctuation and spacing
-   - 50-150 characters ideal (adjust based on script length)
+   - Copy verbatim from original, including all punctuation/spacing
+   - Split at natural break points (paragraphs, new speakers, scene changes)
+   - Length varies naturally based on content
 3. "imagePrompt": Detailed English visual description. CRITICAL:
    - Characters MUST match visualDescription exactly (same face/hair/clothing)
    - Describe background, lighting, mood, character actions/expressions
@@ -371,10 +373,11 @@ For EACH scene, provide:
 5. "intensity": 1-10 emotional intensity
 
 IMPORTANT:
-- Flexible scene count: ${targetScenes} is a guideline, adjust naturally (±20% OK)
+- **NO fixed scene count target** - let natural breaks determine scene count
 - **DO NOT add, remove, or modify any words from the original script**
-- Short scripts (under 1000 chars) = fewer scenes, longer segments
-- Long scripts (over 10000 chars) = more scenes, balanced segments
+- Short scripts (under 500 chars) = 1-10 scenes naturally
+- Long scripts (over 20000 chars) = many scenes naturally
+- Quality over quantity - better to have natural scenes than forced splits
 
 Return ONLY valid JSON array, no markdown.`;
 
