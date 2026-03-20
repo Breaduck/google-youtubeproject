@@ -252,6 +252,54 @@ export async function generateSimpleZoomVideo(
   }
 }
 
+// 비디오에 자막 오버레이 추가
+export async function addSubtitleOverlay(
+  videoBlob: Blob,
+  subtitleCanvas: HTMLCanvasElement,
+  onProgress?: (progress: number, message: string) => void
+): Promise<Blob> {
+  if (onProgress) onProgress(0, '자막 적용 중...');
+
+  const ffmpeg = await getFFmpeg();
+
+  // 비디오 파일 쓰기
+  await ffmpeg.writeFile('input.mp4', await fetchFile(videoBlob));
+
+  // 자막 이미지 PNG로 변환
+  const subtitleBlob = await new Promise<Blob>((resolve) => {
+    subtitleCanvas.toBlob((blob) => resolve(blob!), 'image/png');
+  });
+  await ffmpeg.writeFile('subtitle.png', await fetchFile(subtitleBlob));
+
+  if (onProgress) onProgress(30, '자막 합성 중...');
+
+  // overlay 필터로 자막 합성
+  await ffmpeg.exec([
+    '-i', 'input.mp4',
+    '-i', 'subtitle.png',
+    '-filter_complex', '[0:v][1:v]overlay=0:0',
+    '-c:v', 'libx264',
+    '-preset', 'fast',
+    '-crf', '18',
+    '-pix_fmt', 'yuv420p',
+    '-movflags', '+faststart',
+    'output.mp4'
+  ]);
+
+  if (onProgress) onProgress(80, '파일 생성 중...');
+
+  const data = await ffmpeg.readFile('output.mp4');
+  const resultBlob = new Blob([new Uint8Array(data as Uint8Array)], { type: 'video/mp4' });
+
+  // 정리
+  await ffmpeg.deleteFile('input.mp4');
+  await ffmpeg.deleteFile('subtitle.png');
+  await ffmpeg.deleteFile('output.mp4');
+
+  if (onProgress) onProgress(100, '완료');
+  return resultBlob;
+}
+
 // 여러 비디오를 하나로 합치기 (FFmpeg concat) - export
 export async function mergeVideos(videoBlobs: Blob[], onProgress?: (progress: number, message: string) => void): Promise<Blob> {
   if (onProgress) onProgress(0, '병합 준비 중...');
@@ -501,10 +549,20 @@ async function generateByteDanceVideo(
       throw new Error(`Video download failed: ${videoRes.status} ${errorText}`);
     }
 
-    const blob = await videoRes.blob();
+    let blob = await videoRes.blob();
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`[BYTEDANCE] Done: ${elapsed}s | ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+
+    // 자막 오버레이 추가
+    if (dialogue && subtitleSettings) {
+      onProgress?.(85, '자막 적용 중...');
+      const { renderSubtitleToCanvas } = await import('./subtitleRenderer');
+      const subtitleCanvas = await renderSubtitleToCanvas(dialogue, subtitleSettings);
+      blob = await addSubtitleOverlay(blob, subtitleCanvas, (p, msg) => {
+        onProgress?.(85 + (p / 100) * 15, msg);
+      });
+    }
 
     return new Blob([blob], { type: 'video/mp4' });
   } catch (error) {
