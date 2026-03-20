@@ -48,13 +48,13 @@ export default function FullscreenSettings({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900 dark:bg-slate-950 flex">
+    <div className="fixed inset-0 z-50 bg-white dark:bg-slate-900 flex">
       {/* 좌측 사이드바 */}
-      <div className="w-64 bg-slate-800 dark:bg-slate-900 border-r border-slate-700 flex flex-col">
+      <div className="w-64 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* 헤더 */}
-        <div className="p-6 border-b border-slate-700">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-slate-100">설정</h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
             <button
               onClick={onClose}
               className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
@@ -72,20 +72,20 @@ export default function FullscreenSettings({
               onClick={() => setActiveTab(item.id)}
               className={`w-full px-6 py-3 flex items-center gap-3 transition-colors ${
                 activeTab === item.id
-                  ? 'bg-indigo-600/20 border-l-2 border-indigo-500 text-white'
-                  : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
+                  ? 'bg-indigo-600/20 border-l-2 border-indigo-500 text-indigo-700 dark:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <span className="text-xl">{item.icon}</span>
               <span className="flex-1 text-left font-medium">{item.label}</span>
-              <span className="text-xs px-2 py-0.5 bg-slate-700 rounded-full">{item.badge}</span>
+              <span className="text-xs px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full">{item.badge}</span>
             </button>
           ))}
         </nav>
       </div>
 
       {/* 우측 콘텐츠 */}
-      <div className="flex-1 overflow-y-auto bg-slate-900 dark:bg-slate-950">
+      <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
         <div className="max-w-6xl mx-auto p-8">
           {activeTab === 'gemini' && <GeminiSettings apiKey={geminiApiKey} onChange={onGeminiKeyChange} />}
           {activeTab === 'subtitle' && <SubtitleSettingsPanel settings={subtitleSettings} onChange={onSubtitleChange} />}
@@ -106,26 +106,26 @@ function GeminiSettings({ apiKey, onChange }: { apiKey: string; onChange: (key: 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-100 mb-2">Gemini API 설정</h2>
-        <p className="text-slate-400">이미지 생성 및 스크립트 분석에 사용됩니다.</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Gemini API 설정</h2>
+        <p className="text-slate-600 dark:text-slate-400">이미지 생성 및 스크립트 분석에 사용됩니다.</p>
       </div>
 
-      <div className="bg-slate-800 rounded-xl p-6 space-y-4">
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">API 키</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">API 키</label>
           <input
             type="password"
             value={apiKey}
             onChange={(e) => onChange(e.target.value)}
             placeholder="AIzaSy..."
-            className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
         <a
           href="https://aistudio.google.com/apikey"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm"
+          className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm"
         >
           API 키 발급받기 →
         </a>
@@ -138,20 +138,20 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-100 mb-2">자막 설정</h2>
-        <p className="text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 설정</h2>
+        <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-6">
         {/* 좌측: 설정 */}
         <div className="space-y-4">
-          <div className="bg-slate-800 rounded-xl p-6 space-y-4">
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">폰트</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">폰트</label>
               <select
                 value={settings.fontFamily}
                 onChange={(e) => onChange({ ...settings, fontFamily: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100"
+                className="w-full px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
               >
                 <option value="Pretendard">Pretendard</option>
                 <option value="Noto Sans KR">Noto Sans KR</option>
@@ -160,7 +160,7 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">크기: {settings.fontSize}px</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">크기: {settings.fontSize}px</label>
               <input
                 type="range"
                 min="16"
@@ -172,7 +172,46 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">텍스트 색상</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">자간: {settings.letterSpacing}px</label>
+              <input
+                type="range"
+                min="-2"
+                max="10"
+                step="0.5"
+                value={settings.letterSpacing}
+                onChange={(e) => onChange({ ...settings, letterSpacing: parseFloat(e.target.value) })}
+                className="w-full accent-indigo-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">행간: {settings.lineHeight}</label>
+              <input
+                type="range"
+                min="1.0"
+                max="2.5"
+                step="0.1"
+                value={settings.lineHeight}
+                onChange={(e) => onChange({ ...settings, lineHeight: parseFloat(e.target.value) })}
+                className="w-full accent-indigo-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">투명도: {Math.round(settings.opacity * 100)}%</label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={settings.opacity}
+                onChange={(e) => onChange({ ...settings, opacity: parseFloat(e.target.value) })}
+                className="w-full accent-indigo-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">텍스트 색상</label>
               <input
                 type="color"
                 value={settings.textColor}
@@ -180,22 +219,117 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                 className="w-full h-12 rounded-lg cursor-pointer"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">외곽선 두께: {settings.strokeWidth}px</label>
+              <input
+                type="range"
+                min="0"
+                max="10"
+                value={settings.strokeWidth}
+                onChange={(e) => onChange({ ...settings, strokeWidth: parseInt(e.target.value) })}
+                className="w-full accent-indigo-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">외곽선 색상</label>
+              <input
+                type="color"
+                value={settings.strokeColor}
+                onChange={(e) => onChange({ ...settings, strokeColor: e.target.value })}
+                className="w-full h-12 rounded-lg cursor-pointer"
+              />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <input
+                  type="checkbox"
+                  checked={!!settings.backgroundColor}
+                  onChange={(e) => onChange({ ...settings, backgroundColor: e.target.checked ? '#000000' : undefined })}
+                  className="rounded"
+                />
+                배경 색상 사용
+              </label>
+              {settings.backgroundColor && (
+                <>
+                  <input
+                    type="color"
+                    value={settings.backgroundColor}
+                    onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })}
+                    className="w-full h-12 rounded-lg cursor-pointer mb-2"
+                  />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">배경 투명도: {Math.round(settings.bgOpacity * 100)}%</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={settings.bgOpacity}
+                    onChange={(e) => onChange({ ...settings, bgOpacity: parseFloat(e.target.value) })}
+                    className="w-full accent-indigo-600 mb-2"
+                  />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">배경 여백: {settings.bgPadding}px</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="30"
+                    value={settings.bgPadding}
+                    onChange={(e) => onChange({ ...settings, bgPadding: parseInt(e.target.value) })}
+                    className="w-full accent-indigo-600"
+                  />
+                </>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">수직 위치: {settings.yPosition}px</label>
+              <input
+                type="range"
+                min="100"
+                max="700"
+                value={settings.yPosition}
+                onChange={(e) => onChange({ ...settings, yPosition: parseInt(e.target.value) })}
+                className="w-full accent-indigo-600"
+              />
+            </div>
           </div>
         </div>
 
         {/* 우측: 미리보기 */}
         <div>
-          <div className="bg-slate-800 rounded-xl p-6 aspect-video flex items-center justify-center">
-            <p
-              style={{
-                fontFamily: settings.fontFamily,
-                fontSize: `${Math.min(settings.fontSize, 48)}px`,
-                color: settings.textColor,
-                WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth}px ${settings.strokeColor}` : undefined,
-              }}
-            >
-              자막 미리보기
-            </p>
+          <div className="bg-slate-900 dark:bg-slate-800 rounded-xl p-6 aspect-video flex items-center justify-center relative">
+            <div className="relative inline-block" style={{ opacity: settings.opacity }}>
+              {settings.backgroundColor && (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundColor: settings.backgroundColor,
+                    opacity: settings.bgOpacity,
+                    padding: `${settings.bgPadding}px`,
+                    marginLeft: `-${settings.bgPadding}px`,
+                    marginRight: `-${settings.bgPadding}px`,
+                    marginTop: `-${settings.bgPadding}px`,
+                    marginBottom: `-${settings.bgPadding}px`,
+                    borderRadius: '8px',
+                  }}
+                />
+              )}
+              <p
+                className="relative"
+                style={{
+                  fontFamily: settings.fontFamily,
+                  fontSize: `${Math.min(settings.fontSize, 48)}px`,
+                  color: settings.textColor,
+                  letterSpacing: `${settings.letterSpacing}px`,
+                  lineHeight: settings.lineHeight,
+                  WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth}px ${settings.strokeColor}` : undefined,
+                }}
+              >
+                자막 미리보기
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -207,11 +341,11 @@ function AccountSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-100 mb-2">계정</h2>
-        <p className="text-slate-400">로그인하여 클라우드 동기화 기능을 사용하세요.</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">계정</h2>
+        <p className="text-slate-600 dark:text-slate-400">로그인하여 클라우드 동기화 기능을 사용하세요.</p>
       </div>
-      <div className="bg-slate-800 rounded-xl p-12 text-center">
-        <p className="text-slate-400 mb-4">로그인 기능 준비 중입니다.</p>
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-12 text-center">
+        <p className="text-slate-600 dark:text-slate-400 mb-4">로그인 기능 준비 중입니다.</p>
       </div>
     </div>
   );
@@ -221,11 +355,11 @@ function VideoApiSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-100 mb-2">영상화 API 설정</h2>
-        <p className="text-slate-400">이미지를 영상으로 변환하는 API를 설정합니다.</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">영상화 API 설정</h2>
+        <p className="text-slate-600 dark:text-slate-400">이미지를 영상으로 변환하는 API를 설정합니다.</p>
       </div>
-      <div className="bg-slate-800 rounded-xl p-6">
-        <p className="text-slate-300">현재 Provider: <span className="text-indigo-400 font-semibold">BytePlus ModelArk</span></p>
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
+        <p className="text-slate-700 dark:text-slate-300">현재 Provider: <span className="text-indigo-600 dark:text-indigo-400 font-semibold">BytePlus ModelArk</span></p>
       </div>
     </div>
   );
@@ -235,11 +369,11 @@ function NarrationSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-100 mb-2">나레이션 설정</h2>
-        <p className="text-slate-400">음성 합성(TTS) 엔진을 설정합니다.</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">나레이션 설정</h2>
+        <p className="text-slate-600 dark:text-slate-400">음성 합성(TTS) 엔진을 설정합니다.</p>
       </div>
-      <div className="bg-slate-800 rounded-xl p-6">
-        <p className="text-slate-300">현재 엔진: <span className="text-indigo-400 font-semibold">Chirp3 HD</span></p>
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
+        <p className="text-slate-700 dark:text-slate-300">현재 엔진: <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Chirp3 HD</span></p>
       </div>
     </div>
   );
@@ -249,12 +383,12 @@ function SavedStylesPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-100 mb-2">저장된 그림체</h2>
-        <p className="text-slate-400">자주 사용하는 그림체를 저장하고 불러올 수 있습니다. (최대 10개)</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">저장된 그림체</h2>
+        <p className="text-slate-600 dark:text-slate-400">자주 사용하는 그림체를 저장하고 불러올 수 있습니다. (최대 10개)</p>
       </div>
-      <div className="bg-slate-800 rounded-xl p-12 text-center">
-        <p className="text-slate-400 mb-4">저장된 그림체가 없습니다.</p>
-        <p className="text-slate-500 text-sm mb-6">유튜브 링크를 분석하거나 직접 스타일을 저장하세요.</p>
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-12 text-center">
+        <p className="text-slate-600 dark:text-slate-400 mb-4">저장된 그림체가 없습니다.</p>
+        <p className="text-slate-500 dark:text-slate-500 text-sm mb-6">유튜브 링크를 분석하거나 직접 스타일을 저장하세요.</p>
         <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors">
           새 그림체 추가
         </button>
@@ -267,11 +401,11 @@ function SavedCharactersPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-100 mb-2">저장된 인물</h2>
-        <p className="text-slate-400">자주 사용하는 캐릭터를 저장하고 불러올 수 있습니다. (최대 10개)</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">저장된 인물</h2>
+        <p className="text-slate-600 dark:text-slate-400">자주 사용하는 캐릭터를 저장하고 불러올 수 있습니다. (최대 10개)</p>
       </div>
-      <div className="bg-slate-800 rounded-xl p-12 text-center">
-        <p className="text-slate-400 mb-4">저장된 인물이 없습니다.</p>
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-12 text-center">
+        <p className="text-slate-600 dark:text-slate-400 mb-4">저장된 인물이 없습니다.</p>
         <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors">
           새 인물 추가
         </button>
