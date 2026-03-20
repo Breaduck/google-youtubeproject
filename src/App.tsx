@@ -2734,6 +2734,13 @@ const App: React.FC = () => {
           onSubtitleChange={setSubtitleSettings}
           isLoggedIn={isLoggedIn}
           onLoginStateChange={setIsLoggedIn}
+          geminiModel={geminiModel}
+          onGeminiModelChange={setGeminiModel}
+          geminiImageModel={geminiImageModel}
+          onGeminiImageModelChange={setGeminiImageModel}
+          isGeminiValid={isGeminiValid}
+          isValidatingGemini={isValidatingGemini}
+          onCheckGeminiKey={checkGeminiKey}
           videoProvider={videoProvider}
           onVideoProviderChange={setVideoProvider}
           bytedanceApiKey={bytedanceApiKey}

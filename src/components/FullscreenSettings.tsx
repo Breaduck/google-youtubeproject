@@ -13,6 +13,15 @@ interface FullscreenSettingsProps {
   isLoggedIn: boolean;
   onLoginStateChange: (loggedIn: boolean) => void;
 
+  // Gemini API settings
+  geminiModel: string;
+  onGeminiModelChange: (model: string) => void;
+  geminiImageModel: string;
+  onGeminiImageModelChange: (model: string) => void;
+  isGeminiValid: boolean;
+  isValidatingGemini: boolean;
+  onCheckGeminiKey: (key: string) => void;
+
   // Video API settings
   videoProvider: 'byteplus' | 'evolink' | 'runware';
   onVideoProviderChange: (provider: 'byteplus' | 'evolink' | 'runware') => void;
@@ -45,6 +54,13 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
     onSubtitleChange,
     isLoggedIn,
     onLoginStateChange,
+    geminiModel,
+    onGeminiModelChange,
+    geminiImageModel,
+    onGeminiImageModelChange,
+    isGeminiValid,
+    isValidatingGemini,
+    onCheckGeminiKey,
     videoProvider,
     onVideoProviderChange,
     bytedanceApiKey,
@@ -135,7 +151,19 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       {/* 우측 콘텐츠 */}
       <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
         <div className="max-w-6xl mx-auto p-8">
-          {activeTab === 'gemini' && <GeminiSettings apiKey={geminiApiKey} onChange={onGeminiKeyChange} />}
+          {activeTab === 'gemini' && (
+            <GeminiSettings
+              apiKey={geminiApiKey}
+              onChange={onGeminiKeyChange}
+              geminiModel={geminiModel}
+              onGeminiModelChange={onGeminiModelChange}
+              geminiImageModel={geminiImageModel}
+              onGeminiImageModelChange={onGeminiImageModelChange}
+              isGeminiValid={isGeminiValid}
+              isValidatingGemini={isValidatingGemini}
+              onCheckGeminiKey={onCheckGeminiKey}
+            />
+          )}
           {activeTab === 'subtitle' && <SubtitleSettingsPanel settings={subtitleSettings} onChange={onSubtitleChange} />}
           {activeTab === 'account' && <AccountSettings isLoggedIn={isLoggedIn} onLoginStateChange={onLoginStateChange} />}
           {activeTab === 'video-api' && (
@@ -173,7 +201,31 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
 
 // === 각 탭별 컴포넌트 ===
 
-function GeminiSettings({ apiKey, onChange }: { apiKey: string; onChange: (key: string) => void }) {
+function GeminiSettings({
+  apiKey,
+  onChange,
+  geminiModel,
+  onGeminiModelChange,
+  geminiImageModel,
+  onGeminiImageModelChange,
+  isGeminiValid,
+  isValidatingGemini,
+  onCheckGeminiKey,
+}: {
+  apiKey: string;
+  onChange: (key: string) => void;
+  geminiModel: string;
+  onGeminiModelChange: (model: string) => void;
+  geminiImageModel: string;
+  onGeminiImageModelChange: (model: string) => void;
+  isGeminiValid: boolean;
+  isValidatingGemini: boolean;
+  onCheckGeminiKey: (key: string) => void;
+}) {
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showCostDetails, setShowCostDetails] = useState(false);
+  const [costPeriod, setCostPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+
   return (
     <div className="space-y-6">
       <div>
@@ -182,24 +234,174 @@ function GeminiSettings({ apiKey, onChange }: { apiKey: string; onChange: (key: 
       </div>
 
       <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
+        {/* API 키 */}
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">API 키</label>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="AIzaSy..."
-            className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+          <div className="relative">
+            <input
+              type={showApiKey ? 'text' : 'password'}
+              value={apiKey}
+              onChange={(e) => onChange(e.target.value)}
+              onBlur={() => apiKey.length > 20 && onCheckGeminiKey(apiKey)}
+              placeholder="AIzaSy..."
+              className="w-full px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              onClick={() => setShowApiKey(!showApiKey)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            >
+              {showApiKey ? '👁️' : '👁️‍🗨️'}
+            </button>
+          </div>
+
+          {!apiKey && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              💡 google.ai studio에서 발급가능합니다
+            </p>
+          )}
+
+          {apiKey.length > 20 && (
+            <div className="flex items-center gap-2 text-sm mt-2">
+              {isValidatingGemini ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-slate-600 dark:text-slate-400">검증 중...</span>
+                </>
+              ) : isGeminiValid ? (
+                <>
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-green-600 font-medium">유효함</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span className="text-red-600 font-medium">유효하지 않음</span>
+                </>
+              )}
+            </div>
+          )}
+
+          <a
+            href="https://aistudio.google.com/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm mt-2"
+          >
+            API 키 발급받기 →
+          </a>
         </div>
-        <a
-          href="https://aistudio.google.com/apikey"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm"
-        >
-          API 키 발급받기 →
-        </a>
+
+        {/* 기본 Gemini 엔진 */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            기본 Gemini 엔진 (대본/프롬프트 생성)
+          </label>
+          <select
+            value={geminiModel}
+            onChange={(e) => onGeminiModelChange(e.target.value)}
+            className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+            <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
+          </select>
+        </div>
+
+        {/* 이미지 모델 */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">이미지 모델</label>
+          <select
+            value={geminiImageModel}
+            onChange={(e) => onGeminiImageModelChange(e.target.value)}
+            className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="imagen-4.0-generate-001">Imagen 4 Fast (29원)</option>
+            <option value="imagen-3.0-generate-002">Imagen 3 Fast (29원)</option>
+            <option value="gemini-3.1-flash-image-preview">Nano Banana 2 (98원)</option>
+            <option value="gemini-3-pro-image-preview">Nano Banana Pro (196원)</option>
+          </select>
+        </div>
+
+        {/* 예상 비용 표시 */}
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-emerald-900 dark:text-emerald-300">예상 비용 (누적)</span>
+              <button
+                onClick={() => setShowCostDetails(!showCostDetails)}
+                className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 font-medium underline"
+              >
+                {showCostDetails ? '간단히 보기' : '자세히 보기'}
+              </button>
+            </div>
+            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+              {(() => {
+                const stored = JSON.parse(localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}');
+                const EXCHANGE_RATE = 1460;
+                const inputCost = (stored.input / 1000000) * 0.50;
+                const outputCost = (stored.output / 1000000) * 3.00;
+                const imageCost = stored.images * 0.02;
+                const totalUSD = inputCost + outputCost + imageCost;
+                const totalKRW = Math.ceil(totalUSD * EXCHANGE_RATE);
+                return `₩${totalKRW.toLocaleString()}`;
+              })()}
+            </p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">환율 1,460원 기준</p>
+
+            {showCostDetails && (
+              <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-700 space-y-2">
+                {/* 기간 선택 */}
+                <div className="flex gap-2">
+                  {[
+                    { value: 'daily', label: '일별' },
+                    { value: 'weekly', label: '주별' },
+                    { value: 'monthly', label: '월별' },
+                  ].map((period) => (
+                    <button
+                      key={period.value}
+                      onClick={() => setCostPeriod(period.value as any)}
+                      className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        costPeriod === period.value
+                          ? 'bg-emerald-600 dark:bg-emerald-700 text-white'
+                          : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
+                      }`}
+                    >
+                      {period.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 간단한 요약 통계 */}
+                <div className="text-xs text-emerald-700 dark:text-emerald-400 space-y-1">
+                  {(() => {
+                    const stored = JSON.parse(
+                      localStorage.getItem('gemini_usage') || '{"input":0,"output":0,"images":0}'
+                    );
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span>총 입력 토큰</span>
+                          <span className="font-medium">{(stored.input / 1000).toFixed(1)}K</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>총 출력 토큰</span>
+                          <span className="font-medium">{(stored.output / 1000).toFixed(1)}K</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>생성된 이미지</span>
+                          <span className="font-medium">{stored.images}장</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
