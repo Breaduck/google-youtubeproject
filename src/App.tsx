@@ -11,6 +11,8 @@ import FullscreenSettings from './components/FullscreenSettings';
 import { styleTemplates } from './data/styleTemplates';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { useSettingsStore } from './stores/settingsStore';
+import { useProjectStore } from './stores/projectStore';
 
 const BUILD_VERSION = 'v1.5-dual-download-buttons';
 
@@ -75,35 +77,120 @@ const formatSecondsToTime = (seconds: number): string => {
 };
 
 const App: React.FC = () => {
+  // Zustand stores
+  const {
+    isDarkMode,
+    setIsDarkMode,
+    geminiApiKey,
+    setGeminiApiKey,
+    geminiModel,
+    setGeminiModel,
+    geminiImageModel,
+    setGeminiImageModel,
+    isGeminiValid,
+    setIsGeminiValid,
+    isValidatingGemini,
+    setIsValidatingGemini,
+    googleCloudProjectId,
+    setGoogleCloudProjectId,
+    googleCloudLocation,
+    setGoogleCloudLocation,
+    imageProvider,
+    setImageProvider,
+    runwareApiKey,
+    setRunwareApiKey,
+    videoProvider,
+    setVideoProvider,
+    bytedanceApiKey,
+    setBytedanceApiKey,
+    bytedanceModel,
+    setBytedanceModel,
+    isByteplusValid,
+    setIsByteplusValid,
+    isValidatingByteplus,
+    setIsValidatingByteplus,
+    evolinkApiKey,
+    setEvolinkApiKey,
+    evolinkResolution,
+    setEvolinkResolution,
+    evolinkDuration,
+    setEvolinkDuration,
+    isEvolinkValid,
+    setIsEvolinkValid,
+    isValidatingEvolink,
+    setIsValidatingEvolink,
+    runwareDuration,
+    setRunwareDuration,
+    runwareResolution,
+    setRunwareResolution,
+    isRunwareValid,
+    setIsRunwareValid,
+    isValidatingRunware,
+    setIsValidatingRunware,
+    videoGenerationRange,
+    setVideoGenerationRange,
+    audioProvider,
+    setAudioProvider,
+    chirpApiKey,
+    setChirpApiKey,
+    chirpVoice,
+    setChirpVoice,
+    chirpSpeed,
+    setChirpSpeed,
+    neural2Voice,
+    setNeural2Voice,
+    standardVoice,
+    setStandardVoice,
+    wavenetVoice,
+    setWavenetVoice,
+    studioVoice,
+    setStudioVoice,
+    azureApiKey,
+    setAzureApiKey,
+    azureVoice,
+    setAzureVoice,
+    elSettings,
+    setElSettings,
+    subtitleSettings,
+    setSubtitleSettings,
+  } = useSettingsStore();
+
+  const {
+    projects,
+    setProjects,
+    currentProjectId,
+    setCurrentProjectId,
+    updateProject,
+    savedStyles,
+    setSavedStyles,
+    addSavedStyle,
+    deleteSavedStyle,
+    savedCharacters,
+    setSavedCharacters,
+    addSavedCharacter,
+    deleteSavedCharacter,
+  } = useProjectStore();
+
   const [step, setStep] = useState<AppStep>('dashboard'); // 첫 화면: 프로젝트 목록
   // 브랜치2: 비디오 API 전용
   const [videoEngine, setVideoEngine] = useState<VideoEngine>('bytedance');
-  // 다크모드 상태
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved) return saved === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-  const [projects, setProjects] = useState<StoryProject[]>(() => {
-    try {
-      const saved = localStorage.getItem('user_projects_v1');
-      return saved ? JSON.parse(saved) : [EXP_TEST_PROJECT];
-    } catch {
-      return [EXP_TEST_PROJECT];
-    }
-  });
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => {
-    const saved = localStorage.getItem('user_projects_v1');
-    if (saved) {
-      const projects = JSON.parse(saved);
-      return projects[0]?.id || null;
-    }
-    return null; // 프로젝트 없음
-  });
 
   const project = useMemo(() => {
     return projects.find(p => p.id === currentProjectId) || null;
   }, [projects, currentProjectId]);
+
+  // Wrappers to keep functional update pattern working
+  const updateProjects = (updater: (prev: StoryProject[]) => StoryProject[]) => {
+    setProjects(updater(projects));
+  };
+
+  const updateSavedStyles = (updater: (prev: SavedStyle[]) => SavedStyle[]) => {
+    setSavedStyles(updater(savedStyles));
+  };
+
+  const updateSavedCharacters = (updater: (prev: SavedCharacter[]) => SavedCharacter[]) => {
+    setSavedCharacters(updater(savedCharacters));
+  };
 
   const [script, setScript] = useState('');
   const [style, setStyle] = useState<VisualStyle>('2d-animation');
@@ -126,12 +213,6 @@ const App: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [hasVisitedSetup, setHasVisitedSetup] = useState(false);
 
-  const [savedStyles, setSavedStyles] = useState<SavedStyle[]>(() => {
-    try {
-      const stored = localStorage.getItem('user_saved_styles');
-      return stored ? JSON.parse(stored) : [];
-    } catch { return []; }
-  });
   const [newStyleName, setNewStyleName] = useState('');
   const [newStyleImages, setNewStyleImages] = useState<string[]>([]);
   const [newStyleDescription, setNewStyleDescription] = useState('');
@@ -139,13 +220,6 @@ const App: React.FC = () => {
   const [customStyleName, setCustomStyleName] = useState('');
   const [isStyleNameModalOpen, setIsStyleNameModalOpen] = useState(false);
   const styleLibraryInputRef = useRef<HTMLInputElement>(null);
-
-  const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>(() => {
-    try {
-      const stored = localStorage.getItem('user_saved_characters_v2');
-      return stored ? JSON.parse(stored) : [];
-    } catch { return []; }
-  });
   const [newCharLibName, setNewCharLibName] = useState('');
   const [newCharLibImages, setNewCharLibImages] = useState<string[]>([]);
   const [charLibSaveProgress, setCharLibSaveProgress] = useState<number | null>(null);
@@ -157,57 +231,16 @@ const App: React.FC = () => {
   const [expandedSetting, setExpandedSetting] = useState<string | null>(null);
   const [showSubtitleEditor, setShowSubtitleEditor] = useState(false);
 
-  // localStorage 구버전 모델명 마이그레이션
-  if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3-flash'].includes(localStorage.getItem('gemini_model') || '')) {
-    localStorage.setItem('gemini_model', 'gemini-3-flash-preview');
-  }
-  const [geminiModel, setGeminiModel] = useState(localStorage.getItem('gemini_model') || 'gemini-3-flash-preview');
-  const [geminiImageModel, setGeminiImageModel] = useState(localStorage.getItem('gemini_image_model') || 'gemini-2.5-flash-image');
-  const [imageProvider, setImageProvider] = useState<'gemini' | 'runware'>(
-    (localStorage.getItem('image_provider') as any) || 'gemini'
-  );
-  const [runwareApiKey, setRunwareApiKey] = useState(localStorage.getItem('runware_api_key') || '');
   const [showRunwareKey, setShowRunwareKey] = useState(false);
-  const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
-  const [isGeminiValid, setIsGeminiValid] = useState(false);
-  const [isValidatingGemini, setIsValidatingGemini] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
-  // Google Cloud (Vertex AI) 설정
-  const [googleCloudProjectId, setGoogleCloudProjectId] = useState(localStorage.getItem('google_cloud_project_id') || '');
-  const [googleCloudLocation, setGoogleCloudLocation] = useState(localStorage.getItem('google_cloud_location') || 'us-central1');
   const [showElKey, setShowElKey] = useState(false);
   const [showChirpKey, setShowChirpKey] = useState(false);
 
   // 비디오 API 설정
-  const DEFAULT_BYTEPLUS_KEY = '';
-  const [bytedanceApiKey, setBytedanceApiKey] = useState(localStorage.getItem('bytedance_api_key') || DEFAULT_BYTEPLUS_KEY);
   const [showBytedanceKey, setShowBytedanceKey] = useState(false);
-  const [bytedanceModel, setBytedanceModel] = useState(localStorage.getItem('bytedance_model') || 'seedance-1.0-pro-fast');
+  const [showEvolinkKey, setShowEvolinkKey] = useState(false);
   const [bytedanceDuration] = useState(10); // 10초 고정
   const [bytedanceResolution] = useState('720p'); // 720p 고정
-
-  // Video Provider 설정 (byteplus | evolink | runware)
-  const [videoProvider, setVideoProvider] = useState<'byteplus' | 'evolink' | 'runware'>(
-    (localStorage.getItem('video_provider') as any) || 'byteplus'
-  );
-  const [evolinkApiKey, setEvolinkApiKey] = useState(localStorage.getItem('evolink_api_key') || '');
-  const [showEvolinkKey, setShowEvolinkKey] = useState(false);
-  const [evolinkResolution, setEvolinkResolution] = useState(localStorage.getItem('evolink_resolution') || '720p');
-  const [evolinkDuration, setEvolinkDuration] = useState(parseInt(localStorage.getItem('evolink_duration') || '5'));
-
-  // Video API 유효성 검증 상태
-  const [isByteplusValid, setIsByteplusValid] = useState(false);
-  const [isValidatingByteplus, setIsValidatingByteplus] = useState(false);
-  const [isEvolinkValid, setIsEvolinkValid] = useState(false);
-  const [isValidatingEvolink, setIsValidatingEvolink] = useState(false);
-  const [isRunwareValid, setIsRunwareValid] = useState(false);
-  const [isValidatingRunware, setIsValidatingRunware] = useState(false);
-
-  const [runwareDuration, setRunwareDuration] = useState(parseInt(localStorage.getItem('runware_duration') || '5'));
-  const [runwareResolution, setRunwareResolution] = useState(localStorage.getItem('runware_resolution') || '720p');
-
-  // 영상 생성 범위 설정 (초 단위, 기본값: 300초 = 5분, 최대: 1800초 = 30분)
-  const [videoGenerationRange, setVideoGenerationRange] = useState(parseInt(localStorage.getItem('video_generation_range') || '300'));
 
   // 분/초 별도 입력을 위한 계산
   const videoRangeMinutes = Math.floor(videoGenerationRange / 60);
@@ -233,35 +266,10 @@ const App: React.FC = () => {
     };
   };
 
-  const [audioProvider, setAudioProvider] = useState<'google-chirp3' | 'google-neural2' | 'google-standard' | 'google-wavenet' | 'google-studio' | 'microsoft' | 'elevenlabs'>(
-    (localStorage.getItem('audio_provider') as any) || 'google-chirp3'
-  );
-  const [chirpApiKey, setChirpApiKey] = useState(localStorage.getItem('chirp_api_key') || '');
-  const [chirpVoice, setChirpVoice] = useState(localStorage.getItem('chirp_voice') || 'Kore');
-  const [chirpSpeed, setChirpSpeed] = useState(parseFloat(localStorage.getItem('chirp_speed') || '1.0'));
-  const [neural2Voice, setNeural2Voice] = useState(localStorage.getItem('neural2_voice') || 'ko-KR-Neural2-A');
-  const [standardVoice, setStandardVoice] = useState(localStorage.getItem('standard_voice') || 'ko-KR-Standard-A');
-  const [wavenetVoice, setWavenetVoice] = useState(localStorage.getItem('wavenet_voice') || 'ko-KR-Wavenet-A');
-  const [studioVoice, setStudioVoice] = useState(localStorage.getItem('studio_voice') || 'ko-KR-Studio-A');
-
   // 업로드된 WAV 파일 상태
   const [uploadedWavFile, setUploadedWavFile] = useState<{ file: File; url: string } | null>(null);
-
-  // Azure TTS 설정
-  const [azureApiKey, setAzureApiKey] = useState(localStorage.getItem('azure_tts_key') || '');
   const azureRegion = 'koreacentral'; // 한국 고정
-  const [azureVoice, setAzureVoice] = useState(localStorage.getItem('azure_tts_voice') || 'ko-KR-SunHiNeural');
   const [showAzureKey, setShowAzureKey] = useState(false);
-
-  // 자막 설정
-  const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(() => {
-    try {
-      const stored = localStorage.getItem('subtitle_settings');
-      return stored ? JSON.parse(stored) : DEFAULT_SUBTITLE_SETTINGS;
-    } catch {
-      return DEFAULT_SUBTITLE_SETTINGS;
-    }
-  });
 
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
   const [isCharLoadModalOpen, setIsCharLoadModalOpen] = useState(false);
@@ -295,11 +303,6 @@ const App: React.FC = () => {
   // Storyboard selection mode for merging
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedSceneIds, setSelectedSceneIds] = useState<string[]>([]);
-  const [elSettings, setElSettings] = useState<ElevenLabsSettings>({
-    apiKey: localStorage.getItem('el_api_key') || '',
-    voiceId: '21m00Tcm4llvDq8ikWAM',
-    speed: parseFloat(localStorage.getItem('el_speed') || '1.0')
-  });
   const [voices, setVoices] = useState<any[]>([]);
   const [isElConnected, setIsElConnected] = useState(false);
   const [isAssetMenuOpen, setIsAssetMenuOpen] = useState(false);
@@ -349,151 +352,24 @@ const App: React.FC = () => {
     const root = document.documentElement;
     if (isDarkMode) {
       root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
     } else {
       root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
 
-  // [EXP] 항상 소금 장인 프로젝트 + 스토리보드로 강제 이동
+  // Build version log
   useEffect(() => {
     console.log(`[APP] BUILD_VERSION: ${BUILD_VERSION}`);
-
-    // localStorage 기본값 마이그레이션
-    // 1. API 키 자동 설정
-    const storedApiKey = localStorage.getItem('bytedance_api_key');
-    if (!storedApiKey) {
-      console.log('[MIGRATION] Setting default BytePlus API key');
-      localStorage.setItem('bytedance_api_key', DEFAULT_BYTEPLUS_KEY);
-      setBytedanceApiKey(DEFAULT_BYTEPLUS_KEY);
-    }
-
-    // 2. 모델 항상 PRO-FAST로 강제
-    const storedModel = localStorage.getItem('bytedance_model');
-    if (!storedModel || storedModel === 'seedance-1.0-pro' || storedModel.includes('251015')) {
-      console.log('[MIGRATION] Setting default model to PRO-FAST');
-      localStorage.setItem('bytedance_model', 'seedance-1.0-pro-fast');
-      setBytedanceModel('seedance-1.0-pro-fast');
-    }
-
-    // bytedanceResolution은 720p 고정 (migration 불필요)
   }, []);
 
+  // Gemini API validation
   useEffect(() => {
-    try {
-      // 이미지/오디오 데이터 완전 제외 (용량 문제 방지)
-      const projectsToSave = projects.map(p => ({
-        id: p.id,
-        title: p.title,
-        script: p.script,
-        style: p.style,
-        customStyleDescription: p.customStyleDescription,
-        updatedAt: p.updatedAt,
-        characters: p.characters.map(c => ({
-          id: c.id,
-          name: c.name,
-          role: c.role,
-          visualDescription: c.visualDescription,
-          portraitUrl: null,
-          status: 'idle'
-        })),
-        scenes: p.scenes.map(s => ({
-          id: s.id,
-          scriptSegment: s.scriptSegment,
-          imagePrompt: s.imagePrompt,
-          imageUrl: null,
-          audioUrl: null,
-          videoUrl: null,
-          status: 'idle',
-          audioStatus: 'idle',
-          videoStatus: 'idle',
-          effect: s.effect
-        }))
-      }));
-      localStorage.setItem('user_projects_v1', JSON.stringify(projectsToSave));
-    } catch (e) {
-      console.error("Project Save Error", e);
-      // 저장 실패 시 기존 데이터 삭제하고 재시도
-      try {
-        localStorage.removeItem('user_projects_v1');
-      } catch {}
-    }
-  }, [projects]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('user_saved_styles', JSON.stringify(savedStyles));
-    } catch (e) { console.error("Style Save Error", e); }
-  }, [savedStyles]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('user_saved_characters_v2', JSON.stringify(savedCharacters));
-    } catch (e) { console.error("Character Save Error", e); }
-  }, [savedCharacters]);
-
-  useEffect(() => {
-    localStorage.setItem('gemini_model', geminiModel);
-  }, [geminiModel]);
-
-  useEffect(() => {
-    localStorage.setItem('gemini_image_model', geminiImageModel);
-  }, [geminiImageModel]);
-
-  useEffect(() => {
-    localStorage.setItem('gemini_api_key', geminiApiKey);
-    localStorage.setItem('google_cloud_project_id', googleCloudProjectId);
-    localStorage.setItem('google_cloud_location', googleCloudLocation);
-    localStorage.setItem('image_provider', imageProvider);
-    localStorage.setItem('runware_api_key', runwareApiKey);
     if (geminiApiKey.length > 20) {
       checkGeminiKey(geminiApiKey);
     } else {
       setIsGeminiValid(false);
     }
-  }, [geminiApiKey, googleCloudProjectId, googleCloudLocation, imageProvider, runwareApiKey]);
-
-  useEffect(() => {
-    localStorage.setItem('bytedance_api_key', bytedanceApiKey);
-  }, [bytedanceApiKey]);
-
-  useEffect(() => {
-    localStorage.setItem('bytedance_model', bytedanceModel);
-    // bytedanceDuration과 bytedanceResolution은 고정값 (10초, 720p)
-  }, [bytedanceModel]);
-
-  useEffect(() => {
-    localStorage.setItem('video_engine', videoEngine);
-  }, [videoEngine]);
-
-  useEffect(() => {
-    localStorage.setItem('video_provider', videoProvider);
-    localStorage.setItem('evolink_api_key', evolinkApiKey);
-    localStorage.setItem('evolink_resolution', evolinkResolution);
-    localStorage.setItem('evolink_duration', evolinkDuration.toString());
-    localStorage.setItem('runware_api_key', runwareApiKey);
-    localStorage.setItem('runware_duration', runwareDuration.toString());
-    localStorage.setItem('runware_resolution', runwareResolution);
-    localStorage.setItem('video_generation_range', videoGenerationRange.toString());
-  }, [videoProvider, evolinkApiKey, evolinkResolution, evolinkDuration, runwareApiKey, runwareDuration, runwareResolution, videoGenerationRange]);
-
-  useEffect(() => {
-    localStorage.setItem('audio_provider', audioProvider);
-    localStorage.setItem('chirp_api_key', chirpApiKey);
-    localStorage.setItem('chirp_voice', chirpVoice);
-    localStorage.setItem('chirp_speed', chirpSpeed.toString());
-    localStorage.setItem('neural2_voice', neural2Voice);
-    localStorage.setItem('standard_voice', standardVoice);
-    localStorage.setItem('wavenet_voice', wavenetVoice);
-    localStorage.setItem('studio_voice', studioVoice);
-    localStorage.setItem('azure_tts_key', azureApiKey);
-    localStorage.setItem('azure_tts_voice', azureVoice);
-  }, [audioProvider, chirpApiKey, chirpVoice, chirpSpeed, neural2Voice, standardVoice, wavenetVoice, studioVoice, azureApiKey, azureVoice]);
-
-  useEffect(() => {
-    localStorage.setItem('subtitle_settings', JSON.stringify(subtitleSettings));
-  }, [subtitleSettings]);
+  }, [geminiApiKey]);
 
   // 자막 미리보기 렌더링
   useEffect(() => {
@@ -755,22 +631,15 @@ const App: React.FC = () => {
       }],
       updatedAt: Date.now(),
     };
-    setProjects(prev => [testProject, ...prev]);
+    updateProjects(prev => [testProject, ...prev]);
     setCurrentProjectId(pid);
     setStep('storyboard');
   };
 
   const updateCurrentProject = useCallback((updates: Partial<StoryProject>) => {
     if (!currentProjectId) return;
-    setProjects(prev => {
-      const updated = prev.map(p =>
-        p.id === currentProjectId
-          ? { ...p, ...updates, updatedAt: Date.now() }
-          : p
-      );
-      return updated;
-    });
-  }, [currentProjectId]);
+    updateProject(currentProjectId, updates);
+  }, [currentProjectId, updateProject]);
 
   const checkElevenLabs = async () => {
     if (!elSettings.apiKey) {
@@ -1008,7 +877,7 @@ const App: React.FC = () => {
         refImages: newStyleImages,
         description
       };
-      setSavedStyles(prev => [...prev, newStyle]);
+      updateSavedStyles(prev => [...prev, newStyle]);
       setNewStyleName('');
       setNewStyleImages([]);
 
@@ -1057,7 +926,7 @@ const App: React.FC = () => {
         refImages: refImages,
         description
       };
-      setSavedStyles(prev => [...prev, newStyle]);
+      updateSavedStyles(prev => [...prev, newStyle]);
       setCustomStyleName('');
       setRefImages([]);
 
@@ -1091,7 +960,7 @@ const App: React.FC = () => {
         description,
         portraitUrl: newCharLibImages[0]
       };
-      setSavedCharacters(prev => [...prev, newChar]);
+      updateSavedCharacters(prev => [...prev, newChar]);
       setNewCharLibName('');
       setNewCharLibImages([]);
       setCharLibSaveProgress(100);
@@ -1187,7 +1056,7 @@ const App: React.FC = () => {
     const activeProject = specificProject || project;
     if (!activeProject || !currentProjectId) return;
 
-    setProjects(prev => prev.map(p => p.id === activeProject.id ? {
+    updateProjects(prev => prev.map(p => p.id === activeProject.id ? {
       ...p, characters: p.characters.map(c => c.id === charId ? { ...c, status: 'loading', portraitUrl: null } : c)
     } : p));
 
@@ -1202,11 +1071,11 @@ const App: React.FC = () => {
       }
 
       const url = await gemini.generateImage(finalPrompt, true, geminiImageModel);
-      setProjects(prev => prev.map(p => p.id === activeProject.id ? {
+      updateProjects(prev => prev.map(p => p.id === activeProject.id ? {
         ...p, characters: p.characters.map(c => c.id === charId ? { ...c, portraitUrl: url, status: 'done' } : c)
       } : p));
     } catch {
-      setProjects(prev => prev.map(p => p.id === activeProject.id ? {
+      updateProjects(prev => prev.map(p => p.id === activeProject.id ? {
         ...p, characters: p.characters.map(c => c.id === charId ? { ...c, status: 'error' } : c)
       } : p));
     }
@@ -1310,7 +1179,7 @@ const App: React.FC = () => {
   const generateSceneImage = async (sceneId: string) => {
     if (!currentProjectId) return;
 
-    setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+    updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
       ...p,
       scenes: p.scenes.map(s => s.id === sceneId ? { ...s, status: 'loading', imageUrl: null } : s)
     } : p));
@@ -1344,12 +1213,12 @@ const App: React.FC = () => {
         referenceImages.length > 0 ? referenceImages : undefined
       );
 
-      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+      updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
         ...p,
         scenes: p.scenes.map(s => s.id === sceneId ? { ...s, imageUrl: url, status: 'done' } : s)
       } : p));
     } catch {
-      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+      updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
         ...p,
         scenes: p.scenes.map(s => s.id === sceneId ? { ...s, status: 'error' } : s)
       } : p));
@@ -1360,11 +1229,11 @@ const App: React.FC = () => {
     if (!project || !promptEditId || !promptEditInput.trim() || !currentProjectId) return;
 
     if (promptEditType === 'character') {
-      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+      updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
         ...p, characters: p.characters.map(c => c.id === promptEditId ? { ...c, status: 'loading', portraitUrl: null } : c)
       } : p));
     } else {
-      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+      updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
         ...p, scenes: p.scenes.map(s => s.id === promptEditId ? { ...s, status: 'loading', imageUrl: null } : s)
       } : p));
     }
@@ -1392,7 +1261,7 @@ const App: React.FC = () => {
       const newImageUrl = await gemini.generateImage(finalPrompt, isPortrait, geminiImageModel);
 
       if (promptEditType === 'character') {
-        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
           ...p, characters: p.characters.map(c => c.id === promptEditId ? {
             ...c,
             visualDescription: newPrompt,
@@ -1401,7 +1270,7 @@ const App: React.FC = () => {
           } : c)
         } : p));
       } else {
-        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
           ...p, scenes: p.scenes.map(s => s.id === promptEditId ? {
             ...s,
             imagePrompt: newPrompt,
@@ -1415,11 +1284,11 @@ const App: React.FC = () => {
       console.error(err);
       alert("재생성에 실패했습니다.");
       if (promptEditType === 'character') {
-        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
           ...p, characters: p.characters.map(c => c.id === promptEditId ? { ...c, status: 'error' } : c)
         } : p));
       } else {
-        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
           ...p, scenes: p.scenes.map(s => s.id === promptEditId ? { ...s, status: 'error' } : s)
         } : p));
       }
@@ -1437,11 +1306,11 @@ const App: React.FC = () => {
     if (!project || !regenerateId || !regenerateInput.trim() || !currentProjectId) return;
 
     if (regenerateType === 'character') {
-      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+      updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
         ...p, characters: p.characters.map(c => c.id === regenerateId ? { ...c, status: 'loading', portraitUrl: null } : c)
       } : p));
     } else {
-      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+      updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
         ...p, scenes: p.scenes.map(s => s.id === regenerateId ? { ...s, status: 'loading', imageUrl: null } : s)
       } : p));
     }
@@ -1469,7 +1338,7 @@ const App: React.FC = () => {
       const newImageUrl = await gemini.generateImage(finalPrompt, isPortrait, geminiImageModel);
 
       if (regenerateType === 'character') {
-        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
           ...p, characters: p.characters.map(c => c.id === regenerateId ? {
             ...c,
             visualDescription: newPrompt,
@@ -1478,7 +1347,7 @@ const App: React.FC = () => {
           } : c)
         } : p));
       } else {
-        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
           ...p, scenes: p.scenes.map(s => s.id === regenerateId ? {
             ...s,
             imagePrompt: newPrompt,
@@ -1492,11 +1361,11 @@ const App: React.FC = () => {
       console.error(err);
       alert("재생성에 실패했습니다.");
       if (regenerateType === 'character') {
-        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
           ...p, characters: p.characters.map(c => c.id === regenerateId ? { ...c, status: 'error' } : c)
         } : p));
       } else {
-        setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
           ...p, scenes: p.scenes.map(s => s.id === regenerateId ? { ...s, status: 'error' } : s)
         } : p));
       }
@@ -2074,7 +1943,7 @@ const App: React.FC = () => {
         description: char.visualDescription,
         portraitUrl: char.portraitUrl
       };
-      setSavedCharacters(prev => [...prev, newSaved]);
+      updateSavedCharacters(prev => [...prev, newSaved]);
       alert(`${char.name} 인물이 저장되었습니다.`);
     } catch (e) {
       console.error(e);
@@ -2161,7 +2030,7 @@ const App: React.FC = () => {
       scenes: [],
       updatedAt: Date.now()
     };
-    setProjects(prev => [newProject, ...prev]);
+    updateProjects(prev => [newProject, ...prev]);
     setCurrentProjectId(newId);
     setScript('');
     setStyle('2d-animation');
@@ -2174,15 +2043,13 @@ const App: React.FC = () => {
     e.stopPropagation();
     e.preventDefault();
     if (window.confirm("정말로 이 프로젝트를 삭제하시겠습니까?")) {
-      setProjects(prevProjects => {
-        const updatedProjects = prevProjects.filter(p => p.id !== id);
-        try {
-          localStorage.setItem('user_projects_v1', JSON.stringify(updatedProjects));
-        } catch (err) {
-          console.error("Storage sync failed during delete", err);
-        }
-        return updatedProjects;
-      });
+      const updatedProjects = projects.filter((p: StoryProject) => p.id !== id);
+      setProjects(updatedProjects);
+      try {
+        localStorage.setItem('user_projects_v1', JSON.stringify(updatedProjects));
+      } catch (err) {
+        console.error("Storage sync failed during delete", err);
+      }
 
       if (currentProjectId === id) {
         setCurrentProjectId(null);
@@ -2939,76 +2806,20 @@ const App: React.FC = () => {
       {isMyPageOpen && isSettingsFullscreen && (
         <FullscreenSettings
           onClose={() => setIsSettingsFullscreen(false)}
-          geminiApiKey={geminiApiKey}
-          onGeminiKeyChange={setGeminiApiKey}
-          subtitleSettings={subtitleSettings}
-          onSubtitleChange={setSubtitleSettings}
           isLoggedIn={isLoggedIn}
           onLoginStateChange={setIsLoggedIn}
-          geminiModel={geminiModel}
-          onGeminiModelChange={setGeminiModel}
-          geminiImageModel={geminiImageModel}
-          onGeminiImageModelChange={setGeminiImageModel}
-          isGeminiValid={isGeminiValid}
-          isValidatingGemini={isValidatingGemini}
           onCheckGeminiKey={checkGeminiKey}
-          videoProvider={videoProvider}
-          onVideoProviderChange={setVideoProvider}
-          bytedanceApiKey={bytedanceApiKey}
-          onBytedanceApiKeyChange={setBytedanceApiKey}
-          bytedanceModel={bytedanceModel}
-          onBytedanceModelChange={setBytedanceModel}
-          evolinkApiKey={evolinkApiKey}
-          onEvolinkApiKeyChange={setEvolinkApiKey}
-          evolinkResolution={evolinkResolution}
-          onEvolinkResolutionChange={setEvolinkResolution}
-          evolinkDuration={evolinkDuration}
-          onEvolinkDurationChange={setEvolinkDuration}
-          runwareApiKey={runwareApiKey}
-          onRunwareApiKeyChange={setRunwareApiKey}
-          runwareResolution={runwareResolution}
-          onRunwareResolutionChange={setRunwareResolution}
-          runwareDuration={runwareDuration}
-          onRunwareDurationChange={setRunwareDuration}
-          videoGenerationRange={videoGenerationRange}
-          onVideoGenerationRangeChange={setVideoGenerationRange}
           calculateVideoCost={calculateVideoCost}
           totalScenes={project?.scenes.length || 0}
-          audioProvider={audioProvider}
-          onAudioProviderChange={setAudioProvider}
-          chirpVoice={chirpVoice}
-          onChirpVoiceChange={setChirpVoice}
-          chirpSpeed={chirpSpeed}
-          onChirpSpeedChange={setChirpSpeed}
-          neural2Voice={neural2Voice}
-          onNeural2VoiceChange={setNeural2Voice}
-          standardVoice={standardVoice}
-          onStandardVoiceChange={setStandardVoice}
-          wavenetVoice={wavenetVoice}
-          onWavenetVoiceChange={setWavenetVoice}
-          studioVoice={studioVoice}
-          onStudioVoiceChange={setStudioVoice}
-          azureApiKey={azureApiKey}
-          onAzureApiKeyChange={setAzureApiKey}
-          azureVoice={azureVoice}
-          onAzureVoiceChange={setAzureVoice}
-          elSettings={elSettings}
-          onElSettingsChange={setElSettings}
+          onCheckByteplusKey={checkByteplusKey}
+          onCheckEvolinkKey={checkEvolinkKey}
+          onCheckRunwareKey={checkRunwareKey}
           isElConnected={isElConnected}
           voices={voices}
           onVoiceTest={handleVoiceTest}
           isVoiceTesting={isVoiceTesting}
           onWavUpload={handleWavUpload}
           uploadedWavFile={uploadedWavFile}
-          isByteplusValid={isByteplusValid}
-          isValidatingByteplus={isValidatingByteplus}
-          onCheckByteplusKey={checkByteplusKey}
-          isEvolinkValid={isEvolinkValid}
-          isValidatingEvolink={isValidatingEvolink}
-          onCheckEvolinkKey={checkEvolinkKey}
-          isRunwareValid={isRunwareValid}
-          isValidatingRunware={isValidatingRunware}
-          onCheckRunwareKey={checkRunwareKey}
         />
       )}
 
@@ -3996,7 +3807,7 @@ const App: React.FC = () => {
                               {s.refImages[0] && <img src={s.refImages[0]} className="w-10 h-10 rounded-lg object-cover" />}
                               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{s.name}</span>
                             </div>
-                            <button onClick={() => setSavedStyles(prev => prev.filter(x => x.id !== s.id))} className="text-xs text-red-500 hover:text-red-600">삭제</button>
+                            <button onClick={() => updateSavedStyles(prev => prev.filter(x => x.id !== s.id))} className="text-xs text-red-500 hover:text-red-600">삭제</button>
                           </div>
                         ))}
                       </div>
@@ -4080,7 +3891,7 @@ const App: React.FC = () => {
                               {c.portraitUrl && <img src={c.portraitUrl} onClick={() => setSelectedImage(c.portraitUrl)} className="w-10 h-10 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform" />}
                               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{c.name}</span>
                             </div>
-                            <button onClick={() => setSavedCharacters(prev => prev.filter(x => x.id !== c.id))} className="text-xs text-red-500 hover:text-red-600">삭제</button>
+                            <button onClick={() => updateSavedCharacters(prev => prev.filter(x => x.id !== c.id))} className="text-xs text-red-500 hover:text-red-600">삭제</button>
                           </div>
                         ))}
                       </div>

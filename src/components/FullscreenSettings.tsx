@@ -1,81 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { SubtitleSettings, SubtitlePosition, ElevenLabsSettings } from '../types';
 import { TEMPLATES } from './SubtitleTemplateModal';
+import { useSettingsStore } from '../stores/settingsStore';
 
 type SettingTab = 'account' | 'gemini' | 'video-api' | 'subtitle' | 'narration' | 'saved-styles' | 'saved-characters';
 
 interface FullscreenSettingsProps {
   onClose: () => void;
-  geminiApiKey: string;
-  onGeminiKeyChange: (key: string) => void;
-  subtitleSettings: SubtitleSettings;
-  onSubtitleChange: (settings: SubtitleSettings) => void;
   isLoggedIn: boolean;
   onLoginStateChange: (loggedIn: boolean) => void;
-
-  // Gemini API settings
-  geminiModel: string;
-  onGeminiModelChange: (model: string) => void;
-  geminiImageModel: string;
-  onGeminiImageModelChange: (model: string) => void;
-  isGeminiValid: boolean;
-  isValidatingGemini: boolean;
   onCheckGeminiKey: (key: string) => void;
-
-  // Video API settings
-  videoProvider: 'byteplus' | 'evolink' | 'runware';
-  onVideoProviderChange: (provider: 'byteplus' | 'evolink' | 'runware') => void;
-  bytedanceApiKey: string;
-  onBytedanceApiKeyChange: (key: string) => void;
-  bytedanceModel: string;
-  onBytedanceModelChange: (model: string) => void;
-  evolinkApiKey: string;
-  onEvolinkApiKeyChange: (key: string) => void;
-  evolinkResolution: string;
-  onEvolinkResolutionChange: (resolution: string) => void;
-  evolinkDuration: number;
-  onEvolinkDurationChange: (duration: number) => void;
-  runwareApiKey: string;
-  onRunwareApiKeyChange: (key: string) => void;
-  runwareResolution: string;
-  onRunwareResolutionChange: (resolution: string) => void;
-  runwareDuration: number;
-  onRunwareDurationChange: (duration: number) => void;
-  videoGenerationRange: number;
-  onVideoGenerationRangeChange: (range: number) => void;
   calculateVideoCost: () => { numScenes: number; costPerScene: number; totalCost: number };
   totalScenes: number;
-  isByteplusValid: boolean;
-  isValidatingByteplus: boolean;
   onCheckByteplusKey: (key: string) => void;
-  isEvolinkValid: boolean;
-  isValidatingEvolink: boolean;
   onCheckEvolinkKey: (key: string) => void;
-  isRunwareValid: boolean;
-  isValidatingRunware: boolean;
   onCheckRunwareKey: (key: string) => void;
-
-  // Narration settings
-  audioProvider: 'google-chirp3' | 'google-neural2' | 'google-standard' | 'google-wavenet' | 'google-studio' | 'microsoft' | 'elevenlabs';
-  onAudioProviderChange: (provider: 'google-chirp3' | 'google-neural2' | 'google-standard' | 'google-wavenet' | 'google-studio' | 'microsoft' | 'elevenlabs') => void;
-  chirpVoice: string;
-  onChirpVoiceChange: (voice: string) => void;
-  chirpSpeed: number;
-  onChirpSpeedChange: (speed: number) => void;
-  neural2Voice: string;
-  onNeural2VoiceChange: (voice: string) => void;
-  standardVoice: string;
-  onStandardVoiceChange: (voice: string) => void;
-  wavenetVoice: string;
-  onWavenetVoiceChange: (voice: string) => void;
-  studioVoice: string;
-  onStudioVoiceChange: (voice: string) => void;
-  azureApiKey: string;
-  onAzureApiKeyChange: (key: string) => void;
-  azureVoice: string;
-  onAzureVoiceChange: (voice: string) => void;
-  elSettings: ElevenLabsSettings;
-  onElSettingsChange: (settings: ElevenLabsSettings) => void;
   isElConnected: boolean;
   voices: any[];
   onVoiceTest: () => void;
@@ -87,70 +26,14 @@ interface FullscreenSettingsProps {
 export default function FullscreenSettings(props: FullscreenSettingsProps) {
   const {
     onClose,
-    geminiApiKey,
-    onGeminiKeyChange,
-    subtitleSettings,
-    onSubtitleChange,
     isLoggedIn,
     onLoginStateChange,
-    geminiModel,
-    onGeminiModelChange,
-    geminiImageModel,
-    onGeminiImageModelChange,
-    isGeminiValid,
-    isValidatingGemini,
     onCheckGeminiKey,
-    videoProvider,
-    onVideoProviderChange,
-    bytedanceApiKey,
-    onBytedanceApiKeyChange,
-    bytedanceModel,
-    onBytedanceModelChange,
-    evolinkApiKey,
-    onEvolinkApiKeyChange,
-    evolinkResolution,
-    onEvolinkResolutionChange,
-    evolinkDuration,
-    onEvolinkDurationChange,
-    runwareApiKey,
-    onRunwareApiKeyChange,
-    runwareResolution,
-    onRunwareResolutionChange,
-    runwareDuration,
-    onRunwareDurationChange,
-    videoGenerationRange,
-    onVideoGenerationRangeChange,
     calculateVideoCost,
     totalScenes,
-    isByteplusValid,
-    isValidatingByteplus,
     onCheckByteplusKey,
-    isEvolinkValid,
-    isValidatingEvolink,
     onCheckEvolinkKey,
-    isRunwareValid,
-    isValidatingRunware,
     onCheckRunwareKey,
-    audioProvider,
-    onAudioProviderChange,
-    chirpVoice,
-    onChirpVoiceChange,
-    chirpSpeed,
-    onChirpSpeedChange,
-    neural2Voice,
-    onNeural2VoiceChange,
-    standardVoice,
-    onStandardVoiceChange,
-    wavenetVoice,
-    onWavenetVoiceChange,
-    studioVoice,
-    onStudioVoiceChange,
-    azureApiKey,
-    onAzureApiKeyChange,
-    azureVoice,
-    onAzureVoiceChange,
-    elSettings,
-    onElSettingsChange,
     isElConnected,
     voices,
     onVoiceTest,
@@ -158,6 +41,66 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
     onWavUpload,
     uploadedWavFile,
   } = props;
+
+  // Use Zustand stores
+  const {
+    geminiApiKey,
+    setGeminiApiKey,
+    geminiModel,
+    setGeminiModel,
+    geminiImageModel,
+    setGeminiImageModel,
+    isGeminiValid,
+    isValidatingGemini,
+    videoProvider,
+    setVideoProvider,
+    bytedanceApiKey,
+    setBytedanceApiKey,
+    bytedanceModel,
+    setBytedanceModel,
+    isByteplusValid,
+    isValidatingByteplus,
+    evolinkApiKey,
+    setEvolinkApiKey,
+    evolinkResolution,
+    setEvolinkResolution,
+    evolinkDuration,
+    setEvolinkDuration,
+    isEvolinkValid,
+    isValidatingEvolink,
+    runwareApiKey,
+    setRunwareApiKey,
+    runwareResolution,
+    setRunwareResolution,
+    runwareDuration,
+    setRunwareDuration,
+    isRunwareValid,
+    isValidatingRunware,
+    videoGenerationRange,
+    setVideoGenerationRange,
+    audioProvider,
+    setAudioProvider,
+    chirpVoice,
+    setChirpVoice,
+    chirpSpeed,
+    setChirpSpeed,
+    neural2Voice,
+    setNeural2Voice,
+    standardVoice,
+    setStandardVoice,
+    wavenetVoice,
+    setWavenetVoice,
+    studioVoice,
+    setStudioVoice,
+    azureApiKey,
+    setAzureApiKey,
+    azureVoice,
+    setAzureVoice,
+    elSettings,
+    setElSettings,
+    subtitleSettings,
+    setSubtitleSettings,
+  } = useSettingsStore();
   const [activeTab, setActiveTab] = useState<SettingTab>('gemini');
   const [showAzureKey, setShowAzureKey] = useState(false);
   const [showElKey, setShowElKey] = useState(false);
@@ -233,41 +176,41 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
           {activeTab === 'gemini' && (
             <GeminiSettings
               apiKey={geminiApiKey}
-              onChange={onGeminiKeyChange}
+              onChange={setGeminiApiKey}
               geminiModel={geminiModel}
-              onGeminiModelChange={onGeminiModelChange}
+              setGeminiModel={setGeminiModel}
               geminiImageModel={geminiImageModel}
-              onGeminiImageModelChange={onGeminiImageModelChange}
+              setGeminiImageModel={setGeminiImageModel}
               isGeminiValid={isGeminiValid}
               isValidatingGemini={isValidatingGemini}
               onCheckGeminiKey={onCheckGeminiKey}
             />
           )}
-          {activeTab === 'subtitle' && <SubtitleSettingsPanel settings={subtitleSettings} onChange={onSubtitleChange} />}
+          {activeTab === 'subtitle' && <SubtitleSettingsPanel settings={subtitleSettings} onChange={setSubtitleSettings} />}
           {activeTab === 'narration' && (
             <NarrationSettings
               audioProvider={audioProvider}
-              onAudioProviderChange={onAudioProviderChange}
+              setAudioProvider={setAudioProvider}
               chirpVoice={chirpVoice}
-              onChirpVoiceChange={onChirpVoiceChange}
+              setChirpVoice={setChirpVoice}
               chirpSpeed={chirpSpeed}
-              onChirpSpeedChange={onChirpSpeedChange}
+              setChirpSpeed={setChirpSpeed}
               neural2Voice={neural2Voice}
-              onNeural2VoiceChange={onNeural2VoiceChange}
+              setNeural2Voice={setNeural2Voice}
               standardVoice={standardVoice}
-              onStandardVoiceChange={onStandardVoiceChange}
+              setStandardVoice={setStandardVoice}
               wavenetVoice={wavenetVoice}
-              onWavenetVoiceChange={onWavenetVoiceChange}
+              setWavenetVoice={setWavenetVoice}
               studioVoice={studioVoice}
-              onStudioVoiceChange={onStudioVoiceChange}
+              setStudioVoice={setStudioVoice}
               azureApiKey={azureApiKey}
-              onAzureApiKeyChange={onAzureApiKeyChange}
+              setAzureApiKey={setAzureApiKey}
               azureVoice={azureVoice}
-              onAzureVoiceChange={onAzureVoiceChange}
+              setAzureVoice={setAzureVoice}
               showAzureKey={showAzureKey}
               onShowAzureKeyToggle={() => setShowAzureKey(!showAzureKey)}
               elSettings={elSettings}
-              onElSettingsChange={onElSettingsChange}
+              setElSettings={setElSettings}
               isElConnected={isElConnected}
               voices={voices}
               showElKey={showElKey}
@@ -283,25 +226,25 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
           {activeTab === 'video-api' && (
             <VideoApiSettings
               videoProvider={videoProvider}
-              onVideoProviderChange={onVideoProviderChange}
+              setVideoProvider={setVideoProvider}
               bytedanceApiKey={bytedanceApiKey}
-              onBytedanceApiKeyChange={onBytedanceApiKeyChange}
+              setBytedanceApiKey={setBytedanceApiKey}
               bytedanceModel={bytedanceModel}
-              onBytedanceModelChange={onBytedanceModelChange}
+              setBytedanceModel={setBytedanceModel}
               evolinkApiKey={evolinkApiKey}
-              onEvolinkApiKeyChange={onEvolinkApiKeyChange}
+              setEvolinkApiKey={setEvolinkApiKey}
               evolinkResolution={evolinkResolution}
-              onEvolinkResolutionChange={onEvolinkResolutionChange}
+              setEvolinkResolution={setEvolinkResolution}
               evolinkDuration={evolinkDuration}
-              onEvolinkDurationChange={onEvolinkDurationChange}
+              setEvolinkDuration={setEvolinkDuration}
               runwareApiKey={runwareApiKey}
-              onRunwareApiKeyChange={onRunwareApiKeyChange}
+              setRunwareApiKey={setRunwareApiKey}
               runwareResolution={runwareResolution}
-              onRunwareResolutionChange={onRunwareResolutionChange}
+              setRunwareResolution={setRunwareResolution}
               runwareDuration={runwareDuration}
-              onRunwareDurationChange={onRunwareDurationChange}
+              setRunwareDuration={setRunwareDuration}
               videoGenerationRange={videoGenerationRange}
-              onVideoGenerationRangeChange={onVideoGenerationRangeChange}
+              setVideoGenerationRange={setVideoGenerationRange}
               calculateVideoCost={calculateVideoCost}
               totalScenes={totalScenes}
               isByteplusValid={isByteplusValid}
@@ -329,9 +272,9 @@ function GeminiSettings({
   apiKey,
   onChange,
   geminiModel,
-  onGeminiModelChange,
+  setGeminiModel,
   geminiImageModel,
-  onGeminiImageModelChange,
+  setGeminiImageModel,
   isGeminiValid,
   isValidatingGemini,
   onCheckGeminiKey,
@@ -339,9 +282,9 @@ function GeminiSettings({
   apiKey: string;
   onChange: (key: string) => void;
   geminiModel: string;
-  onGeminiModelChange: (model: string) => void;
+  setGeminiModel: (model: string) => void;
   geminiImageModel: string;
-  onGeminiImageModelChange: (model: string) => void;
+  setGeminiImageModel: (model: string) => void;
   isGeminiValid: boolean;
   isValidatingGemini: boolean;
   onCheckGeminiKey: (key: string) => void;
@@ -426,7 +369,7 @@ function GeminiSettings({
           </label>
           <select
             value={geminiModel}
-            onChange={(e) => onGeminiModelChange(e.target.value)}
+            onChange={(e) => setGeminiModel(e.target.value)}
             className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
@@ -439,7 +382,7 @@ function GeminiSettings({
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">이미지 모델</label>
           <select
             value={geminiImageModel}
-            onChange={(e) => onGeminiImageModelChange(e.target.value)}
+            onChange={(e) => setGeminiImageModel(e.target.value)}
             className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="imagen-4.0-generate-001">Imagen 4 Fast (29원)</option>
@@ -1065,25 +1008,25 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
 
 function VideoApiSettings({
   videoProvider,
-  onVideoProviderChange,
+  setVideoProvider,
   bytedanceApiKey,
-  onBytedanceApiKeyChange,
+  setBytedanceApiKey,
   bytedanceModel,
-  onBytedanceModelChange,
+  setBytedanceModel,
   evolinkApiKey,
-  onEvolinkApiKeyChange,
+  setEvolinkApiKey,
   evolinkResolution,
-  onEvolinkResolutionChange,
+  setEvolinkResolution,
   evolinkDuration,
-  onEvolinkDurationChange,
+  setEvolinkDuration,
   runwareApiKey,
-  onRunwareApiKeyChange,
+  setRunwareApiKey,
   runwareResolution,
-  onRunwareResolutionChange,
+  setRunwareResolution,
   runwareDuration,
-  onRunwareDurationChange,
+  setRunwareDuration,
   videoGenerationRange,
-  onVideoGenerationRangeChange,
+  setVideoGenerationRange,
   calculateVideoCost,
   totalScenes,
   isByteplusValid,
@@ -1097,25 +1040,25 @@ function VideoApiSettings({
   onCheckRunwareKey,
 }: {
   videoProvider: 'byteplus' | 'evolink' | 'runware';
-  onVideoProviderChange: (provider: 'byteplus' | 'evolink' | 'runware') => void;
+  setVideoProvider: (provider: 'byteplus' | 'evolink' | 'runware') => void;
   bytedanceApiKey: string;
-  onBytedanceApiKeyChange: (key: string) => void;
+  setBytedanceApiKey: (key: string) => void;
   bytedanceModel: string;
-  onBytedanceModelChange: (model: string) => void;
+  setBytedanceModel: (model: string) => void;
   evolinkApiKey: string;
-  onEvolinkApiKeyChange: (key: string) => void;
+  setEvolinkApiKey: (key: string) => void;
   evolinkResolution: string;
-  onEvolinkResolutionChange: (resolution: string) => void;
+  setEvolinkResolution: (resolution: string) => void;
   evolinkDuration: number;
-  onEvolinkDurationChange: (duration: number) => void;
+  setEvolinkDuration: (duration: number) => void;
   runwareApiKey: string;
-  onRunwareApiKeyChange: (key: string) => void;
+  setRunwareApiKey: (key: string) => void;
   runwareResolution: string;
-  onRunwareResolutionChange: (resolution: string) => void;
+  setRunwareResolution: (resolution: string) => void;
   runwareDuration: number;
-  onRunwareDurationChange: (duration: number) => void;
+  setRunwareDuration: (duration: number) => void;
   videoGenerationRange: number;
-  onVideoGenerationRangeChange: (range: number) => void;
+  setVideoGenerationRange: (range: number) => void;
   calculateVideoCost: () => { numScenes: number; costPerScene: number; totalCost: number };
   totalScenes: number;
   isByteplusValid: boolean;
@@ -1145,7 +1088,7 @@ function VideoApiSettings({
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Provider 선택</label>
           <div className="grid grid-cols-3 gap-3">
             <button
-              onClick={() => onVideoProviderChange('byteplus')}
+              onClick={() => setVideoProvider('byteplus')}
               className={`p-4 rounded-lg border-2 transition-all ${
                 videoProvider === 'byteplus'
                   ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
@@ -1158,7 +1101,7 @@ function VideoApiSettings({
               </div>
             </button>
             <button
-              onClick={() => onVideoProviderChange('evolink')}
+              onClick={() => setVideoProvider('evolink')}
               className={`p-4 rounded-lg border-2 transition-all ${
                 videoProvider === 'evolink'
                   ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
@@ -1171,7 +1114,7 @@ function VideoApiSettings({
               </div>
             </button>
             <button
-              onClick={() => onVideoProviderChange('runware')}
+              onClick={() => setVideoProvider('runware')}
               className={`p-4 rounded-lg border-2 transition-all ${
                 videoProvider === 'runware'
                   ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30'
@@ -1210,7 +1153,7 @@ function VideoApiSettings({
                 <input
                   type={showBytedanceKey ? 'text' : 'password'}
                   value={bytedanceApiKey}
-                  onChange={(e) => onBytedanceApiKeyChange(e.target.value)}
+                  onChange={(e) => setBytedanceApiKey(e.target.value)}
                   onBlur={() => bytedanceApiKey.length > 10 && onCheckByteplusKey(bytedanceApiKey)}
                   placeholder="ARK_API_KEY"
                   className="w-full px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -1267,7 +1210,7 @@ function VideoApiSettings({
                 <input
                   type={showEvolinkKey ? 'text' : 'password'}
                   value={evolinkApiKey}
-                  onChange={(e) => onEvolinkApiKeyChange(e.target.value)}
+                  onChange={(e) => setEvolinkApiKey(e.target.value)}
                   onBlur={() => evolinkApiKey.length > 10 && onCheckEvolinkKey(evolinkApiKey)}
                   placeholder="Evolink API Key"
                   className="w-full px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -1309,7 +1252,7 @@ function VideoApiSettings({
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">해상도</label>
               <select
                 value={evolinkResolution}
-                onChange={(e) => onEvolinkResolutionChange(e.target.value)}
+                onChange={(e) => setEvolinkResolution(e.target.value)}
                 className="w-full px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
               >
                 <option value="480p">480p</option>
@@ -1325,7 +1268,7 @@ function VideoApiSettings({
                 min="3"
                 max="10"
                 value={evolinkDuration}
-                onChange={(e) => onEvolinkDurationChange(parseInt(e.target.value))}
+                onChange={(e) => setEvolinkDuration(parseInt(e.target.value))}
                 className="w-full accent-indigo-600"
               />
             </div>
@@ -1348,7 +1291,7 @@ function VideoApiSettings({
                 <input
                   type={showRunwareKey ? 'text' : 'password'}
                   value={runwareApiKey}
-                  onChange={(e) => onRunwareApiKeyChange(e.target.value)}
+                  onChange={(e) => setRunwareApiKey(e.target.value)}
                   onBlur={() => runwareApiKey.length > 10 && onCheckRunwareKey(runwareApiKey)}
                   placeholder="Runware API Key"
                   className="w-full px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -1390,7 +1333,7 @@ function VideoApiSettings({
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">해상도</label>
               <select
                 value={runwareResolution}
-                onChange={(e) => onRunwareResolutionChange(e.target.value)}
+                onChange={(e) => setRunwareResolution(e.target.value)}
                 className="w-full px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
               >
                 <option value="480p">480p</option>
@@ -1406,7 +1349,7 @@ function VideoApiSettings({
                 min="3"
                 max="10"
                 value={runwareDuration}
-                onChange={(e) => onRunwareDurationChange(parseInt(e.target.value))}
+                onChange={(e) => setRunwareDuration(parseInt(e.target.value))}
                 className="w-full accent-indigo-600"
               />
             </div>
@@ -1426,7 +1369,7 @@ function VideoApiSettings({
               min="0"
               max="180"
               value={Math.floor(videoGenerationRange / 10)}
-              onChange={(e) => onVideoGenerationRangeChange(parseInt(e.target.value) * 10)}
+              onChange={(e) => setVideoGenerationRange(parseInt(e.target.value) * 10)}
               className="flex-1 accent-indigo-600"
             />
             <input
@@ -1434,7 +1377,7 @@ function VideoApiSettings({
               min="0"
               max="180"
               value={Math.floor(videoGenerationRange / 10)}
-              onChange={(e) => onVideoGenerationRangeChange(Math.max(0, Math.min(180, parseInt(e.target.value) || 0)) * 10)}
+              onChange={(e) => setVideoGenerationRange(Math.max(0, Math.min(180, parseInt(e.target.value) || 0)) * 10)}
               className="w-20 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-slate-100"
             />
             <span className="text-sm text-slate-600 dark:text-slate-400">장</span>
@@ -1519,27 +1462,27 @@ function SavedStylesPanel() {
 
 function NarrationSettings({
   audioProvider,
-  onAudioProviderChange,
+  setAudioProvider,
   chirpVoice,
-  onChirpVoiceChange,
+  setChirpVoice,
   chirpSpeed,
-  onChirpSpeedChange,
+  setChirpSpeed,
   neural2Voice,
-  onNeural2VoiceChange,
+  setNeural2Voice,
   standardVoice,
-  onStandardVoiceChange,
+  setStandardVoice,
   wavenetVoice,
-  onWavenetVoiceChange,
+  setWavenetVoice,
   studioVoice,
-  onStudioVoiceChange,
+  setStudioVoice,
   azureApiKey,
-  onAzureApiKeyChange,
+  setAzureApiKey,
   azureVoice,
-  onAzureVoiceChange,
+  setAzureVoice,
   showAzureKey,
   onShowAzureKeyToggle,
   elSettings,
-  onElSettingsChange,
+  setElSettings,
   isElConnected,
   voices,
   showElKey,
@@ -1551,27 +1494,27 @@ function NarrationSettings({
   uploadedWavFile,
 }: {
   audioProvider: 'google-chirp3' | 'google-neural2' | 'google-standard' | 'google-wavenet' | 'google-studio' | 'microsoft' | 'elevenlabs';
-  onAudioProviderChange: (provider: 'google-chirp3' | 'google-neural2' | 'google-standard' | 'google-wavenet' | 'google-studio' | 'microsoft' | 'elevenlabs') => void;
+  setAudioProvider: (provider: 'google-chirp3' | 'google-neural2' | 'google-standard' | 'google-wavenet' | 'google-studio' | 'microsoft' | 'elevenlabs') => void;
   chirpVoice: string;
-  onChirpVoiceChange: (voice: string) => void;
+  setChirpVoice: (voice: string) => void;
   chirpSpeed: number;
-  onChirpSpeedChange: (speed: number) => void;
+  setChirpSpeed: (speed: number) => void;
   neural2Voice: string;
-  onNeural2VoiceChange: (voice: string) => void;
+  setNeural2Voice: (voice: string) => void;
   standardVoice: string;
-  onStandardVoiceChange: (voice: string) => void;
+  setStandardVoice: (voice: string) => void;
   wavenetVoice: string;
-  onWavenetVoiceChange: (voice: string) => void;
+  setWavenetVoice: (voice: string) => void;
   studioVoice: string;
-  onStudioVoiceChange: (voice: string) => void;
+  setStudioVoice: (voice: string) => void;
   azureApiKey: string;
-  onAzureApiKeyChange: (key: string) => void;
+  setAzureApiKey: (key: string) => void;
   azureVoice: string;
-  onAzureVoiceChange: (voice: string) => void;
+  setAzureVoice: (voice: string) => void;
   showAzureKey: boolean;
   onShowAzureKeyToggle: () => void;
   elSettings: ElevenLabsSettings;
-  onElSettingsChange: (settings: ElevenLabsSettings) => void;
+  setElSettings: (settings: ElevenLabsSettings) => void;
   isElConnected: boolean;
   voices: any[];
   showElKey: boolean;
@@ -1594,7 +1537,7 @@ function NarrationSettings({
         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">목소리 모델</label>
         <div className="grid grid-cols-3 gap-3">
           <button
-            onClick={() => onAudioProviderChange('google-chirp3')}
+            onClick={() => setAudioProvider('google-chirp3')}
             className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
               audioProvider === 'google-chirp3'
                 ? 'bg-indigo-600 text-white shadow-lg'
@@ -1604,7 +1547,7 @@ function NarrationSettings({
             Chirp3 HD
           </button>
           <button
-            onClick={() => onAudioProviderChange('google-neural2')}
+            onClick={() => setAudioProvider('google-neural2')}
             className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
               audioProvider === 'google-neural2'
                 ? 'bg-indigo-600 text-white shadow-lg'
@@ -1614,7 +1557,7 @@ function NarrationSettings({
             Neural2
           </button>
           <button
-            onClick={() => onAudioProviderChange('google-standard')}
+            onClick={() => setAudioProvider('google-standard')}
             className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
               audioProvider === 'google-standard'
                 ? 'bg-indigo-600 text-white shadow-lg'
@@ -1624,7 +1567,7 @@ function NarrationSettings({
             Standard
           </button>
           <button
-            onClick={() => onAudioProviderChange('google-wavenet')}
+            onClick={() => setAudioProvider('google-wavenet')}
             className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
               audioProvider === 'google-wavenet'
                 ? 'bg-indigo-600 text-white shadow-lg'
@@ -1634,7 +1577,7 @@ function NarrationSettings({
             WaveNet
           </button>
           <button
-            onClick={() => onAudioProviderChange('google-studio')}
+            onClick={() => setAudioProvider('google-studio')}
             className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
               audioProvider === 'google-studio'
                 ? 'bg-indigo-600 text-white shadow-lg'
@@ -1644,7 +1587,7 @@ function NarrationSettings({
             Studio
           </button>
           <button
-            onClick={() => onAudioProviderChange('microsoft')}
+            onClick={() => setAudioProvider('microsoft')}
             className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
               audioProvider === 'microsoft'
                 ? 'bg-indigo-600 text-white shadow-lg'
@@ -1654,7 +1597,7 @@ function NarrationSettings({
             Azure TTS
           </button>
           <button
-            onClick={() => onAudioProviderChange('elevenlabs')}
+            onClick={() => setAudioProvider('elevenlabs')}
             className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
               audioProvider === 'elevenlabs'
                 ? 'bg-indigo-600 text-white shadow-lg'
@@ -1673,7 +1616,7 @@ function NarrationSettings({
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Chirp 음성</label>
             <select
               value={chirpVoice}
-              onChange={(e) => onChirpVoiceChange(e.target.value)}
+              onChange={(e) => setChirpVoice(e.target.value)}
               className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="Kore">Kore - 활기찬, 명랑한, 자연스러운 (여성)</option>
@@ -1695,7 +1638,7 @@ function NarrationSettings({
                 max="2.0"
                 step="0.1"
                 value={chirpSpeed}
-                onChange={(e) => onChirpSpeedChange(parseFloat(e.target.value))}
+                onChange={(e) => setChirpSpeed(parseFloat(e.target.value))}
                 className="flex-1 accent-indigo-600"
               />
               <input
@@ -1704,7 +1647,7 @@ function NarrationSettings({
                 max="2.0"
                 step="0.1"
                 value={chirpSpeed}
-                onChange={(e) => onChirpSpeedChange(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
+                onChange={(e) => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
                 className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-center focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 dark:text-slate-100"
               />
               <span className="text-sm text-slate-600 dark:text-slate-400">×</span>
@@ -1721,7 +1664,7 @@ function NarrationSettings({
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Neural2 음성</label>
             <select
               value={neural2Voice}
-              onChange={(e) => onNeural2VoiceChange(e.target.value)}
+              onChange={(e) => setNeural2Voice(e.target.value)}
               className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="ko-KR-Neural2-A">Neural2-A - 표준 여성</option>
@@ -1738,7 +1681,7 @@ function NarrationSettings({
                 max="2.0"
                 step="0.1"
                 value={chirpSpeed}
-                onChange={(e) => onChirpSpeedChange(parseFloat(e.target.value))}
+                onChange={(e) => setChirpSpeed(parseFloat(e.target.value))}
                 className="flex-1 accent-indigo-600"
               />
               <input
@@ -1747,7 +1690,7 @@ function NarrationSettings({
                 max="2.0"
                 step="0.1"
                 value={chirpSpeed}
-                onChange={(e) => onChirpSpeedChange(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
+                onChange={(e) => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
                 className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-center focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 dark:text-slate-100"
               />
               <span className="text-sm text-slate-600 dark:text-slate-400">×</span>
@@ -1764,7 +1707,7 @@ function NarrationSettings({
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Standard 음성</label>
             <select
               value={standardVoice}
-              onChange={(e) => onStandardVoiceChange(e.target.value)}
+              onChange={(e) => setStandardVoice(e.target.value)}
               className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="ko-KR-Standard-A">Standard-A - 표준 여성</option>
@@ -1782,7 +1725,7 @@ function NarrationSettings({
                 max="2.0"
                 step="0.1"
                 value={chirpSpeed}
-                onChange={(e) => onChirpSpeedChange(parseFloat(e.target.value))}
+                onChange={(e) => setChirpSpeed(parseFloat(e.target.value))}
                 className="flex-1 accent-indigo-600"
               />
               <input
@@ -1791,7 +1734,7 @@ function NarrationSettings({
                 max="2.0"
                 step="0.1"
                 value={chirpSpeed}
-                onChange={(e) => onChirpSpeedChange(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
+                onChange={(e) => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
                 className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-center focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 dark:text-slate-100"
               />
               <span className="text-sm text-slate-600 dark:text-slate-400">×</span>
@@ -1808,7 +1751,7 @@ function NarrationSettings({
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">WaveNet 음성</label>
             <select
               value={wavenetVoice}
-              onChange={(e) => onWavenetVoiceChange(e.target.value)}
+              onChange={(e) => setWavenetVoice(e.target.value)}
               className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="ko-KR-Wavenet-A">Wavenet-A - 표준 여성</option>
@@ -1826,7 +1769,7 @@ function NarrationSettings({
                 max="2.0"
                 step="0.1"
                 value={chirpSpeed}
-                onChange={(e) => onChirpSpeedChange(parseFloat(e.target.value))}
+                onChange={(e) => setChirpSpeed(parseFloat(e.target.value))}
                 className="flex-1 accent-indigo-600"
               />
               <input
@@ -1835,7 +1778,7 @@ function NarrationSettings({
                 max="2.0"
                 step="0.1"
                 value={chirpSpeed}
-                onChange={(e) => onChirpSpeedChange(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
+                onChange={(e) => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
                 className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-center focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 dark:text-slate-100"
               />
               <span className="text-sm text-slate-600 dark:text-slate-400">×</span>
@@ -1852,7 +1795,7 @@ function NarrationSettings({
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Studio 음성</label>
             <select
               value={studioVoice}
-              onChange={(e) => onStudioVoiceChange(e.target.value)}
+              onChange={(e) => setStudioVoice(e.target.value)}
               className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="ko-KR-Studio-A">Studio-A - 프리미엄 여성</option>
@@ -1870,7 +1813,7 @@ function NarrationSettings({
                 max="2.0"
                 step="0.1"
                 value={chirpSpeed}
-                onChange={(e) => onChirpSpeedChange(parseFloat(e.target.value))}
+                onChange={(e) => setChirpSpeed(parseFloat(e.target.value))}
                 className="flex-1 accent-indigo-600"
               />
               <input
@@ -1879,7 +1822,7 @@ function NarrationSettings({
                 max="2.0"
                 step="0.1"
                 value={chirpSpeed}
-                onChange={(e) => onChirpSpeedChange(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
+                onChange={(e) => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
                 className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-center focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 dark:text-slate-100"
               />
               <span className="text-sm text-slate-600 dark:text-slate-400">×</span>
@@ -1898,7 +1841,7 @@ function NarrationSettings({
               <input
                 type={showAzureKey ? 'text' : 'password'}
                 value={azureApiKey}
-                onChange={(e) => onAzureApiKeyChange(e.target.value)}
+                onChange={(e) => setAzureApiKey(e.target.value)}
                 placeholder="Azure Speech API 키 입력"
                 className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-slate-700 dark:text-slate-100"
               />
@@ -1924,7 +1867,7 @@ function NarrationSettings({
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택</label>
             <select
               value={azureVoice}
-              onChange={(e) => onAzureVoiceChange(e.target.value)}
+              onChange={(e) => setAzureVoice(e.target.value)}
               className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <optgroup label="한국어 Neural">
@@ -1954,7 +1897,7 @@ function NarrationSettings({
               <input
                 type={showElKey ? 'text' : 'password'}
                 value={elSettings.apiKey}
-                onChange={(e) => onElSettingsChange({ ...elSettings, apiKey: e.target.value })}
+                onChange={(e) => setElSettings({ ...elSettings, apiKey: e.target.value })}
                 placeholder="API 키 입력"
                 className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-slate-700 dark:text-slate-100"
               />
@@ -1990,7 +1933,7 @@ function NarrationSettings({
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택 ({voices.length}개 사용 가능)</label>
               <select
                 value={elSettings.voiceId}
-                onChange={(e) => onElSettingsChange({ ...elSettings, voiceId: e.target.value })}
+                onChange={(e) => setElSettings({ ...elSettings, voiceId: e.target.value })}
                 className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
                 {voices.map((v) => (
@@ -2014,7 +1957,7 @@ function NarrationSettings({
               max="2.0"
               step="0.1"
               value={elSettings.speed}
-              onChange={(e) => onElSettingsChange({ ...elSettings, speed: parseFloat(e.target.value) })}
+              onChange={(e) => setElSettings({ ...elSettings, speed: parseFloat(e.target.value) })}
               className="w-full accent-indigo-600"
             />
           </div>
