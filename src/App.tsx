@@ -7,6 +7,7 @@ import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabs
 import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
 import SubtitleTemplateModal from './components/SubtitleTemplateModal';
+import FullscreenSettings from './components/FullscreenSettings';
 import { styleTemplates } from './data/styleTemplates';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -2723,9 +2724,21 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {isMyPageOpen && (
-        <div className={`fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[300] flex items-center justify-center ${isSettingsFullscreen ? 'p-0' : 'p-4'}`} onClick={() => { setIsMyPageOpen(false); setIsSettingsFullscreen(false); }}>
-          <div className={`bg-white dark:bg-slate-800 rounded-3xl w-full ${isSettingsFullscreen ? 'max-w-[95vw] h-[95vh] text-[1.4rem]' : 'max-w-lg max-h-[85vh]'} overflow-y-auto shadow-2xl`} onClick={e => e.stopPropagation()}>
+      {/* 전체 화면 설정 */}
+      {isMyPageOpen && isSettingsFullscreen && (
+        <FullscreenSettings
+          onClose={() => setIsSettingsFullscreen(false)}
+          geminiApiKey={geminiApiKey}
+          onGeminiKeyChange={setGeminiApiKey}
+          subtitleSettings={subtitleSettings}
+          onSubtitleChange={setSubtitleSettings}
+        />
+      )}
+
+      {/* 기존 축소 모달 */}
+      {isMyPageOpen && !isSettingsFullscreen && (
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsMyPageOpen(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 rounded-t-3xl z-10">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">설정</h2>
               <div className="flex items-center gap-2">
