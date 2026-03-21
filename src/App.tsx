@@ -679,7 +679,9 @@ const App: React.FC = () => {
         if (!response.ok) throw new Error(`Azure TTS failed: ${response.status}`);
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
-        new Audio(url).play();
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        audio.play();
       } else if (audioProvider === 'elevenlabs') {
         if (!elSettings.apiKey) throw new Error("API Key required");
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elSettings.voiceId}`, {
@@ -694,7 +696,9 @@ const App: React.FC = () => {
         if (!response.ok) throw new Error();
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
-        new Audio(url).play();
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        audio.play();
       } else if (audioProvider === 'google-neural2') {
         // Neural2 테스트
         const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", neural2Voice, chirpSpeed, chirpApiKey);
@@ -742,6 +746,11 @@ const App: React.FC = () => {
   const handleSceneAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeSceneId.current || !project) return;
+    // 이전 오디오 URL 정리
+    const prevScene = project.scenes.find(s => s.id === activeSceneId.current);
+    if (prevScene?.audioUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(prevScene.audioUrl);
+    }
     const url = URL.createObjectURL(file);
     updateCurrentProject({
       scenes: project.scenes.map(s => s.id === activeSceneId.current ? { ...s, audioUrl: url, audioStatus: 'done' } : s)
@@ -1050,7 +1059,21 @@ const App: React.FC = () => {
       updateProjects(prev => prev.map(p => p.id === activeProject.id ? {
         ...p, characters: p.characters.map(c => c.id === charId ? { ...c, portraitUrl: url, status: 'done' } : c)
       } : p));
-    } catch {
+    } catch (err: any) {
+      console.error('Portrait generation failed:', err);
+      const errorMsg = err?.message || '알 수 없는 오류';
+      // 사용자 친화적 에러 메시지
+      let userMessage = '캐릭터 초상화 생성 실패: ';
+      if (errorMsg.includes('API key')) {
+        userMessage += 'API 키를 확인해주세요.';
+      } else if (errorMsg.includes('quota') || errorMsg.includes('429')) {
+        userMessage += 'API 사용량 한도 초과. 잠시 후 다시 시도해주세요.';
+      } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+        userMessage += '네트워크 연결을 확인해주세요.';
+      } else {
+        userMessage += errorMsg;
+      }
+      alert(userMessage);
       updateProjects(prev => prev.map(p => p.id === activeProject.id ? {
         ...p, characters: p.characters.map(c => c.id === charId ? { ...c, status: 'error' } : c)
       } : p));
@@ -1193,7 +1216,21 @@ const App: React.FC = () => {
         ...p,
         scenes: p.scenes.map(s => s.id === sceneId ? { ...s, imageUrl: url, status: 'done' } : s)
       } : p));
-    } catch {
+    } catch (err: any) {
+      console.error('Scene image generation failed:', err);
+      const errorMsg = err?.message || '알 수 없는 오류';
+      // 사용자 친화적 에러 메시지
+      let userMessage = '이미지 생성 실패: ';
+      if (errorMsg.includes('API key') || errorMsg.includes('401')) {
+        userMessage += 'Gemini API 키를 확인해주세요.';
+      } else if (errorMsg.includes('quota') || errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED')) {
+        userMessage += 'API 사용량 한도 초과. 잠시 후 다시 시도해주세요.';
+      } else if (errorMsg.includes('SAFETY') || errorMsg.includes('blocked')) {
+        userMessage += '안전 필터에 의해 차단됨. 프롬프트를 수정해주세요.';
+      } else {
+        userMessage += errorMsg;
+      }
+      alert(userMessage);
       updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
         ...p,
         scenes: p.scenes.map(s => s.id === sceneId ? { ...s, status: 'error' } : s)
@@ -1390,6 +1427,11 @@ const App: React.FC = () => {
       const scene = project.scenes.find(s => s.id === sceneId);
       if (!scene) return;
 
+      // 이전 오디오 URL 정리
+      if (scene.audioUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(scene.audioUrl);
+      }
+
       let audioUrl = '';
       if (audioProvider === 'elevenlabs') {
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elSettings.voiceId}`, {
@@ -1445,7 +1487,23 @@ const App: React.FC = () => {
       updateCurrentProject({
         scenes: project.scenes.map(s => s.id === sceneId ? { ...s, audioUrl: audioUrl, audioStatus: 'done' } : s)
       });
-    } catch {
+    } catch (err: any) {
+      console.error('TTS generation failed:', err);
+      const errorMsg = err?.message || '알 수 없는 오류';
+      // 사용자 친화적 에러 메시지
+      let userMessage = '오디오 생성 실패: ';
+      if (errorMsg.includes('API key') || errorMsg.includes('401')) {
+        userMessage += 'API 키를 확인해주세요.';
+      } else if (errorMsg.includes('quota') || errorMsg.includes('429')) {
+        userMessage += 'API 사용량 한도 초과. 잠시 후 다시 시도해주세요.';
+      } else if (errorMsg.includes('Azure')) {
+        userMessage += 'Azure TTS 설정을 확인해주세요.';
+      } else if (errorMsg.includes('ElevenLabs') || errorMsg.includes('elevenlabs')) {
+        userMessage += 'ElevenLabs 설정을 확인해주세요.';
+      } else {
+        userMessage += errorMsg;
+      }
+      alert(userMessage);
       updateCurrentProject({
         scenes: project.scenes.map(s => s.id === sceneId ? { ...s, audioStatus: 'error' } : s)
       });
@@ -1537,6 +1595,11 @@ const App: React.FC = () => {
       if (!proceed) return;
     }
 
+    // 이전 비디오 URL 정리
+    if (scene.videoUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(scene.videoUrl);
+    }
+
     updateCurrentProject({
       scenes: project.scenes.map(s => s.id === sceneId ? { ...s, videoStatus: 'loading' } : s)
     });
@@ -1570,12 +1633,28 @@ const App: React.FC = () => {
             : s
         )
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Video generation failed:', err);
+      const errorMsg = err?.message || '알 수 없는 오류';
+      // 사용자 친화적 에러 메시지
+      let userMessage = '비디오 생성 실패: ';
+      if (errorMsg.includes('API key') || errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+        userMessage += 'BytePlus API 키를 확인해주세요.';
+      } else if (errorMsg.includes('402') || errorMsg.includes('insufficient') || errorMsg.includes('credit')) {
+        userMessage += '크레딧 부족. BytePlus 콘솔에서 충전해주세요.';
+      } else if (errorMsg.includes('429') || errorMsg.includes('rate limit')) {
+        userMessage += 'API 사용량 한도 초과. 잠시 후 다시 시도해주세요.';
+      } else if (errorMsg.includes('timeout')) {
+        userMessage += '요청 시간 초과. 네트워크 상태를 확인해주세요.';
+      } else if (errorMsg.includes('ModelNotOpen') || errorMsg.includes('404')) {
+        userMessage += '모델이 활성화되지 않았습니다. BytePlus 콘솔에서 모델을 활성화해주세요.';
+      } else {
+        userMessage += errorMsg;
+      }
+      alert(userMessage);
       updateCurrentProject({
         scenes: project.scenes.map(s => s.id === sceneId ? { ...s, videoStatus: 'error' } : s)
       });
-      alert('비디오 생성에 실패했습니다.');
     }
   };
 
@@ -1636,6 +1715,11 @@ const App: React.FC = () => {
         const scene = limitedScenes[i];
         setLoadingText(`비디오 생성 중 (${i + 1}/${limitedScenes.length})...`);
 
+        // 이전 비디오 URL 정리
+        if (scene.videoUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(scene.videoUrl);
+        }
+
         try {
           const videoBlob = await generateSceneVideo(
             scene.imageUrl!,
@@ -1685,6 +1769,11 @@ const App: React.FC = () => {
 
   const deleteAudio = (sceneId: string) => {
     if (!project) return;
+    // blob URL 정리
+    const scene = project.scenes.find(s => s.id === sceneId);
+    if (scene?.audioUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(scene.audioUrl);
+    }
     updateCurrentProject({
       scenes: project.scenes.map(s => s.id === sceneId ? { ...s, audioUrl: null, audioStatus: 'idle' } : s)
     });
@@ -2527,7 +2616,7 @@ const App: React.FC = () => {
                         )}
                         <label className="w-9 h-9 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all cursor-pointer flex-shrink-0">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                          <input type="file" className="hidden" accept="audio/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, audioUrl: url, audioStatus: 'done' } : s) }); } }} />
+                          <input type="file" className="hidden" accept="audio/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { if(scene.audioUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.audioUrl); const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, audioUrl: url, audioStatus: 'done' } : s) }); } }} />
                         </label>
                       </div>
 
