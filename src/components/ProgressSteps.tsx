@@ -85,7 +85,7 @@ export default function ProgressSteps({
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-8 sm:px-12 py-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-0">
           {steps.map((step, index) => {
             const status = getStepStatus(index, currentStepIndex);
             const isLastStep = index === steps.length - 1;
@@ -93,8 +93,8 @@ export default function ProgressSteps({
 
             return (
               <React.Fragment key={index}>
-                {/* 원 */}
-                <div className="flex flex-col items-center">
+                {/* 원과 라벨 */}
+                <div className="flex flex-col items-center" style={{ margin: 0, padding: 0 }}>
                   <div
                     className={`
                       w-7 h-7 rounded-full flex items-center justify-center
@@ -107,6 +107,7 @@ export default function ProgressSteps({
                           : 'bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500'
                       }
                     `}
+                    style={{ margin: 0 }}
                   >
                     {status === 'completed' ? (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,7 +117,7 @@ export default function ProgressSteps({
                       <span>{step.icon}</span>
                     )}
                   </div>
-                  <div className="mt-2">
+                  <div className="mt-2" style={{ margin: 0, marginTop: '8px' }}>
                     <span
                       className={`
                         text-xs text-center transition-colors whitespace-nowrap
@@ -138,14 +139,18 @@ export default function ProgressSteps({
                 {!isLastStep && (
                   <div
                     className={`
-                      flex-1 h-[2px] rounded-full transition-all duration-500
+                      h-[2px] rounded-full transition-all duration-500
                       ${
                         isLineCompleted
                           ? 'bg-gradient-to-r from-indigo-500 to-blue-500'
                           : 'bg-slate-300 dark:bg-slate-600'
                       }
                     `}
-                    style={{ marginTop: '-28px' }}
+                    style={{
+                      flex: 1,
+                      margin: 0,
+                      marginTop: '-24px'
+                    }}
                   />
                 )}
               </React.Fragment>

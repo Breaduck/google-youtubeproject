@@ -138,26 +138,26 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       {/* 좌측 사이드바 */}
       <div className="w-64 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* 헤더 */}
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center mb-4">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-end h-14">
             <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
           </div>
         </div>
 
         {/* 메뉴 리스트 */}
-        <nav className="flex-1 overflow-y-auto py-4">
+        <nav className="flex-1 overflow-y-auto py-2">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full px-6 py-3 flex items-center gap-3 transition-colors ${
+              className={`w-full px-6 py-2 flex items-center gap-3 transition-colors ${
                 activeTab === item.id
                   ? 'bg-indigo-600/20 border-l-2 border-indigo-500 text-indigo-700 dark:text-white'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <span className="text-xl">{item.icon}</span>
-              <span className="flex-1 text-left font-medium">{item.label}</span>
+              <span className="flex-1 text-left font-medium text-sm">{item.label}</span>
               <span className="text-xs px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full">{item.badge}</span>
             </button>
           ))}
@@ -166,7 +166,7 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
 
       {/* 우측 콘텐츠 */}
       <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
-        <div className="max-w-6xl mx-auto p-8">
+        <div className="max-w-6xl mx-auto p-6">
           {activeTab === 'gemini' && (
             <GeminiSettings
               apiKey={geminiApiKey}
