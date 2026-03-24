@@ -15,14 +15,14 @@ export const TEMPLATES: { id: string; name: string; category: string; settings: 
   { id: 'yellow-bold', name: '노란색 볼드', category: '기본', settings: { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 5, backgroundColor: undefined, fontSize: 52, fontFamily: 'Black Han Sans' } },
   { id: 'white-shadow', name: '흰색 그림자', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#0066FF', strokeWidth: 4, backgroundColor: undefined, fontSize: 50, fontFamily: 'Do Hyeon' } },
 
-  // 쇼츠 전용 (7개) - 세로형 최적화
-  { id: 'shorts-impact', name: '쇼츠 임팩트', category: '쇼츠', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 10, fontSize: 72, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
-  { id: 'shorts-neon', name: '쇼츠 네온', category: '쇼츠', settings: { textColor: '#00FF41', strokeColor: '#000000', strokeWidth: 10, fontSize: 68, backgroundColor: undefined, fontFamily: 'Jua' } },
-  { id: 'shorts-yellow', name: '쇼츠 노란색', category: '쇼츠', settings: { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 11, fontSize: 70, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
-  { id: 'shorts-box', name: '쇼츠 박스', category: '쇼츠', settings: { textColor: '#FFFFFF', backgroundColor: '#000000', bgOpacity: 0.85, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 16, fontSize: 66, fontFamily: 'Black Han Sans' } },
-  { id: 'shorts-gradient', name: '쇼츠 그라데', category: '쇼츠', settings: { textColor: '#FFFFFF', backgroundColor: '#FF0080', bgOpacity: 0.9, strokeColor: '#FFFFFF', strokeWidth: 3, bgPadding: 14, fontSize: 64, fontFamily: 'Jua' } },
-  { id: 'shorts-shadow', name: '쇼츠 그림자', category: '쇼츠', settings: { textColor: '#FFFFFF', strokeColor: '#FF0000', strokeWidth: 6, fontSize: 68, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
-  { id: 'shorts-double', name: '쇼츠 이중선', category: '쇼츠', settings: { textColor: '#FFFF00', strokeColor: '#FF00FF', strokeWidth: 7, fontSize: 66, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
+  // 가로형 전용 (7개) - 16:9 최적화
+  { id: 'impact', name: '임팩트', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 8, fontSize: 56, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
+  { id: 'neon', name: '네온', category: '컬러', settings: { textColor: '#00FF41', strokeColor: '#000000', strokeWidth: 8, fontSize: 52, backgroundColor: undefined, fontFamily: 'Jua' } },
+  { id: 'yellow', name: '노란색', category: '기본', settings: { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 9, fontSize: 54, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
+  { id: 'box', name: '박스', category: '기본', settings: { textColor: '#FFFFFF', backgroundColor: '#000000', bgOpacity: 0.85, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 14, fontSize: 50, fontFamily: 'Black Han Sans' } },
+  { id: 'gradient', name: '그라데이션', category: '프리미엄', settings: { textColor: '#FFFFFF', backgroundColor: '#FF0080', bgOpacity: 0.9, strokeColor: '#FFFFFF', strokeWidth: 3, bgPadding: 12, fontSize: 48, fontFamily: 'Jua' } },
+  { id: 'shadow', name: '그림자', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#FF0000', strokeWidth: 5, fontSize: 52, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
+  { id: 'double', name: '이중선', category: '컬러', settings: { textColor: '#FFFF00', strokeColor: '#FF00FF', strokeWidth: 6, fontSize: 50, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
 
   // 인기 유튜버 스타일 (8개) - 실제 자주 쓰이는 스타일
   { id: 'popular-news', name: '뉴스/리뷰', category: '인기', settings: { textColor: '#FFFFFF', backgroundColor: '#2563EB', bgOpacity: 0.95, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 16, fontSize: 46, fontFamily: 'Noto Sans KR' } },

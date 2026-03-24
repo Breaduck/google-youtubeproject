@@ -127,7 +127,7 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
     { id: 'account' as SettingTab, icon: '👤', label: '계정', badge: isLoggedIn ? '로그인됨' : '로그인' },
     { id: 'gemini' as SettingTab, icon: '🔑', label: 'Gemini API', badge: geminiApiKey ? '연결됨' : '미설정' },
     { id: 'video-api' as SettingTab, icon: '🎬', label: '영상화 API', badge: 'BytePlus' },
-    { id: 'subtitle' as SettingTab, icon: '📝', label: '자막 설정', badge: subtitleSettings.fontFamily },
+    { id: 'subtitle' as SettingTab, icon: '📝', label: '자막설정', badge: subtitleSettings.fontFamily },
     { id: 'narration' as SettingTab, icon: '🎙️', label: '나레이션', badge: 'Chirp3 HD' },
     { id: 'saved-styles' as SettingTab, icon: '🎨', label: '저장된 그림체', badge: '0/10' },
     { id: 'saved-characters' as SettingTab, icon: '👥', label: '저장된 인물', badge: '0/10' },
@@ -487,12 +487,16 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   // Load saved presets from localStorage
-  useState(() => {
+  useEffect(() => {
     const saved = localStorage.getItem('subtitle_presets');
     if (saved) {
-      setSavedPresets(JSON.parse(saved));
+      try {
+        setSavedPresets(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load subtitle presets:', e);
+      }
     }
-  });
+  }, []);
 
   const categories = ['전체', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
   const filteredTemplates = selectedCategory === '전체' ? TEMPLATES : TEMPLATES.filter(t => t.category === selectedCategory);
@@ -1227,14 +1231,6 @@ function VideoApiSettings({
         {videoProvider === 'byteplus' && (
           <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">모델</label>
-              <div className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
-                <p className="text-sm font-medium text-indigo-900 dark:text-indigo-300">SeeDance 1.0 Pro Fast</p>
-                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">10초 영상, 720p 고정</p>
-              </div>
-            </div>
-
-            <div>
               <div className="flex items-center gap-2 mb-2">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">BytePlus API 키</label>
                 {isByteplusValid && (
@@ -1284,6 +1280,14 @@ function VideoApiSettings({
                 </div>
               )}
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">BytePlus ModelArk에서 API 키를 발급받으세요</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">모델</label>
+              <div className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
+                <p className="text-sm font-medium text-indigo-900 dark:text-indigo-300">SeeDance 1.0 Pro Fast</p>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">10초 영상, 720p 고정</p>
+              </div>
             </div>
           </div>
         )}
