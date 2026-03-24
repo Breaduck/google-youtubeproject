@@ -139,14 +139,8 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       <div className="w-64 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* 헤더 */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-end mb-4">
             <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
-            <button
-              onClick={onClose}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
-            >
-              축소
-            </button>
           </div>
         </div>
 
@@ -1347,28 +1341,11 @@ function VideoApiSettings({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">해상도</label>
-              <select
-                value={evolinkResolution}
-                onChange={(e) => setEvolinkResolution(e.target.value)}
-                className="w-full px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
-              >
-                <option value="480p">480p</option>
-                <option value="720p">720p</option>
-                <option value="1080p">1080p</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">영상 길이: {evolinkDuration}초</label>
-              <input
-                type="range"
-                min="3"
-                max="10"
-                value={evolinkDuration}
-                onChange={(e) => setEvolinkDuration(parseInt(e.target.value))}
-                className="w-full accent-indigo-600"
-              />
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">영상 설정</label>
+              <div className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
+                <p className="text-sm font-medium text-indigo-900 dark:text-indigo-300">SeeDance 1.0 Pro Fast</p>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">10초 영상, 720p 고정 • ₩190/영상</p>
+              </div>
             </div>
           </div>
         )}
@@ -1428,28 +1405,11 @@ function VideoApiSettings({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">해상도</label>
-              <select
-                value={runwareResolution}
-                onChange={(e) => setRunwareResolution(e.target.value)}
-                className="w-full px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
-              >
-                <option value="480p">480p</option>
-                <option value="720p">720p</option>
-                <option value="1080p">1080p</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">영상 길이: {runwareDuration}초</label>
-              <input
-                type="range"
-                min="3"
-                max="10"
-                value={runwareDuration}
-                onChange={(e) => setRunwareDuration(parseInt(e.target.value))}
-                className="w-full accent-indigo-600"
-              />
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">영상 설정</label>
+              <div className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
+                <p className="text-sm font-medium text-indigo-900 dark:text-indigo-300">SeeDance 1.0 Pro Fast</p>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">10초 영상, 720p 고정 • ₩195/영상</p>
+              </div>
             </div>
           </div>
         )}

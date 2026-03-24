@@ -10,15 +10,15 @@ interface SubtitleTemplateModalProps {
 export const TEMPLATES: { id: string; name: string; category: string; settings: Partial<SubtitleSettings> }[] = [
   // 기본 (5개) - 가장 많이 사용되는 스타일 우선
   { id: 'black-box', name: '검정 박스 (기본)', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#000000', bgOpacity: 0.8, bgPadding: 14, fontSize: 48, fontFamily: 'Noto Sans KR' } },
-  { id: 'white-clean', name: '깔끔한 흰색', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 3, backgroundColor: undefined, fontSize: 50, fontFamily: 'Noto Sans KR' } },
+  { id: 'white-clean', name: '깔끔한 흰색', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 4, backgroundColor: undefined, fontSize: 50, fontFamily: 'Noto Sans KR' } },
   { id: 'semi-transparent', name: '반투명 회색', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#1a1a1a', bgOpacity: 0.7, bgPadding: 12, fontSize: 46, fontFamily: 'Noto Sans KR' } },
   { id: 'yellow-bold', name: '노란색 볼드', category: '기본', settings: { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 5, backgroundColor: undefined, fontSize: 52, fontFamily: 'Black Han Sans' } },
   { id: 'white-shadow', name: '흰색 그림자', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#0066FF', strokeWidth: 4, backgroundColor: undefined, fontSize: 50, fontFamily: 'Do Hyeon' } },
 
   // 쇼츠 전용 (7개) - 세로형 최적화
   { id: 'shorts-impact', name: '쇼츠 임팩트', category: '쇼츠', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 10, fontSize: 72, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
-  { id: 'shorts-neon', name: '쇼츠 네온', category: '쇼츠', settings: { textColor: '#00FF41', strokeColor: '#000000', strokeWidth: 8, fontSize: 68, backgroundColor: undefined, fontFamily: 'Jua' } },
-  { id: 'shorts-yellow', name: '쇼츠 노란색', category: '쇼츠', settings: { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 9, fontSize: 70, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
+  { id: 'shorts-neon', name: '쇼츠 네온', category: '쇼츠', settings: { textColor: '#00FF41', strokeColor: '#000000', strokeWidth: 10, fontSize: 68, backgroundColor: undefined, fontFamily: 'Jua' } },
+  { id: 'shorts-yellow', name: '쇼츠 노란색', category: '쇼츠', settings: { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 11, fontSize: 70, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
   { id: 'shorts-box', name: '쇼츠 박스', category: '쇼츠', settings: { textColor: '#FFFFFF', backgroundColor: '#000000', bgOpacity: 0.85, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 16, fontSize: 66, fontFamily: 'Black Han Sans' } },
   { id: 'shorts-gradient', name: '쇼츠 그라데', category: '쇼츠', settings: { textColor: '#FFFFFF', backgroundColor: '#FF0080', bgOpacity: 0.9, strokeColor: '#FFFFFF', strokeWidth: 3, bgPadding: 14, fontSize: 64, fontFamily: 'Jua' } },
   { id: 'shorts-shadow', name: '쇼츠 그림자', category: '쇼츠', settings: { textColor: '#FFFFFF', strokeColor: '#FF0000', strokeWidth: 6, fontSize: 68, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
@@ -37,7 +37,7 @@ export const TEMPLATES: { id: string; name: string; category: string; settings: 
   // 컬러풀 (6개)
   { id: 'red-pop', name: '빨강 팝', category: '컬러', settings: { textColor: '#FF0000', strokeColor: '#FFFFFF', strokeWidth: 5, fontSize: 58, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
   { id: 'pink-cute', name: '핑크 큐트', category: '컬러', settings: { textColor: '#FF69B4', strokeColor: '#8B008B', strokeWidth: 4, fontSize: 52, backgroundColor: undefined, fontFamily: 'Jua' } },
-  { id: 'neon-green', name: '네온 그린', category: '컬러', settings: { textColor: '#39FF14', strokeColor: '#000000', strokeWidth: 4, fontSize: 50, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
+  { id: 'neon-green', name: '네온 그린', category: '컬러', settings: { textColor: '#39FF14', strokeColor: '#000000', strokeWidth: 6, fontSize: 50, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
   { id: 'mint-fresh', name: '민트 프레시', category: '컬러', settings: { textColor: '#00FFA3', strokeColor: '#006644', strokeWidth: 3, fontSize: 48, backgroundColor: undefined, fontFamily: 'Noto Sans KR' } },
   { id: 'purple-royal', name: '로얄 퍼플', category: '컬러', settings: { textColor: '#9370DB', strokeColor: '#4B0082', strokeWidth: 4, fontSize: 52, backgroundColor: undefined, fontFamily: 'Gothic A1' } },
   { id: 'orange-energy', name: '오렌지 에너지', category: '컬러', settings: { textColor: '#FF6B00', strokeColor: '#FFFFFF', strokeWidth: 5, fontSize: 54, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
@@ -65,17 +65,36 @@ export const TEMPLATES: { id: string; name: string; category: string; settings: 
 export default function SubtitleTemplateModal({ current, onApply, onClose }: SubtitleTemplateModalProps) {
   const [selected, setSelected] = useState<SubtitleSettings>(current);
   const [category, setCategory] = useState<string>('전체');
+  const [previewBg, setPreviewBg] = useState<string>('');
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
     setSelected({ ...current, ...template.settings });
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setMenuPos({ x: e.clientX, y: e.clientY });
+    setShowContextMenu(true);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setPreviewBg(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+    setShowContextMenu(false);
   };
 
   const categories = ['전체', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
   const filteredTemplates = category === '전체' ? TEMPLATES : TEMPLATES.filter(t => t.category === category);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center p-4" onClick={() => setShowContextMenu(false)}>
+      <div className="bg-white dark:bg-slate-800 rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">자막 템플릿</h2>
@@ -83,7 +102,16 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
 
         {/* 미리보기 - 상단 고정 */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-          <div className="bg-slate-900 rounded-lg p-6 flex items-center justify-center" style={{ height: '160px' }}>
+          <div
+            className="bg-slate-900 rounded-lg p-6 flex items-center justify-center relative cursor-context-menu"
+            style={{
+              height: '160px',
+              backgroundImage: previewBg ? `url(${previewBg})` : undefined,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+            onContextMenu={handleContextMenu}
+          >
             <div className="relative inline-block">
               {selected.backgroundColor && (
                 <div
@@ -111,6 +139,27 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
             </div>
           </div>
         </div>
+
+        {/* 우클릭 메뉴 */}
+        {showContextMenu && (
+          <div
+            className="fixed z-[60] bg-white dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-200 dark:border-slate-700 py-1 min-w-[180px]"
+            style={{ left: menuPos.x, top: menuPos.y }}
+          >
+            <label className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
+              📷 배경 이미지 업로드
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            </label>
+            {previewBg && (
+              <button
+                onClick={() => { setPreviewBg(''); setShowContextMenu(false); }}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                🗑️ 배경 제거
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Content - 스크롤 가능 */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
