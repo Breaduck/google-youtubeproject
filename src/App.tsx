@@ -2297,9 +2297,9 @@ const App: React.FC = () => {
       {/* Progress Steps */}
       <ProgressSteps
         currentStep={step}
-        hasProject={!!project && !!project.script}
+        hasScript={!!project && !!project.script && project.scenes.length >= 1}
         hasCharacters={!!project && project.characters.length > 0}
-        hasScenes={!!project && project.scenes.length > 0}
+        hasStoryboard={!!project && project.scenes.some(s => s.imageUrl)}
         hasVideos={!!project && project.scenes.some(s => s.videoUrl)}
       />
 
