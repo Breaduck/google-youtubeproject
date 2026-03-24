@@ -26,8 +26,9 @@ const steps: Step[] = [
   { label: '영상 생성', icon: '6' },
 ];
 
-// 현재 활성 단계 인덱스 계산 (0-based)
+// 현재 활성 단계 인덱스 계산 (현재 페이지 기준)
 const getCurrentStepIndex = (
+  currentStep: AppStep,
   hasScript: boolean,
   hasCharacters: boolean,
   hasScenes: boolean,
@@ -36,14 +37,25 @@ const getCurrentStepIndex = (
   hasVideos: boolean,
   isGeneratingVideo: boolean
 ): number => {
-  if (hasVideos) return 6; // 모든 단계 완료
-  if (isGeneratingVideo && hasAudios) return 5; // 6단계 진행 중
-  if (hasAudios) return 5; // 5단계 완료, 6단계 대기
-  if (hasImages) return 4; // 4단계 완료, 5단계 진행 중
-  if (hasScenes) return 3; // 3단계 완료, 4단계 진행 중
-  if (hasCharacters) return 2; // 2단계 완료, 3단계 진행 중
-  if (hasScript) return 1; // 1단계 완료, 2단계 진행 중
-  return 0; // 1단계 진행 중
+  // 현재 페이지에 따라 최대 표시 단계 제한
+  if (currentStep === 'input') {
+    // 대본 입력 페이지 → 최대 1단계까지만
+    return hasScript ? 1 : 0;
+  } else if (currentStep === 'character_setup') {
+    // 캐릭터 설정 페이지 → 최대 2단계까지만
+    return hasCharacters ? 2 : (hasScript ? 1 : 0);
+  } else if (currentStep === 'storyboard') {
+    // 스토리보드 페이지 → 전체 진행 상황 표시
+    if (hasVideos) return 6;
+    if (isGeneratingVideo && hasAudios) return 5;
+    if (hasAudios) return 5;
+    if (hasImages) return 4;
+    if (hasScenes) return 3;
+    if (hasCharacters) return 2;
+    if (hasScript) return 1;
+    return 0;
+  }
+  return 0;
 };
 
 const getStepStatus = (
@@ -70,8 +82,9 @@ export default function ProgressSteps({
     return null;
   }
 
-  // 현재 활성 단계 인덱스 계산
+  // 현재 활성 단계 인덱스 계산 (현재 페이지 기준)
   const currentStepIndex = getCurrentStepIndex(
+    currentStep,
     hasScript,
     hasCharacters,
     hasScenes,
