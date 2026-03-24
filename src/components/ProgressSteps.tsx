@@ -90,14 +90,23 @@ export default function ProgressSteps({
       <div className="max-w-[1400px] mx-auto px-8 sm:px-12 py-3">
         <div className="relative">
           {/* Steps */}
-          <div className="relative flex justify-between items-start px-[14px]">
+          <div className="relative flex justify-between items-start">
             {/* Background line (첫 원 중심 ~ 마지막 원 중심) */}
-            <div className="absolute top-[14px] left-0 right-0 h-[2px] bg-slate-300 dark:bg-slate-600 rounded-full" />
+            <div
+              className="absolute top-[14px] h-[2px] bg-slate-300 dark:bg-slate-600 rounded-full"
+              style={{
+                left: `calc((100% / ${steps.length - 1}) / 2)`,
+                right: `calc((100% / ${steps.length - 1}) / 2)`
+              }}
+            />
 
             {/* Progress line (현재 단계까지 선 채움 - 그라데이션) */}
             <div
-              className="absolute top-[14px] left-0 h-[2px] bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
-              style={{ width: `${progressPercentage}%` }}
+              className="absolute top-[14px] h-[2px] bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
+              style={{
+                left: `calc((100% / ${steps.length - 1}) / 2)`,
+                width: `calc(${progressPercentage}% - (100% / ${steps.length - 1}) / 2)`
+              }}
             />
 
             {steps.map((step, index) => {

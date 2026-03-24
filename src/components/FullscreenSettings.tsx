@@ -173,6 +173,16 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       {/* 우측 콘텐츠 */}
       <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
         <div className="max-w-6xl mx-auto p-8">
+          {/* 상단 돌아가기 버튼 */}
+          <button
+            onClick={onClose}
+            className="mb-6 px-4 py-2 flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>전으로 돌아가기</span>
+          </button>
           {activeTab === 'gemini' && (
             <GeminiSettings
               apiKey={geminiApiKey}
@@ -476,6 +486,17 @@ function GeminiSettings({
 
 function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSettings; onChange: (s: SubtitleSettings) => void }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
+  const [savedPresets, setSavedPresets] = useState<Array<{ name: string; settings: SubtitleSettings }>>([]);
+  const [presetName, setPresetName] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+  // Load saved presets from localStorage
+  useState(() => {
+    const saved = localStorage.getItem('subtitle_presets');
+    if (saved) {
+      setSavedPresets(JSON.parse(saved));
+    }
+  });
 
   const categories = ['전체', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
   const filteredTemplates = selectedCategory === '전체' ? TEMPLATES : TEMPLATES.filter(t => t.category === selectedCategory);
@@ -484,12 +505,93 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
     onChange({ ...settings, ...template.settings });
   };
 
+  const saveCurrentPreset = () => {
+    if (!presetName.trim()) return;
+    const newPresets = [...savedPresets, { name: presetName.trim(), settings }];
+    setSavedPresets(newPresets);
+    localStorage.setItem('subtitle_presets', JSON.stringify(newPresets));
+    setPresetName('');
+    setShowSaveDialog(false);
+    alert('자막 설정이 저장되었습니다.');
+  };
+
+  const loadPreset = (preset: { name: string; settings: SubtitleSettings }) => {
+    onChange(preset.settings);
+  };
+
+  const deletePreset = (index: number) => {
+    const newPresets = savedPresets.filter((_, i) => i !== index);
+    setSavedPresets(newPresets);
+    localStorage.setItem('subtitle_presets', JSON.stringify(newPresets));
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 설정</h2>
-        <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 설정</h2>
+          <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
+        </div>
+        <button
+          onClick={() => setShowSaveDialog(!showSaveDialog)}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
+        >
+          현재 설정 저장
+        </button>
       </div>
+
+      {/* 저장 다이얼로그 */}
+      {showSaveDialog && (
+        <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 space-y-3">
+          <input
+            type="text"
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+            placeholder="프리셋 이름 입력..."
+            className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={saveCurrentPreset}
+              disabled={!presetName.trim()}
+              className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            >
+              저장
+            </button>
+            <button
+              onClick={() => setShowSaveDialog(false)}
+              className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg transition-colors"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 저장된 프리셋 */}
+      {savedPresets.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">내가 저장한 프리셋</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            {savedPresets.map((preset, index) => (
+              <div key={index} className="relative group">
+                <button
+                  onClick={() => loadPreset(preset)}
+                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm transition-colors"
+                >
+                  {preset.name}
+                </button>
+                <button
+                  onClick={() => deletePreset(index)}
+                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* 좌측: 설정 */}
@@ -732,7 +834,7 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                     color: settings.textColor,
                     letterSpacing: `${settings.letterSpacing / 1.5}px`,
                     lineHeight: settings.lineHeight,
-                    WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth / 2}px ${settings.strokeColor}` : undefined,
+                    WebkitTextStroke: settings.strokeWidth > 0 && settings.strokeColor !== 'transparent' ? `${settings.strokeWidth / 2}px ${settings.strokeColor}` : undefined,
                   }}
                 >
                   자막 미리보기

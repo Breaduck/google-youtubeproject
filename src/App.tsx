@@ -3518,7 +3518,16 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* 고정 옵션 제거 (디폴트로 항상 활성화) */}
+                    {/* 템플릿 선택 */}
+                    <div className="space-y-2 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">템플릿</label>
+                      <button
+                        onClick={() => setShowSubtitleEditor(true)}
+                        className="w-full px-3 py-2 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all"
+                      >
+                        템플릿 선택하기
+                      </button>
+                    </div>
 
                     {/* 색상 설정 - 애플 스타일 */}
                     <div className="space-y-3 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
