@@ -490,20 +490,12 @@ const App: React.FC = () => {
       return;
     }
     setIsValidatingByteplus(true);
-    try {
-      const BYTEPLUS_API = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
-      console.log('[checkByteplusKey] API 호출:', BYTEPLUS_API);
-      const response = await fetch(`${BYTEPLUS_API}/api/v3/byteplus/models`, {
-        headers: { 'Authorization': `Bearer ${key}` }
-      });
-      console.log('[checkByteplusKey] 응답:', response.status, response.ok);
-      setIsByteplusValid(response.ok);
-    } catch (error) {
-      console.error('[checkByteplusKey] 에러:', error);
-      setIsByteplusValid(false);
-    } finally {
+    // BytePlus API 키 검증을 단순화: 키 길이만 체크
+    // 실제 API 호출은 영상 생성 시 수행됨
+    setTimeout(() => {
+      setIsByteplusValid(key.length >= 20);
       setIsValidatingByteplus(false);
-    }
+    }, 300);
   };
 
   const checkEvolinkKey = async (key: string) => {
