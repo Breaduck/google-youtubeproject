@@ -2279,6 +2279,12 @@ const App: React.FC = () => {
   };
 
   const handleBack = () => {
+    // 설정 화면이 열려있으면 설정 닫기
+    if (isSettingsFullscreen) {
+      setIsSettingsFullscreen(false);
+      return;
+    }
+    // 일반 단계 네비게이션
     if (step === 'storyboard') setStep('character_setup');
     else if (step === 'character_setup') setStep('input');
     else if (step === 'input') setStep('dashboard');
@@ -2348,7 +2354,7 @@ const App: React.FC = () => {
         </button>
       </div>
 
-      {step !== 'dashboard' && (
+      {(step !== 'dashboard' || isSettingsFullscreen) && (
         <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[205]">
           <button onClick={handleBack} className="w-12 h-12 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 shadow-xl rounded-full flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border border-slate-100 dark:border-slate-700 group relative">
             <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>

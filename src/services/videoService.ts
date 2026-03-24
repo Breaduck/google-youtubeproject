@@ -366,7 +366,9 @@ export async function generateSceneVideo(
   subtitleSettings?: SubtitleSettings,
   onProgress?: (progress: number, message: string) => void
 ): Promise<Blob> {
-  const provider = localStorage.getItem('video_provider') || 'byteplus';
+  // settingsStore에서 provider 읽기
+  const storageData = localStorage.getItem('app-settings-storage');
+  const provider = storageData ? JSON.parse(storageData).state.videoProvider : 'byteplus';
   if (provider === 'evolink') {
     return generateEvolinkVideo(imageUrl, imagePrompt, dialogue, testParams, subtitleSettings, onProgress);
   }
@@ -397,8 +399,9 @@ async function generateByteDanceVideo(
   console.log(`[BYTEDANCE] generateByteDanceVideo called`);
   console.log('[BYTEDANCE] Dialogue:', dialogue.substring(0, 50));
 
-  // localStorage에서 BytePlus API 키 읽기
-  const bytedanceApiKey = localStorage.getItem('bytedance_api_key') || '';
+  // settingsStore에서 BytePlus API 키 읽기 (Zustand persist 사용)
+  const storageData = localStorage.getItem('app-settings-storage');
+  const bytedanceApiKey = storageData ? JSON.parse(storageData).state.bytedanceApiKey : '';
   if (!bytedanceApiKey || bytedanceApiKey.length < 10) {
     // API 키가 없으면 간단한 줌인-줌아웃 비디오 생성
     console.log('[BYTEDANCE] No API key - generating simple zoom video');
@@ -409,9 +412,10 @@ async function generateByteDanceVideo(
   const startTime = Date.now();
 
   // BytePlus API 파라미터
-  const model = testParams?.model || localStorage.getItem('bytedance_model') || 'seedance-1-0-pro-fast-251015';
-  const duration_sec = testParams?.duration_sec || parseInt(localStorage.getItem('bytedance_duration') || '5');
-  const resolution = testParams?.resolution || localStorage.getItem('bytedance_resolution') || '720p';
+  const storageDataParams = storageData ? JSON.parse(storageData).state : {};
+  const model = testParams?.model || storageDataParams.bytedanceModel || 'seedance-1-0-pro-fast-251015';
+  const duration_sec = testParams?.duration_sec || 5;
+  const resolution = testParams?.resolution || '720p';
 
   // 프롬프트 구성 (BytePlus는 파라미터를 프롬프트에 포함)
   const sceneDesc = (imagePrompt || 'anime character in a clean 2D scene').trim().substring(0, 200);
@@ -582,15 +586,18 @@ async function generateEvolinkVideo(
 ): Promise<Blob> {
   console.log('[EVOLINK] generateEvolinkVideo called');
 
-  const evolinkApiKey = localStorage.getItem('evolink_api_key') || '';
+  // settingsStore에서 Evolink API 키 읽기
+  const storageData = localStorage.getItem('app-settings-storage');
+  const storageState = storageData ? JSON.parse(storageData).state : {};
+  const evolinkApiKey = storageState.evolinkApiKey || '';
   if (!evolinkApiKey || evolinkApiKey.length < 10) {
     console.log('[EVOLINK] No API key - generating simple zoom video');
     return generateSimpleZoomVideo(imageUrl, dialogue, 'in', subtitleSettings, onProgress);
   }
 
   const startTime = Date.now();
-  const duration = testParams?.duration_sec || parseInt(localStorage.getItem('evolink_duration') || '5');
-  const quality = testParams?.resolution || localStorage.getItem('evolink_resolution') || '720p';
+  const duration = testParams?.duration_sec || storageState.evolinkDuration || 5;
+  const quality = testParams?.resolution || storageState.evolinkResolution || '720p';
 
   const API_BASE = 'https://byteplus-video-proxy.hiyoonsh1.workers.dev';
 
@@ -691,15 +698,18 @@ async function generateRunwareVideo(
 ): Promise<Blob> {
   console.log('[RUNWARE] generateRunwareVideo called');
 
-  const runwareApiKey = localStorage.getItem('runware_api_key') || '';
+  // settingsStore에서 Runware API 키 읽기
+  const storageData = localStorage.getItem('app-settings-storage');
+  const storageState = storageData ? JSON.parse(storageData).state : {};
+  const runwareApiKey = storageState.runwareApiKey || '';
   if (!runwareApiKey || runwareApiKey.length < 10) {
     console.log('[RUNWARE] No API key - generating simple zoom video');
     return generateSimpleZoomVideo(imageUrl, dialogue, 'in', subtitleSettings, onProgress);
   }
 
   const startTime = Date.now();
-  const duration = testParams?.duration_sec || parseInt(localStorage.getItem('runware_duration') || '5');
-  const resolution = testParams?.resolution || localStorage.getItem('runware_resolution') || '720p';
+  const duration = testParams?.duration_sec || storageState.runwareDuration || 5;
+  const resolution = testParams?.resolution || storageState.runwareResolution || '720p';
 
   // 해상도 매핑 (Runware aspect ratio)
   const resolutionMap: Record<string, string> = {
