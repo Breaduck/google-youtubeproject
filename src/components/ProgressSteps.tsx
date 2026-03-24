@@ -89,24 +89,15 @@ export default function ProgressSteps({
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-8 sm:px-12 py-3">
         <div className="relative">
-          {/* Steps */}
-          <div className="relative flex justify-between items-start">
-            {/* Background line (첫 원 중심 ~ 마지막 원 중심) */}
-            <div
-              className="absolute top-[14px] h-[2px] bg-slate-300 dark:bg-slate-600 rounded-full"
-              style={{
-                left: `calc((100% / ${steps.length - 1}) / 2)`,
-                right: `calc((100% / ${steps.length - 1}) / 2)`
-              }}
-            />
+          {/* Steps - padding으로 선의 시작/끝 위치 조정 (원 반지름 14px) */}
+          <div className="relative flex justify-between items-start" style={{ paddingLeft: '14px', paddingRight: '14px' }}>
+            {/* Background line (padding 내부 전체 = 첫 원 중심 ~ 마지막 원 중심) */}
+            <div className="absolute top-[14px] left-0 right-0 h-[2px] bg-slate-300 dark:bg-slate-600 rounded-full" />
 
             {/* Progress line (현재 단계까지 선 채움 - 그라데이션) */}
             <div
-              className="absolute top-[14px] h-[2px] bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
-              style={{
-                left: `calc((100% / ${steps.length - 1}) / 2)`,
-                width: `calc(${progressPercentage}% - (100% / ${steps.length - 1}) / 2)`
-              }}
+              className="absolute top-[14px] left-0 h-[2px] bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
+              style={{ width: `${progressPercentage}%` }}
             />
 
             {steps.map((step, index) => {
