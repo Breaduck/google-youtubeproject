@@ -74,25 +74,25 @@ export async function generateSimpleZoomVideo(
         console.warn('Font loading failed, using fallback:', e);
       }
 
-      // TTS 싱크를 위한 시간 계산 (자막 길이 기반, 최대 10초로 단축)
+      // TTS 싱크를 위한 시간 계산 (자막 길이 기반, 최대 8초로 단축)
       const effectIntensity = intensity || 5;
       const subtitleLength = subtitle.length;
 
       // 한글 기준: 3-4자/초 읽기 속도
-      const estimatedTtsTime = Math.max(5, Math.min(10, subtitleLength / 3.5));
+      const estimatedTtsTime = Math.max(4, Math.min(8, subtitleLength / 3.5));
 
       // 긴박도 보정 (긴박할수록 짧게)
       const intensityFactor = 1 - ((effectIntensity - 5) / 20); // 0.75 ~ 1.25
-      const duration = Math.max(5, Math.min(10, estimatedTtsTime * intensityFactor));
+      const duration = Math.max(4, Math.min(8, estimatedTtsTime * intensityFactor));
 
-      const fps = 20; // 24 → 20 FPS로 최적화 (속도 향상)
+      const fps = 12; // 20 → 12 FPS로 최적화 (속도 대폭 향상, 여전히 부드러움)
       const totalFrames = Math.floor(duration * fps);
 
-      // MediaRecorder 설정 (자막 선명도 우선)
+      // MediaRecorder 설정 (속도 최적화)
       const stream = canvas.captureStream(fps);
       const recorder = new MediaRecorder(stream, {
         mimeType: 'video/webm;codecs=vp8',
-        videoBitsPerSecond: 3000000 // 1.5M → 3M (자막 선명도 개선)
+        videoBitsPerSecond: 2000000 // 3M → 2M (자막은 텍스트라 낮은 비트레이트도 충분)
       });
 
       const chunks: Blob[] = [];
@@ -203,11 +203,11 @@ export async function generateSimpleZoomVideo(
 
         frame++;
 
-        if (onProgress && frame % 10 === 0) {
+        if (onProgress && frame % 5 === 0) {
           const percent = Math.round((frame / totalFrames) * 60) + 10;
           onProgress(percent, `${zoomDirection === 'in' ? '줌인' : '줌아웃'} 효과 생성 중...`);
         }
-      }, 1000 / fps);
+      }, 0); // interval을 0으로 설정하여 최대한 빠르게 렌더링
     };
 
     img.onerror = () => reject(new Error('Failed to load image'));
@@ -223,12 +223,12 @@ export async function generateSimpleZoomVideo(
     // WebM 파일을 FFmpeg 가상 파일 시스템에 쓰기
     await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
 
-    // WebM → MP4 변환 (자막 선명도 개선)
+    // WebM → MP4 변환 (속도 최적화)
     await ffmpeg.exec([
       '-i', 'input.webm',
       '-c:v', 'libx264',
-      '-preset', 'fast',
-      '-crf', '18',
+      '-preset', 'ultrafast', // fast → ultrafast (인코딩 속도 대폭 향상)
+      '-crf', '23', // 18 → 23 (압축률 높이고 인코딩 빠르게)
       '-pix_fmt', 'yuv420p',
       '-movflags', '+faststart',
       'output.mp4'
