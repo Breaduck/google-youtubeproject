@@ -193,6 +193,26 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
             ))}
           </div>
 
+          {/* 저장된 설정 */}
+          {savedPresets.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">⭐ 내가 저장한 설정</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {savedPresets.map((preset, index) => (
+                  <button
+                    key={`preset-${index}`}
+                    onClick={() => applyTemplate({ id: `saved-${index}`, name: preset.name, category: '저장됨', settings: preset.settings })}
+                    className="p-3 bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-400 dark:border-indigo-600 rounded-xl hover:border-indigo-500 dark:hover:border-indigo-500 transition-all"
+                  >
+                    <div className="text-center space-y-1">
+                      <p className="text-xs font-medium text-slate-900 dark:text-slate-100">{preset.name}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 템플릿 그리드 */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {filteredTemplates.map((tmpl) => (
