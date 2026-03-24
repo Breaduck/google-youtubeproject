@@ -2297,9 +2297,11 @@ const App: React.FC = () => {
       {/* Progress Steps */}
       <ProgressSteps
         currentStep={step}
-        hasScript={!!project && !!project.script && project.scenes.length >= 1}
+        hasScript={!!project && !!project.script}
         hasCharacters={!!project && project.characters.length > 0}
-        hasStoryboard={!!project && project.scenes.some(s => s.imageUrl)}
+        hasScenes={!!project && project.scenes.length > 0}
+        hasImages={!!project && project.scenes.some(s => s.imageUrl)}
+        hasAudios={!!project && project.scenes.some(s => s.audioUrl)}
         hasVideos={!!project && project.scenes.some(s => s.videoUrl)}
       />
 

@@ -5,74 +5,85 @@ interface ProgressStepsProps {
   currentStep: AppStep;
   hasScript: boolean;
   hasCharacters: boolean;
-  hasStoryboard: boolean;
+  hasScenes: boolean;
+  hasImages: boolean;
+  hasAudios: boolean;
   hasVideos: boolean;
+  isGeneratingVideo?: boolean; // 동영상 추출 버튼 눌렀는지 여부
 }
 
 interface Step {
-  id: AppStep;
   label: string;
   icon: string;
 }
 
 const steps: Step[] = [
-  { id: 'input', label: '대본 업로드', icon: '1' },
-  { id: 'character_setup', label: '등장인물 설정', icon: '2' },
-  { id: 'storyboard', label: '스토리보드 설정', icon: '3' },
-  { id: 'storyboard', label: '영상 설정', icon: '4' },
+  { label: '대본 업로드', icon: '1' },
+  { label: '등장인물 설정', icon: '2' },
+  { label: '스크립트 분할', icon: '3' },
+  { label: '이미지 생성', icon: '4' },
+  { label: '나레이션 생성', icon: '5' },
+  { label: '영상 생성', icon: '6' },
 ];
+
+// 현재 활성 단계 인덱스 계산 (0-based)
+const getCurrentStepIndex = (
+  hasScript: boolean,
+  hasCharacters: boolean,
+  hasScenes: boolean,
+  hasImages: boolean,
+  hasAudios: boolean,
+  hasVideos: boolean,
+  isGeneratingVideo: boolean
+): number => {
+  if (hasVideos) return 6; // 모든 단계 완료
+  if (isGeneratingVideo && hasAudios) return 5; // 6단계 진행 중
+  if (hasAudios) return 5; // 5단계 완료, 6단계 대기
+  if (hasImages) return 4; // 4단계 완료, 5단계 진행 중
+  if (hasScenes) return 3; // 3단계 완료, 4단계 진행 중
+  if (hasCharacters) return 2; // 2단계 완료, 3단계 진행 중
+  if (hasScript) return 1; // 1단계 완료, 2단계 진행 중
+  return 0; // 1단계 진행 중
+};
 
 const getStepStatus = (
   stepIndex: number,
-  currentStep: AppStep,
-  hasScript: boolean,
-  hasCharacters: boolean,
-  hasStoryboard: boolean,
-  hasVideos: boolean
+  currentStepIndex: number
 ): 'completed' | 'current' | 'upcoming' => {
-  // Dashboard는 진행사항에 포함하지 않음
-  if (currentStep === 'dashboard') {
-    return 'upcoming';
-  }
-
-  // 단계별 완료 여부 체크
-  const isCompleted =
-    (stepIndex === 0 && hasScript) ||
-    (stepIndex === 1 && hasCharacters) ||
-    (stepIndex === 2 && hasStoryboard) ||
-    (stepIndex === 3 && hasVideos);
-
-  if (isCompleted) return 'completed';
-
-  // 현재 단계 체크 (딱 1개만 활성화)
-  if (stepIndex === 0) {
-    return currentStep === 'input' ? 'current' : 'upcoming';
-  } else if (stepIndex === 1) {
-    return currentStep === 'character_setup' ? 'current' : 'upcoming';
-  } else if (stepIndex === 2) {
-    // 스토리보드 설정: storyboard 단계이면서 아직 이미지 생성 전
-    return currentStep === 'storyboard' && !hasStoryboard ? 'current' : 'upcoming';
-  } else {
-    // 영상 설정: storyboard 단계이면서 이미지는 완료된 후
-    return currentStep === 'storyboard' && hasStoryboard ? 'current' : 'upcoming';
-  }
+  if (stepIndex < currentStepIndex) return 'completed';
+  if (stepIndex === currentStepIndex) return 'current';
+  return 'upcoming';
 };
 
 export default function ProgressSteps({
   currentStep,
   hasScript,
   hasCharacters,
-  hasStoryboard,
+  hasScenes,
+  hasImages,
+  hasAudios,
   hasVideos,
+  isGeneratingVideo = false,
 }: ProgressStepsProps) {
   // Dashboard에서는 진행사항 바 숨김
   if (currentStep === 'dashboard') {
     return null;
   }
 
-  // 완료된 단계 수 계산
-  const completedSteps = [hasScript, hasCharacters, hasStoryboard, hasVideos].filter(Boolean).length;
-  const progressPercentage = (completedSteps / steps.length) * 100;
+  // 현재 활성 단계 인덱스 계산
+  const currentStepIndex = getCurrentStepIndex(
+    hasScript,
+    hasCharacters,
+    hasScenes,
+    hasImages,
+    hasAudios,
+    hasVideos,
+    isGeneratingVideo
+  );
+
+  // 진행률 계산: 현재 단계까지 선 채움
+  // 6단계 = 5개 구간, currentStepIndex / 5 * 100
+  const progressPercentage = Math.min((currentStepIndex / (steps.length - 1)) * 100, 100);
 
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
@@ -89,7 +100,7 @@ export default function ProgressSteps({
               }}
             />
 
-            {/* Progress line (완료된 구간 - 그라데이션) */}
+            {/* Progress line (현재 단계까지 선 채움 - 그라데이션) */}
             <div
               className="absolute top-[14px] h-[2px] bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
               style={{
@@ -99,17 +110,10 @@ export default function ProgressSteps({
             />
 
             {steps.map((step, index) => {
-              const status = getStepStatus(
-                index,
-                currentStep,
-                hasScript,
-                hasCharacters,
-                hasStoryboard,
-                hasVideos
-              );
+              const status = getStepStatus(index, currentStepIndex);
 
               return (
-                <div key={`${step.id}-${index}`} className="flex flex-col items-center" style={{ flex: '0 0 auto' }}>
+                <div key={index} className="flex flex-col items-center" style={{ flex: '0 0 auto' }}>
                   {/* Circle with number or check */}
                   <div
                     className={`
