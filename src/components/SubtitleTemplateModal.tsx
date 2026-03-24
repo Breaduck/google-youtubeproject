@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SubtitleSettings } from '../types';
 
 interface SubtitleTemplateModalProps {
@@ -71,7 +71,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
   const [savedPresets, setSavedPresets] = useState<Array<{ name: string; settings: Partial<SubtitleSettings> }>>([]);
 
   // Load saved presets from localStorage
-  useState(() => {
+  useEffect(() => {
     const saved = localStorage.getItem('subtitle_presets');
     if (saved) {
       try {
@@ -80,7 +80,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
         console.error('Failed to load subtitle presets:', e);
       }
     }
-  });
+  }, []);
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
     setSelected({ ...current, ...template.settings });
