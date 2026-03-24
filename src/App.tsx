@@ -3406,53 +3406,12 @@ const App: React.FC = () => {
                   <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="flex-1 flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">자막 설정</span>
                   </button>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowSubtitleEditor(true)}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-                    >
-                      템플릿 & 고급 편집
-                    </button>
-                    <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="p-1">
-                      <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'subtitle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                  </div>
+                  <button onClick={() => setExpandedSetting(expandedSetting === 'subtitle' ? null : 'subtitle')} className="p-1">
+                    <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'subtitle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                  </button>
                 </div>
                 {expandedSetting === 'subtitle' && (
                   <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
-                    {/* 템플릿 선택 */}
-                    <div className="space-y-2 pt-4">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">템플릿</label>
-                      <select
-                        value={subtitleSettings.template}
-                        onChange={(e) => {
-                          const template = e.target.value as any;
-                          const presets: any = {
-                            'default-white': { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 6, backgroundColor: undefined },
-                            'black-bg': { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#000000', bgPadding: 12, bgOpacity: 0.8 },
-                            'transparent-black': { textColor: '#000000', strokeColor: '#FFFFFF', strokeWidth: 4, backgroundColor: '#000000', bgPadding: 8, bgOpacity: 0.3 },
-                            'yellow': { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 6, backgroundColor: undefined },
-                            'neon-green': { textColor: '#39FF14', strokeColor: '#FFFFFF', strokeWidth: 5, backgroundColor: undefined },
-                            'youtube': { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#000000', bgPadding: 8, bgOpacity: 0.7 },
-                            'youtube-shorts': { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 8, backgroundColor: undefined },
-                            'custom': { textColor: subtitleSettings.textColor, strokeColor: subtitleSettings.strokeColor, strokeWidth: subtitleSettings.strokeWidth, backgroundColor: subtitleSettings.backgroundColor },
-                          };
-                          setSubtitleSettings({...subtitleSettings, template, ...presets[template]});
-                        }}
-                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-slate-100"
-                      >
-                        <option value="default-white">⚪ 기본 (흰색 + 검은 외곽선)</option>
-                        <option value="black-bg">⬛ 검정 배경 (반투명 박스)</option>
-                        <option value="transparent-black">🔲 반투명 검정</option>
-                        <option value="yellow">🟡 노란 자막</option>
-                        <option value="neon-green">🟢 네온 그린</option>
-                        <option value="youtube">🔴 유튜브 스타일</option>
-                        <option value="youtube-shorts">📺 유튜브 쇼츠 (굵은 외곽선)</option>
-                        <option value="custom">🎨 커스텀 색상</option>
-                      </select>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">프리셋 선택 후 크기/위치 조정 → 하단에서 색상 커스터마이징</p>
-                    </div>
-
                     {/* 크기 & 글씨체 - 컴팩트 */}
                     <div className="space-y-2 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
                       <div className="flex items-center justify-between gap-3">
