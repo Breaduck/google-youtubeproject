@@ -265,23 +265,28 @@ Return ONLY valid JSON, no markdown or explanation.`;
 
 1. "style": Describe the VISUAL STYLE for image generation. Include: color palette, line style, shading technique, overall mood, artistic influences, rendering quality, texture. Be specific and technical.
 
-2. "characterAppearance": Describe ALL CHARACTERS/FIGURES visible in these images in EXTREME DETAIL. For EACH character include:
-   - Hair: color, length, style, texture
-   - Face: eye color, eye shape, facial features, expressions
-   - Skin tone
-   - Body type and proportions
-   - Clothing: exact outfit, colors, accessories
-   - Any distinctive features (scars, tattoos, jewelry, etc.)
-   - Pose and demeanor
+2. "characterAppearance": Describe ALL CHARACTERS/FIGURES visible in these images in EXTREME DETAIL.
+
+IMPORTANT: First identify the CHARACTER TYPE:
+- **Realistic/Semi-realistic**: Real human proportions (describe hair, face, skin, clothing in detail)
+- **Cartoon/Anime**: Stylized characters (describe big eyes, hair color, outfit style, distinctive features)
+- **Simplified/Stick figure**: Minimal characters like 졸라맨(Zollaman), stick figures, simple shapes (describe head shape, body style, limb representation, color, any accessories or distinctive marks)
+- **Mascot/Chibi**: Cute simplified characters (describe proportions, facial features, colors, costume)
+
+For EACH character, describe based on their type:
+- **For realistic**: Hair (color, length, style), Face (eye color, features), Skin tone, Body type, Clothing details, Accessories
+- **For cartoon/anime**: Hair color & style, Eye style & color, Outfit, Color scheme, Distinctive features
+- **For simplified (stick figures, 졸라맨 style)**: Head shape (circle, oval, etc), Body representation (stick, simple shape), Limb style, Color, Any distinguishing marks or accessories, Overall silhouette
+- **For mascot/chibi**: Head-to-body ratio, Color scheme, Costume, Signature features
 
 If multiple characters appear, describe each one separately with labels like "Character 1:", "Character 2:", etc.
 If no characters/people are visible, respond with "No characters present".
 
 Response in English only, as valid JSON with two keys: "style" and "characterAppearance".
-Example format:
+Example for simplified character:
 {
-  "style": "Soft watercolor style with pastel colors...",
-  "characterAppearance": "Character 1: Young woman with long black hair reaching her waist, bright blue eyes, fair skin, wearing a white summer dress with floral pattern..."
+  "style": "Simple black line art on white background, minimal shading, clean vector-like strokes...",
+  "characterAppearance": "Stick figure character with round head, simple dot eyes, thin line body and limbs, black outline only, distinctive small tuft of hair on top..."
 }` }
           ]
         }
