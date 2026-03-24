@@ -491,9 +491,9 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
         <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
       </div>
 
-      <div className="grid grid-cols-[1fr_400px] gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* 좌측: 설정 */}
-        <div className="space-y-4">
+        <div className="flex-1 space-y-4">
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">폰트</label>
@@ -702,9 +702,9 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
         </div>
 
         {/* 우측: 미리보기 + 템플릿 (Sticky) */}
-        <div className="sticky top-8 space-y-4 h-fit">
+        <div className="lg:w-[400px] lg:sticky lg:top-8 space-y-4 h-fit">
           {/* 미리보기 (실제 크기/위치 반영) */}
-          <div className="bg-slate-900 dark:bg-slate-800 rounded-xl overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
+          <div className="w-full aspect-video bg-slate-900 dark:bg-slate-800 rounded-xl overflow-hidden relative">
             <div
               className="absolute"
               style={{
@@ -733,11 +733,13 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                 className="relative whitespace-nowrap"
                 style={{
                   fontFamily: settings.fontFamily,
-                  fontSize: `${settings.fontSize / 2}px`,
+                  fontSize: `${settings.fontSize}px`,
                   color: settings.textColor,
                   letterSpacing: `${settings.letterSpacing}px`,
                   lineHeight: settings.lineHeight,
-                  WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth / 2}px ${settings.strokeColor}` : undefined,
+                  WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth}px ${settings.strokeColor}` : undefined,
+                  transform: 'scale(0.5)',
+                  transformOrigin: 'center center',
                 }}
               >
                 자막 미리보기
