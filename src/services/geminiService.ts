@@ -119,13 +119,35 @@ export class GeminiService {
 
     const styleDesc = stylePrompts[style] || stylePrompts['2d-animation'];
 
+    // Check if style description contains character reference
+    const hasCharacterReference = styleDesc.includes('Character reference:') || styleDesc.includes('characterAppearance');
+
     const prompt = `Analyze this script and extract character information. Return a JSON object with:
 1. "title": A concise Korean title for this story (3-5 words)
 2. "characters": An array of character objects with:
    - "id": unique UUID
    - "name": character name in format "EnglishName(한글이름)" e.g. "Eunhwa(은화)", "Minjun(민준)", "Sora(소라)"
    - "role": brief role description in Korean
-   - "visualDescription": detailed visual description for image generation in English, including: gender, age, hair color/style, eye color, clothing, distinctive features. Style: ${styleDesc}
+   - "visualDescription": DETAILED visual description for image generation in English
+
+VISUAL DESCRIPTION REQUIREMENTS:
+${hasCharacterReference ? `
+⚠️ CRITICAL: Reference character appearance is provided below. You MUST:
+- Match the EXACT same art style, eye style, face shape, body proportions
+- If creating similar characters, use the SAME visual style but vary hair color/outfit
+- Maintain consistent line art style, shading technique, and color palette
+- Keep head-to-body ratio consistent with reference
+` : ''}
+For each character include:
+- Face shape and features (round, oval, angular)
+- Eye style and color (large anime eyes, realistic, etc.)
+- Hair: EXACT color, length, style, bangs
+- Skin tone
+- Body proportions (chibi, normal, etc.)
+- Clothing with colors and details
+- Any distinctive marks or accessories
+
+Art Style: ${styleDesc}
 
 Script:
 ${script}
@@ -261,32 +283,38 @@ Return ONLY valid JSON, no markdown or explanation.`;
           role: 'user',
           parts: [
             ...imageParts,
-            { text: `Analyze these reference images thoroughly. Provide TWO separate analyses:
+            { text: `Analyze these reference images thoroughly for ANIMATION/ILLUSTRATION style content. Provide TWO separate analyses:
 
-1. "style": Describe the VISUAL STYLE for image generation. Include: color palette, line style, shading technique, overall mood, artistic influences, rendering quality, texture. Be specific and technical.
+1. "style": Describe the VISUAL STYLE for image generation. Be VERY SPECIFIC for animation reproduction:
+   - Art style category (anime, webtoon, cartoon, chibi, manhwa, etc.)
+   - Line art style (thick outlines, thin lines, no outlines, sketchy, clean vector)
+   - Color palette (vibrant, pastel, muted, specific dominant colors)
+   - Shading technique (cel-shading, soft gradients, flat colors, no shading)
+   - Eye style (large anime eyes, realistic, dot eyes, specific shape)
+   - Overall rendering (digital, hand-drawn, watercolor effect, etc.)
+   - Background style (detailed, simple, gradient, abstract)
 
-2. "characterAppearance": Describe ALL CHARACTERS/FIGURES visible in these images in EXTREME DETAIL.
+2. "characterAppearance": Describe ALL CHARACTERS/FIGURES with PRECISE VISUAL DETAILS for consistent reproduction:
 
-IMPORTANT: First identify the CHARACTER TYPE:
-- **Realistic/Semi-realistic**: Real human proportions (describe hair, face, skin, clothing in detail)
-- **Cartoon/Anime**: Stylized characters (describe big eyes, hair color, outfit style, distinctive features)
-- **Simplified/Stick figure**: Minimal characters like 졸라맨(Zollaman), stick figures, simple shapes (describe head shape, body style, limb representation, color, any accessories or distinctive marks)
-- **Mascot/Chibi**: Cute simplified characters (describe proportions, facial features, colors, costume)
+For EACH character, describe these EXACT features (critical for consistency):
+- **Face shape**: Round, oval, angular, heart-shaped
+- **Eyes**: Size (large/medium/small), shape, color, style (anime sparkle, realistic, simple dots)
+- **Eyebrows**: Shape, thickness, color
+- **Hair**: EXACT color (e.g., "bright pink #FF69B4"), length, style, bangs, accessories
+- **Skin tone**: Specific shade (pale, fair, tan, dark, etc.)
+- **Body proportions**: Head-to-body ratio (chibi 1:2, normal 1:6, etc.)
+- **Clothing**: DETAILED description of outfit, colors, patterns, accessories
+- **Distinctive marks**: Scars, moles, tattoos, unique features
+- **Expression style**: How emotions are typically shown
 
-For EACH character, describe based on their type:
-- **For realistic**: Hair (color, length, style), Face (eye color, features), Skin tone, Body type, Clothing details, Accessories
-- **For cartoon/anime**: Hair color & style, Eye style & color, Outfit, Color scheme, Distinctive features
-- **For simplified (stick figures, 졸라맨 style)**: Head shape (circle, oval, etc), Body representation (stick, simple shape), Limb style, Color, Any distinguishing marks or accessories, Overall silhouette
-- **For mascot/chibi**: Head-to-body ratio, Color scheme, Costume, Signature features
-
-If multiple characters appear, describe each one separately with labels like "Character 1:", "Character 2:", etc.
-If no characters/people are visible, respond with "No characters present".
+If multiple characters, label each: "Character 1 (Name if visible):", "Character 2:", etc.
+Include their relationship/size relative to each other.
 
 Response in English only, as valid JSON with two keys: "style" and "characterAppearance".
-Example for simplified character:
+Example:
 {
-  "style": "Simple black line art on white background, minimal shading, clean vector-like strokes...",
-  "characterAppearance": "Stick figure character with round head, simple dot eyes, thin line body and limbs, black outline only, distinctive small tuft of hair on top..."
+  "style": "Modern Korean webtoon style, clean digital art with thick black outlines, cel-shading with soft shadows, vibrant saturated colors, large expressive anime-style eyes, pastel background gradients...",
+  "characterAppearance": "Character 1 (Main girl): Round face, very large sparkling blue eyes with white highlights, thin arched eyebrows, long straight pink hair (#FFB6C1) reaching waist with blunt bangs, fair pale skin, chibi-like 1:3 head-to-body ratio, wearing white sailor uniform with blue collar and red ribbon, small beauty mark under left eye..."
 }` }
           ]
         }
@@ -378,10 +406,16 @@ Example for simplified character:
       scriptSegment: s.scriptSegment
     }));
 
+    // 캐릭터 외형 레퍼런스 포함
+    const characterAppearanceSection = project.characterAppearance
+      ? `\n\n⚠️ CRITICAL CHARACTER REFERENCE (MUST MATCH EXACTLY):\n${project.characterAppearance}\n\nAll characters MUST maintain these exact visual features throughout all scenes.`
+      : '';
+
     const prompt = `Generate image prompts for these pre-divided script scenes.
 
 Characters:
 ${characterDescriptions}
+${characterAppearanceSection}
 
 Style: ${project.customStyleDescription || project.style}
 
@@ -453,10 +487,16 @@ Return ONLY valid JSON array, no markdown.`;
 
     const scriptLength = project.script.length;
 
+    // 캐릭터 외형 레퍼런스 포함
+    const characterAppearanceSection = project.characterAppearance
+      ? `\n\n⚠️ CRITICAL CHARACTER REFERENCE (MUST MATCH EXACTLY):\n${project.characterAppearance}\n\nAll characters in scenes MUST maintain these exact visual features: same eye style, face shape, hair style, body proportions, art style.`
+      : '';
+
     const prompt = `Divide this script into scenes for video generation. Each scene = 1 static image + narration audio.
 
 Characters:
 ${characterDescriptions}
+${characterAppearanceSection}
 
 Style: ${project.customStyleDescription || project.style}
 
@@ -589,6 +629,11 @@ Return ONLY valid JSON array, no markdown.`;
       .map(c => `- ${c.name}: ${c.visualDescription}`)
       .join('\n');
 
+    // 캐릭터 외형 레퍼런스 포함
+    const characterAppearanceSection = project.characterAppearance
+      ? `\n\n⚠️ CRITICAL - Reference Character Appearance (MUST MATCH):\n${project.characterAppearance}`
+      : '';
+
     const prompt = `Modify this image generation prompt based on the user's request while maintaining character consistency.
 
 Current prompt:
@@ -599,13 +644,14 @@ ${userRequest}
 
 Character reference:
 ${characterDescriptions}
+${characterAppearanceSection}
 
 Style: ${project.customStyleDescription || project.style}
 
 Generate a new, detailed English prompt that:
 1. Incorporates the user's requested changes
-2. Maintains the same visual style
-3. Keeps character appearances consistent with their descriptions
+2. Maintains the EXACT same visual style and art style
+3. Keeps character appearances IDENTICAL to their descriptions (same eyes, hair, face shape, proportions)
 4. Preserves the overall composition quality
 5. ⚠️ CRITICAL: NEVER include any text, letters, words, characters, symbols, signs, captions, subtitles, watermarks, logos, or typography in the scene. The image must be 100% text-free.
 
