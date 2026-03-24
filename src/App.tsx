@@ -852,7 +852,7 @@ const App: React.FC = () => {
     }, 200);
 
     try {
-      const description = await gemini.analyzeStyle(newStyleImages);
+      const analysis = await gemini.analyzeStyle(newStyleImages);
       clearInterval(progressTimer);
       setBgProgress(100);
 
@@ -860,7 +860,8 @@ const App: React.FC = () => {
         id: crypto.randomUUID(),
         name: newStyleName,
         refImages: newStyleImages,
-        description
+        description: analysis.style,
+        characterAppearance: analysis.characterAppearance
       };
       updateSavedStyles(prev => [...prev, newStyle]);
       setNewStyleName('');
@@ -901,7 +902,7 @@ const App: React.FC = () => {
     }, 200);
 
     try {
-      const description = await gemini.analyzeStyle(refImages);
+      const analysis = await gemini.analyzeStyle(refImages);
       clearInterval(progressTimer);
       setBgProgress(100);
 
@@ -909,7 +910,8 @@ const App: React.FC = () => {
         id: crypto.randomUUID(),
         name: customStyleName,
         refImages: refImages,
-        description
+        description: analysis.style,
+        characterAppearance: analysis.characterAppearance
       };
       updateSavedStyles(prev => [...prev, newStyle]);
       setCustomStyleName('');
@@ -936,13 +938,13 @@ const App: React.FC = () => {
 
     setCharLibSaveProgress(10);
     try {
-      const description = await gemini.analyzeStyle(newCharLibImages);
+      const analysis = await gemini.analyzeStyle(newCharLibImages);
       setCharLibSaveProgress(80);
       const newChar: SavedCharacter = {
         id: crypto.randomUUID(),
         name: newCharLibName,
         refImages: newCharLibImages,
-        description,
+        description: analysis.characterAppearance || analysis.style,  // 인물 외형 정보 우선
         portraitUrl: newCharLibImages[0]
       };
       updateSavedCharacters(prev => [...prev, newChar]);
@@ -995,14 +997,18 @@ const App: React.FC = () => {
     setBgProgress(10);
 
     try {
-      let customStyleDesc = undefined;
+      let customStyleDesc: string | undefined = undefined;
+      let charAppearance: string | undefined = undefined;
       const saved = savedStyles.find(s => s.id === style);
       if (saved) {
         customStyleDesc = saved.description;
+        charAppearance = saved.characterAppearance;  // 레퍼런스 이미지 속 캐릭터 외형도 포함
       } else if (style === 'custom') {
         setBgProgress(20);
         if (refImages.length > 0) {
-          customStyleDesc = await gemini.analyzeStyle(refImages);
+          const analysis = await gemini.analyzeStyle(refImages);
+          customStyleDesc = analysis.style;
+          charAppearance = analysis.characterAppearance;
         } else {
           customStyleDesc = "Modern clean digital art style";
         }
@@ -1010,7 +1016,11 @@ const App: React.FC = () => {
 
       setBgProgress(50);
       setBgTask({ type: 'analysis', message: '캐릭터 외형 프롬프트 생성 중...' });
-      const data = await gemini.extractCharacters(script, style === 'custom' || saved ? 'custom' : style as VisualStyle, customStyleDesc);
+      // 캐릭터 외형 정보도 스타일 설명에 포함
+      const fullStyleDesc = charAppearance
+        ? `${customStyleDesc || ''}. Character reference: ${charAppearance}`
+        : customStyleDesc;
+      const data = await gemini.extractCharacters(script, style === 'custom' || saved ? 'custom' : style as VisualStyle, fullStyleDesc);
 
       setBgProgress(80);
       const updatedProject: StoryProject = {
@@ -1019,6 +1029,7 @@ const App: React.FC = () => {
         script,
         style,
         customStyleDescription: customStyleDesc,
+        characterAppearance: charAppearance,
         characters: data.characters
       };
 
@@ -1055,7 +1066,27 @@ const App: React.FC = () => {
         finalPrompt = `${char.visualDescription}, Art style: ${activeProject.customStyleDescription}`;
       }
 
-      const url = await gemini.generateImage(finalPrompt, true, geminiImageModel);
+      // 레퍼런스 이미지 속 캐릭터 외형 정보 추가
+      if (activeProject.characterAppearance) {
+        finalPrompt = `${finalPrompt}, Character appearance reference: ${activeProject.characterAppearance}`;
+      }
+
+      // 저장된 인물(savedCharacters)에서 매칭되는 캐릭터의 레퍼런스 이미지 찾기
+      const referenceImages: string[] = [];
+      const matchingSavedChar = savedCharacters.find(
+        sc => sc.name.toLowerCase().includes(char.name.toLowerCase()) ||
+              char.name.toLowerCase().includes(sc.name.toLowerCase())
+      );
+      if (matchingSavedChar && matchingSavedChar.refImages.length > 0) {
+        referenceImages.push(...matchingSavedChar.refImages.slice(0, 3)); // 최대 3장
+      }
+
+      const url = await gemini.generateImage(
+        finalPrompt,
+        true,
+        geminiImageModel,
+        referenceImages.length > 0 ? referenceImages : undefined
+      );
       updateProjects(prev => prev.map(p => p.id === activeProject.id ? {
         ...p, characters: p.characters.map(c => c.id === charId ? { ...c, portraitUrl: url, status: 'done' } : c)
       } : p));
@@ -1200,10 +1231,31 @@ const App: React.FC = () => {
         finalPrompt = `${finalPrompt}, Art style: ${activeProject.customStyleDescription}`;
       }
 
-      // 캐릭터 일관성: portrait를 레퍼런스 이미지로 전달
-      const referenceImages = activeProject.characters
-        .map(char => char.portraitUrl)
-        .filter((url): url is string => url !== null);
+      // 레퍼런스 이미지 속 캐릭터 외형 정보 추가
+      if (activeProject.characterAppearance) {
+        finalPrompt = `${finalPrompt}, Character appearance reference: ${activeProject.characterAppearance}`;
+      }
+
+      // 캐릭터 일관성: portrait + 저장된 인물 이미지를 레퍼런스로 전달
+      const referenceImages: string[] = [];
+
+      // 1. 프로젝트 캐릭터 초상화
+      activeProject.characters.forEach(char => {
+        if (char.portraitUrl) referenceImages.push(char.portraitUrl);
+      });
+
+      // 2. 저장된 인물(savedCharacters)의 레퍼런스 이미지 추가
+      savedCharacters.forEach(savedChar => {
+        // 프로젝트 캐릭터와 이름이 매칭되는 저장된 인물의 이미지 사용
+        const matchingProjectChar = activeProject.characters.find(
+          pc => pc.name.toLowerCase().includes(savedChar.name.toLowerCase()) ||
+                savedChar.name.toLowerCase().includes(pc.name.toLowerCase())
+        );
+        if (matchingProjectChar && savedChar.refImages.length > 0) {
+          // 저장된 인물의 첫 번째 레퍼런스 이미지 추가
+          referenceImages.push(savedChar.refImages[0]);
+        }
+      });
 
       const url = await gemini.generateImage(
         finalPrompt,
@@ -1271,7 +1323,46 @@ const App: React.FC = () => {
         finalPrompt = `${newPrompt}, Art style: ${project.customStyleDescription}`;
       }
 
-      const newImageUrl = await gemini.generateImage(finalPrompt, isPortrait, geminiImageModel);
+      // 레퍼런스 이미지 속 캐릭터 외형 정보 추가
+      if (project.characterAppearance) {
+        finalPrompt = `${finalPrompt}, Character appearance reference: ${project.characterAppearance}`;
+      }
+
+      // 저장된 인물의 레퍼런스 이미지 수집
+      const referenceImages: string[] = [];
+      if (isPortrait) {
+        const char = project.characters.find(c => c.id === promptEditId);
+        if (char) {
+          const matchingSavedChar = savedCharacters.find(
+            sc => sc.name.toLowerCase().includes(char.name.toLowerCase()) ||
+                  char.name.toLowerCase().includes(sc.name.toLowerCase())
+          );
+          if (matchingSavedChar?.refImages.length) {
+            referenceImages.push(...matchingSavedChar.refImages.slice(0, 3));
+          }
+        }
+      } else {
+        // 씬 이미지: 모든 프로젝트 캐릭터 + 매칭되는 저장된 인물
+        project.characters.forEach(char => {
+          if (char.portraitUrl) referenceImages.push(char.portraitUrl);
+        });
+        savedCharacters.forEach(sc => {
+          const matching = project.characters.find(
+            pc => pc.name.toLowerCase().includes(sc.name.toLowerCase()) ||
+                  sc.name.toLowerCase().includes(pc.name.toLowerCase())
+          );
+          if (matching && sc.refImages.length > 0) {
+            referenceImages.push(sc.refImages[0]);
+          }
+        });
+      }
+
+      const newImageUrl = await gemini.generateImage(
+        finalPrompt,
+        isPortrait,
+        geminiImageModel,
+        referenceImages.length > 0 ? referenceImages : undefined
+      );
 
       if (promptEditType === 'character') {
         updateProjects(prev => prev.map(p => p.id === currentProjectId ? {
@@ -1348,7 +1439,46 @@ const App: React.FC = () => {
         finalPrompt = `${newPrompt}, Art style: ${project.customStyleDescription}`;
       }
 
-      const newImageUrl = await gemini.generateImage(finalPrompt, isPortrait, geminiImageModel);
+      // 레퍼런스 이미지 속 캐릭터 외형 정보 추가
+      if (project.characterAppearance) {
+        finalPrompt = `${finalPrompt}, Character appearance reference: ${project.characterAppearance}`;
+      }
+
+      // 저장된 인물의 레퍼런스 이미지 수집
+      const referenceImages: string[] = [];
+      if (isPortrait) {
+        const char = project.characters.find(c => c.id === regenerateId);
+        if (char) {
+          const matchingSavedChar = savedCharacters.find(
+            sc => sc.name.toLowerCase().includes(char.name.toLowerCase()) ||
+                  char.name.toLowerCase().includes(sc.name.toLowerCase())
+          );
+          if (matchingSavedChar?.refImages.length) {
+            referenceImages.push(...matchingSavedChar.refImages.slice(0, 3));
+          }
+        }
+      } else {
+        // 씬 이미지: 모든 프로젝트 캐릭터 + 매칭되는 저장된 인물
+        project.characters.forEach(char => {
+          if (char.portraitUrl) referenceImages.push(char.portraitUrl);
+        });
+        savedCharacters.forEach(sc => {
+          const matching = project.characters.find(
+            pc => pc.name.toLowerCase().includes(sc.name.toLowerCase()) ||
+                  sc.name.toLowerCase().includes(pc.name.toLowerCase())
+          );
+          if (matching && sc.refImages.length > 0) {
+            referenceImages.push(sc.refImages[0]);
+          }
+        });
+      }
+
+      const newImageUrl = await gemini.generateImage(
+        finalPrompt,
+        isPortrait,
+        geminiImageModel,
+        referenceImages.length > 0 ? referenceImages : undefined
+      );
 
       if (regenerateType === 'character') {
         updateProjects(prev => prev.map(p => p.id === currentProjectId ? {

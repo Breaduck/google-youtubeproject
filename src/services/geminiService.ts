@@ -241,7 +241,7 @@ Return ONLY valid JSON, no markdown or explanation.`;
     throw new Error('Failed to generate image');
   }
 
-  async analyzeStyle(images: string[]): Promise<string> {
+  async analyzeStyle(images: string[]): Promise<{ style: string; characterAppearance: string }> {
     const ai = this.getClient();
 
     const imageParts = images.slice(0, 5).map(img => {
@@ -261,13 +261,54 @@ Return ONLY valid JSON, no markdown or explanation.`;
           role: 'user',
           parts: [
             ...imageParts,
-            { text: `Analyze these reference images and describe the visual style in detail for image generation. Include: color palette, line style, shading technique, overall mood, artistic influences. Be specific and technical. Response in English only, in a single paragraph.` }
+            { text: `Analyze these reference images thoroughly. Provide TWO separate analyses:
+
+1. "style": Describe the VISUAL STYLE for image generation. Include: color palette, line style, shading technique, overall mood, artistic influences, rendering quality, texture. Be specific and technical.
+
+2. "characterAppearance": Describe ALL CHARACTERS/FIGURES visible in these images in EXTREME DETAIL. For EACH character include:
+   - Hair: color, length, style, texture
+   - Face: eye color, eye shape, facial features, expressions
+   - Skin tone
+   - Body type and proportions
+   - Clothing: exact outfit, colors, accessories
+   - Any distinctive features (scars, tattoos, jewelry, etc.)
+   - Pose and demeanor
+
+If multiple characters appear, describe each one separately with labels like "Character 1:", "Character 2:", etc.
+If no characters/people are visible, respond with "No characters present".
+
+Response in English only, as valid JSON with two keys: "style" and "characterAppearance".
+Example format:
+{
+  "style": "Soft watercolor style with pastel colors...",
+  "characterAppearance": "Character 1: Young woman with long black hair reaching her waist, bright blue eyes, fair skin, wearing a white summer dress with floral pattern..."
+}` }
           ]
         }
-      ]
+      ],
+      config: {
+        responseMimeType: 'application/json'
+      }
     });
 
-    return response.text || 'Modern digital illustration style';
+    try {
+      const text = response.text || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          style: parsed.style || 'Modern digital illustration style',
+          characterAppearance: parsed.characterAppearance || ''
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to parse style analysis JSON, using raw text');
+    }
+
+    return {
+      style: response.text || 'Modern digital illustration style',
+      characterAppearance: ''
+    };
   }
 
   private chunkScript(script: string): string[] {

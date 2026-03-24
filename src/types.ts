@@ -40,6 +40,7 @@ export interface StoryProject {
   script: string;
   style: string;
   customStyleDescription?: string;
+  characterAppearance?: string;  // 레퍼런스 이미지 속 캐릭터 외형 설명
   characters: CharacterProfile[];
   scenes: Scene[];
   updatedAt: number;
@@ -56,6 +57,7 @@ export interface SavedStyle {
   name: string;
   refImages: string[];
   description: string;
+  characterAppearance?: string;  // 그림체 이미지 속 캐릭터 외형 설명
 }
 
 export interface SavedCharacter {
