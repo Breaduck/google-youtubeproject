@@ -85,20 +85,19 @@ export default function ProgressSteps({
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-8 sm:px-12 py-3">
-        <div className="flex items-center gap-0">
-          {steps.map((step, index) => {
-            const status = getStepStatus(index, currentStepIndex);
-            const isLastStep = index === steps.length - 1;
-            const isLineCompleted = index < currentStepIndex;
+        <div className="relative">
+          <div className="flex items-center">
+            {steps.map((step, index) => {
+              const status = getStepStatus(index, currentStepIndex);
+              const isLastStep = index === steps.length - 1;
+              const isLineCompleted = index < currentStepIndex;
 
-            return (
-              <React.Fragment key={index}>
-                {/* 원과 라벨 */}
-                <div className="flex flex-col items-center" style={{ margin: 0, padding: 0 }}>
+              return (
+                <React.Fragment key={index}>
                   <div
                     className={`
                       w-7 h-7 rounded-full flex items-center justify-center
-                      transition-all duration-300 z-10 text-xs font-semibold
+                      transition-all duration-300 relative z-10 text-xs font-semibold
                       ${
                         status === 'completed'
                           ? 'bg-indigo-500 text-white'
@@ -107,7 +106,6 @@ export default function ProgressSteps({
                           : 'bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500'
                       }
                     `}
-                    style={{ margin: 0 }}
                   >
                     {status === 'completed' ? (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,45 +115,45 @@ export default function ProgressSteps({
                       <span>{step.icon}</span>
                     )}
                   </div>
-                  <div className="mt-2" style={{ margin: 0, marginTop: '8px' }}>
-                    <span
+                  {!isLastStep && (
+                    <div
                       className={`
-                        text-xs text-center transition-colors whitespace-nowrap
+                        flex-1 h-[2px] transition-all duration-500
                         ${
-                          status === 'completed'
-                            ? 'text-indigo-600 dark:text-indigo-400 font-medium'
-                            : status === 'current'
-                            ? 'text-slate-900 dark:text-slate-100 font-bold'
-                            : 'text-slate-400 dark:text-slate-500'
+                          isLineCompleted
+                            ? 'bg-gradient-to-r from-indigo-500 to-blue-500'
+                            : 'bg-slate-300 dark:bg-slate-600'
                         }
                       `}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 선 (마지막 원 제외) */}
-                {!isLastStep && (
-                  <div
-                    className={`
-                      h-[2px] rounded-full transition-all duration-500
-                      ${
-                        isLineCompleted
-                          ? 'bg-gradient-to-r from-indigo-500 to-blue-500'
-                          : 'bg-slate-300 dark:bg-slate-600'
-                      }
-                    `}
-                    style={{
-                      flex: 1,
-                      margin: 0,
-                      marginTop: '-24px'
-                    }}
-                  />
-                )}
-              </React.Fragment>
-            );
-          })}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+          <div className="flex justify-between mt-2">
+            {steps.map((step, index) => {
+              const status = getStepStatus(index, currentStepIndex);
+              return (
+                <span
+                  key={index}
+                  className={`
+                    text-xs text-center transition-colors whitespace-nowrap
+                    ${
+                      status === 'completed'
+                        ? 'text-indigo-600 dark:text-indigo-400 font-medium'
+                        : status === 'current'
+                        ? 'text-slate-900 dark:text-slate-100 font-bold'
+                        : 'text-slate-400 dark:text-slate-500'
+                    }
+                  `}
+                  style={{ width: `${100 / steps.length}%` }}
+                >
+                  {step.label}
+                </span>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
