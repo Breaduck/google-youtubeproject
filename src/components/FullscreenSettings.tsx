@@ -704,38 +704,40 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
         {/* 우측: 미리보기 + 템플릿 (Sticky) */}
         <div className="lg:w-[450px] lg:sticky lg:top-8 space-y-4 h-fit shrink-0">
           {/* 미리보기 (실제 크기/위치 반영) */}
-          <div className="w-full aspect-video bg-slate-900 dark:bg-slate-800 rounded-xl overflow-hidden relative">
-            <div
-              className="absolute left-1/2 -translate-x-1/2"
-              style={{
-                top: `${(settings.yPosition / 720) * 100}%`,
-                opacity: settings.opacity,
-              }}
-            >
-              {settings.backgroundColor && (
-                <div
-                  className="absolute inset-0 -z-10"
-                  style={{
-                    backgroundColor: settings.backgroundColor,
-                    opacity: settings.bgOpacity,
-                    padding: `${settings.bgPadding / 2}px ${settings.bgPadding / 1.5}px`,
-                    borderRadius: '4px',
-                  }}
-                />
-              )}
-              <p
-                className="relative whitespace-nowrap text-center"
+          <div className="w-full bg-slate-900 dark:bg-slate-800 rounded-xl overflow-visible relative" style={{ paddingTop: '56.25%' }}>
+            <div className="absolute inset-0 flex items-center justify-center p-4">
+              <div
+                className="absolute left-1/2 -translate-x-1/2"
                 style={{
-                  fontFamily: settings.fontFamily,
-                  fontSize: `${settings.fontSize / 2.5}px`,
-                  color: settings.textColor,
-                  letterSpacing: `${settings.letterSpacing / 1.5}px`,
-                  lineHeight: settings.lineHeight,
-                  WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth / 2}px ${settings.strokeColor}` : undefined,
+                  top: `${Math.min((settings.yPosition / 720) * 100, 85)}%`,
+                  opacity: settings.opacity,
                 }}
               >
-                자막 미리보기
-              </p>
+                {settings.backgroundColor && (
+                  <div
+                    className="absolute inset-0 -z-10"
+                    style={{
+                      backgroundColor: settings.backgroundColor,
+                      opacity: settings.bgOpacity,
+                      padding: `${settings.bgPadding / 2}px ${settings.bgPadding / 1.5}px`,
+                      borderRadius: '4px',
+                    }}
+                  />
+                )}
+                <p
+                  className="relative whitespace-nowrap text-center"
+                  style={{
+                    fontFamily: settings.fontFamily,
+                    fontSize: `${settings.fontSize / 2.5}px`,
+                    color: settings.textColor,
+                    letterSpacing: `${settings.letterSpacing / 1.5}px`,
+                    lineHeight: settings.lineHeight,
+                    WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth / 2}px ${settings.strokeColor}` : undefined,
+                  }}
+                >
+                  자막 미리보기
+                </p>
+              </div>
             </div>
           </div>
 
@@ -1104,7 +1106,7 @@ function VideoApiSettings({
             >
               <div className="text-center">
                 <p className="font-semibold text-slate-900 dark:text-slate-100">Evolink</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩272/10초 (720p)</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩190/10초 (720p)</p>
               </div>
             </button>
             <button
@@ -1117,7 +1119,7 @@ function VideoApiSettings({
             >
               <div className="text-center">
                 <p className="font-semibold text-slate-900 dark:text-slate-100">Runware</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩406/10초</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩195/10초</p>
               </div>
             </button>
           </div>
@@ -1393,7 +1395,7 @@ function VideoApiSettings({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-indigo-600 dark:text-indigo-400">
-                  1장당 ₩{costPerScene.toLocaleString()} (10초 기준: {videoProvider === 'byteplus' ? '₩307' : videoProvider === 'evolink' ? '₩272' : '₩406'})
+                  1장당 ₩{costPerScene.toLocaleString()} (10초 기준: {videoProvider === 'byteplus' ? '₩307' : videoProvider === 'evolink' ? '₩190' : '₩195'})
                 </span>
                 <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400">
                   총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초
