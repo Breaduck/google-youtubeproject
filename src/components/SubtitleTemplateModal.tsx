@@ -68,6 +68,19 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
   const [previewBg, setPreviewBg] = useState<string>('');
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const [savedPresets, setSavedPresets] = useState<Array<{ name: string; settings: Partial<SubtitleSettings> }>>([]);
+
+  // Load saved presets from localStorage
+  useState(() => {
+    const saved = localStorage.getItem('subtitle_presets');
+    if (saved) {
+      try {
+        setSavedPresets(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load subtitle presets:', e);
+      }
+    }
+  });
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
     setSelected({ ...current, ...template.settings });

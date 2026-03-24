@@ -139,7 +139,7 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       <div className="w-64 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* 헤더 */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-end mb-4">
+          <div className="flex items-center mb-4">
             <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
           </div>
         </div>
@@ -1610,44 +1610,6 @@ function NarrationSettings({
           >
             Chirp3 HD
           </button>
-          <button
-            onClick={() => setAudioProvider('google-neural2')}
-            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              audioProvider === 'google-neural2'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Neural2
-          </button>
-          <button
-            onClick={() => setAudioProvider('google-standard')}
-            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              audioProvider === 'google-standard'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Standard
-          </button>
-          <button
-            onClick={() => setAudioProvider('google-wavenet')}
-            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              audioProvider === 'google-wavenet'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            WaveNet
-          </button>
-          <button
-            onClick={() => setAudioProvider('google-studio')}
-            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              audioProvider === 'google-studio'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
             Studio
           </button>
           <button
@@ -1721,8 +1683,8 @@ function NarrationSettings({
         </div>
       )}
 
-      {/* Google Neural2 설정 */}
-      {audioProvider === 'google-neural2' && (
+      {/* Google Standard 설정 - REMOVED */}
+      {false && audioProvider === 'google-neural2' && (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Neural2 음성</label>
@@ -1764,8 +1726,7 @@ function NarrationSettings({
         </div>
       )}
 
-      {/* Google Standard 설정 */}
-      {audioProvider === 'google-standard' && (
+      {false && audioProvider === 'google-standard' && (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Standard 음성</label>
@@ -1808,8 +1769,7 @@ function NarrationSettings({
         </div>
       )}
 
-      {/* Google WaveNet 설정 */}
-      {audioProvider === 'google-wavenet' && (
+      {false && audioProvider === 'google-wavenet' && (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">WaveNet 음성</label>
@@ -1852,8 +1812,7 @@ function NarrationSettings({
         </div>
       )}
 
-      {/* Google Studio 설정 */}
-      {audioProvider === 'google-studio' && (
+      {false && audioProvider === 'google-studio' && (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Studio 음성</label>

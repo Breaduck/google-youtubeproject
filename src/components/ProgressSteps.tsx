@@ -110,8 +110,8 @@ export default function ProgressSteps({
 
             {/* Progress line (현재 단계까지 선 채움 - 그라데이션) */}
             <div
-              className="absolute top-[14px] left-0 h-[2px] bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
-              style={{ width: `${progressPercentage}%` }}
+              className="absolute top-[14px] h-[2px] bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
+              style={{ left: '14px', width: `calc(${progressPercentage}% - 14px)` }}
             />
 
             {steps.map((step, index) => {
