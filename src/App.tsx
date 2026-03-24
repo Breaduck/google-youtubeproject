@@ -180,6 +180,24 @@ const App: React.FC = () => {
     return projects.find(p => p.id === currentProjectId) || null;
   }, [projects, currentProjectId]);
 
+  // 현재 페이지 상태에 따라 step 자동 동기화
+  useEffect(() => {
+    if (!currentProjectId) {
+      setStep('dashboard');
+    } else if (project) {
+      // 프로젝트가 있을 때는 진행 상황에 따라 자동 설정
+      if (project.scenes && project.scenes.length > 0) {
+        setStep('storyboard');
+      } else if (project.characters && project.characters.length > 0) {
+        setStep('character_setup');
+      } else if (project.script) {
+        setStep('input');
+      } else {
+        setStep('input');
+      }
+    }
+  }, [currentProjectId, project?.scenes?.length, project?.characters?.length, project?.script]);
+
   // Wrappers to keep functional update pattern working
   const updateProjects = (updater: (prev: StoryProject[]) => StoryProject[]) => {
     setProjects(updater(projects));
