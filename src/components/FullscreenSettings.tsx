@@ -1447,7 +1447,7 @@ function SavedStylesPanel() {
           onClick={handleAddStyle}
           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
         >
-          새 그림체 추가 (참조 이미지)
+          새 그림체 추가하기
         </button>
       </div>
     </div>
@@ -2017,7 +2017,7 @@ function SavedCharactersPanel() {
           onClick={handleAddCharacter}
           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
         >
-          새 인물 추가 (참조 이미지)
+          인물 추가하기
         </button>
       </div>
     </div>
