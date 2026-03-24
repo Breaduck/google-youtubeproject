@@ -356,14 +356,16 @@ function GeminiSettings({
             </div>
           )}
 
-          <a
-            href="https://aistudio.google.com/apikey"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm mt-2"
-          >
-            API 키 발급받기 →
-          </a>
+          {!apiKey && (
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm mt-2"
+            >
+              API 키 발급받기 →
+            </a>
+          )}
         </div>
 
         {/* 기본 Gemini 엔진 */}
