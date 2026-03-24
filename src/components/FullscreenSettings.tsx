@@ -702,44 +702,36 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
         </div>
 
         {/* 우측: 미리보기 + 템플릿 (Sticky) */}
-        <div className="lg:w-[400px] lg:sticky lg:top-8 space-y-4 h-fit">
+        <div className="lg:w-[450px] lg:sticky lg:top-8 space-y-4 h-fit shrink-0">
           {/* 미리보기 (실제 크기/위치 반영) */}
           <div className="w-full aspect-video bg-slate-900 dark:bg-slate-800 rounded-xl overflow-hidden relative">
             <div
-              className="absolute"
+              className="absolute left-1/2 -translate-x-1/2"
               style={{
-                left: '50%',
-                transform: 'translateX(-50%)',
                 top: `${(settings.yPosition / 720) * 100}%`,
                 opacity: settings.opacity,
               }}
             >
               {settings.backgroundColor && (
                 <div
-                  className="absolute left-1/2 -translate-x-1/2"
+                  className="absolute inset-0 -z-10"
                   style={{
                     backgroundColor: settings.backgroundColor,
                     opacity: settings.bgOpacity,
-                    padding: `${settings.bgPadding / 2}px ${settings.bgPadding}px`,
+                    padding: `${settings.bgPadding / 2}px ${settings.bgPadding / 1.5}px`,
                     borderRadius: '4px',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 'max-content',
-                    height: 'max-content',
                   }}
                 />
               )}
               <p
-                className="relative whitespace-nowrap"
+                className="relative whitespace-nowrap text-center"
                 style={{
                   fontFamily: settings.fontFamily,
-                  fontSize: `${settings.fontSize}px`,
+                  fontSize: `${settings.fontSize / 2.5}px`,
                   color: settings.textColor,
-                  letterSpacing: `${settings.letterSpacing}px`,
+                  letterSpacing: `${settings.letterSpacing / 1.5}px`,
                   lineHeight: settings.lineHeight,
-                  WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth}px ${settings.strokeColor}` : undefined,
-                  transform: 'scale(0.5)',
-                  transformOrigin: 'center center',
+                  WebkitTextStroke: settings.strokeWidth > 0 ? `${settings.strokeWidth / 2}px ${settings.strokeColor}` : undefined,
                 }}
               >
                 자막 미리보기
