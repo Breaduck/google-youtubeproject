@@ -490,12 +490,30 @@ const App: React.FC = () => {
       return;
     }
     setIsValidatingByteplus(true);
-    // BytePlus API 키 검증을 단순화: 키 길이만 체크
-    // 실제 API 호출은 영상 생성 시 수행됨
-    setTimeout(() => {
+    try {
+      const BYTEPLUS_API = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
+      console.log('[checkByteplusKey] API 호출:', BYTEPLUS_API);
+      const response = await fetch(`${BYTEPLUS_API}/api/v3/byteplus/models`, {
+        headers: { 'Authorization': `Bearer ${key}` }
+      });
+      console.log('[checkByteplusKey] 응답:', response.status, response.ok);
+
+      // 200-299 또는 401/403이 아니면 일단 유효로 간주 (서버 오류 가능성)
+      if (response.ok) {
+        setIsByteplusValid(true);
+      } else if (response.status === 401 || response.status === 403) {
+        setIsByteplusValid(false);
+      } else {
+        // 서버 오류 등의 경우 키 길이로 판단
+        setIsByteplusValid(key.length >= 20);
+      }
+    } catch (error) {
+      console.error('[checkByteplusKey] 에러:', error);
+      // 네트워크 에러 등의 경우 키 길이로 판단
       setIsByteplusValid(key.length >= 20);
+    } finally {
       setIsValidatingByteplus(false);
-    }, 300);
+    }
   };
 
   const checkEvolinkKey = async (key: string) => {
@@ -2292,8 +2310,8 @@ const App: React.FC = () => {
         hasScript={!!project && !!project.script}
         hasCharacters={!!project && project.characters.length > 0}
         hasScenes={!!project && project.scenes.length > 0}
-        hasImages={!!project && project.scenes.some(s => s.imageUrl)}
-        hasAudios={!!project && project.scenes.some(s => s.audioUrl)}
+        hasImages={!!project && project.scenes.length > 0 && project.scenes.every(s => s.imageUrl)}
+        hasAudios={!!project && project.scenes.length > 0 && project.scenes.every(s => s.audioUrl)}
         hasVideos={!!project && project.scenes.some(s => s.videoUrl)}
       />
 
