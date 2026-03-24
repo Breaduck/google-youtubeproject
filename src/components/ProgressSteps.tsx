@@ -39,11 +39,11 @@ const getCurrentStepIndex = (
 ): number => {
   // 현재 페이지에 따라 최대 표시 단계 제한
   if (currentStep === 'input') {
-    // 대본 입력 페이지 → 최대 1단계까지만
-    return hasScript ? 1 : 0;
+    // 대본 입력 페이지 → 1단계(대본 업로드)만 표시
+    return 0;
   } else if (currentStep === 'character_setup') {
-    // 캐릭터 설정 페이지 → 최대 2단계까지만
-    return hasCharacters ? 2 : (hasScript ? 1 : 0);
+    // 캐릭터 설정 페이지 → 1, 2단계(등장인물 설정)까지만 표시
+    return 1;
   } else if (currentStep === 'storyboard') {
     // 스토리보드 페이지 → 전체 진행 상황 표시
     // currentStepIndex는 "채워진 마지막 단계"를 의미
