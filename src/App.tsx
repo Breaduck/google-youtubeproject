@@ -8,6 +8,7 @@ import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
 import SubtitleTemplateModal from './components/SubtitleTemplateModal';
 import FullscreenSettings from './components/FullscreenSettings';
+import ProgressSteps from './components/ProgressSteps';
 import { styleTemplates } from './data/styleTemplates';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -2292,6 +2293,15 @@ const App: React.FC = () => {
       <input type="file" className="hidden" ref={styleLibraryInputRef} accept="image/*" multiple onChange={handleStyleLibraryImageUpload} />
       <input type="file" className="hidden" ref={charLibInputRef} accept="image/*" multiple onChange={handleCharLibraryImageUpload} />
       <input type="file" className="hidden" ref={charPortraitUploadRef} accept="image/*" onChange={handleCharPortraitUpload} />
+
+      {/* Progress Steps */}
+      <ProgressSteps
+        currentStep={step}
+        hasProject={!!project && !!project.script}
+        hasCharacters={!!project && project.characters.length > 0}
+        hasScenes={!!project && project.scenes.length > 0}
+        hasVideos={!!project && project.scenes.some(s => s.videoUrl)}
+      />
 
       <div className="fixed top-4 right-4 sm:top-8 sm:right-8 z-[205] flex gap-2 sm:gap-3">
         <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-12 h-12 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 shadow-xl rounded-full flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 transition-all group relative border border-slate-100 dark:border-slate-700">
