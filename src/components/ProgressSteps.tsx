@@ -46,13 +46,14 @@ const getCurrentStepIndex = (
     return hasCharacters ? 2 : (hasScript ? 1 : 0);
   } else if (currentStep === 'storyboard') {
     // 스토리보드 페이지 → 전체 진행 상황 표시
-    if (hasVideos) return 6;
-    if (isGeneratingVideo && hasAudios) return 5;
-    if (hasAudios) return 5;
-    if (hasImages) return 4;
-    if (hasScenes) return 3;
-    if (hasCharacters) return 2;
-    if (hasScript) return 1;
+    // currentStepIndex는 "채워진 마지막 단계"를 의미
+    // stepIndex < currentStepIndex → completed, stepIndex === currentStepIndex → current
+    if (hasVideos) return 5; // 6단계까지 completed
+    if (hasAudios) return 4; // 5단계까지 completed, 6단계 current
+    if (hasImages) return 3; // 4단계까지 completed, 5단계 current
+    if (hasScenes) return 2; // 3단계까지 completed, 4단계 current
+    if (hasCharacters) return 1; // 2단계까지 completed, 3단계 current
+    if (hasScript) return 0; // 1단계까지 completed, 2단계 current
     return 0;
   }
   return 0;
