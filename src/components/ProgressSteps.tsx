@@ -9,7 +9,7 @@ interface ProgressStepsProps {
   hasImages: boolean;
   hasAudios: boolean;
   hasVideos: boolean;
-  isGeneratingVideo?: boolean; // 동영상 추출 버튼 눌렀는지 여부
+  isGeneratingVideo?: boolean;
 }
 
 interface Step {
@@ -26,7 +26,6 @@ const steps: Step[] = [
   { label: '영상 생성', icon: '6' },
 ];
 
-// 현재 활성 단계 인덱스 계산 (현재 페이지 기준)
 const getCurrentStepIndex = (
   currentStep: AppStep,
   hasScript: boolean,
@@ -37,23 +36,15 @@ const getCurrentStepIndex = (
   hasVideos: boolean,
   isGeneratingVideo: boolean
 ): number => {
-  // 현재 페이지에 따라 최대 표시 단계 제한
-  if (currentStep === 'input') {
-    // 대본 입력 페이지 → 1단계(대본 업로드)만 표시
-    return 0;
-  } else if (currentStep === 'character_setup') {
-    // 캐릭터 설정 페이지 → 1, 2단계(등장인물 설정)까지만 표시
-    return 1;
-  } else if (currentStep === 'storyboard') {
-    // 스토리보드 페이지 → 전체 진행 상황 표시
-    // currentStepIndex는 "채워진 마지막 단계"를 의미
-    // stepIndex < currentStepIndex → completed, stepIndex === currentStepIndex → current
-    if (hasVideos) return 5; // 6단계까지 completed
-    if (hasAudios) return 4; // 5단계까지 completed, 6단계 current
-    if (hasImages) return 3; // 4단계까지 completed, 5단계 current
-    if (hasScenes) return 2; // 3단계까지 completed, 4단계 current
-    if (hasCharacters) return 1; // 2단계까지 completed, 3단계 current
-    if (hasScript) return 0; // 1단계까지 completed, 2단계 current
+  if (currentStep === 'input') return 0;
+  else if (currentStep === 'character_setup') return 1;
+  else if (currentStep === 'storyboard') {
+    if (hasVideos) return 5;
+    if (hasAudios) return 4;
+    if (hasImages) return 3;
+    if (hasScenes) return 2;
+    if (hasCharacters) return 1;
+    if (hasScript) return 0;
     return 0;
   }
   return 0;
@@ -78,12 +69,8 @@ export default function ProgressSteps({
   hasVideos,
   isGeneratingVideo = false,
 }: ProgressStepsProps) {
-  // Dashboard에서는 진행사항 바 숨김
-  if (currentStep === 'dashboard') {
-    return null;
-  }
+  if (currentStep === 'dashboard') return null;
 
-  // 현재 활성 단계 인덱스 계산 (현재 페이지 기준)
   const currentStepIndex = getCurrentStepIndex(
     currentStep,
     hasScript,
@@ -95,35 +82,23 @@ export default function ProgressSteps({
     isGeneratingVideo
   );
 
-  // 진행률 계산: 현재 단계까지 선 채움
-  // 6단계 = 5개 구간, currentStepIndex / 5 * 100
-  const progressPercentage = Math.min((currentStepIndex / (steps.length - 1)) * 100, 100);
-
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-8 sm:px-12 py-3">
-        <div className="relative">
-          {/* Steps - padding으로 선의 시작/끝 위치 조정 (원 반지름 14px) */}
-          <div className="relative flex justify-between items-start" style={{ paddingLeft: '14px', paddingRight: '14px' }}>
-            {/* Background line (padding 내부 전체 = 첫 원 중심 ~ 마지막 원 중심) */}
-            <div className="absolute top-[14px] left-0 right-0 h-[2px] bg-slate-300 dark:bg-slate-600 rounded-full" />
+        <div className="flex items-center justify-between">
+          {steps.map((step, index) => {
+            const status = getStepStatus(index, currentStepIndex);
+            const isLastStep = index === steps.length - 1;
+            const isLineCompleted = index < currentStepIndex;
 
-            {/* Progress line (현재 단계까지 선 채움 - 그라데이션) */}
-            <div
-              className="absolute top-[14px] h-[2px] bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
-              style={{ left: '14px', width: `calc(${progressPercentage}% - 14px)` }}
-            />
-
-            {steps.map((step, index) => {
-              const status = getStepStatus(index, currentStepIndex);
-
-              return (
-                <div key={index} className="flex flex-col items-center" style={{ flex: '0 0 auto' }}>
-                  {/* Circle with number or check */}
+            return (
+              <React.Fragment key={index}>
+                {/* 원 */}
+                <div className="flex flex-col items-center">
                   <div
                     className={`
                       w-7 h-7 rounded-full flex items-center justify-center
-                      transition-all duration-300 z-10 relative text-xs font-semibold
+                      transition-all duration-300 z-10 text-xs font-semibold
                       ${
                         status === 'completed'
                           ? 'bg-indigo-500 text-white'
@@ -141,8 +116,6 @@ export default function ProgressSteps({
                       <span>{step.icon}</span>
                     )}
                   </div>
-
-                  {/* Label */}
                   <div className="mt-2">
                     <span
                       className={`
@@ -160,9 +133,24 @@ export default function ProgressSteps({
                     </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* 선 (마지막 원 제외) */}
+                {!isLastStep && (
+                  <div
+                    className={`
+                      flex-1 h-[2px] rounded-full transition-all duration-500
+                      ${
+                        isLineCompleted
+                          ? 'bg-gradient-to-r from-indigo-500 to-blue-500'
+                          : 'bg-slate-300 dark:bg-slate-600'
+                      }
+                    `}
+                    style={{ marginTop: '-28px' }}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
       </div>
     </div>

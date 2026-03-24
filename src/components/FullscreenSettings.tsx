@@ -167,16 +167,6 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       {/* 우측 콘텐츠 */}
       <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
         <div className="max-w-6xl mx-auto p-8">
-          {/* 상단 돌아가기 버튼 */}
-          <button
-            onClick={onClose}
-            className="mb-6 px-4 py-2 flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            <span>전으로 돌아가기</span>
-          </button>
           {activeTab === 'gemini' && (
             <GeminiSettings
               apiKey={geminiApiKey}
@@ -699,13 +689,20 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">텍스트 색상</label>
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 w-24">텍스트 색상</label>
               <input
                 type="color"
                 value={settings.textColor}
                 onChange={(e) => onChange({ ...settings, textColor: e.target.value })}
-                className="w-full h-12 rounded-lg cursor-pointer"
+                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600"
+              />
+              <input
+                type="text"
+                value={settings.textColor}
+                onChange={(e) => onChange({ ...settings, textColor: e.target.value })}
+                className="px-3 py-2 w-28 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
+                placeholder="#FFFFFF"
               />
             </div>
 
@@ -721,13 +718,20 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">외곽선 색상</label>
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 w-24">외곽선 색상</label>
               <input
                 type="color"
                 value={settings.strokeColor}
                 onChange={(e) => onChange({ ...settings, strokeColor: e.target.value })}
-                className="w-full h-12 rounded-lg cursor-pointer"
+                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600"
+              />
+              <input
+                type="text"
+                value={settings.strokeColor}
+                onChange={(e) => onChange({ ...settings, strokeColor: e.target.value })}
+                className="px-3 py-2 w-28 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
+                placeholder="#000000"
               />
             </div>
 
@@ -743,12 +747,21 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
               </label>
               {settings.backgroundColor && (
                 <>
-                  <input
-                    type="color"
-                    value={settings.backgroundColor}
-                    onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })}
-                    className="w-full h-12 rounded-lg cursor-pointer mb-2"
-                  />
+                  <div className="flex items-center gap-3 mb-2">
+                    <input
+                      type="color"
+                      value={settings.backgroundColor}
+                      onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })}
+                      className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600"
+                    />
+                    <input
+                      type="text"
+                      value={settings.backgroundColor}
+                      onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })}
+                      className="px-3 py-2 w-28 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
+                      placeholder="#000000"
+                    />
+                  </div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">배경 투명도: {Math.round(settings.bgOpacity * 100)}%</label>
                   <input
                     type="range"
