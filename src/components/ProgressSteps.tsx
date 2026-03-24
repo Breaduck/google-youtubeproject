@@ -16,10 +16,10 @@ interface Step {
 }
 
 const steps: Step[] = [
-  { id: 'input', label: '스크립트 작성', icon: '📝' },
-  { id: 'character_setup', label: '등장인물 설정', icon: '👥' },
-  { id: 'storyboard', label: '스토리보드 설정', icon: '🖼️' },
-  { id: 'storyboard', label: '영상 생성', icon: '🎬' },
+  { id: 'input', label: '대본 업로드', icon: '1' },
+  { id: 'character_setup', label: '등장인물 설정', icon: '2' },
+  { id: 'storyboard', label: '스토리보드 설정', icon: '3' },
+  { id: 'storyboard', label: '영상 설정', icon: '4' },
 ];
 
 const getStepStatus = (
@@ -54,17 +54,6 @@ const getStepStatus = (
   }
 };
 
-// 그라데이션 색상 계산 (indigo -> blue -> cyan)
-const getStepColor = (index: number, total: number) => {
-  const colors = [
-    'from-indigo-500 to-indigo-600',
-    'from-blue-500 to-blue-600',
-    'from-blue-400 to-blue-500',
-    'from-cyan-400 to-cyan-500',
-  ];
-  return colors[index] || colors[0];
-};
-
 export default function ProgressSteps({
   currentStep,
   hasScript,
@@ -83,14 +72,14 @@ export default function ProgressSteps({
 
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-2 sm:py-3">
+      <div className="max-w-[1400px] mx-auto px-8 sm:px-12 py-3">
         <div className="relative">
           {/* Background line (전체 선) */}
-          <div className="absolute top-[18px] sm:top-[20px] left-0 right-0 h-[2px] bg-slate-200 dark:bg-slate-700 rounded-full" />
+          <div className="absolute top-[14px] left-0 right-0 h-[2px] bg-slate-300 dark:bg-slate-600 rounded-full" />
 
           {/* Progress line (완료된 구간 - 그라데이션) */}
           <div
-            className="absolute top-[18px] sm:top-[20px] left-0 h-[2px] bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-400 rounded-full transition-all duration-500"
+            className="absolute top-[14px] left-0 h-[2px] bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
             style={{ width: `${progressPercentage}%` }}
           />
 
@@ -107,41 +96,41 @@ export default function ProgressSteps({
               );
 
               return (
-                <div key={`${step.id}-${index}`} className="flex flex-col items-center flex-1">
-                  {/* Icon Circle */}
+                <div key={`${step.id}-${index}`} className="flex flex-col items-center" style={{ flex: '0 0 auto' }}>
+                  {/* Circle with number or check */}
                   <div
                     className={`
-                      w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center
-                      transition-all duration-300 z-10 relative
+                      w-7 h-7 rounded-full flex items-center justify-center
+                      transition-all duration-300 z-10 relative text-xs font-semibold
                       ${
                         status === 'completed'
-                          ? `bg-gradient-to-br ${getStepColor(index, steps.length)} text-white shadow-md`
+                          ? 'bg-indigo-500 text-white'
                           : status === 'current'
-                          ? 'bg-white dark:bg-slate-800 border-2 border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600'
+                          ? 'bg-indigo-500 text-white'
+                          : 'bg-transparent border-2 border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500'
                       }
                     `}
                   >
                     {status === 'completed' ? (
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
-                      <span className="text-xs sm:text-sm">{step.icon}</span>
+                      <span>{step.icon}</span>
                     )}
                   </div>
 
                   {/* Label */}
-                  <div className="flex flex-col items-center mt-1.5 sm:mt-2 min-w-0 max-w-full">
+                  <div className="mt-2">
                     <span
                       className={`
-                        text-[10px] sm:text-xs font-medium text-center transition-colors px-1
+                        text-xs text-center transition-colors whitespace-nowrap
                         ${
                           status === 'completed'
-                            ? 'text-blue-600 dark:text-blue-400'
+                            ? 'text-indigo-600 dark:text-indigo-400 font-medium'
                             : status === 'current'
-                            ? 'text-slate-900 dark:text-slate-100 font-semibold'
-                            : 'text-slate-400 dark:text-slate-600'
+                            ? 'text-slate-900 dark:text-slate-100 font-bold'
+                            : 'text-slate-400 dark:text-slate-500'
                         }
                       `}
                     >
