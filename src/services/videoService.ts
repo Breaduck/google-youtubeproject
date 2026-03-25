@@ -60,13 +60,13 @@ export async function generateSimpleZoomVideo(
     img.crossOrigin = 'anonymous';
 
     img.onload = async () => {
-      // 720p 해상도
-      canvas.width = 1280;
-      canvas.height = 720;
+      // 1080p 고해상도
+      canvas.width = 1920;
+      canvas.height = 1080;
 
       // 폰트 명시적 로드 대기 (자막 깨짐 완전 방지)
       const fontFamily = subtitleSettings?.fontFamily || 'Pretendard';
-      const fontSize = subtitleSettings?.fontSize || 32;
+      const fontSize = subtitleSettings?.fontSize || 48; // 1080p에 맞게 폰트 크기 증가
       try {
         await document.fonts.load(`bold ${fontSize}px "${fontFamily}"`);
         await document.fonts.ready;
@@ -74,25 +74,29 @@ export async function generateSimpleZoomVideo(
         console.warn('Font loading failed, using fallback:', e);
       }
 
-      // TTS 싱크를 위한 시간 계산 (자막 길이 기반, 최대 8초로 단축)
+      // TTS 싱크를 위한 시간 계산 (자막 길이 기반)
       const effectIntensity = intensity || 5;
       const subtitleLength = subtitle.length;
 
       // 한글 기준: 3-4자/초 읽기 속도
-      const estimatedTtsTime = Math.max(4, Math.min(8, subtitleLength / 3.5));
+      const estimatedTtsTime = Math.max(5, Math.min(10, subtitleLength / 3.5));
 
       // 긴박도 보정 (긴박할수록 짧게)
       const intensityFactor = 1 - ((effectIntensity - 5) / 20); // 0.75 ~ 1.25
-      const duration = Math.max(4, Math.min(8, estimatedTtsTime * intensityFactor));
+      const duration = Math.max(5, Math.min(10, estimatedTtsTime * intensityFactor));
 
-      const fps = 24; // 부드러운 애니메이션을 위한 프레임레이트
+      console.log(`[VIDEO] Duration: ${duration}s, Subtitle length: ${subtitleLength}, Intensity: ${effectIntensity}`);
+
+      const fps = 30; // 더 부드러운 애니메이션
       const totalFrames = Math.floor(duration * fps);
 
-      // MediaRecorder 설정 (고품질)
+      console.log(`[VIDEO] Total frames: ${totalFrames}, FPS: ${fps}`);
+
+      // MediaRecorder 설정 (최고 품질)
       const stream = canvas.captureStream(fps);
       const recorder = new MediaRecorder(stream, {
         mimeType: 'video/webm;codecs=vp8',
-        videoBitsPerSecond: 5000000 // 5Mbps - 고품질 비디오
+        videoBitsPerSecond: 8000000 // 8Mbps - 최고 품질
       });
 
       const chunks: Blob[] = [];
@@ -158,25 +162,30 @@ export async function generateSimpleZoomVideo(
         if (subtitle && subtitleSettings) {
           ctx.save();
 
-          ctx.font = `bold ${subtitleSettings.fontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
+          // 1080p에 맞게 스케일링
+          const scaleFactor = 1.5; // 720p → 1080p (1080/720 = 1.5)
+          const scaledFontSize = Math.round(subtitleSettings.fontSize * scaleFactor);
+          const scaledYPosition = Math.round(subtitleSettings.yPosition * scaleFactor);
+
+          ctx.font = `bold ${scaledFontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
 
           const text = subtitle;
-          const textY = subtitleSettings.yPosition;
+          const textY = scaledYPosition;
 
           // 배경 박스 (있을 경우)
           if (subtitleSettings.backgroundColor) {
             const metrics = ctx.measureText(text);
             const textWidth = metrics.width;
-            const bgPadding = subtitleSettings.bgPadding || 8;
-            const bgHeight = subtitleSettings.fontSize + bgPadding * 2;
+            const bgPadding = Math.round((subtitleSettings.bgPadding || 8) * scaleFactor);
+            const bgHeight = scaledFontSize + bgPadding * 2;
 
             ctx.fillStyle = subtitleSettings.backgroundColor;
             ctx.globalAlpha = subtitleSettings.bgOpacity || 0.8;
             ctx.fillRect(
               canvas.width / 2 - textWidth / 2 - bgPadding,
-              textY - subtitleSettings.fontSize - bgPadding,
+              textY - scaledFontSize - bgPadding,
               textWidth + bgPadding * 2,
               bgHeight
             );
@@ -188,7 +197,7 @@ export async function generateSimpleZoomVideo(
           // 외곽선
           if (subtitleSettings.strokeWidth > 0 && subtitleSettings.strokeColor !== 'transparent') {
             ctx.strokeStyle = subtitleSettings.strokeColor;
-            ctx.lineWidth = subtitleSettings.strokeWidth;
+            ctx.lineWidth = Math.round(subtitleSettings.strokeWidth * scaleFactor);
             ctx.lineJoin = 'round';
             ctx.miterLimit = 2;
             ctx.strokeText(text, canvas.width / 2, textY);
