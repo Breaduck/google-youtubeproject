@@ -454,9 +454,18 @@ async def download_video(task_id: str, request: Request, export: str = None):
                 raise HTTPException(response.status_code, f"Task query failed (request_id={request_id}): {error_text}")
 
             result = response.json()
-            video_url = result.get("content", {}).get("video_url")
+            print(f"[{request_id}] BytePlus API response keys: {list(result.keys())}")
+            print(f"[{request_id}] Full response: {result}")
+
+            # BytePlus API 응답 구조: result.data.video_url 또는 result.content.video_url
+            video_url = None
+            if "data" in result and isinstance(result["data"], dict):
+                video_url = result["data"].get("video_url")
+            if not video_url and "content" in result and isinstance(result["content"], dict):
+                video_url = result["content"].get("video_url")
 
             if not video_url:
+                print(f"[{request_id}] ERROR: No video_url found in response: {result}")
                 raise HTTPException(404, f"No video_url in task (request_id={request_id}): {result.get('status')}")
 
             # 3. SSRF 방지: volces.com 도메인만 허용
