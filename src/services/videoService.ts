@@ -85,14 +85,14 @@ export async function generateSimpleZoomVideo(
       const intensityFactor = 1 - ((effectIntensity - 5) / 20); // 0.75 ~ 1.25
       const duration = Math.max(4, Math.min(8, estimatedTtsTime * intensityFactor));
 
-      const fps = 12; // 20 → 12 FPS로 최적화 (속도 대폭 향상, 여전히 부드러움)
+      const fps = 24; // 부드러운 애니메이션을 위한 프레임레이트
       const totalFrames = Math.floor(duration * fps);
 
-      // MediaRecorder 설정 (속도 최적화)
+      // MediaRecorder 설정 (고품질)
       const stream = canvas.captureStream(fps);
       const recorder = new MediaRecorder(stream, {
         mimeType: 'video/webm;codecs=vp8',
-        videoBitsPerSecond: 2000000 // 3M → 2M (자막은 텍스트라 낮은 비트레이트도 충분)
+        videoBitsPerSecond: 5000000 // 5Mbps - 고품질 비디오
       });
 
       const chunks: Blob[] = [];
@@ -223,12 +223,12 @@ export async function generateSimpleZoomVideo(
     // WebM 파일을 FFmpeg 가상 파일 시스템에 쓰기
     await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
 
-    // WebM → MP4 변환 (속도 최적화)
+    // WebM → MP4 변환 (고품질)
     await ffmpeg.exec([
       '-i', 'input.webm',
       '-c:v', 'libx264',
-      '-preset', 'ultrafast', // fast → ultrafast (인코딩 속도 대폭 향상)
-      '-crf', '23', // 18 → 23 (압축률 높이고 인코딩 빠르게)
+      '-preset', 'medium', // 품질과 속도의 균형
+      '-crf', '18', // 고품질 (낮을수록 좋음, 0-51)
       '-pix_fmt', 'yuv420p',
       '-movflags', '+faststart',
       'output.mp4'
