@@ -151,17 +151,17 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       <div className="w-64 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* 헤더 */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between h-14">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
             <button
               onClick={onClose}
-              className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700"
+              title="닫기"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              <span className="text-sm font-medium">이전으로 가기</span>
             </button>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
           </div>
         </div>
 
@@ -187,20 +187,6 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
 
       {/* 우측 콘텐츠 */}
       <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
-        {/* 우측 상단 헤더 */}
-        <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
-          <div className="max-w-6xl mx-auto flex items-center justify-end">
-            <button
-              onClick={onClose}
-              className="flex items-center gap-2 px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="font-medium">내 페이지</span>
-            </button>
-          </div>
-        </div>
         <div className="max-w-6xl mx-auto p-6">
           {activeTab === 'gemini' && (
             <GeminiSettings
