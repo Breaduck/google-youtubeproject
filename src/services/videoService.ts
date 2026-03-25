@@ -309,6 +309,52 @@ export async function addSubtitleOverlay(
   return resultBlob;
 }
 
+// 비디오에 오디오 추가
+export async function addAudioToVideo(
+  videoBlob: Blob,
+  audioUrl: string,
+  onProgress?: (progress: number, message: string) => void
+): Promise<Blob> {
+  if (onProgress) onProgress(0, '오디오 통합 중...');
+
+  const ffmpeg = await getFFmpeg();
+
+  // 비디오 파일 쓰기
+  await ffmpeg.writeFile('video.mp4', await fetchFile(videoBlob));
+
+  // 오디오 파일 가져오기
+  const audioResponse = await fetch(audioUrl);
+  const audioBlob = await audioResponse.blob();
+  const audioExt = audioUrl.includes('.mp3') ? 'mp3' : 'wav';
+  await ffmpeg.writeFile(`audio.${audioExt}`, await fetchFile(audioBlob));
+
+  if (onProgress) onProgress(30, '오디오 합성 중...');
+
+  // 비디오와 오디오 합치기
+  await ffmpeg.exec([
+    '-i', 'video.mp4',
+    '-i', `audio.${audioExt}`,
+    '-c:v', 'copy', // 비디오는 재인코딩 안 함 (속도 향상)
+    '-c:a', 'aac',
+    '-b:a', '192k',
+    '-shortest', // 짧은 쪽에 맞춤
+    'output.mp4'
+  ]);
+
+  if (onProgress) onProgress(80, '파일 생성 중...');
+
+  const data = await ffmpeg.readFile('output.mp4');
+  const resultBlob = new Blob([new Uint8Array(data as Uint8Array)], { type: 'video/mp4' });
+
+  // 정리
+  await ffmpeg.deleteFile('video.mp4');
+  await ffmpeg.deleteFile(`audio.${audioExt}`);
+  await ffmpeg.deleteFile('output.mp4');
+
+  if (onProgress) onProgress(100, '완료');
+  return resultBlob;
+}
+
 // 여러 비디오를 하나로 합치기 (FFmpeg concat) - export
 export async function mergeVideos(videoBlobs: Blob[], onProgress?: (progress: number, message: string) => void): Promise<Blob> {
   if (onProgress) onProgress(0, '병합 준비 중...');

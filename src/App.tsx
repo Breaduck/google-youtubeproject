@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom';
 import { GoogleGenAI } from "@google/genai";
 import { GeminiService } from './services/geminiService';
-import { generateSceneVideo, generateBatchVideos, VideoEngine, mergeVideos, generateSimpleZoomVideo } from './services/videoService';
+import { generateSceneVideo, generateBatchVideos, VideoEngine, mergeVideos, generateSimpleZoomVideo, addAudioToVideo } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect, SubtitleSettings } from './types';
 import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
@@ -1789,7 +1789,22 @@ const App: React.FC = () => {
         }
       );
 
-      const videoUrl = URL.createObjectURL(videoBlob);
+      // 오디오가 있으면 비디오에 합치기
+      let finalVideoBlob = videoBlob;
+      if (scene.audioUrl) {
+        console.log('[VIDEO] Adding audio to video...');
+        setLoadingText('오디오 통합 중...');
+        finalVideoBlob = await addAudioToVideo(
+          videoBlob,
+          scene.audioUrl,
+          (progress, message) => {
+            setTargetProgress(90 + (progress / 100) * 10);
+            setLoadingText(message);
+          }
+        );
+      }
+
+      const videoUrl = URL.createObjectURL(finalVideoBlob);
 
       updateCurrentProject({
         scenes: project.scenes.map(s =>
