@@ -3056,6 +3056,38 @@ const App: React.FC = () => {
           isVoiceTesting={isVoiceTesting}
           onWavUpload={handleWavUpload}
           uploadedWavFile={uploadedWavFile}
+          savedStyles={savedStyles}
+          savedCharacters={savedCharacters}
+          onAddStyleWithAnalysis={async (name: string, images: string[]) => {
+            if (!geminiApiKey) {
+              throw new Error('Gemini API 키를 설정해주세요.');
+            }
+            const analysis = await gemini.analyzeStyle(images);
+            const newStyle: SavedStyle = {
+              id: crypto.randomUUID(),
+              name,
+              refImages: images,
+              description: analysis.style,
+              characterAppearance: analysis.characterAppearance
+            };
+            addSavedStyle(newStyle);
+          }}
+          onAddCharacterWithAnalysis={async (name: string, images: string[]) => {
+            if (!geminiApiKey) {
+              throw new Error('Gemini API 키를 설정해주세요.');
+            }
+            const analysis = await gemini.analyzeStyle(images);
+            const newChar: SavedCharacter = {
+              id: crypto.randomUUID(),
+              name,
+              refImages: images,
+              description: analysis.characterAppearance || analysis.style,
+              portraitUrl: images[0] || null
+            };
+            addSavedCharacter(newChar);
+          }}
+          onDeleteStyle={deleteSavedStyle}
+          onDeleteCharacter={deleteSavedCharacter}
         />
       )}
 

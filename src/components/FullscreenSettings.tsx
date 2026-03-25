@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { SubtitleSettings, SubtitlePosition, ElevenLabsSettings } from '../types';
+import { SubtitleSettings, SubtitlePosition, ElevenLabsSettings, SavedStyle, SavedCharacter } from '../types';
 import { TEMPLATES } from './SubtitleTemplateModal';
 import { useSettingsStore } from '../stores/settingsStore';
 
@@ -21,6 +21,12 @@ interface FullscreenSettingsProps {
   isVoiceTesting: boolean;
   onWavUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   uploadedWavFile: { file: File; url: string } | null;
+  savedStyles: SavedStyle[];
+  savedCharacters: SavedCharacter[];
+  onAddStyleWithAnalysis: (name: string, images: string[]) => Promise<void>;
+  onAddCharacterWithAnalysis: (name: string, images: string[]) => Promise<void>;
+  onDeleteStyle: (id: string) => void;
+  onDeleteCharacter: (id: string) => void;
 }
 
 export default function FullscreenSettings(props: FullscreenSettingsProps) {
@@ -40,6 +46,12 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
     isVoiceTesting,
     onWavUpload,
     uploadedWavFile,
+    savedStyles,
+    savedCharacters,
+    onAddStyleWithAnalysis,
+    onAddCharacterWithAnalysis,
+    onDeleteStyle,
+    onDeleteCharacter,
   } = props;
 
   // Use Zustand stores
@@ -129,8 +141,8 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
     { id: 'video-api' as SettingTab, icon: '🎬', label: '영상화 API', badge: 'BytePlus' },
     { id: 'subtitle' as SettingTab, icon: '📝', label: '자막설정', badge: subtitleSettings.fontFamily },
     { id: 'narration' as SettingTab, icon: '🎙️', label: '나레이션', badge: 'Chirp3 HD' },
-    { id: 'saved-styles' as SettingTab, icon: '🎨', label: '저장된 그림체', badge: '0/10' },
-    { id: 'saved-characters' as SettingTab, icon: '👥', label: '저장된 인물', badge: '0/10' },
+    { id: 'saved-styles' as SettingTab, icon: '🎨', label: '저장된 그림체', badge: `${savedStyles.length}/10` },
+    { id: 'saved-characters' as SettingTab, icon: '👥', label: '저장된 인물', badge: `${savedCharacters.length}/10` },
   ];
 
   return (
@@ -252,8 +264,8 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
               onCheckRunwareKey={onCheckRunwareKey}
             />
           )}
-          {activeTab === 'saved-styles' && <SavedStylesPanel />}
-          {activeTab === 'saved-characters' && <SavedCharactersPanel />}
+          {activeTab === 'saved-styles' && <SavedStylesPanel savedStyles={savedStyles} onAddStyle={onAddStyleWithAnalysis} onDeleteStyle={onDeleteStyle} />}
+          {activeTab === 'saved-characters' && <SavedCharactersPanel savedCharacters={savedCharacters} onAddCharacter={onAddCharacterWithAnalysis} onDeleteCharacter={onDeleteCharacter} />}
         </div>
       </div>
     </div>
@@ -1495,17 +1507,60 @@ function VideoApiSettings({
   );
 }
 
-function SavedStylesPanel() {
+function SavedStylesPanel({
+  savedStyles,
+  onAddStyle,
+  onDeleteStyle
+}: {
+  savedStyles: SavedStyle[];
+  onAddStyle: (name: string, images: string[]) => Promise<void>;
+  onDeleteStyle: (id: string) => void;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [newStyleName, setNewStyleName] = useState('');
+  const [newStyleImages, setNewStyleImages] = useState<string[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
 
-  const handleAddStyle = () => {
-    fileInputRef.current?.click();
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (newStyleImages.length + files.length > 10) {
+      alert("자주 쓰는 그림체 레퍼런스는 최대 10장까지 가능합니다.");
+      return;
+    }
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewStyleImages(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+    if (e.target) e.target.value = '';
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      alert(`${files.length}개 이미지 선택됨 (그림체 저장 기능은 프로젝트 화면에서 사용 가능)`);
+  const handleAddClick = async () => {
+    if (!newStyleName.trim()) {
+      alert('그림체 이름을 입력해주세요.');
+      return;
+    }
+    if (newStyleImages.length === 0) {
+      alert('이미지를 최소 1장 이상 등록해주세요.');
+      return;
+    }
+    if (savedStyles.length >= 10) {
+      alert('자주 쓰는 그림체는 최대 10개까지 저장 가능합니다.');
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      await onAddStyle(newStyleName, newStyleImages);
+      setNewStyleName('');
+      setNewStyleImages([]);
+      alert('그림체가 저장되었습니다.');
+    } catch (err) {
+      alert('그림체 저장에 실패했습니다. Gemini API 키를 확인해주세요.');
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -1515,24 +1570,106 @@ function SavedStylesPanel() {
         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">저장된 그림체</h2>
         <p className="text-slate-600 dark:text-slate-400">자주 사용하는 그림체를 저장하고 불러올 수 있습니다. (최대 10개)</p>
       </div>
-      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-12 text-center">
-        <p className="text-slate-600 dark:text-slate-400 mb-4">저장된 그림체가 없습니다.</p>
-        <p className="text-slate-500 dark:text-slate-500 text-sm mb-6">프로젝트 화면에서 그림체를 저장하면 여기에 표시됩니다.</p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={handleFileSelect}
-        />
-        <button
-          onClick={handleAddStyle}
-          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
-        >
-          새 그림체 추가하기
-        </button>
+
+      {/* 새 그림체 추가 폼 */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">새 그림체 추가</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">제목</label>
+            <input
+              type="text"
+              value={newStyleName}
+              onChange={e => setNewStyleName(e.target.value)}
+              placeholder="예: 지브리 스타일, 수채화 풍경 등"
+              className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none dark:bg-slate-900 dark:text-slate-100"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">레퍼런스 이미지 (최대 10장)</label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg text-slate-500 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-600 transition-all"
+            >
+              + 이미지 선택
+            </button>
+            {newStyleImages.length > 0 && (
+              <div className="flex gap-2 flex-wrap mt-3">
+                {newStyleImages.map((img, idx) => (
+                  <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group">
+                    <img src={img} className="w-full h-full object-cover" alt="" />
+                    <button
+                      onClick={() => setNewStyleImages(prev => prev.filter((_, i) => i !== idx))}
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition-opacity"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleAddClick}
+            disabled={!newStyleName.trim() || newStyleImages.length === 0 || isAdding}
+            className="w-full py-3 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isAdding ? '저장 중...' : '그림체 저장'}
+          </button>
+        </div>
       </div>
+
+      {/* 저장된 그림체 목록 */}
+      {savedStyles.length === 0 ? (
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-12 text-center">
+          <p className="text-slate-600 dark:text-slate-400 mb-2">아직 저장된 그림체가 없습니다.</p>
+          <p className="text-slate-500 dark:text-slate-500 text-sm">위 폼을 사용하여 그림체를 추가해보세요.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {savedStyles.map((style) => (
+            <div key={style.id} className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{style.name}</h3>
+                <button
+                  onClick={() => {
+                    if (confirm(`"${style.name}" 그림체를 삭제하시겠습니까?`)) {
+                      onDeleteStyle(style.id);
+                    }
+                  }}
+                  className="text-red-500 hover:text-red-700 transition-colors"
+                  title="삭제"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">{style.description}</p>
+              {style.refImages.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  {style.refImages.slice(0, 4).map((img, idx) => (
+                    <img key={idx} src={img} className="w-16 h-16 rounded-lg object-cover border border-slate-200 dark:border-slate-700" alt="" />
+                  ))}
+                  {style.refImages.length > 4 && (
+                    <div className="w-16 h-16 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400">
+                      +{style.refImages.length - 4}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2022,17 +2159,60 @@ function NarrationSettings({
   );
 }
 
-function SavedCharactersPanel() {
+function SavedCharactersPanel({
+  savedCharacters,
+  onAddCharacter,
+  onDeleteCharacter
+}: {
+  savedCharacters: SavedCharacter[];
+  onAddCharacter: (name: string, images: string[]) => Promise<void>;
+  onDeleteCharacter: (id: string) => void;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [newCharName, setNewCharName] = useState('');
+  const [newCharImages, setNewCharImages] = useState<string[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
 
-  const handleAddCharacter = () => {
-    fileInputRef.current?.click();
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (newCharImages.length + files.length > 10) {
+      alert("인물 레퍼런스는 최대 10장까지 가능합니다.");
+      return;
+    }
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewCharImages(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+    if (e.target) e.target.value = '';
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      alert(`${files.length}개 이미지 선택됨 (인물 저장 기능은 프로젝트 화면에서 사용 가능)`);
+  const handleAddClick = async () => {
+    if (!newCharName.trim()) {
+      alert('인물 이름을 입력해주세요.');
+      return;
+    }
+    if (newCharImages.length === 0) {
+      alert('이미지를 최소 1장 이상 등록해주세요.');
+      return;
+    }
+    if (savedCharacters.length >= 10) {
+      alert('자주 사용하는 인물은 최대 10명까지 저장 가능합니다.');
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      await onAddCharacter(newCharName, newCharImages);
+      setNewCharName('');
+      setNewCharImages([]);
+      alert('인물이 저장되었습니다.');
+    } catch (err) {
+      alert('인물 저장에 실패했습니다. Gemini API 키를 확인해주세요.');
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -2042,24 +2222,113 @@ function SavedCharactersPanel() {
         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">저장된 인물</h2>
         <p className="text-slate-600 dark:text-slate-400">자주 사용하는 캐릭터를 저장하고 불러올 수 있습니다. (최대 10개)</p>
       </div>
-      <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-12 text-center">
-        <p className="text-slate-600 dark:text-slate-400 mb-4">저장된 인물이 없습니다.</p>
-        <p className="text-slate-500 dark:text-slate-500 text-sm mb-6">프로젝트 화면에서 인물을 저장하면 여기에 표시됩니다.</p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={handleFileSelect}
-        />
-        <button
-          onClick={handleAddCharacter}
-          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
-        >
-          인물 추가하기
-        </button>
+
+      {/* 새 인물 추가 폼 */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">새 인물 추가</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">이름</label>
+            <input
+              type="text"
+              value={newCharName}
+              onChange={e => setNewCharName(e.target.value)}
+              placeholder="이름을 입력해주세요"
+              className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none dark:bg-slate-900 dark:text-slate-100"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">레퍼런스 이미지 (최대 10장)</label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg text-slate-500 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-600 transition-all"
+            >
+              + 이미지 선택
+            </button>
+            {newCharImages.length > 0 && (
+              <div className="flex gap-2 flex-wrap mt-3">
+                {newCharImages.map((img, idx) => (
+                  <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group">
+                    <img src={img} className="w-full h-full object-cover" alt="" />
+                    <button
+                      onClick={() => setNewCharImages(prev => prev.filter((_, i) => i !== idx))}
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition-opacity"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleAddClick}
+            disabled={!newCharName.trim() || newCharImages.length === 0 || isAdding}
+            className="w-full py-3 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isAdding ? '저장 중...' : '인물 저장'}
+          </button>
+        </div>
       </div>
+
+      {/* 저장된 인물 목록 */}
+      {savedCharacters.length === 0 ? (
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-12 text-center">
+          <p className="text-slate-600 dark:text-slate-400 mb-2">아직 저장된 인물이 없습니다.</p>
+          <p className="text-slate-500 dark:text-slate-500 text-sm">위 폼을 사용하여 인물을 추가해보세요.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {savedCharacters.map((character) => (
+            <div key={character.id} className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-start gap-4">
+                {character.portraitUrl && (
+                  <img src={character.portraitUrl} className="w-20 h-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700" alt={character.name} />
+                )}
+                <div className="flex-1">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{character.name}</h3>
+                    <button
+                      onClick={() => {
+                        if (confirm(`"${character.name}" 인물을 삭제하시겠습니까?`)) {
+                          onDeleteCharacter(character.id);
+                        }
+                      }}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                      title="삭제"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{character.description}</p>
+                  {character.refImages.length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
+                      {character.refImages.slice(0, 3).map((img, idx) => (
+                        <img key={idx} src={img} className="w-12 h-12 rounded-lg object-cover border border-slate-200 dark:border-slate-700" alt="" />
+                      ))}
+                      {character.refImages.length > 3 && (
+                        <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400">
+                          +{character.refImages.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

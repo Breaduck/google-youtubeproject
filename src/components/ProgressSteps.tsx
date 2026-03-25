@@ -85,19 +85,19 @@ export default function ProgressSteps({
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-8 sm:px-12 py-3">
-        <div className="relative">
-          <div className="flex items-center">
-            {steps.map((step, index) => {
-              const status = getStepStatus(index, currentStepIndex);
-              const isLastStep = index === steps.length - 1;
-              const isLineCompleted = index < currentStepIndex;
+        <div className="flex items-start justify-between">
+          {steps.map((step, index) => {
+            const status = getStepStatus(index, currentStepIndex);
+            const isLastStep = index === steps.length - 1;
+            const isLineCompleted = index < currentStepIndex;
 
-              return (
-                <React.Fragment key={index}>
+            return (
+              <div key={index} className="flex items-start flex-1" style={{ maxWidth: isLastStep ? 'auto' : 'initial' }}>
+                <div className="flex flex-col items-center" style={{ minWidth: '80px' }}>
                   <div
                     className={`
                       w-7 h-7 rounded-full flex items-center justify-center
-                      transition-all duration-300 relative z-10 text-xs font-semibold
+                      transition-all duration-300 text-xs font-semibold
                       ${
                         status === 'completed'
                           ? 'bg-indigo-500 text-white'
@@ -115,10 +115,26 @@ export default function ProgressSteps({
                       <span>{step.icon}</span>
                     )}
                   </div>
-                  {!isLastStep && (
+                  <span
+                    className={`
+                      text-xs text-center transition-colors whitespace-nowrap mt-2
+                      ${
+                        status === 'completed'
+                          ? 'text-indigo-600 dark:text-indigo-400 font-medium'
+                          : status === 'current'
+                          ? 'text-slate-900 dark:text-slate-100 font-bold'
+                          : 'text-slate-400 dark:text-slate-500'
+                      }
+                    `}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+                {!isLastStep && (
+                  <div className="flex-1 flex items-center" style={{ height: '28px' }}>
                     <div
                       className={`
-                        flex-1 h-[2px] transition-all duration-500
+                        w-full h-[2px] transition-all duration-500
                         ${
                           isLineCompleted
                             ? 'bg-gradient-to-r from-indigo-500 to-blue-500'
@@ -126,34 +142,11 @@ export default function ProgressSteps({
                         }
                       `}
                     />
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-          <div className="flex justify-between mt-2">
-            {steps.map((step, index) => {
-              const status = getStepStatus(index, currentStepIndex);
-              return (
-                <span
-                  key={index}
-                  className={`
-                    text-xs text-center transition-colors whitespace-nowrap
-                    ${
-                      status === 'completed'
-                        ? 'text-indigo-600 dark:text-indigo-400 font-medium'
-                        : status === 'current'
-                        ? 'text-slate-900 dark:text-slate-100 font-bold'
-                        : 'text-slate-400 dark:text-slate-500'
-                    }
-                  `}
-                  style={{ width: `${100 / steps.length}%` }}
-                >
-                  {step.label}
-                </span>
-              );
-            })}
-          </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
