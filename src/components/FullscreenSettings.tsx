@@ -151,13 +151,22 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       <div className="w-64 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* 헤더 */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-end h-14">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={onClose}
+              className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="text-sm font-medium">이전으로 가기</span>
+            </button>
             <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
           </div>
         </div>
 
         {/* 메뉴 리스트 */}
-        <nav className="flex-1 overflow-y-auto py-2">
+        <nav className="flex-1 overflow-y-auto py-4">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -178,6 +187,20 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
 
       {/* 우측 콘텐츠 */}
       <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
+        {/* 우측 상단 헤더 */}
+        <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+          <div className="max-w-6xl mx-auto flex items-center justify-end">
+            <button
+              onClick={onClose}
+              className="flex items-center gap-2 px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="font-medium">내 페이지</span>
+            </button>
+          </div>
+        </div>
         <div className="max-w-6xl mx-auto p-6">
           {activeTab === 'gemini' && (
             <GeminiSettings
@@ -834,7 +857,10 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
         {/* 우측: 미리보기 + 템플릿 (Sticky) */}
         <div className="lg:w-[450px] lg:sticky lg:top-8 space-y-4 h-fit shrink-0">
           {/* 미리보기 (실제 크기/위치 반영) */}
-          <div className="w-full bg-slate-900 dark:bg-slate-800 rounded-xl overflow-visible relative" style={{ paddingTop: '56.25%' }}>
+          <div
+            className="w-full bg-slate-900 dark:bg-slate-800 rounded-xl overflow-visible relative group cursor-pointer"
+            style={{ paddingTop: '56.25%' }}
+          >
             <div className="absolute inset-0 flex items-center justify-center p-4">
               <div
                 key={`${settings.textColor}-${settings.strokeColor}-${settings.backgroundColor}`}
@@ -868,6 +894,14 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                 >
                   자막 미리보기
                 </p>
+              </div>
+
+              {/* 호버 시 업로드 버튼 */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                <label className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium cursor-pointer shadow-lg transition-all">
+                  <input type="file" accept="image/*" className="hidden" />
+                  이미지 업로드
+                </label>
               </div>
             </div>
           </div>
@@ -1765,6 +1799,46 @@ function NarrationSettings({
             Chirp3 HD
           </button>
           <button
+            onClick={() => setAudioProvider('google-neural2')}
+            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              audioProvider === 'google-neural2'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Neural2
+          </button>
+          <button
+            onClick={() => setAudioProvider('google-standard')}
+            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              audioProvider === 'google-standard'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Standard
+          </button>
+          <button
+            onClick={() => setAudioProvider('google-wavenet')}
+            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              audioProvider === 'google-wavenet'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            WaveNet
+          </button>
+          <button
+            onClick={() => setAudioProvider('google-studio')}
+            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              audioProvider === 'google-studio'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Studio
+          </button>
+          <button
             onClick={() => setAudioProvider('microsoft')}
             className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
               audioProvider === 'microsoft'
@@ -1836,7 +1910,7 @@ function NarrationSettings({
       )}
 
       {/* Google Standard 설정 - REMOVED */}
-      {false && audioProvider === 'google-neural2' && (
+      {audioProvider === 'google-neural2' && (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Neural2 음성</label>
@@ -1878,7 +1952,7 @@ function NarrationSettings({
         </div>
       )}
 
-      {false && audioProvider === 'google-standard' && (
+      {audioProvider === 'google-standard' && (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Standard 음성</label>
@@ -1921,7 +1995,7 @@ function NarrationSettings({
         </div>
       )}
 
-      {false && audioProvider === 'google-wavenet' && (
+      {audioProvider === 'google-wavenet' && (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">WaveNet 음성</label>
@@ -1964,7 +2038,7 @@ function NarrationSettings({
         </div>
       )}
 
-      {false && audioProvider === 'google-studio' && (
+      {audioProvider === 'google-studio' && (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Studio 음성</label>
