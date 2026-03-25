@@ -707,7 +707,8 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                 type="color"
                 value={settings.textColor}
                 onChange={(e) => onChange({ ...settings, textColor: e.target.value })}
-                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600"
+                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0"
+                style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
               />
               <input
                 type="text"
@@ -736,7 +737,8 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                 type="color"
                 value={settings.strokeColor}
                 onChange={(e) => onChange({ ...settings, strokeColor: e.target.value })}
-                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600"
+                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0"
+                style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
               />
               <input
                 type="text"
@@ -764,7 +766,8 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                       type="color"
                       value={settings.backgroundColor}
                       onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })}
-                      className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600"
+                      className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                     />
                     <input
                       type="text"
@@ -834,6 +837,7 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
           <div className="w-full bg-slate-900 dark:bg-slate-800 rounded-xl overflow-visible relative" style={{ paddingTop: '56.25%' }}>
             <div className="absolute inset-0 flex items-center justify-center p-4">
               <div
+                key={`${settings.textColor}-${settings.strokeColor}-${settings.backgroundColor}`}
                 className="absolute left-1/2 -translate-x-1/2"
                 style={{
                   top: `${Math.min((settings.yPosition / 720) * 100, 85)}%`,

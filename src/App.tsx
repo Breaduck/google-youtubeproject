@@ -270,12 +270,18 @@ const App: React.FC = () => {
     setVideoGenerationRange(totalSeconds);
   };
 
-  // 비용 계산 함수 (BytePlus 720p 10초 기준)
+  // 비용 계산 함수 (Provider별 차등 적용)
   const calculateVideoCost = () => {
     const numScenes = Math.floor(videoGenerationRange / 10);
-    const EXCHANGE_RATE = 1460; // 환율 (원/달러)
-    const COST_PER_VIDEO_USD = 0.21; // 720p 10초 기준
-    const costPerScene = Math.round(COST_PER_VIDEO_USD * EXCHANGE_RATE);
+
+    // Provider별 비용 (10초 기준, 5초 비용 x2)
+    // BytePlus: ₩54/5s = ₩108/10s
+    // Evolink: ₩203/5s = ₩406/10s
+    // Runware: ₩203/5s = ₩406/10s
+    const costPerScene = videoProvider === 'byteplus' ? 108 :
+                        videoProvider === 'evolink' ? 406 :
+                        videoProvider === 'runware' ? 406 : 108;
+
     const totalCost = numScenes * costPerScene;
 
     return {
@@ -3595,7 +3601,8 @@ const App: React.FC = () => {
                               type="color"
                               value={subtitleSettings.textColor}
                               onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
-                              className="w-10 h-8 rounded border border-slate-300 dark:border-slate-600 cursor-pointer"
+                              className="w-10 h-8 rounded border-2 border-slate-300 dark:border-slate-600 cursor-pointer appearance-none p-0"
+                              style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                             />
                             <input
                               type="text"
@@ -3612,7 +3619,8 @@ const App: React.FC = () => {
                               type="color"
                               value={subtitleSettings.backgroundColor || '#000000'}
                               onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
-                              className="w-10 h-8 rounded border border-slate-300 dark:border-slate-600 cursor-pointer"
+                              className="w-10 h-8 rounded border-2 border-slate-300 dark:border-slate-600 cursor-pointer appearance-none p-0"
+                              style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                             />
                             <input
                               type="text"
