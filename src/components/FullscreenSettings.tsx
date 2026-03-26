@@ -150,14 +150,14 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       {/* 좌측 사이드바 */}
       <div className="w-64 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* 헤더 */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all active:scale-98 group"
             title="닫기 (ESC)"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            <svg className="w-7 h-7 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
+            <span>이전으로 돌아가기</span>
           </button>
         </div>
 
@@ -958,14 +958,14 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                   {/* 텍스트 */}
                   <div className="relative h-full flex items-center justify-center p-1.5">
                     <span
-                      className="text-[10px] font-bold text-center leading-tight drop-shadow-md"
+                      className="text-[10px] font-bold text-center leading-tight"
                       style={{
                         color: tmpl.settings.textColor,
-                        textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.8)',
+                        fontFamily: tmpl.settings.fontFamily,
                         WebkitTextStroke:
                           tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
-                            ? `${Math.min(0.5, tmpl.settings.strokeWidth / 4)}px ${tmpl.settings.strokeColor}`
-                            : '0.3px rgba(0,0,0,0.5)',
+                            ? `${Math.max(0.3, tmpl.settings.strokeWidth / 2.5)}px ${tmpl.settings.strokeColor}`
+                            : undefined,
                       }}
                     >
                       {tmpl.name}
