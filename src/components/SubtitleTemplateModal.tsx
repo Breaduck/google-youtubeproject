@@ -33,10 +33,10 @@ const DEFAULT_FONTS = [
   'Gamja Flower',
 ];
 
-// 미리보기 스케일 (1080p 기준 → 미리보기)
-const PREVIEW_SCALE = 1 / 14; // 1080 → ~77px 높이
-const PREVIEW_WIDTH = 140; // 16:9 비율
-const PREVIEW_HEIGHT = 79;
+// 미리보기 설정
+const PREVIEW_FONT_SIZE = 14; // 미리보기 고정 폰트 크기
+const PREVIEW_WIDTH = 160; // 16:9 비율
+const PREVIEW_HEIGHT = 90;
 
 export const TEMPLATES: { id: string; name: string; category: string; settings: Partial<SubtitleSettings> }[] = [
   // ===== 기본 (가장 많이 쓰이는 스타일) =====
@@ -257,11 +257,14 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
 
   // 미리보기 렌더링 함수 (실제 비율 유지)
   const renderPreview = (settings: Partial<SubtitleSettings>, text: string = '가나다') => {
-    const fontSize = (settings.fontSize || 46) * PREVIEW_SCALE;
-    const strokeWidth = (settings.strokeWidth || 0) * PREVIEW_SCALE;
-    const bgPadding = (settings.bgPadding || 10) * PREVIEW_SCALE;
+    // 비율 계산: 고정 폰트 크기 기준으로 다른 요소들 스케일링
+    const originalFontSize = settings.fontSize || 46;
+    const scale = PREVIEW_FONT_SIZE / originalFontSize;
+
+    const strokeWidth = (settings.strokeWidth || 0) * scale;
+    const bgPadding = (settings.bgPadding || 10) * scale;
     const hasBg = !!settings.backgroundColor;
-    const hasStroke = strokeWidth > 0 && settings.strokeColor !== 'transparent';
+    const hasStroke = (settings.strokeWidth || 0) > 0 && settings.strokeColor !== 'transparent';
 
     return (
       <div
@@ -269,21 +272,22 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
         style={{
           width: PREVIEW_WIDTH,
           height: PREVIEW_HEIGHT,
-          backgroundColor: '#1a1a1a',
-          borderRadius: 4,
+          // 밝은 그라데이션 배경 (검정 외곽선도 잘 보임)
+          background: 'linear-gradient(180deg, #6B7280 0%, #374151 50%, #1F2937 100%)',
+          borderRadius: 6,
           overflow: 'hidden',
         }}
       >
         <div
-          className="absolute bottom-1 left-1/2 -translate-x-1/2"
+          className="absolute bottom-2 left-1/2 -translate-x-1/2"
           style={{
             fontFamily: `"${settings.fontFamily || 'Noto Sans KR'}", sans-serif`,
-            fontSize: `${Math.max(fontSize, 8)}px`,
+            fontSize: `${PREVIEW_FONT_SIZE}px`,
             fontWeight: 'bold',
             color: settings.textColor || '#FFFFFF',
             backgroundColor: hasBg ? settings.backgroundColor : undefined,
-            padding: hasBg ? `${bgPadding}px ${bgPadding * 1.5}px` : undefined,
-            borderRadius: hasBg ? 2 : undefined,
+            padding: hasBg ? `${Math.max(bgPadding, 2)}px ${Math.max(bgPadding * 1.5, 4)}px` : undefined,
+            borderRadius: hasBg ? 3 : undefined,
             opacity: hasBg ? (settings.bgOpacity || 0.8) : 1,
             WebkitTextStroke: hasStroke ? `${Math.max(strokeWidth, 0.5)}px ${settings.strokeColor}` : undefined,
             paintOrder: 'stroke fill',
