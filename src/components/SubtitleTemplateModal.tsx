@@ -20,7 +20,7 @@ const DEFAULT_FONTS = [
   'Hi Melody', 'Poor Story', 'Single Day', 'Stylish', 'Gamja Flower',
 ];
 
-// 템플릿 정의 - 외곽선 제거, text-shadow로 가독성 확보
+// 템플릿 정의
 export const TEMPLATES: { id: string; name: string; category: string; settings: Partial<SubtitleSettings> }[] = [
   // ===== 기본 =====
   { id: 'black-box', name: '검정 박스', category: '기본', settings: {
@@ -127,7 +127,7 @@ export const TEMPLATES: { id: string; name: string; category: string; settings: 
   }},
 ];
 
-// IndexedDB
+// IndexedDB 헬퍼
 const openFontDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open('CustomFonts', 1);
@@ -183,28 +183,29 @@ const registerFont = (font: CustomFont) => {
   }
 };
 
-// 텍스트 그림자 계산 (가독성 확보용)
-const getTextShadow = (settings: Partial<SubtitleSettings>) => {
-  const color = settings.textColor || '#FFFFFF';
-
+// 텍스트 그림자 계산
+const getTextShadow = (color: string, hasBg: boolean) => {
   // 네온 효과 (형광색)
-  if (color.includes('FF00') || color.includes('00FF') || color.includes('D4FF')) {
-    return `0 0 10px ${color}, 0 0 20px ${color}, 0 0 40px ${color}60`;
+  if (color === '#00FF88' || color === '#FF00FF' || color === '#00D4FF') {
+    return `0 0 8px ${color}, 0 0 16px ${color}, 0 0 24px ${color}80`;
   }
-
-  // 배경 없는 텍스트는 그림자로 가독성 확보
-  if (!settings.backgroundColor) {
-    return '2px 2px 4px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.5), 0 0 10px rgba(0,0,0,0.5)';
+  // 골드/실버
+  if (color === '#FFD700' || color === '#D4AF37') {
+    return `0 2px 4px rgba(0,0,0,0.6), 0 0 8px rgba(255,215,0,0.3)`;
   }
-
+  if (color === '#C0C0C0') {
+    return `0 2px 4px rgba(0,0,0,0.6), 0 0 6px rgba(192,192,192,0.4)`;
+  }
+  // 배경 없는 일반 텍스트 - 그림자로 가독성 확보
+  if (!hasBg) {
+    return '2px 2px 4px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.6), 0 0 8px rgba(0,0,0,0.4)';
+  }
   return undefined;
 };
 
 export default function SubtitleTemplateModal({ current, onApply, onClose, previewImage }: SubtitleTemplateModalProps) {
   const [selected, setSelected] = useState<SubtitleSettings>({
-    ...current,
-    strokeWidth: 0,
-    strokeColor: 'transparent'
+    ...current, strokeWidth: 0, strokeColor: 'transparent'
   });
   const [category, setCategory] = useState<string>('전체');
   const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
@@ -222,7 +223,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
     const baseSettings: SubtitleSettings = {
       fontSize: 44, fontFamily: 'Noto Sans KR', letterSpacing: 0, lineHeight: 1.2,
       opacity: 1, template: 'custom', textColor: '#FFFFFF',
-      strokeColor: 'transparent', strokeWidth: 0, // 외곽선 비활성화
+      strokeColor: 'transparent', strokeWidth: 0,
       backgroundColor: undefined, bgPadding: 12, bgOpacity: 0.8,
       position: 'bottom', yPosition: 680, lockPosition: false, lockFont: false,
     };
@@ -244,7 +245,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
       await saveFont(font);
       registerFont(font);
       setCustomFonts([...customFonts, font]);
-      alert(`"${fontName}" 폰트 추가 완료!`);
+      alert(`"${fontName}" 폰트 추가!`);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -263,7 +264,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
     registerFont(font);
     setCustomFonts([...customFonts, font]);
     setGoogleFontUrl('');
-    alert(`"${fontName}" 폰트 추가 완료!`);
+    alert(`"${fontName}" 폰트 추가!`);
   };
 
   const handleDeleteFont = async (fontName: string) => {
@@ -276,9 +277,47 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   const categories = ['전체', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
   const filteredTemplates = category === '전체' ? TEMPLATES : TEMPLATES.filter(t => t.category === category);
 
+  // ========== 템플릿 카드 렌더링 ==========
+  const renderTemplateCard = (tmpl: typeof TEMPLATES[0]) => {
+    const s = tmpl.settings;
+    const hasBg = !!s.backgroundColor;
+    const textShadow = getTextShadow(s.textColor || '#FFFFFF', hasBg);
+
+    return (
+      <div key={tmpl.id} className="flex flex-col gap-1">
+        {/* 카드: 가로로 긴 직사각형 (자막 모양) */}
+        <button
+          onClick={() => applyTemplate(tmpl)}
+          className="w-full h-14 rounded-lg bg-gray-950 flex items-center justify-center hover:ring-2 hover:ring-blue-500 transition-all"
+        >
+          {/* 샘플 텍스트에 실제 스타일 적용 */}
+          <span
+            style={{
+              fontFamily: `"${s.fontFamily || 'Noto Sans KR'}", sans-serif`,
+              fontSize: '15px',
+              fontWeight: 'bold',
+              color: s.textColor,
+              // 배경 박스가 있으면 span에 적용
+              backgroundColor: hasBg ? s.backgroundColor : undefined,
+              padding: hasBg ? '5px 14px' : undefined,
+              borderRadius: hasBg ? '4px' : undefined,
+              opacity: hasBg ? (s.bgOpacity || 0.85) : 1,
+              // 그림자
+              textShadow: textShadow,
+            }}
+          >
+            가나다라 ABC 123
+          </span>
+        </button>
+        {/* 템플릿 이름 */}
+        <p className="text-xs text-gray-500 text-center">{tmpl.name}</p>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <h2 className="text-xl font-bold text-white">자막 스타일</h2>
@@ -300,10 +339,10 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
         {/* Main */}
         <div className="flex-1 flex overflow-hidden">
           {/* 좌측: 미리보기 + 설정 */}
-          <div className="w-[380px] flex-shrink-0 p-4 border-r border-gray-800 flex flex-col">
-            {/* 미리보기 */}
+          <div className="w-[340px] flex-shrink-0 p-4 border-r border-gray-800 flex flex-col">
+            {/* 큰 미리보기 */}
             <div
-              className="relative rounded-xl overflow-hidden"
+              className="relative rounded-xl overflow-hidden flex-shrink-0"
               style={{
                 aspectRatio: '16/9',
                 background: previewImage
@@ -315,14 +354,14 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                 <span
                   style={{
                     fontFamily: `"${selected.fontFamily}", sans-serif`,
-                    fontSize: `${selected.fontSize * 0.38}px`,
+                    fontSize: `${selected.fontSize * 0.36}px`,
                     fontWeight: 'bold',
                     color: selected.textColor,
                     backgroundColor: selected.backgroundColor || undefined,
-                    padding: selected.backgroundColor ? `${selected.bgPadding * 0.38}px ${selected.bgPadding * 0.55}px` : undefined,
-                    borderRadius: selected.backgroundColor ? '6px' : undefined,
+                    padding: selected.backgroundColor ? `${selected.bgPadding * 0.36}px ${selected.bgPadding * 0.5}px` : undefined,
+                    borderRadius: selected.backgroundColor ? '5px' : undefined,
                     opacity: selected.backgroundColor ? (selected.bgOpacity || 0.8) : 1,
-                    textShadow: getTextShadow(selected),
+                    textShadow: getTextShadow(selected.textColor, !!selected.backgroundColor),
                   }}
                 >
                   자막 미리보기
@@ -330,9 +369,8 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               </div>
             </div>
 
-            {/* 설정 */}
+            {/* 설정 패널 */}
             <div className="mt-4 space-y-3 flex-1 overflow-y-auto">
-              {/* 폰트 */}
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">폰트</label>
                 <select
@@ -345,7 +383,6 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                 </select>
               </div>
 
-              {/* 크기 */}
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">크기: {selected.fontSize}px</label>
                 <input
@@ -355,37 +392,35 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                 />
               </div>
 
-              {/* 색상 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">텍스트 색상</label>
                   <input
                     type="color" value={selected.textColor}
                     onChange={(e) => setSelected({ ...selected, textColor: e.target.value })}
-                    className="w-full h-10 rounded-lg cursor-pointer bg-transparent border border-gray-700"
+                    className="w-full h-9 rounded-lg cursor-pointer bg-transparent border border-gray-700"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 mb-1 block">배경색 {selected.backgroundColor ? '' : '(없음)'}</label>
-                  <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 mb-1 block">배경 {selected.backgroundColor ? '' : '(없음)'}</label>
+                  <div className="flex items-center gap-2 h-9">
                     <input
                       type="checkbox"
                       checked={!!selected.backgroundColor}
                       onChange={(e) => setSelected({ ...selected, backgroundColor: e.target.checked ? '#000000' : undefined })}
-                      className="accent-blue-500"
+                      className="accent-blue-500 w-4 h-4"
                     />
                     {selected.backgroundColor && (
                       <input
                         type="color" value={selected.backgroundColor}
                         onChange={(e) => setSelected({ ...selected, backgroundColor: e.target.value })}
-                        className="flex-1 h-10 rounded-lg cursor-pointer bg-transparent border border-gray-700"
+                        className="flex-1 h-full rounded-lg cursor-pointer bg-transparent border border-gray-700"
                       />
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* 배경 투명도 */}
               {selected.backgroundColor && (
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">배경 투명도: {Math.round((selected.bgOpacity || 0.8) * 100)}%</label>
@@ -406,10 +441,10 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
             </button>
           </div>
 
-          {/* 우측: 템플릿 */}
+          {/* 우측: 템플릿 그리드 */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* 카테고리 */}
-            <div className="flex gap-2 p-4 pb-2 overflow-x-auto">
+            <div className="flex gap-2 p-4 pb-2 overflow-x-auto flex-shrink-0">
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -425,53 +460,10 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               ))}
             </div>
 
-            {/* 템플릿 그리드 */}
+            {/* 템플릿 그리드: 2열 */}
             <div className="flex-1 overflow-y-auto p-4 pt-2">
-              <div className="grid grid-cols-3 gap-3">
-                {filteredTemplates.map((tmpl) => {
-                  const s = tmpl.settings;
-                  const hasBg = !!s.backgroundColor;
-
-                  return (
-                    <button
-                      key={tmpl.id}
-                      onClick={() => applyTemplate(tmpl)}
-                      className="group relative rounded-xl overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all"
-                      style={{ aspectRatio: '2.5/1' }} // 가로로 넓은 자막 비율
-                    >
-                      {/* 어두운 영상 배경 */}
-                      <div className="absolute inset-0 bg-gradient-to-b from-gray-800 via-gray-900 to-black" />
-
-                      {/* 자막 미리보기 - 실제 스타일 적용 */}
-                      <div className="absolute inset-0 flex items-center justify-center p-2">
-                        <span
-                          style={{
-                            fontFamily: `"${s.fontFamily || 'Noto Sans KR'}", sans-serif`,
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            color: s.textColor,
-                            backgroundColor: hasBg ? s.backgroundColor : undefined,
-                            padding: hasBg ? '4px 10px' : undefined,
-                            borderRadius: hasBg ? '4px' : undefined,
-                            opacity: hasBg ? (s.bgOpacity || 0.8) : 1,
-                            textShadow: getTextShadow(s),
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          가나다 ABC
-                        </span>
-                      </div>
-
-                      {/* 템플릿 이름 */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-1 px-2">
-                        <p className="text-[10px] text-gray-400 text-center truncate">{tmpl.name}</p>
-                      </div>
-
-                      {/* 호버 */}
-                      <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/10 transition-colors" />
-                    </button>
-                  );
-                })}
+              <div className="grid grid-cols-2 gap-3">
+                {filteredTemplates.map(renderTemplateCard)}
               </div>
             </div>
           </div>
