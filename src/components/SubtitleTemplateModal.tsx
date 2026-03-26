@@ -8,58 +8,40 @@ interface SubtitleTemplateModalProps {
 }
 
 export const TEMPLATES: { id: string; name: string; category: string; settings: Partial<SubtitleSettings> }[] = [
-  // 기본 (5개) - 가장 많이 사용되는 스타일 우선
-  { id: 'black-box', name: '검정 박스 (기본)', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#000000', bgOpacity: 0.8, bgPadding: 14, fontSize: 48, fontFamily: 'Noto Sans KR' } },
-  { id: 'white-clean', name: '깔끔한 흰색', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 4, backgroundColor: undefined, fontSize: 50, fontFamily: 'Noto Sans KR' } },
-  { id: 'semi-transparent', name: '반투명 회색', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#1a1a1a', bgOpacity: 0.7, bgPadding: 12, fontSize: 46, fontFamily: 'Noto Sans KR' } },
-  { id: 'yellow-bold', name: '노란색 볼드', category: '기본', settings: { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 5, backgroundColor: undefined, fontSize: 52, fontFamily: 'Black Han Sans' } },
-  { id: 'white-shadow', name: '흰색 그림자', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#0066FF', strokeWidth: 4, backgroundColor: undefined, fontSize: 50, fontFamily: 'Do Hyeon' } },
+  // ===== 기본 (가장 많이 쓰이는 스타일) =====
+  { id: 'white-outline', name: '흰색 외곽선', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 4, backgroundColor: undefined, fontSize: 48, fontFamily: 'Noto Sans KR' } },
+  { id: 'white-thick', name: '흰색 두꺼운', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 6, backgroundColor: undefined, fontSize: 52, fontFamily: 'Noto Sans KR' } },
+  { id: 'black-box', name: '검정 박스', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#000000', bgOpacity: 0.8, bgPadding: 12, fontSize: 46, fontFamily: 'Noto Sans KR' } },
+  { id: 'semi-box', name: '반투명 박스', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#000000', bgOpacity: 0.6, bgPadding: 10, fontSize: 44, fontFamily: 'Noto Sans KR' } },
+  { id: 'yellow-basic', name: '노란색', category: '기본', settings: { textColor: '#FFDD00', strokeColor: '#000000', strokeWidth: 4, backgroundColor: undefined, fontSize: 48, fontFamily: 'Noto Sans KR' } },
 
-  // 가로형 전용 (7개) - 16:9 최적화
-  { id: 'impact', name: '임팩트', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 8, fontSize: 56, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
-  { id: 'neon', name: '네온', category: '컬러', settings: { textColor: '#00FF41', strokeColor: '#000000', strokeWidth: 8, fontSize: 52, backgroundColor: undefined, fontFamily: 'Jua' } },
-  { id: 'yellow', name: '노란색', category: '기본', settings: { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 9, fontSize: 54, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
-  { id: 'box', name: '박스', category: '기본', settings: { textColor: '#FFFFFF', backgroundColor: '#000000', bgOpacity: 0.85, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 14, fontSize: 50, fontFamily: 'Black Han Sans' } },
-  { id: 'gradient', name: '그라데이션', category: '프리미엄', settings: { textColor: '#FFFFFF', backgroundColor: '#FF0080', bgOpacity: 0.9, strokeColor: '#FFFFFF', strokeWidth: 3, bgPadding: 12, fontSize: 48, fontFamily: 'Jua' } },
-  { id: 'shadow', name: '그림자', category: '기본', settings: { textColor: '#FFFFFF', strokeColor: '#FF0000', strokeWidth: 5, fontSize: 52, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
-  { id: 'double', name: '이중선', category: '컬러', settings: { textColor: '#FFFF00', strokeColor: '#FF00FF', strokeWidth: 6, fontSize: 50, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
+  // ===== 강조 (중요한 부분용) =====
+  { id: 'yellow-bold', name: '노란색 강조', category: '강조', settings: { textColor: '#FFD700', strokeColor: '#000000', strokeWidth: 5, backgroundColor: undefined, fontSize: 52, fontFamily: 'Black Han Sans' } },
+  { id: 'red-alert', name: '빨간색 강조', category: '강조', settings: { textColor: '#FF3333', strokeColor: '#FFFFFF', strokeWidth: 4, backgroundColor: undefined, fontSize: 50, fontFamily: 'Black Han Sans' } },
+  { id: 'red-box', name: '빨간 박스', category: '강조', settings: { textColor: '#FFFFFF', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#E53935', bgOpacity: 0.95, bgPadding: 12, fontSize: 48, fontFamily: 'Noto Sans KR' } },
+  { id: 'impact', name: '임팩트', category: '강조', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 7, fontSize: 56, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
+  { id: 'highlight', name: '하이라이트', category: '강조', settings: { textColor: '#000000', strokeColor: 'transparent', strokeWidth: 0, backgroundColor: '#FFEB3B', bgOpacity: 0.95, bgPadding: 10, fontSize: 46, fontFamily: 'Noto Sans KR' } },
 
-  // 인기 유튜버 스타일 (8개) - 실제 자주 쓰이는 스타일
-  { id: 'popular-news', name: '뉴스/리뷰', category: '인기', settings: { textColor: '#FFFFFF', backgroundColor: '#2563EB', bgOpacity: 0.95, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 16, fontSize: 46, fontFamily: 'Noto Sans KR' } },
-  { id: 'popular-gaming', name: '게임 실황', category: '인기', settings: { textColor: '#00FF00', strokeColor: '#000000', strokeWidth: 6, fontSize: 54, backgroundColor: undefined, fontFamily: 'Nanum Gothic Coding' } },
-  { id: 'popular-vlog', name: '일상 브이로그', category: '인기', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 2, fontSize: 42, backgroundColor: undefined, opacity: 0.95, fontFamily: 'Noto Sans KR' } },
-  { id: 'popular-mukbang', name: '먹방', category: '인기', settings: { textColor: '#FFD700', strokeColor: '#FF0000', strokeWidth: 5, fontSize: 56, backgroundColor: undefined, fontFamily: 'Jua' } },
-  { id: 'popular-tutorial', name: '강의/설명', category: '인기', settings: { textColor: '#1F2937', backgroundColor: '#FFFFFF', bgOpacity: 0.95, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 18, fontSize: 44, fontFamily: 'Noto Sans KR' } },
-  { id: 'popular-reaction', name: '리액션', category: '인기', settings: { textColor: '#FF1493', strokeColor: '#FFFFFF', strokeWidth: 6, fontSize: 58, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
-  { id: 'popular-asmr', name: 'ASMR', category: '인기', settings: { textColor: '#E8E8E8', strokeColor: 'transparent', strokeWidth: 0, fontSize: 36, backgroundColor: undefined, opacity: 0.85, fontFamily: 'Noto Serif KR' } },
-  { id: 'popular-challenge', name: '챌린지', category: '인기', settings: { textColor: '#FFFFFF', backgroundColor: '#FF0000', bgOpacity: 0.9, strokeColor: '#FFFF00', strokeWidth: 3, bgPadding: 14, fontSize: 54, fontFamily: 'Black Han Sans' } },
+  // ===== 정보형 (뉴스/설명/강의) =====
+  { id: 'news-blue', name: '뉴스 파란색', category: '정보', settings: { textColor: '#FFFFFF', backgroundColor: '#1976D2', bgOpacity: 0.95, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 14, fontSize: 44, fontFamily: 'Noto Sans KR' } },
+  { id: 'news-dark', name: '뉴스 어두운', category: '정보', settings: { textColor: '#FFFFFF', backgroundColor: '#263238', bgOpacity: 0.95, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 14, fontSize: 44, fontFamily: 'Noto Sans KR' } },
+  { id: 'lecture-white', name: '강의 흰색', category: '정보', settings: { textColor: '#212121', backgroundColor: '#FFFFFF', bgOpacity: 0.95, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 14, fontSize: 42, fontFamily: 'Noto Sans KR' } },
+  { id: 'info-green', name: '정보 초록', category: '정보', settings: { textColor: '#FFFFFF', backgroundColor: '#2E7D32', bgOpacity: 0.9, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 12, fontSize: 44, fontFamily: 'Noto Sans KR' } },
+  { id: 'tip-orange', name: '팁 주황색', category: '정보', settings: { textColor: '#FFFFFF', backgroundColor: '#F57C00', bgOpacity: 0.95, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 12, fontSize: 44, fontFamily: 'Noto Sans KR' } },
 
-  // 컬러풀 (6개)
-  { id: 'red-pop', name: '빨강 팝', category: '컬러', settings: { textColor: '#FF0000', strokeColor: '#FFFFFF', strokeWidth: 5, fontSize: 58, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
-  { id: 'pink-cute', name: '핑크 큐트', category: '컬러', settings: { textColor: '#FF69B4', strokeColor: '#8B008B', strokeWidth: 4, fontSize: 52, backgroundColor: undefined, fontFamily: 'Jua' } },
-  { id: 'neon-green', name: '네온 그린', category: '컬러', settings: { textColor: '#39FF14', strokeColor: '#000000', strokeWidth: 6, fontSize: 50, backgroundColor: undefined, fontFamily: 'Do Hyeon' } },
-  { id: 'mint-fresh', name: '민트 프레시', category: '컬러', settings: { textColor: '#00FFA3', strokeColor: '#006644', strokeWidth: 3, fontSize: 48, backgroundColor: undefined, fontFamily: 'Noto Sans KR' } },
-  { id: 'purple-royal', name: '로얄 퍼플', category: '컬러', settings: { textColor: '#9370DB', strokeColor: '#4B0082', strokeWidth: 4, fontSize: 52, backgroundColor: undefined, fontFamily: 'Gothic A1' } },
-  { id: 'orange-energy', name: '오렌지 에너지', category: '컬러', settings: { textColor: '#FF6B00', strokeColor: '#FFFFFF', strokeWidth: 5, fontSize: 54, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
+  // ===== 예능/재미 =====
+  { id: 'fun-yellow', name: '예능 노랑', category: '예능', settings: { textColor: '#FFEB3B', strokeColor: '#000000', strokeWidth: 5, backgroundColor: undefined, fontSize: 54, fontFamily: 'Jua' } },
+  { id: 'fun-white', name: '예능 흰색', category: '예능', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 6, backgroundColor: undefined, fontSize: 54, fontFamily: 'Jua' } },
+  { id: 'comic', name: '코믹', category: '예능', settings: { textColor: '#FFFFFF', strokeColor: '#E91E63', strokeWidth: 5, backgroundColor: undefined, fontSize: 52, fontFamily: 'Black Han Sans' } },
+  { id: 'shock', name: '충격', category: '예능', settings: { textColor: '#FF1744', strokeColor: '#FFFFFF', strokeWidth: 5, backgroundColor: undefined, fontSize: 56, fontFamily: 'Black Han Sans' } },
+  { id: 'cute-pink', name: '귀여운 핑크', category: '예능', settings: { textColor: '#FF80AB', strokeColor: '#FFFFFF', strokeWidth: 3, backgroundColor: undefined, fontSize: 48, fontFamily: 'Jua' } },
 
-  // 프리미엄 (5개)
-  { id: 'gold-luxury', name: '골드 럭셔리', category: '프리미엄', settings: { textColor: '#FFD700', strokeColor: '#8B4513', strokeWidth: 4, fontSize: 60, backgroundColor: undefined, fontFamily: 'Noto Serif KR' } },
-  { id: 'silver-shine', name: '실버 샤인', category: '프리미엄', settings: { textColor: '#C0C0C0', strokeColor: '#000000', strokeWidth: 3, fontSize: 56, backgroundColor: undefined, fontFamily: 'Gothic A1' } },
-  { id: 'rose-gold', name: '로즈 골드', category: '프리미엄', settings: { textColor: '#E0BFB8', strokeColor: '#8B4513', strokeWidth: 3, fontSize: 54, backgroundColor: undefined, fontFamily: 'Noto Serif KR' } },
-  { id: 'neon-sign', name: '네온 사인', category: '프리미엄', settings: { textColor: '#FF1493', strokeColor: '#FF69B4', strokeWidth: 2, fontSize: 52, backgroundColor: undefined, opacity: 0.95, fontFamily: 'Jua' } },
-  { id: 'gradient-box', name: '그라데이션', category: '프리미엄', settings: { textColor: '#FFFFFF', backgroundColor: '#8B00FF', bgOpacity: 0.85, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 14, fontSize: 50, fontFamily: 'Black Han Sans' } },
-
-  // 미니멀 (4개)
-  { id: 'thin-outline', name: '얇은 외곽선', category: '미니멀', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 1, fontSize: 42, backgroundColor: undefined, fontFamily: 'Noto Sans KR' } },
-  { id: 'thick-bold', name: '두꺼운 볼드', category: '미니멀', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 7, fontSize: 58, backgroundColor: undefined, fontFamily: 'Black Han Sans' } },
-  { id: 'transparent-light', name: '투명 배경', category: '미니멀', settings: { textColor: '#FFFFFF', backgroundColor: '#000000', bgOpacity: 0.5, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 10, fontSize: 40, fontFamily: 'Noto Sans KR' } },
-  { id: 'bottom-bar', name: '하단 바', category: '미니멀', settings: { textColor: '#FFFFFF', backgroundColor: '#1a1a1a', bgOpacity: 0.9, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 18, fontSize: 44, yPosition: 680, fontFamily: 'Noto Sans KR' } },
-
-  // 감성/시네마틱 (4개)
-  { id: 'movie-subtitle', name: '영화 자막', category: '감성', settings: { textColor: '#F5F5F5', strokeColor: '#000000', strokeWidth: 1, fontSize: 38, backgroundColor: undefined, yPosition: 650, fontFamily: 'Noto Serif KR' } },
-  { id: 'documentary', name: '다큐멘터리', category: '감성', settings: { textColor: '#E8E8E8', backgroundColor: '#000000', bgOpacity: 0.6, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 8, fontSize: 40, fontFamily: 'Noto Sans KR' } },
-  { id: 'drama-style', name: '드라마틱', category: '감성', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 3, fontSize: 46, backgroundColor: undefined, opacity: 0.95, fontFamily: 'Noto Serif KR' } },
-  { id: 'asmr-soft', name: 'ASMR 소프트', category: '감성', settings: { textColor: '#F0F0F0', strokeColor: 'transparent', strokeWidth: 0, fontSize: 34, backgroundColor: undefined, opacity: 0.85, fontFamily: 'Noto Serif KR' } },
+  // ===== 감성/브이로그 =====
+  { id: 'vlog-clean', name: '브이로그', category: '감성', settings: { textColor: '#FFFFFF', strokeColor: '#000000', strokeWidth: 2, backgroundColor: undefined, fontSize: 40, fontFamily: 'Noto Sans KR' } },
+  { id: 'minimal', name: '미니멀', category: '감성', settings: { textColor: '#FFFFFF', strokeColor: '#333333', strokeWidth: 1, backgroundColor: undefined, fontSize: 38, fontFamily: 'Noto Sans KR' } },
+  { id: 'movie', name: '영화', category: '감성', settings: { textColor: '#F5F5F5', strokeColor: '#000000', strokeWidth: 1, backgroundColor: undefined, fontSize: 36, yPosition: 650, fontFamily: 'Noto Serif KR' } },
+  { id: 'soft-box', name: '부드러운 박스', category: '감성', settings: { textColor: '#FFFFFF', backgroundColor: '#000000', bgOpacity: 0.5, strokeColor: 'transparent', strokeWidth: 0, bgPadding: 10, fontSize: 40, fontFamily: 'Noto Sans KR' } },
+  { id: 'elegant', name: '우아한', category: '감성', settings: { textColor: '#FFFFFF', strokeColor: '#555555', strokeWidth: 2, backgroundColor: undefined, fontSize: 42, fontFamily: 'Noto Serif KR' } },
 ];
 
 export default function SubtitleTemplateModal({ current, onApply, onClose }: SubtitleTemplateModalProps) {
