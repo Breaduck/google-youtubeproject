@@ -30,6 +30,154 @@ function stripBannedTerms(text: string): string {
 // Alias for backward compat
 const stripCameraTerms = stripBannedTerms;
 
+// ============================================================
+// Hybrid Script Division System (앵커 기반 분할)
+// - Gemini: 맥락 분석 + 분할 위치(앵커) 반환
+// - 로컬: 원본 텍스트에서 직접 추출 (100% 보존)
+// ============================================================
+
+interface SegmentAnchor {
+  segment_number: number;
+  start_marker: string;  // 세그먼트 시작 문구 (원본 그대로)
+  end_marker: string;    // 세그먼트 끝 문구 (원본 그대로)
+  imagePrompt: string;
+  intensity: number;
+}
+
+interface ExtractedSegment {
+  scriptSegment: string;
+  imagePrompt: string;
+  intensity: number;
+  startIndex: number;
+  endIndex: number;
+}
+
+// 앵커 매칭 로직 (안전장치 포함)
+function findAnchorPosition(
+  text: string,
+  marker: string,
+  searchFrom: number = 0
+): number {
+  // 1. 정확히 일치하는지 먼저 검색
+  let pos = text.indexOf(marker, searchFrom);
+  if (pos !== -1) return pos;
+
+  // 2. 공백/줄바꿈 정규화 후 재검색
+  const normalizedText = text.replace(/\s+/g, ' ');
+  const normalizedMarker = marker.replace(/\s+/g, ' ');
+  const normalizedFrom = Math.max(0, searchFrom - 10); // 약간의 여유
+
+  // 정규화된 텍스트에서 찾은 위치를 원본 위치로 변환
+  const normalizedPos = normalizedText.indexOf(normalizedMarker, normalizedFrom);
+  if (normalizedPos !== -1) {
+    // 정규화 위치에서 가장 가까운 원본 위치 찾기
+    const searchStr = marker.substring(0, Math.min(10, marker.length));
+    pos = text.indexOf(searchStr, Math.max(0, searchFrom - 20));
+    if (pos !== -1) return pos;
+  }
+
+  // 3. start 문구의 앞 10글자만으로 재검색
+  if (marker.length > 10) {
+    const shortMarker = marker.substring(0, 10);
+    pos = text.indexOf(shortMarker, searchFrom);
+    if (pos !== -1) return pos;
+  }
+
+  // 4. 최종 실패
+  return -1;
+}
+
+// 앵커 기반 세그먼트 추출
+function extractSegmentsFromAnchors(
+  originalText: string,
+  anchors: SegmentAnchor[]
+): { segments: ExtractedSegment[]; success: boolean; error?: string } {
+  const segments: ExtractedSegment[] = [];
+  let lastEndIndex = 0;
+
+  for (let i = 0; i < anchors.length; i++) {
+    const anchor = anchors[i];
+
+    // 시작 위치 찾기
+    const startPos = findAnchorPosition(originalText, anchor.start_marker, lastEndIndex);
+    if (startPos === -1) {
+      console.warn(`Anchor start not found: "${anchor.start_marker.substring(0, 30)}..."`);
+      continue; // 해당 세그먼트 스킵
+    }
+
+    // 끝 위치 찾기 (start_marker 이후부터 검색)
+    let endPos = findAnchorPosition(originalText, anchor.end_marker, startPos);
+    if (endPos === -1) {
+      // end_marker를 못 찾으면, 다음 세그먼트의 start 직전까지 또는 끝까지
+      if (i + 1 < anchors.length) {
+        const nextStartPos = findAnchorPosition(originalText, anchors[i + 1].start_marker, startPos + 1);
+        endPos = nextStartPos !== -1 ? nextStartPos : originalText.length;
+      } else {
+        endPos = originalText.length;
+      }
+    } else {
+      // end_marker 끝까지 포함
+      endPos = endPos + anchor.end_marker.length;
+    }
+
+    const scriptSegment = originalText.substring(startPos, endPos).trim();
+
+    if (scriptSegment.length > 0) {
+      segments.push({
+        scriptSegment,
+        imagePrompt: anchor.imagePrompt,
+        intensity: anchor.intensity,
+        startIndex: startPos,
+        endIndex: endPos
+      });
+      lastEndIndex = endPos;
+    }
+  }
+
+  // 검증: 모든 세그먼트 연결 시 원본과 일치하는지
+  const concatenated = segments.map(s => s.scriptSegment).join('');
+  const normalizedOriginal = originalText.replace(/\s+/g, '');
+  const normalizedConcatenated = concatenated.replace(/\s+/g, '');
+
+  // 95% 이상 일치하면 성공으로 간주 (공백 차이 허용)
+  const matchRatio = normalizedConcatenated.length / normalizedOriginal.length;
+
+  if (matchRatio < 0.95) {
+    return {
+      segments,
+      success: false,
+      error: `텍스트 보존율 ${Math.round(matchRatio * 100)}% (${normalizedConcatenated.length}/${normalizedOriginal.length}자)`
+    };
+  }
+
+  return { segments, success: true };
+}
+
+// 기계적 분할 (Fallback)
+function mechanicalSplit(text: string, targetLength: number = 70): string[] {
+  const segments: string[] = [];
+  const sentences = text.split(/(?<=[.!?。！？\n])\s*/);
+
+  let currentSegment = '';
+
+  for (const sentence of sentences) {
+    if (currentSegment.length + sentence.length <= targetLength * 1.5) {
+      currentSegment += (currentSegment ? ' ' : '') + sentence;
+    } else {
+      if (currentSegment.trim()) {
+        segments.push(currentSegment.trim());
+      }
+      currentSegment = sentence;
+    }
+  }
+
+  if (currentSegment.trim()) {
+    segments.push(currentSegment.trim());
+  }
+
+  return segments.filter(s => s.length > 0);
+}
+
 async function generateRunwareImage(prompt: string, isPortrait: boolean): Promise<string> {
   const apiKey = localStorage.getItem('runware_api_key') || '';
   if (!apiKey || apiKey.length < 10) {
@@ -478,73 +626,79 @@ Return ONLY valid JSON array, no markdown.`;
     });
   }
 
-  async createStoryboard(project: StoryProject): Promise<Scene[]> {
+  // 하이브리드 분할: Gemini에게 앵커만 요청
+  private async getScriptAnchors(
+    script: string,
+    characterDescriptions: string,
+    characterAppearanceSection: string,
+    style: string
+  ): Promise<SegmentAnchor[]> {
     const ai = this.getClient();
 
-    const characterDescriptions = project.characters
-      .map(c => `- ${c.name}: ${c.visualDescription}`)
-      .join('\n');
-
-    const scriptLength = project.script.length;
-
-    // 캐릭터 외형 레퍼런스 포함
-    const characterAppearanceSection = project.characterAppearance
-      ? `\n\n⚠️ CRITICAL CHARACTER REFERENCE (MUST MATCH EXACTLY):\n${project.characterAppearance}\n\nAll characters in scenes MUST maintain these exact visual features: same eye style, face shape, hair style, body proportions, art style.`
-      : '';
-
-    const prompt = `Divide this script into scenes for video generation. Each scene = 1 static image + narration audio.
+    const prompt = `Analyze this Korean script and divide it into scenes for video generation.
+Each scene = 1 static image + 10 seconds of TTS narration.
 
 Characters:
 ${characterDescriptions}
 ${characterAppearanceSection}
 
-Style: ${project.customStyleDescription || project.style}
+Style: ${style}
 
-Full Script (${scriptLength} characters):
-${project.script}
+Full Script (${script.length} characters):
+${script}
 
-CRITICAL RULES - ORIGINAL TEXT PRESERVATION:
-⚠️ **NEVER modify, rephrase, summarize, or change ANY word from the original script**
-⚠️ **scriptSegment MUST be exact copy-paste from the original script - not a single character changed**
-⚠️ Even if the text has typos, keep them exactly as-is
-⚠️ This is non-negotiable - treat the script as sacred, read-only text
+=== CRITICAL RULES ===
 
-TASK: Intelligently divide the script into natural scenes based on:
-- **Natural breaks**: Paragraph breaks, new lines, dialogue turns, scene/location changes
-- **Narrative flow**: Group related sentences/events that belong in one visual
-- **Flexible length**: Each scene can be 30-200 characters depending on context
-  - Short scene (30-60 chars): Single impactful line, quick action
-  - Medium scene (60-120 chars): Standard dialogue or description
-  - Long scene (120-200 chars): Complex scene with multiple elements
-- **Visual grouping**: Events that fit in one static image
+1. **ANCHOR EXTRACTION (가장 중요)**
+   - start_marker와 end_marker는 원본 텍스트에서 **그대로 복사**해서 반환해라
+   - 절대 바꾸지 마라. 띄어쓰기, 마침표, 쉼표까지 원본 그대로
+   - 오타가 있어도 그대로 복사
+   - 이것은 텍스트 보존을 위한 "위치 표시"용이다
 
-Scene Length Guidelines (FLEXIBLE, not strict):
-- Minimum: 30 characters (very short line OK if natural break)
-- Optimal: 60-120 characters (10-15 seconds narration)
-- Maximum: 200 characters (complex scene)
-- **Prioritize natural breaks over length targets**
+2. **SEGMENT LENGTH**
+   - 각 세그먼트는 한국어 TTS 10초 분량 (약 50-80자)
+   - 너무 짧으면 (30자 미만) 다음과 합치기
+   - 너무 길면 (100자 초과) 자연스럽게 분리
+
+3. **NATURAL BREAKS**
+   - 의미가 끊기는 자연스러운 지점에서 분할
+   - 문장 중간에서 자르지 말 것
+   - 문단, 대화 전환, 장면 전환 지점 활용
+
+=== OUTPUT FORMAT ===
 
 For EACH scene, provide:
 1. "segment_number": Scene number (1, 2, 3...)
-2. "scriptSegment": **EXACT copy-paste text from original script** (no changes, no edits, no paraphrasing)
-   - Copy verbatim from original, including all punctuation/spacing
-   - Split at natural break points (paragraphs, new speakers, scene changes)
-   - Length varies naturally based on content
-3. "imagePrompt": Detailed English visual description. CRITICAL:
-   - Characters MUST match visualDescription exactly (same face/hair/clothing)
-   - Describe background, lighting, mood, character actions/expressions
-   - ⚠️ ABSOLUTELY NO TEXT/LETTERS/WORDS/SYMBOLS/SIGNS in the image
-   - NEVER mention camera shots or movement terms
-   - Pure visual scene only
-4. "effect_type": Always "static_subtle"
+2. "start_marker": **EXACT first 15-30 characters** of this segment (copy from original)
+3. "end_marker": **EXACT last 15-30 characters** of this segment (copy from original)
+4. "imagePrompt": Detailed English visual description
+   - Characters MUST match visualDescription exactly
+   - ⚠️ NO TEXT/LETTERS/WORDS in the image
+   - NEVER mention camera shots
 5. "intensity": 1-10 emotional intensity
 
-IMPORTANT:
-- **NO fixed scene count target** - let natural breaks determine scene count
-- **DO NOT add, remove, or modify any words from the original script**
-- Short scripts (under 500 chars) = 1-10 scenes naturally
-- Long scripts (over 20000 chars) = many scenes naturally
-- Quality over quantity - better to have natural scenes than forced splits
+=== EXAMPLE ===
+
+If original script is:
+"안녕하세요 여러분, 오늘은 특별한 이야기를 해볼게요. 먼저 우리가 알아야 할 것은..."
+
+Good response:
+[
+  {
+    "segment_number": 1,
+    "start_marker": "안녕하세요 여러분, 오늘은",
+    "end_marker": "이야기를 해볼게요.",
+    "imagePrompt": "...",
+    "intensity": 5
+  },
+  {
+    "segment_number": 2,
+    "start_marker": "먼저 우리가 알아야",
+    "end_marker": "알 것은...",
+    "imagePrompt": "...",
+    "intensity": 5
+  }
+]
 
 Return ONLY valid JSON array, no markdown.`;
 
@@ -560,32 +714,92 @@ Return ONLY valid JSON array, no markdown.`;
 
     const text = response.text || '';
     const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error('Failed to parse storyboard data');
+    if (!jsonMatch) throw new Error('Failed to parse anchor data');
 
-    const aiScenes = JSON.parse(jsonMatch[0]);
+    return JSON.parse(jsonMatch[0]);
+  }
 
-    return aiScenes.map((aiScene: any) => {
-      const effectType = 'static_subtle';
-      const intensity = aiScene.intensity || 5;
-      const motionParams = this.generateMotionParams(effectType, intensity);
+  async createStoryboard(project: StoryProject, onRetry?: (message: string) => void): Promise<Scene[]> {
+    const characterDescriptions = project.characters
+      .map(c => `- ${c.name}: ${c.visualDescription}`)
+      .join('\n');
 
-      return {
-        id: crypto.randomUUID(),
-        scriptSegment: aiScene.scriptSegment || '',
-        imagePrompt: stripCameraTerms(aiScene.imagePrompt || 'Scene depicting the script'),
-        imageUrl: null,
-        audioUrl: null,
-        videoUrl: null,
-        status: 'idle' as const,
-        audioStatus: 'idle' as const,
-        videoStatus: 'idle' as const,
-        effect: {
-          effect_type: effectType,
-          intensity,
-          motion_params: motionParams
-        } as SceneEffect
-      };
-    });
+    const characterAppearanceSection = project.characterAppearance
+      ? `\n\n⚠️ CRITICAL CHARACTER REFERENCE (MUST MATCH EXACTLY):\n${project.characterAppearance}\n\nAll characters in scenes MUST maintain these exact visual features.`
+      : '';
+
+    const style = project.customStyleDescription || project.style;
+    const originalScript = project.script;
+
+    // 최대 3회 시도 (초기 1회 + 재시도 2회)
+    const MAX_ATTEMPTS = 3;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        console.log(`[Hybrid Split] Attempt ${attempt}/${MAX_ATTEMPTS}`);
+
+        // 1. Gemini에게 앵커만 요청
+        const anchors = await this.getScriptAnchors(
+          originalScript,
+          characterDescriptions,
+          characterAppearanceSection,
+          style
+        );
+
+        console.log(`[Hybrid Split] Got ${anchors.length} anchors from Gemini`);
+
+        // 2. 앵커 기반으로 원본에서 텍스트 추출
+        const result = extractSegmentsFromAnchors(originalScript, anchors);
+
+        if (result.success) {
+          console.log(`[Hybrid Split] Success! ${result.segments.length} segments extracted`);
+
+          // 성공: Scene 객체로 변환
+          return result.segments.map((seg) => {
+            const effectType = 'static_subtle';
+            const motionParams = this.generateMotionParams(effectType, seg.intensity);
+
+            return {
+              id: crypto.randomUUID(),
+              scriptSegment: seg.scriptSegment,
+              imagePrompt: stripCameraTerms(seg.imagePrompt || 'Scene depicting the script'),
+              imageUrl: null,
+              audioUrl: null,
+              videoUrl: null,
+              status: 'idle' as const,
+              audioStatus: 'idle' as const,
+              videoStatus: 'idle' as const,
+              effect: {
+                effect_type: effectType,
+                intensity: seg.intensity,
+                motion_params: motionParams
+              } as SceneEffect
+            };
+          });
+        }
+
+        // 실패: 재시도 메시지
+        const errorMsg = `분할 검증 실패 (${result.error}), 재시도 중... (${attempt}/${MAX_ATTEMPTS})`;
+        console.warn(`[Hybrid Split] ${errorMsg}`);
+        onRetry?.(errorMsg);
+
+      } catch (error) {
+        console.error(`[Hybrid Split] Attempt ${attempt} error:`, error);
+        if (attempt === MAX_ATTEMPTS) {
+          throw error;
+        }
+      }
+    }
+
+    // 모든 시도 실패: 기계적 분할로 Fallback
+    console.warn('[Hybrid Split] All attempts failed, falling back to mechanical split');
+    onRetry?.('AI 분할 실패, 문장 단위 기계적 분할로 전환...');
+
+    const mechanicalSegments = mechanicalSplit(originalScript, 70);
+
+    // 기계적 분할된 텍스트로 이미지 프롬프트 생성 요청
+    const scriptScenes = mechanicalSegments.map(seg => ({ scriptSegment: seg }));
+    return this.generateImagePromptsForScenes(scriptScenes, project);
   }
 
   private generateMotionParams(effectType: string, intensity: number): SceneEffect['motion_params'] {
