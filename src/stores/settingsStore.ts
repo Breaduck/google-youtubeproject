@@ -93,8 +93,8 @@ interface SettingsStore {
   setVideoGenerationRange: (range: number) => void;
 
   // Audio Provider
-  audioProvider: 'google-chirp3' | 'google-neural2' | 'google-standard' | 'google-wavenet' | 'google-studio' | 'microsoft' | 'elevenlabs';
-  setAudioProvider: (provider: 'google-chirp3' | 'google-neural2' | 'google-standard' | 'google-wavenet' | 'google-studio' | 'microsoft' | 'elevenlabs') => void;
+  audioProvider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs';
+  setAudioProvider: (provider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs') => void;
 
   // Chirp (Google)
   chirpApiKey: string;

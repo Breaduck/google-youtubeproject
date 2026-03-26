@@ -83,7 +83,8 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
   }, []);
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
-    setSelected({ ...current, ...template.settings });
+    // 템플릿 설정으로 현재 설정을 덮어씀
+    setSelected({ ...current, ...template.settings } as SubtitleSettings);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -95,11 +96,19 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // 이미지 파일인지 확인
+      if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드 가능합니다.');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => setPreviewBg(reader.result as string);
+      reader.onerror = () => alert('이미지 로드 실패');
       reader.readAsDataURL(file);
     }
     setShowContextMenu(false);
+    // input 초기화 (같은 파일 재선택 가능하도록)
+    e.target.value = '';
   };
 
   const categories = ['전체', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
@@ -137,16 +146,17 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
             <div className="relative inline-block">
               {selected.backgroundColor && (
                 <div
-                  className="absolute inset-0 -m-3"
+                  className="absolute inset-0"
                   style={{
                     backgroundColor: selected.backgroundColor,
-                    opacity: selected.bgOpacity,
+                    opacity: selected.bgOpacity || 0.8,
                     borderRadius: '8px',
+                    margin: `-${selected.bgPadding || 0}px`,
                   }}
                 />
               )}
               <p
-                className="relative"
+                className="relative z-10"
                 style={{
                   fontFamily: selected.fontFamily,
                   fontSize: `${Math.min(selected.fontSize, 48)}px`,
@@ -154,6 +164,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
                   WebkitTextStroke: selected.strokeWidth > 0 && selected.strokeColor !== 'transparent'
                     ? `${selected.strokeWidth}px ${selected.strokeColor}`
                     : undefined,
+                  paintOrder: 'stroke fill',
                 }}
               >
                 자막 미리보기

@@ -85,19 +85,19 @@ export default function ProgressSteps({
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-8 sm:px-12 py-3">
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           {steps.map((step, index) => {
             const status = getStepStatus(index, currentStepIndex);
             const isLastStep = index === steps.length - 1;
             const isLineCompleted = index < currentStepIndex;
 
             return (
-              <div key={index} className="flex items-start flex-1" style={{ maxWidth: isLastStep ? 'auto' : 'initial' }}>
+              <React.Fragment key={index}>
                 <div className="flex flex-col items-center" style={{ minWidth: '80px' }}>
                   <div
                     className={`
                       w-7 h-7 rounded-full flex items-center justify-center
-                      transition-all duration-300 text-xs font-semibold
+                      transition-all duration-300 text-xs font-semibold z-10
                       ${
                         status === 'completed'
                           ? 'bg-indigo-500 text-white'
@@ -131,10 +131,10 @@ export default function ProgressSteps({
                   </span>
                 </div>
                 {!isLastStep && (
-                  <div className="flex-1 flex items-center" style={{ height: '28px' }}>
+                  <div className="flex-1 h-[2px] -mx-10" style={{ marginTop: '-30px' }}>
                     <div
                       className={`
-                        w-full h-[2px] transition-all duration-500
+                        w-full h-full transition-all duration-500
                         ${
                           isLineCompleted
                             ? 'bg-gradient-to-r from-indigo-500 to-blue-500'
@@ -144,7 +144,7 @@ export default function ProgressSteps({
                     />
                   </div>
                 )}
-              </div>
+              </React.Fragment>
             );
           })}
         </div>

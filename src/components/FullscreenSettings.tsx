@@ -151,18 +151,7 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       <div className="w-64 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* 헤더 */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between h-14">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700"
-              title="닫기"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 py-2">설정</h1>
         </div>
 
         {/* 메뉴 리스트 */}
@@ -538,14 +527,14 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 설정</h2>
           <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
         </div>
         <button
           onClick={() => setShowSaveDialog(!showSaveDialog)}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors whitespace-nowrap shrink-0"
         >
           현재 설정 저장
         </button>
@@ -716,7 +705,7 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                 type="color"
                 value={settings.textColor}
                 onChange={(e) => onChange({ ...settings, textColor: e.target.value })}
-                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0"
+                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-full"
                 style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
               />
               <input
@@ -746,7 +735,7 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                 type="color"
                 value={settings.strokeColor}
                 onChange={(e) => onChange({ ...settings, strokeColor: e.target.value })}
-                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0"
+                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-full"
                 style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
               />
               <input
@@ -1257,7 +1246,7 @@ function VideoApiSettings({
             >
               <div className="text-center">
                 <p className="font-semibold text-slate-900 dark:text-slate-100">Evolink</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩190/10초 (720p)</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">₩190/10초</p>
               </div>
             </button>
             <button
@@ -1731,8 +1720,8 @@ function NarrationSettings({
   onWavUpload,
   uploadedWavFile,
 }: {
-  audioProvider: 'google-chirp3' | 'google-neural2' | 'google-standard' | 'google-wavenet' | 'google-studio' | 'microsoft' | 'elevenlabs';
-  setAudioProvider: (provider: 'google-chirp3' | 'google-neural2' | 'google-standard' | 'google-wavenet' | 'google-studio' | 'microsoft' | 'elevenlabs') => void;
+  audioProvider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs';
+  setAudioProvider: (provider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs') => void;
   chirpVoice: string;
   setChirpVoice: (voice: string) => void;
   chirpSpeed: number;
@@ -1793,36 +1782,6 @@ function NarrationSettings({
             }`}
           >
             Neural2
-          </button>
-          <button
-            onClick={() => setAudioProvider('google-standard')}
-            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              audioProvider === 'google-standard'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Standard
-          </button>
-          <button
-            onClick={() => setAudioProvider('google-wavenet')}
-            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              audioProvider === 'google-wavenet'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            WaveNet
-          </button>
-          <button
-            onClick={() => setAudioProvider('google-studio')}
-            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              audioProvider === 'google-studio'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Studio
           </button>
           <button
             onClick={() => setAudioProvider('microsoft')}
@@ -1908,135 +1867,6 @@ function NarrationSettings({
               <option value="ko-KR-Neural2-A">Neural2-A - 표준 여성</option>
               <option value="ko-KR-Neural2-B">Neural2-B - 부드러운 여성</option>
               <option value="ko-KR-Neural2-C">Neural2-C - 자연스러운 남성</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">목소리 속도</label>
-            <div className="flex gap-3 items-center">
-              <input
-                type="range"
-                min="0.5"
-                max="2.0"
-                step="0.1"
-                value={chirpSpeed}
-                onChange={(e) => setChirpSpeed(parseFloat(e.target.value))}
-                className="flex-1 accent-indigo-600"
-              />
-              <input
-                type="number"
-                min="0.5"
-                max="2.0"
-                step="0.1"
-                value={chirpSpeed}
-                onChange={(e) => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
-                className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-center focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 dark:text-slate-100"
-              />
-              <span className="text-sm text-slate-600 dark:text-slate-400">×</span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">0.5 (느리게) ~ 2.0 (빠르게)</p>
-          </div>
-        </div>
-      )}
-
-      {audioProvider === 'google-standard' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Standard 음성</label>
-            <select
-              value={standardVoice}
-              onChange={(e) => setStandardVoice(e.target.value)}
-              className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            >
-              <option value="ko-KR-Standard-A">Standard-A - 표준 여성</option>
-              <option value="ko-KR-Standard-B">Standard-B - 부드러운 여성</option>
-              <option value="ko-KR-Standard-C">Standard-C - 표준 남성</option>
-              <option value="ko-KR-Standard-D">Standard-D - 자연스러운 남성</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">목소리 속도</label>
-            <div className="flex gap-3 items-center">
-              <input
-                type="range"
-                min="0.5"
-                max="2.0"
-                step="0.1"
-                value={chirpSpeed}
-                onChange={(e) => setChirpSpeed(parseFloat(e.target.value))}
-                className="flex-1 accent-indigo-600"
-              />
-              <input
-                type="number"
-                min="0.5"
-                max="2.0"
-                step="0.1"
-                value={chirpSpeed}
-                onChange={(e) => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
-                className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-center focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 dark:text-slate-100"
-              />
-              <span className="text-sm text-slate-600 dark:text-slate-400">×</span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">0.5 (느리게) ~ 2.0 (빠르게)</p>
-          </div>
-        </div>
-      )}
-
-      {audioProvider === 'google-wavenet' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">WaveNet 음성</label>
-            <select
-              value={wavenetVoice}
-              onChange={(e) => setWavenetVoice(e.target.value)}
-              className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            >
-              <option value="ko-KR-Wavenet-A">Wavenet-A - 표준 여성</option>
-              <option value="ko-KR-Wavenet-B">Wavenet-B - 부드러운 여성</option>
-              <option value="ko-KR-Wavenet-C">Wavenet-C - 표준 남성</option>
-              <option value="ko-KR-Wavenet-D">Wavenet-D - 자연스러운 남성</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">목소리 속도</label>
-            <div className="flex gap-3 items-center">
-              <input
-                type="range"
-                min="0.5"
-                max="2.0"
-                step="0.1"
-                value={chirpSpeed}
-                onChange={(e) => setChirpSpeed(parseFloat(e.target.value))}
-                className="flex-1 accent-indigo-600"
-              />
-              <input
-                type="number"
-                min="0.5"
-                max="2.0"
-                step="0.1"
-                value={chirpSpeed}
-                onChange={(e) => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
-                className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm text-center focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 dark:text-slate-100"
-              />
-              <span className="text-sm text-slate-600 dark:text-slate-400">×</span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">0.5 (느리게) ~ 2.0 (빠르게)</p>
-          </div>
-        </div>
-      )}
-
-      {audioProvider === 'google-studio' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Studio 음성</label>
-            <select
-              value={studioVoice}
-              onChange={(e) => setStudioVoice(e.target.value)}
-              className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            >
-              <option value="ko-KR-Studio-A">Studio-A - 프리미엄 여성</option>
-              <option value="ko-KR-Studio-B">Studio-B - 우아한 여성</option>
-              <option value="ko-KR-Studio-C">Studio-C - 프리미엄 남성</option>
-              <option value="ko-KR-Studio-D">Studio-D - 차분한 남성</option>
             </select>
           </div>
           <div className="space-y-2">

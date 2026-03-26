@@ -738,18 +738,6 @@ const App: React.FC = () => {
         // Neural2 테스트
         const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", neural2Voice, chirpSpeed, chirpApiKey);
         new Audio(audioUrl).play();
-      } else if (audioProvider === 'google-standard') {
-        // Standard 테스트
-        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", standardVoice, chirpSpeed, chirpApiKey);
-        new Audio(audioUrl).play();
-      } else if (audioProvider === 'google-wavenet') {
-        // WaveNet 테스트
-        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", wavenetVoice, chirpSpeed, chirpApiKey);
-        new Audio(audioUrl).play();
-      } else if (audioProvider === 'google-studio') {
-        // Studio 테스트
-        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", studioVoice, chirpSpeed, chirpApiKey);
-        new Audio(audioUrl).play();
       } else {
         // Chirp3 테스트
         const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", chirpVoice, chirpSpeed, chirpApiKey);
@@ -1638,12 +1626,6 @@ const App: React.FC = () => {
         audioUrl = URL.createObjectURL(blob);
       } else if (audioProvider === 'google-neural2') {
         audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, neural2Voice, chirpSpeed, chirpApiKey);
-      } else if (audioProvider === 'google-standard') {
-        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, standardVoice, chirpSpeed, chirpApiKey);
-      } else if (audioProvider === 'google-wavenet') {
-        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, wavenetVoice, chirpSpeed, chirpApiKey);
-      } else if (audioProvider === 'google-studio') {
-        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, studioVoice, chirpSpeed, chirpApiKey);
       } else {
         // Google Chirp3 (기본)
         audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, chirpVoice, chirpSpeed, chirpApiKey);
@@ -3616,7 +3598,7 @@ const App: React.FC = () => {
                               type="color"
                               value={subtitleSettings.textColor}
                               onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
-                              className="w-10 h-8 rounded border-2 border-slate-300 dark:border-slate-600 cursor-pointer appearance-none p-0"
+                              className="w-10 h-8 rounded border-2 border-slate-300 dark:border-slate-600 cursor-pointer appearance-none p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded"
                               style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                             />
                             <input
@@ -3634,7 +3616,7 @@ const App: React.FC = () => {
                               type="color"
                               value={subtitleSettings.backgroundColor || '#000000'}
                               onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
-                              className="w-10 h-8 rounded border-2 border-slate-300 dark:border-slate-600 cursor-pointer appearance-none p-0"
+                              className="w-10 h-8 rounded border-2 border-slate-300 dark:border-slate-600 cursor-pointer appearance-none p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded"
                               style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                             />
                             <input
@@ -3682,9 +3664,6 @@ const App: React.FC = () => {
                     <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">
                       {audioProvider === 'google-chirp3' && 'Chirp3 HD'}
                       {audioProvider === 'google-neural2' && 'Neural2'}
-                      {audioProvider === 'google-standard' && 'Standard'}
-                      {audioProvider === 'google-wavenet' && 'WaveNet'}
-                      {audioProvider === 'google-studio' && 'Studio'}
                       {audioProvider === 'microsoft' && 'Azure TTS'}
                       {audioProvider === 'elevenlabs' && 'ElevenLabs'}
                     </span>
@@ -3695,12 +3674,9 @@ const App: React.FC = () => {
                   <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
                     <div className="space-y-2 pt-4">
                       <label className="text-sm font-medium text-slate-700 dark:text-slate-300">목소리 모델</label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <button onClick={() => setAudioProvider('google-chirp3')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-chirp3' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Chirp3 HD</button>
                         <button onClick={() => setAudioProvider('google-neural2')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-neural2' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Neural2</button>
-                        <button onClick={() => setAudioProvider('google-standard')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-standard' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Standard</button>
-                        <button onClick={() => setAudioProvider('google-wavenet')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-wavenet' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>WaveNet</button>
-                        <button onClick={() => setAudioProvider('google-studio')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'google-studio' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Studio</button>
                         <button onClick={() => setAudioProvider('microsoft')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'microsoft' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Azure TTS</button>
                         <button onClick={() => setAudioProvider('elevenlabs')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>ElevenLabs</button>
                       </div>
@@ -3755,120 +3731,6 @@ const App: React.FC = () => {
                             <option value="ko-KR-Neural2-A">Neural2-A - 표준 여성</option>
                             <option value="ko-KR-Neural2-B">Neural2-B - 부드러운 여성</option>
                             <option value="ko-KR-Neural2-C">Neural2-C - 자연스러운 남성</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">목소리 속도</label>
-                          <div className="flex gap-3 items-center">
-                            <input
-                              type="range"
-                              min="0.5"
-                              max="2.0"
-                              step="0.1"
-                              value={chirpSpeed}
-                              onChange={e => setChirpSpeed(parseFloat(e.target.value))}
-                              className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
-                            />
-                            <input
-                              type="number"
-                              min="0.5"
-                              max="2.0"
-                              step="0.1"
-                              value={chirpSpeed}
-                              onChange={e => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
-                              className="w-20 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none dark:bg-slate-800 dark:text-slate-100"
-                            />
-                            <span className="text-sm text-slate-600 dark:text-slate-400 min-w-[12px]">×</span>
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">0.5 (느리게) ~ 2.0 (빠르게)</p>
-                        </div>
-                      </>
-                    )}
-                    {audioProvider === 'google-standard' && (
-                      <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Standard 음성</label>
-                          <select value={standardVoice} onChange={e => setStandardVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
-                            <option value="ko-KR-Standard-A">Standard-A - 표준 여성</option>
-                            <option value="ko-KR-Standard-B">Standard-B - 부드러운 여성</option>
-                            <option value="ko-KR-Standard-C">Standard-C - 표준 남성</option>
-                            <option value="ko-KR-Standard-D">Standard-D - 자연스러운 남성</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">목소리 속도</label>
-                          <div className="flex gap-3 items-center">
-                            <input
-                              type="range"
-                              min="0.5"
-                              max="2.0"
-                              step="0.1"
-                              value={chirpSpeed}
-                              onChange={e => setChirpSpeed(parseFloat(e.target.value))}
-                              className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
-                            />
-                            <input
-                              type="number"
-                              min="0.5"
-                              max="2.0"
-                              step="0.1"
-                              value={chirpSpeed}
-                              onChange={e => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
-                              className="w-20 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none dark:bg-slate-800 dark:text-slate-100"
-                            />
-                            <span className="text-sm text-slate-600 dark:text-slate-400 min-w-[12px]">×</span>
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">0.5 (느리게) ~ 2.0 (빠르게)</p>
-                        </div>
-                      </>
-                    )}
-                    {audioProvider === 'google-wavenet' && (
-                      <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">WaveNet 음성</label>
-                          <select value={wavenetVoice} onChange={e => setWavenetVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
-                            <option value="ko-KR-Wavenet-A">Wavenet-A - 표준 여성</option>
-                            <option value="ko-KR-Wavenet-B">Wavenet-B - 부드러운 여성</option>
-                            <option value="ko-KR-Wavenet-C">Wavenet-C - 표준 남성</option>
-                            <option value="ko-KR-Wavenet-D">Wavenet-D - 자연스러운 남성</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">목소리 속도</label>
-                          <div className="flex gap-3 items-center">
-                            <input
-                              type="range"
-                              min="0.5"
-                              max="2.0"
-                              step="0.1"
-                              value={chirpSpeed}
-                              onChange={e => setChirpSpeed(parseFloat(e.target.value))}
-                              className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
-                            />
-                            <input
-                              type="number"
-                              min="0.5"
-                              max="2.0"
-                              step="0.1"
-                              value={chirpSpeed}
-                              onChange={e => setChirpSpeed(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
-                              className="w-20 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none dark:bg-slate-800 dark:text-slate-100"
-                            />
-                            <span className="text-sm text-slate-600 dark:text-slate-400 min-w-[12px]">×</span>
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">0.5 (느리게) ~ 2.0 (빠르게)</p>
-                        </div>
-                      </>
-                    )}
-                    {audioProvider === 'google-studio' && (
-                      <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Studio 음성</label>
-                          <select value={studioVoice} onChange={e => setStudioVoice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
-                            <option value="ko-KR-Studio-A">Studio-A - 프리미엄 여성</option>
-                            <option value="ko-KR-Studio-B">Studio-B - 우아한 여성</option>
-                            <option value="ko-KR-Studio-C">Studio-C - 프리미엄 남성</option>
-                            <option value="ko-KR-Studio-D">Studio-D - 차분한 남성</option>
                           </select>
                         </div>
                         <div className="space-y-2">
