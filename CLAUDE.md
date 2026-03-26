@@ -13,6 +13,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 항상 cloud flare에 자동배포하기
 - **Billing Gate (필수):** 외부 API 연동 전 `docs/BILLING_GATE.md` 체크리스트 확인 필수. 최소 충전/환불/무료크레딧 적용범위 확인 없이 결제 유도 금지.
 
+## 🚫 Anti-Patterns (절대 금지)
+
+**대용량 파일 작업 시:**
+- ❌ Read 전체 읽기 시도 → 에러 → Grep 재검색 (2배 토큰 낭비)
+- ✅ 처음부터 Grep으로 필요한 부분 검색 → offset/limit로 Read
+
+**다중 작업 시:**
+- ❌ Task 생성 → 하나씩 처리하며 매번 파일 읽기 반복
+- ✅ Grep으로 모든 위치 파악 → 병렬 Edit 실행
+
+**구현 완료 기준:**
+- ❌ TypeScript 에러 없음 = 완료
+- ✅ 사용자 의도대로 실제 동작 확인 = 완료
+  - 예: "연결된 느낌" → CSS만 수정 말고 시각적 효과 검증 필요
+  - 예: "겹치지 않게" → 반응형만 만들지 말고 실제 겹침 해결 확인
+
+**검색 효율:**
+- ❌ 여러 키워드로 반복 검색 (preset, template, 깔끔한 흰색...)
+- ✅ 한 번에 OR 패턴 검색: `"preset|template|깔끔한 흰색|네온"`
+
 작업 품질 원칙 (Quality Standards)
 - **완전한 구현:** 기능 추가 시 반드시 모든 옵션을 완전하게 구현할 것. 일부만 구현하거나 뼈대만 만드는 것 금지.
   - 예: 음성 선택 기능이면 모든 음성을 실제로 작동하도록 구현
