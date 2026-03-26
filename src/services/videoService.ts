@@ -223,7 +223,7 @@ export async function generateSimpleZoomVideo(
           const percent = Math.round((frame / totalFrames) * 60) + 10;
           onProgress(percent, `${zoomDirection === 'in' ? '줌인' : '줌아웃'} 효과 생성 중...`);
         }
-      }, 0); // interval을 0으로 설정하여 최대한 빠르게 렌더링
+      }, 1000 / fps); // 실시간 렌더링 (30fps = 33ms interval)
     };
 
     img.onerror = () => reject(new Error('Failed to load image'));

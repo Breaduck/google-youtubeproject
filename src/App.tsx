@@ -2091,7 +2091,24 @@ const App: React.FC = () => {
         }
 
         console.log(`[DEBUG] Scene ${i + 1} - Video blob size:`, (videoBlob.size / 1024 / 1024).toFixed(2), 'MB');
-        videoBlobs.push(videoBlob);
+
+        // 오디오 병합
+        let finalVideoBlob = videoBlob;
+        if (scene.audioUrl) {
+          setBgTask({ type: 'video', message: `오디오 통합 중 (${i + 1}/${project.scenes.length})...` });
+          finalVideoBlob = await addAudioToVideo(
+            videoBlob,
+            scene.audioUrl,
+            (progress, message) => {
+              const baseProgress = Math.round((i / project.scenes.length) * 50);
+              const audioProgress = Math.round((progress / 100) * (10 / project.scenes.length));
+              setBgProgress(baseProgress + audioProgress);
+            }
+          );
+          console.log(`[DEBUG] Scene ${i + 1} - Final blob with audio:`, (finalVideoBlob.size / 1024 / 1024).toFixed(2), 'MB');
+        }
+
+        videoBlobs.push(finalVideoBlob);
       }
       console.log(`[DEBUG] Total videos generated:`, videoBlobs.length);
 
