@@ -4334,9 +4334,36 @@ const App: React.FC = () => {
           setIsTemplateModalOpen(false);
         }}
         savedStyles={savedStyles}
-        onAddTemplate={() => {
-          setStyle('custom');
-          setIsTemplateModalOpen(false);
+        onSaveNewStyle={async (name, images) => {
+          setBgTask({ type: 'style', message: '참고 이미지를 바탕으로 화풍을 학습중입니다' });
+          setBgProgress(0);
+          const progressTimer = setInterval(() => {
+            setBgProgress(prev => Math.min(prev + 2, 90));
+          }, 200);
+          try {
+            const analysis = await gemini.analyzeStyle(images);
+            clearInterval(progressTimer);
+            setBgProgress(100);
+            const newStyle: SavedStyle = {
+              id: crypto.randomUUID(),
+              name: name,
+              refImages: images,
+              description: analysis.style,
+              characterAppearance: analysis.characterAppearance,
+            };
+            setSavedStyles([...savedStyles, newStyle]);
+            setStyle(newStyle.id as VisualStyle);
+            updateCurrentProject({ style: newStyle.id });
+            setTimeout(() => {
+              setBgTask(null);
+              setBgProgress(0);
+            }, 500);
+          } catch (err) {
+            clearInterval(progressTimer);
+            setBgTask(null);
+            setBgProgress(0);
+            throw err;
+          }
         }}
       />
 
