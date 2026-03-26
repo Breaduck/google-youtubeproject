@@ -87,15 +87,20 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
     const defaultSettings: SubtitleSettings = {
       fontSize: 48,
       fontFamily: 'Noto Sans KR',
+      letterSpacing: 0,
+      lineHeight: 1.2,
+      opacity: 1,
+      template: 'custom',
       textColor: '#FFFFFF',
       strokeColor: '#000000',
       strokeWidth: 3,
       backgroundColor: undefined,
-      bgOpacity: 0.8,
       bgPadding: 12,
+      bgOpacity: 0.8,
       position: 'bottom',
       yPosition: 680,
-      opacity: 1,
+      lockPosition: false,
+      lockFont: false,
     };
     setSelected({ ...defaultSettings, ...current, ...template.settings });
   };
