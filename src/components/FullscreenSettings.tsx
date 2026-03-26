@@ -1284,10 +1284,10 @@ function VideoApiSettings({
         <p className="text-slate-600 dark:text-slate-400">이미지를 영상으로 변환하는 API를 설정합니다.</p>
       </div>
 
-      {/* Provider 선택 */}
+      {/* 제공업체 선택 */}
       <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Provider 선택</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">제공업체 선택</label>
           <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => setVideoProvider('byteplus')}

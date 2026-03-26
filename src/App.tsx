@@ -274,13 +274,13 @@ const App: React.FC = () => {
   const calculateVideoCost = () => {
     const numScenes = Math.floor(videoGenerationRange / 10);
 
-    // Provider별 비용 (10초 기준, 5초 비용 x2)
-    // BytePlus: ₩54/5s = ₩108/10s
-    // Evolink: ₩203/5s = ₩406/10s
-    // Runware: ₩203/5s = ₩406/10s
-    const costPerScene = videoProvider === 'byteplus' ? 108 :
-                        videoProvider === 'evolink' ? 406 :
-                        videoProvider === 'runware' ? 406 : 108;
+    // Provider별 비용 (10초당 1장 기준)
+    // BytePlus: ₩307/10초 (1장)
+    // Evolink: ₩190/10초 (1장)
+    // Runware: ₩195/10초 (1장)
+    const costPerScene = videoProvider === 'byteplus' ? 307 :
+                        videoProvider === 'evolink' ? 190 :
+                        videoProvider === 'runware' ? 195 : 307;
 
     const totalCost = numScenes * costPerScene;
 
@@ -2913,38 +2913,38 @@ const App: React.FC = () => {
           )}
 
           {step === 'input' && (
-            <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12 pt-10 sm:pt-10 min-h-[calc(100vh-200px)] flex flex-col justify-center">
-               <div className="text-center space-y-2 sm:space-y-4">
-                  <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight leading-tight">당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
-                  <p className="text-slate-400 font-medium text-base sm:text-lg">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
+            <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pt-4 sm:pt-6 pb-4 flex flex-col justify-center">
+               <div className="text-center space-y-1 sm:space-y-2">
+                  <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight leading-tight">당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
+                  <p className="text-slate-400 font-medium text-sm sm:text-base">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
                </div>
-               <div className="flex flex-wrap justify-center gap-3 sm:gap-6">
+               <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
                   {['realistic', '2d-animation', 'custom'].map(s => (
-                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg ${style === s ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{s === '2d-animation' ? '2D 애니메이션' : s === 'realistic' ? '실사화' : '맞춤형'}</button>
+                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${style === s ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{s === '2d-animation' ? '2D 애니메이션' : s === 'realistic' ? '실사화' : '맞춤형'}</button>
                   ))}
                   <button
                     onClick={() => {
                       setTempSelectedTemplate(selectedStyleTemplate);
                       setIsTemplateModalOpen(true);
                     }}
-                    className="px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg bg-white dark:bg-slate-800 border-2 border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                    className="px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base bg-white dark:bg-slate-800 border-2 border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
                   >
                     {selectedStyleTemplate ? `🎨 ${selectedStyleTemplate.name}` : '🎨 그림체 템플릿'}
                   </button>
                   {savedStyles.length > 0 && (
                     <div className="relative group/styles">
-                      <button className={`px-6 py-4 sm:px-10 sm:py-8 rounded-[20px] sm:rounded-[32px] transition-all font-semibold text-sm sm:text-lg flex items-center gap-2 ${savedStyles.some(s => s.id === style) ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                      <button className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base flex items-center gap-2 ${savedStyles.some(s => s.id === style) ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                         자주 쓰는 그림체
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                       </button>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl py-2 min-w-[200px] opacity-0 invisible group-hover/styles:opacity-100 group-hover/styles:visible transition-all z-50">
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1 min-w-[180px] opacity-0 invisible group-hover/styles:opacity-100 group-hover/styles:visible transition-all z-50">
                         {savedStyles.map(s => (
                           <button
                             key={s.id}
                             onClick={() => { setStyle(s.id as VisualStyle); updateCurrentProject({ style: s.id }); }}
-                            className={`w-full px-4 py-3 text-left text-sm font-medium transition-all flex items-center gap-3 ${style === s.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                            className={`w-full px-3 py-2 text-left text-sm font-medium transition-all flex items-center gap-2 ${style === s.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                           >
-                            {s.refImages[0] && <img src={s.refImages[0]} className="w-8 h-8 rounded-lg object-cover" />}
+                            {s.refImages[0] && <img src={s.refImages[0]} className="w-6 h-6 rounded-md object-cover" />}
                             <span>{s.name}</span>
                           </button>
                         ))}
@@ -2953,37 +2953,36 @@ const App: React.FC = () => {
                   )}
                </div>
                {currentSavedStyle && (
-                 <div className="animate-in fade-in slide-in-bottom bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-4">
-                   <h4 className="text-lg sm:text-xl font-semibold text-slate-900">{currentSavedStyle.name} 상세 정보</h4>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                      <div className="space-y-2">
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">학습된 스타일 묘사</p>
-                         <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium h-24 overflow-y-auto custom-scrollbar">{currentSavedStyle.description}</p>
+                 <div className="animate-in fade-in slide-in-bottom bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-3 sm:p-5 rounded-[20px] sm:rounded-[28px] space-y-2">
+                   <h4 className="text-base sm:text-lg font-semibold text-slate-900">{currentSavedStyle.name} 상세 정보</h4>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="space-y-1">
+                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">학습된 스타일 묘사</p>
+                         <p className="text-xs text-slate-600 leading-relaxed font-medium h-16 overflow-y-auto custom-scrollbar">{currentSavedStyle.description}</p>
                       </div>
                       <div className="flex gap-2 items-center overflow-x-auto">
-                         {currentSavedStyle.refImages.map((img, i) => <img key={i} src={img} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl object-cover border-2 border-white shadow-sm shrink-0" />)}
+                         {currentSavedStyle.refImages.map((img, i) => <img key={i} src={img} className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl object-cover border-2 border-white shadow-sm shrink-0" />)}
                       </div>
                    </div>
                  </div>
                )}
                {style === 'custom' && (
-                 <div className="animate-in fade-in slide-in-bottom bg-indigo-50/50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 p-5 sm:p-8 rounded-[30px] sm:rounded-[40px] space-y-6">
-                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                 <div className="animate-in fade-in slide-in-bottom bg-indigo-50/50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 p-3 sm:p-5 rounded-[20px] sm:rounded-[28px] space-y-3">
+                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                       <div>
-                        <h4 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-200">맞춤형 스타일 학습</h4>
-                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">학습 레퍼런스 이미지 업로드 (최대 7장)</p>
-                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-1">💡 명확한 그림체 학습을 위해 최소 3개 이상의 참고 이미지를 넣어주세요</p>
+                        <h4 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-200">맞춤형 스타일 학습</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">레퍼런스 이미지 업로드 (최대 7장, 최소 3장 권장)</p>
                       </div>
                       <div className="flex gap-2 w-full sm:w-auto">
-                        <button onClick={() => styleRefImageInputRef.current?.click()} className="flex-1 sm:flex-none px-6 py-3 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 rounded-2xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
+                        <button onClick={() => styleRefImageInputRef.current?.click()} className="flex-1 sm:flex-none px-4 py-2 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 rounded-xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
                         {refImages.length > 0 && (
-                          <button onClick={saveCustomStyleFromInput} className="px-6 py-3 bg-indigo-600 border border-indigo-600 rounded-2xl text-xs font-semibold text-white hover:bg-indigo-700 transition-all">저장하기</button>
+                          <button onClick={saveCustomStyleFromInput} className="px-4 py-2 bg-indigo-600 border border-indigo-600 rounded-xl text-xs font-semibold text-white hover:bg-indigo-700 transition-all">저장하기</button>
                         )}
                       </div>
                    </div>
-                   <div className="flex gap-3 flex-wrap">
+                   <div className="flex gap-2 flex-wrap">
                       {refImages.map((img, idx) => (
-                        <div key={idx} className="relative w-20 h-20 sm:w-32 sm:h-32 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-white shadow-md group">
+                        <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl overflow-hidden border-2 border-white shadow-md group">
                           <img src={img} className="w-full h-full object-cover" />
                           <button onClick={() => removeStyleRefImage(idx)} className="absolute inset-0 bg-black/60 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">삭제</button>
                         </div>
@@ -2991,13 +2990,13 @@ const App: React.FC = () => {
                    </div>
                  </div>
                )}
-               <div className="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-[32px] sm:rounded-[48px] shadow-2xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-700 relative">
-                 <textarea className="w-full h-64 sm:h-80 bg-slate-50/50 dark:bg-slate-700/50 border-none rounded-[24px] sm:rounded-[36px] p-6 sm:p-10 text-base sm:text-xl text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-500" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
+               <div className="bg-white dark:bg-slate-800 p-2 rounded-[24px] sm:rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-700 relative">
+                 <textarea className="w-full h-44 sm:h-56 bg-slate-50/50 dark:bg-slate-700/50 border-none rounded-[18px] sm:rounded-[24px] p-4 sm:p-6 text-sm sm:text-lg text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-500" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
-               <div className="flex flex-col sm:flex-row gap-4">
-                 <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-6 sm:py-8 bg-indigo-600 text-white rounded-[24px] sm:rounded-[32px] font-semibold text-lg sm:text-2xl shadow-2xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
+               <div className="flex flex-col sm:flex-row gap-3">
+                 <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-4 sm:py-5 bg-indigo-600 text-white rounded-[18px] sm:rounded-[24px] font-semibold text-base sm:text-xl shadow-xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
                  {project && project.characters.length > 0 && (
-                   <button onClick={() => setStep('character_setup')} className="px-8 py-6 sm:py-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-[24px] sm:rounded-[32px] font-semibold text-base sm:text-xl hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-lg">
+                   <button onClick={() => setStep('character_setup')} className="px-6 py-4 sm:py-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-[18px] sm:rounded-[24px] font-semibold text-sm sm:text-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-lg">
                      등장인물 설정 &gt;
                    </button>
                  )}
