@@ -278,45 +278,43 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
 
           {/* 템플릿 그리드 */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {filteredTemplates.map((tmpl) => (
-              <button
-                key={tmpl.id}
-                onClick={() => applyTemplate(tmpl)}
-                className="bg-slate-800 rounded-lg p-3 hover:ring-2 hover:ring-blue-500 transition-all flex flex-col gap-2"
-              >
-                {/* 미리보기 영역 */}
-                <div className="h-12 flex items-center justify-center">
-                  <div className="relative inline-block">
-                    {tmpl.settings.backgroundColor && (
-                      <div
-                        className="absolute inset-0 rounded"
-                        style={{
-                          backgroundColor: tmpl.settings.backgroundColor,
-                          opacity: tmpl.settings.bgOpacity || 0.8,
-                          margin: `-${Math.min(tmpl.settings.bgPadding || 8, 6)}px`,
-                        }}
-                      />
-                    )}
+            {filteredTemplates.map((tmpl) => {
+              const hasBg = !!tmpl.settings.backgroundColor;
+              const hasStroke = tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent';
+              // 외곽선 두께 비율 유지 (원본의 1/3 정도)
+              const strokeW = hasStroke ? Math.max(1, Math.round((tmpl.settings.strokeWidth || 0) / 3)) : 0;
+
+              return (
+                <button
+                  key={tmpl.id}
+                  onClick={() => applyTemplate(tmpl)}
+                  className="bg-slate-900 rounded-lg p-2 hover:ring-2 hover:ring-blue-500 transition-all flex flex-col gap-1.5"
+                >
+                  {/* 미리보기 영역 */}
+                  <div className="h-10 flex items-center justify-center overflow-visible">
                     <span
-                      className="relative z-10 font-bold"
                       style={{
-                        fontFamily: tmpl.settings.fontFamily || 'Noto Sans KR',
-                        fontSize: '16px',
+                        fontFamily: `"${tmpl.settings.fontFamily || 'Noto Sans KR'}", sans-serif`,
+                        fontSize: '15px',
+                        fontWeight: 'bold',
                         color: tmpl.settings.textColor,
-                        WebkitTextStroke: tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
-                          ? `${Math.min(tmpl.settings.strokeWidth, 3)}px ${tmpl.settings.strokeColor}`
-                          : undefined,
+                        backgroundColor: hasBg ? tmpl.settings.backgroundColor : undefined,
+                        padding: hasBg ? '4px 8px' : undefined,
+                        borderRadius: hasBg ? '4px' : undefined,
+                        opacity: hasBg ? (tmpl.settings.bgOpacity || 0.8) : 1,
+                        WebkitTextStroke: hasStroke ? `${strokeW}px ${tmpl.settings.strokeColor}` : undefined,
                         paintOrder: 'stroke fill',
+                        textShadow: hasStroke ? `0 0 ${strokeW}px ${tmpl.settings.strokeColor}` : undefined,
                       }}
                     >
                       가나다
                     </span>
                   </div>
-                </div>
-                {/* 템플릿 이름 */}
-                <p className="text-xs text-slate-400 text-center truncate">{tmpl.name}</p>
-              </button>
-            ))}
+                  {/* 템플릿 이름 */}
+                  <p className="text-[10px] text-slate-500 text-center truncate leading-tight">{tmpl.name}</p>
+                </button>
+              );
+            })}
           </div>
         </div>
 
