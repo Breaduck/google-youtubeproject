@@ -36,8 +36,8 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   opacity: 1.0,
   template: 'default-white',
   textColor: '#FFFFFF',
-  strokeColor: '#000000',
-  strokeWidth: 2,
+  strokeColor: 'transparent',
+  strokeWidth: 0,
   backgroundColor: undefined,
   bgPadding: 12,
   bgOpacity: 0.8,
@@ -2991,13 +2991,13 @@ const App: React.FC = () => {
                  </div>
                )}
                <div className="bg-white dark:bg-slate-800 p-2 rounded-[24px] sm:rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-700 relative">
-                 <textarea className="w-full h-44 sm:h-56 bg-slate-50/50 dark:bg-slate-700/50 border-none rounded-[18px] sm:rounded-[24px] p-4 sm:p-6 text-sm sm:text-lg text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-500" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
+                 <textarea className="w-full h-56 sm:h-72 bg-slate-50/50 dark:bg-slate-700/50 border-none rounded-[18px] sm:rounded-[24px] p-4 sm:p-6 text-sm sm:text-lg text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-500" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
                <div className="flex flex-col sm:flex-row gap-3">
                  <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-4 sm:py-5 bg-indigo-600 text-white rounded-[18px] sm:rounded-[24px] font-semibold text-base sm:text-xl shadow-xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
-                 {project && project.characters.length > 0 && (
+                 {project && (project.characters.length > 0 || project.scenes.length > 0) && (
                    <button onClick={() => setStep('character_setup')} className="px-6 py-4 sm:py-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-[18px] sm:rounded-[24px] font-semibold text-sm sm:text-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-lg">
-                     등장인물 설정 &gt;
+                     등장인물 보드로 이동 &gt;
                    </button>
                  )}
                </div>

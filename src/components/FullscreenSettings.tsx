@@ -739,36 +739,6 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">외곽선 두께: {settings.strokeWidth}px</label>
-              <input
-                type="range"
-                min="0"
-                max="10"
-                value={settings.strokeWidth}
-                onChange={(e) => onChange({ ...settings, strokeWidth: parseInt(e.target.value) })}
-                className="w-full accent-indigo-600"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 w-24">외곽선 색상</label>
-              <input
-                type="color"
-                value={settings.strokeColor}
-                onChange={(e) => onChange({ ...settings, strokeColor: e.target.value })}
-                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-full"
-                style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-              />
-              <input
-                type="text"
-                value={settings.strokeColor}
-                onChange={(e) => onChange({ ...settings, strokeColor: e.target.value })}
-                className="px-3 py-2 w-28 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
-                placeholder="#000000"
-              />
-            </div>
-
-            <div>
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 <input
                   type="checkbox"
@@ -785,7 +755,7 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                       type="color"
                       value={settings.backgroundColor}
                       onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })}
-                      className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0"
+                      className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-full"
                       style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                     />
                     <input

@@ -28,8 +28,19 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
     : styleTemplates.filter(t => t.category === activeCategory);
 
   return (
-    <div className="bg-[#1a1a2e] rounded-xl p-6 space-y-4">
-      <h2 className="text-lg font-semibold text-white">스타일 템플릿</h2>
+    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6 space-y-4 border border-slate-200 dark:border-slate-700">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">스타일 템플릿</h2>
+        <button
+          onClick={() => setActiveCategory('내 그림체')}
+          className="px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors flex items-center gap-1"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+          </svg>
+          템플릿 추가
+        </button>
+      </div>
 
       {/* 카테고리 탭 */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -38,8 +49,8 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
             onClick={() => setActiveCategory('내 그림체')}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
               activeCategory === '내 그림체'
-                ? 'bg-purple-600 text-white'
-                : 'bg-transparent text-gray-400 hover:text-gray-300'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             💾 내 그림체 ({savedStyles.length})
@@ -51,8 +62,8 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
             onClick={() => setActiveCategory(cat)}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
               activeCategory === cat
-                ? 'bg-purple-600 text-white'
-                : 'bg-transparent text-gray-400 hover:text-gray-300'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             {cat}
@@ -68,9 +79,7 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
             <button
               key={template.id}
               onClick={() => onSelectTemplate(template)}
-              className={`relative group rounded-lg overflow-hidden transition-all hover:scale-103 hover:shadow-lg ${
-                isSelected ? 'ring-2 ring-purple-600' : ''
-              }`}
+              className="relative group rounded-lg overflow-hidden transition-all hover:scale-103 hover:shadow-lg"
             >
               {/* 썸네일 이미지 */}
               <div
@@ -101,7 +110,7 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
 
               {/* 선택 체크 아이콘 */}
               {isSelected && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center shadow-2xl z-10">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl z-10">
                   <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                   </svg>
@@ -113,8 +122,8 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
       </div>
 
       {selectedTemplate && (
-        <p className="text-sm text-gray-400">
-          선택됨: <span className="text-purple-400">{selectedTemplate.name}</span>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          선택됨: <span className="text-indigo-600 dark:text-indigo-400">{selectedTemplate.name}</span>
         </p>
       )}
 
