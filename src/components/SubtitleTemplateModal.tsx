@@ -112,28 +112,37 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        alert('이미지 파일만 업로드 가능합니다.');
-        e.target.value = '';
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result;
-        if (result && typeof result === 'string') {
-          setPreviewBg(result);
-        }
-      };
-      reader.onerror = () => {
-        alert('이미지 로드 실패');
-        e.target.value = '';
-      };
-      reader.readAsDataURL(file);
+
+    if (!file) {
+      console.log('파일 없음');
+      return;
     }
+
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드 가능합니다.');
+      e.target.value = '';
+      return;
+    }
+
+    console.log('파일 선택됨:', file.name);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (result && typeof result === 'string') {
+        console.log('이미지 로드 완료, 길이:', result.length);
+        setPreviewBg(result);
+      }
+    };
+    reader.onerror = () => {
+      console.error('이미지 로드 실패');
+      alert('이미지 로드 실패');
+    };
+    reader.readAsDataURL(file);
+
     setShowContextMenu(false);
-    e.target.value = '';
   };
 
   const categories = ['전체', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];

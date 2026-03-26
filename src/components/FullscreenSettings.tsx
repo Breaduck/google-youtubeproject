@@ -527,7 +527,7 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="pt-2">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 설정</h2>
         <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
       </div>
