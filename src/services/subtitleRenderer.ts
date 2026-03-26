@@ -12,8 +12,10 @@ export async function renderSubtitleToCanvas(
   const ctx = canvas.getContext('2d')!;
 
   // 폰트 로딩 대기
+  const fontWeight = settings.fontWeight || 700;
+  const fontStyle = settings.fontStyle || 'normal';
   try {
-    await document.fonts.load(`bold ${settings.fontSize}px "${settings.fontFamily}"`);
+    await document.fonts.load(`${fontStyle} ${fontWeight} ${settings.fontSize}px "${settings.fontFamily}"`);
   } catch (e) {
     console.warn('Font loading failed:', e);
   }
@@ -21,7 +23,7 @@ export async function renderSubtitleToCanvas(
   // 투명 배경
   ctx.clearRect(0, 0, width, height);
 
-  ctx.font = `bold ${settings.fontSize}px "${settings.fontFamily}", sans-serif`;
+  ctx.font = `${fontStyle} ${fontWeight} ${settings.fontSize}px "${settings.fontFamily}", sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
 
@@ -42,12 +44,19 @@ export async function renderSubtitleToCanvas(
     const a = settings.bgOpacity;
 
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
-    ctx.fillRect(
-      textX - textWidth / 2 - bgPadding,
-      textY - settings.fontSize - bgPadding,
-      textWidth + bgPadding * 2,
-      bgHeight
-    );
+    const bgRadius = settings.bgRadius || 0;
+    const x = textX - textWidth / 2 - bgPadding;
+    const y = textY - settings.fontSize - bgPadding;
+    const w = textWidth + bgPadding * 2;
+    const h = bgHeight;
+
+    if (bgRadius > 0 && ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, bgRadius);
+      ctx.fill();
+    } else {
+      ctx.fillRect(x, y, w, h);
+    }
   }
 
   ctx.globalAlpha = settings.opacity;

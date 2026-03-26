@@ -317,7 +317,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[350] bg-black/80 flex items-center justify-center p-4">
       <div className="bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
