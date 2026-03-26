@@ -95,7 +95,7 @@ export async function generateSimpleZoomVideo(
   if (onProgress) onProgress(10, '프레임 렌더링 중...');
 
   // 프레임 렌더링 (빠르게 - interval 없이)
-  const framePromises: Promise<void>[] = [];
+  const framePromises: Promise<boolean>[] = [];
 
   for (let frame = 0; frame < totalFrames; frame++) {
     const progress = frame / totalFrames;
