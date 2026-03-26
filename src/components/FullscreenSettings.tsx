@@ -493,6 +493,7 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
   const [presetName, setPresetName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [favoriteTemplates, setFavoriteTemplates] = useState<string[]>([]);
 
   // Load saved presets from localStorage
   useEffect(() => {
@@ -504,10 +505,24 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
         console.error('Failed to load subtitle presets:', e);
       }
     }
+
+    // Load favorites
+    const savedFavorites = localStorage.getItem('favorite_templates');
+    if (savedFavorites) {
+      try {
+        setFavoriteTemplates(JSON.parse(savedFavorites));
+      } catch (e) {
+        console.error('Failed to load favorite templates:', e);
+      }
+    }
   }, []);
 
-  const categories = ['전체', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
-  const filteredTemplates = selectedCategory === '전체' ? TEMPLATES : TEMPLATES.filter(t => t.category === selectedCategory);
+  const categories = ['전체', '⭐ 즐겨찾기', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
+  const filteredTemplates = selectedCategory === '전체'
+    ? TEMPLATES
+    : selectedCategory === '⭐ 즐겨찾기'
+    ? TEMPLATES.filter(t => favoriteTemplates.includes(t.id))
+    : TEMPLATES.filter(t => t.category === selectedCategory);
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
     onChange({ ...settings, ...template.settings });
@@ -542,6 +557,15 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const toggleFavorite = (templateId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newFavorites = favoriteTemplates.includes(templateId)
+      ? favoriteTemplates.filter(id => id !== templateId)
+      : [...favoriteTemplates, templateId];
+    setFavoriteTemplates(newFavorites);
+    localStorage.setItem('favorite_templates', JSON.stringify(newFavorites));
   };
 
   return (
@@ -953,62 +977,91 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
             </div>
 
             {/* 템플릿 그리드 */}
-            <div className="grid grid-cols-3 gap-3 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600">
-              {filteredTemplates.map((tmpl) => (
-                <button
-                  key={tmpl.id}
-                  onClick={() => applyTemplate(tmpl)}
-                  className="group relative rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:scale-105 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 hover:border-indigo-500"
-                  title={tmpl.name}
-                >
-                  {/* 미리보기 영역 */}
-                  <div className="aspect-video relative bg-gradient-to-br from-slate-900 to-black flex items-center justify-center p-4">
-                    {/* 배경 */}
-                    {tmpl.settings.backgroundColor && (
-                      <div
-                        className="absolute inset-0"
-                        style={{
-                          backgroundColor: tmpl.settings.backgroundColor,
-                          opacity: tmpl.settings.bgOpacity || 0.8,
-                        }}
-                      />
-                    )}
+            <div className="grid grid-cols-4 gap-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600">
+              {filteredTemplates.map((tmpl) => {
+                const isFavorite = favoriteTemplates.includes(tmpl.id);
+                return (
+                  <button
+                    key={tmpl.id}
+                    onClick={() => applyTemplate(tmpl)}
+                    className="group relative rounded-lg overflow-hidden hover:shadow-xl transition-all duration-200 transform hover:scale-105 bg-slate-900 border border-slate-700 hover:border-indigo-500"
+                    title={tmpl.name}
+                  >
+                    {/* 미리보기 영역 - 자막 크기에 맞게 */}
+                    <div className="relative bg-gradient-to-br from-slate-900 to-black flex items-center justify-center py-3 px-2">
+                      {/* 배경 */}
+                      {tmpl.settings.backgroundColor && (
+                        <div
+                          className="absolute inset-0"
+                          style={{
+                            backgroundColor: tmpl.settings.backgroundColor,
+                            opacity: tmpl.settings.bgOpacity || 0.8,
+                          }}
+                        />
+                      )}
 
-                    {/* 샘플 텍스트 */}
-                    <div className="relative">
-                      <span
-                        className="text-sm font-bold leading-tight block"
-                        style={{
-                          color: tmpl.settings.textColor,
-                          fontFamily: tmpl.settings.fontFamily,
-                          textShadow: tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
-                            ? `0 0 ${tmpl.settings.strokeWidth}px ${tmpl.settings.strokeColor},
-                               ${tmpl.settings.strokeWidth / 2}px ${tmpl.settings.strokeWidth / 2}px 0 ${tmpl.settings.strokeColor},
-                               -${tmpl.settings.strokeWidth / 2}px -${tmpl.settings.strokeWidth / 2}px 0 ${tmpl.settings.strokeColor}`
-                            : 'none',
-                        }}
-                      >
-                        자막
-                      </span>
+                      {/* 샘플 텍스트 - 작게 */}
+                      <div className="relative inline-block">
+                        {tmpl.settings.backgroundColor && (
+                          <div
+                            className="absolute inset-0 -z-10"
+                            style={{
+                              backgroundColor: tmpl.settings.backgroundColor,
+                              opacity: tmpl.settings.bgOpacity || 0.8,
+                              padding: '2px 6px',
+                              borderRadius: '3px',
+                            }}
+                          />
+                        )}
+                        <span
+                          className="text-[11px] font-bold leading-tight block whitespace-nowrap"
+                          style={{
+                            color: tmpl.settings.textColor,
+                            fontFamily: tmpl.settings.fontFamily,
+                            WebkitTextStroke: tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
+                              ? `${Math.max(0.3, tmpl.settings.strokeWidth / 4)}px ${tmpl.settings.strokeColor}`
+                              : undefined,
+                          }}
+                        >
+                          자막
+                        </span>
+                      </div>
+
+                      {/* 호버 오버레이 */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-indigo-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                     </div>
 
-                    {/* 호버 오버레이 */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-indigo-600/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  </div>
+                    {/* 템플릿 이름 */}
+                    <div className="px-2 py-1.5 bg-slate-800/90 backdrop-blur-sm flex items-center justify-between gap-1">
+                      <p className="text-[10px] font-medium text-slate-300 truncate flex-1">{tmpl.name}</p>
 
-                  {/* 템플릿 이름 */}
-                  <div className="px-3 py-2 bg-slate-800/90 backdrop-blur-sm">
-                    <p className="text-xs font-semibold text-slate-200 truncate">{tmpl.name}</p>
-                  </div>
+                      {/* 즐겨찾기 버튼 */}
+                      <button
+                        onClick={(e) => toggleFavorite(tmpl.id, e)}
+                        className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-slate-700 transition-colors"
+                        title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                      >
+                        <svg
+                          className={`w-3.5 h-3.5 transition-colors ${isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500 hover:text-yellow-400'}`}
+                          fill={isFavorite ? 'currentColor' : 'none'}
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
+                      </button>
+                    </div>
 
-                  {/* 선택 표시 */}
-                  <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                </button>
-              ))}
+                    {/* 선택 표시 */}
+                    <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
