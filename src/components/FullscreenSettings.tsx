@@ -527,17 +527,9 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 설정</h2>
-          <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
-        </div>
-        <button
-          onClick={() => setShowSaveDialog(!showSaveDialog)}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors whitespace-nowrap shrink-0"
-        >
-          현재 설정 저장
-        </button>
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 설정</h2>
+        <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
       </div>
 
       {/* 저장 다이얼로그 */}
@@ -567,6 +559,16 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
           </div>
         </div>
       )}
+
+      {/* 현재 설정 저장 버튼 */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowSaveDialog(!showSaveDialog)}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
+        >
+          현재 설정 저장
+        </button>
+      </div>
 
       {/* 저장된 프리셋 */}
       {savedPresets.length > 0 && (

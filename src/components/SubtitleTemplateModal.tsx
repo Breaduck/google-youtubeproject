@@ -83,8 +83,21 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
   }, []);
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
-    // 템플릿 설정으로 현재 설정을 덮어씀
-    setSelected({ ...current, ...template.settings } as SubtitleSettings);
+    // 템플릿을 완전히 적용 (undefined 값도 명시적으로 설정)
+    const defaultSettings: SubtitleSettings = {
+      fontSize: 48,
+      fontFamily: 'Noto Sans KR',
+      textColor: '#FFFFFF',
+      strokeColor: '#000000',
+      strokeWidth: 3,
+      backgroundColor: undefined,
+      bgOpacity: 0.8,
+      bgPadding: 12,
+      position: 'bottom',
+      yPosition: 680,
+      opacity: 1,
+    };
+    setSelected({ ...defaultSettings, ...current, ...template.settings });
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -96,18 +109,25 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // 이미지 파일인지 확인
       if (!file.type.startsWith('image/')) {
         alert('이미지 파일만 업로드 가능합니다.');
+        e.target.value = '';
         return;
       }
       const reader = new FileReader();
-      reader.onload = () => setPreviewBg(reader.result as string);
-      reader.onerror = () => alert('이미지 로드 실패');
+      reader.onload = (event) => {
+        const result = event.target?.result;
+        if (result && typeof result === 'string') {
+          setPreviewBg(result);
+        }
+      };
+      reader.onerror = () => {
+        alert('이미지 로드 실패');
+        e.target.value = '';
+      };
       reader.readAsDataURL(file);
     }
     setShowContextMenu(false);
-    // input 초기화 (같은 파일 재선택 가능하도록)
     e.target.value = '';
   };
 
