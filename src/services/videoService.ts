@@ -217,12 +217,12 @@ export async function generateSimpleZoomVideo(
   const mp4Blob = new Blob([new Uint8Array(data as Uint8Array)], { type: 'video/mp4' });
 
   // 임시 파일 삭제 (병렬)
-  const deletePromises = [];
+  const deletePromises: Promise<void>[] = [];
   for (let i = 0; i < totalFrames; i++) {
     const frameNum = String(i).padStart(5, '0');
-    deletePromises.push(ffmpeg.deleteFile(`frame${frameNum}.jpg`).catch(() => {}));
+    deletePromises.push(ffmpeg.deleteFile(`frame${frameNum}.jpg`).then(() => {}).catch(() => {}));
   }
-  deletePromises.push(ffmpeg.deleteFile('output.mp4').catch(() => {}));
+  deletePromises.push(ffmpeg.deleteFile('output.mp4').then(() => {}).catch(() => {}));
   await Promise.all(deletePromises);
 
   if (onProgress) onProgress(100, '완료');
