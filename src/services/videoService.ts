@@ -74,16 +74,23 @@ export async function generateSimpleZoomVideo(
         console.warn('Font loading failed, using fallback:', e);
       }
 
-      // TTS 싱크를 위한 시간 계산 (자막 길이 기반)
+      // TTS 싱크를 위한 시간 계산 (자막 길이 + 긴박도 기반)
       const effectIntensity = intensity || 5;
       const subtitleLength = subtitle.length;
 
-      // 한글 기준: 3-4자/초 읽기 속도
-      const estimatedTtsTime = Math.max(5, Math.min(10, subtitleLength / 3.5));
+      // 한글 기준: 3-4자/초 읽기 속도 (최소 7초 보장)
+      const baseDuration = subtitleLength > 0
+        ? Math.max(7, Math.min(12, subtitleLength / 3.0))  // 자막 있으면: 7-12초
+        : 8; // 자막 없으면: 기본 8초
 
-      // 긴박도 보정 (긴박할수록 짧게)
-      const intensityFactor = 1 - ((effectIntensity - 5) / 20); // 0.75 ~ 1.25
-      const duration = Math.max(5, Math.min(10, estimatedTtsTime * intensityFactor));
+      // 긴박도 보정 (긴박할수록 빠르게, 차분할수록 느리게)
+      const intensityFactor = effectIntensity >= 7
+        ? 0.8  // 긴박함 (8-10) → 80% 속도 (짧게)
+        : effectIntensity <= 3
+        ? 1.3  // 차분함 (1-3) → 130% 속도 (길게)
+        : 1.0; // 보통 (4-6) → 100%
+
+      const duration = Math.max(6, Math.min(12, baseDuration * intensityFactor));
 
       console.log(`[VIDEO] Duration: ${duration}s, Subtitle length: ${subtitleLength}, Intensity: ${effectIntensity}`);
 
@@ -330,14 +337,14 @@ export async function addAudioToVideo(
 
   if (onProgress) onProgress(30, '오디오 합성 중...');
 
-  // 비디오와 오디오 합치기
+  // 비디오와 오디오 합치기 (비디오 길이 유지, 오디오 짧으면 자동으로 silence 패딩)
   await ffmpeg.exec([
     '-i', 'video.mp4',
     '-i', `audio.${audioExt}`,
     '-c:v', 'copy', // 비디오는 재인코딩 안 함 (속도 향상)
     '-c:a', 'aac',
     '-b:a', '192k',
-    '-shortest', // 짧은 쪽에 맞춤
+    // -shortest 제거: 긴 스트림(비디오)에 맞춤, 오디오가 짧으면 자동 silence 패딩
     'output.mp4'
   ]);
 
