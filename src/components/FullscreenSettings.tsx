@@ -783,6 +783,15 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                     max="30"
                     value={settings.bgPadding}
                     onChange={(e) => onChange({ ...settings, bgPadding: parseInt(e.target.value) })}
+                    className="w-full accent-indigo-600 mb-2"
+                  />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">배경 라운딩: {settings.bgRadius || 0}px</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="30"
+                    value={settings.bgRadius || 0}
+                    onChange={(e) => onChange({ ...settings, bgRadius: parseInt(e.target.value) })}
                     className="w-full accent-indigo-600"
                   />
                 </>
@@ -860,12 +869,12 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                 >
                   {settings.backgroundColor && (
                     <div
-                      className="absolute inset-0 -z-10 transition-all duration-300"
+                      className="absolute -z-10 transition-all duration-300"
                       style={{
                         backgroundColor: settings.backgroundColor,
                         opacity: settings.bgOpacity,
-                        padding: `${settings.bgPadding / 2}px ${settings.bgPadding / 1.5}px`,
-                        borderRadius: '6px',
+                        inset: `-${settings.bgPadding / 2}px`,
+                        borderRadius: `${settings.bgRadius || 0}px`,
                       }}
                     />
                   )}

@@ -7,9 +7,10 @@ interface Props {
   selectedTemplate: StyleTemplate | null;
   onSelectTemplate: (template: StyleTemplate) => void;
   savedStyles?: SavedStyle[];
+  onAddTemplate?: () => void;
 }
 
-export default function StyleTemplateSelector({ selectedTemplate, onSelectTemplate, savedStyles = [] }: Props) {
+export default function StyleTemplateSelector({ selectedTemplate, onSelectTemplate, savedStyles = [], onAddTemplate }: Props) {
   const [activeCategory, setActiveCategory] = useState<TemplateCategory | '내 그림체'>('애니메이션');
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
@@ -32,7 +33,7 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">스타일 템플릿</h2>
         <button
-          onClick={() => setActiveCategory('내 그림체')}
+          onClick={() => onAddTemplate?.()}
           className="px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

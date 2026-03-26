@@ -94,6 +94,7 @@ export interface SubtitleSettings {
   backgroundColor?: string;
   bgPadding: number;
   bgOpacity: number;
+  bgRadius: number;
 
   position: SubtitlePosition;
   yPosition: number;

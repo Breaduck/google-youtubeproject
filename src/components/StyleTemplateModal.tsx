@@ -10,9 +10,10 @@ interface Props {
   onSelectTemplate: (template: StyleTemplate) => void;
   onApply: () => void;
   savedStyles?: SavedStyle[];
+  onAddTemplate?: () => void;
 }
 
-export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, onSelectTemplate, onApply, savedStyles = [] }: Props) {
+export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, onSelectTemplate, onApply, savedStyles = [], onAddTemplate }: Props) {
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -53,6 +54,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
             selectedTemplate={selectedTemplate}
             onSelectTemplate={onSelectTemplate}
             savedStyles={savedStyles}
+            onAddTemplate={onAddTemplate}
           />
         </div>
 

@@ -15,6 +15,7 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   backgroundColor: undefined,
   bgPadding: 12,
   bgOpacity: 0.8,
+  bgRadius: 8,
   position: 'bottom',
   yPosition: 680,
   lockPosition: true,

@@ -41,6 +41,7 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   backgroundColor: undefined,
   bgPadding: 12,
   bgOpacity: 0.8,
+  bgRadius: 8,
   position: 'bottom',
   yPosition: 680,
   lockPosition: true,
@@ -4331,6 +4332,10 @@ const App: React.FC = () => {
           setIsTemplateModalOpen(false);
         }}
         savedStyles={savedStyles}
+        onAddTemplate={() => {
+          setStyle('custom');
+          setIsTemplateModalOpen(false);
+        }}
       />
 
       {/* 자막 템플릿 선택 */}
