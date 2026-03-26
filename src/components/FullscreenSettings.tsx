@@ -852,61 +852,78 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
 
         {/* 우측: 미리보기 + 템플릿 (Sticky) */}
         <div className="lg:w-[450px] lg:sticky lg:top-8 space-y-4 h-fit shrink-0">
-          {/* 미리보기 (실제 크기/위치 반영) */}
-          <div
-            className="w-full bg-slate-900 dark:bg-slate-800 rounded-xl overflow-hidden relative group cursor-pointer"
-            style={{ paddingTop: '56.25%' }}
-          >
-            {/* 배경 이미지 */}
-            {previewImage && (
-              <img
-                src={previewImage}
-                alt="Preview background"
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            )}
-
-            <div className="absolute inset-0 flex items-center justify-center p-4">
-              <div
-                key={`${settings.textColor}-${settings.strokeColor}-${settings.backgroundColor}`}
-                className="absolute left-1/2 -translate-x-1/2"
-                style={{
-                  top: `${Math.min((settings.yPosition / 720) * 100, 85)}%`,
-                  opacity: settings.opacity,
-                }}
-              >
-                {settings.backgroundColor && (
-                  <div
-                    className="absolute inset-0 -z-10"
+          {/* 미리보기 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-bold text-slate-900 dark:text-slate-100">실시간 미리보기</label>
+              <span className="text-xs text-slate-500 dark:text-slate-400">클릭하여 배경 이미지 변경</span>
+            </div>
+            <div
+              className="w-full rounded-xl overflow-hidden relative group cursor-pointer shadow-2xl border-2 border-slate-300 dark:border-slate-700 hover:border-indigo-500 transition-all"
+              style={{ paddingTop: '56.25%' }}
+            >
+              {/* 배경 이미지 */}
+              {previewImage ? (
+                <img
+                  src={previewImage}
+                  alt="Preview background"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+                  <div className="absolute inset-0 opacity-10"
                     style={{
-                      backgroundColor: settings.backgroundColor,
-                      opacity: settings.bgOpacity,
-                      padding: `${settings.bgPadding / 2}px ${settings.bgPadding / 1.5}px`,
-                      borderRadius: '4px',
+                      backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.3), transparent 50%), radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.3), transparent 50%)'
                     }}
                   />
-                )}
-                <p
-                  className="relative whitespace-nowrap text-center"
+                </div>
+              )}
+
+              <div className="absolute inset-0 flex items-center justify-center p-4">
+                <div
+                  key={`${settings.textColor}-${settings.strokeColor}-${settings.backgroundColor}`}
+                  className="absolute left-1/2 -translate-x-1/2 transition-all duration-300"
                   style={{
-                    fontFamily: settings.fontFamily,
-                    fontSize: `${settings.fontSize / 2.5}px`,
-                    color: settings.textColor,
-                    letterSpacing: `${settings.letterSpacing / 1.5}px`,
-                    lineHeight: settings.lineHeight,
-                    WebkitTextStroke: settings.strokeWidth > 0 && settings.strokeColor !== 'transparent' ? `${settings.strokeWidth / 2}px ${settings.strokeColor}` : undefined,
+                    top: `${Math.min((settings.yPosition / 720) * 100, 85)}%`,
+                    opacity: settings.opacity,
                   }}
                 >
-                  자막 미리보기
-                </p>
-              </div>
+                  {settings.backgroundColor && (
+                    <div
+                      className="absolute inset-0 -z-10 transition-all duration-300"
+                      style={{
+                        backgroundColor: settings.backgroundColor,
+                        opacity: settings.bgOpacity,
+                        padding: `${settings.bgPadding / 2}px ${settings.bgPadding / 1.5}px`,
+                        borderRadius: '6px',
+                      }}
+                    />
+                  )}
+                  <p
+                    className="relative whitespace-nowrap text-center transition-all duration-300"
+                    style={{
+                      fontFamily: settings.fontFamily,
+                      fontSize: `${settings.fontSize / 2.5}px`,
+                      color: settings.textColor,
+                      letterSpacing: `${settings.letterSpacing / 1.5}px`,
+                      lineHeight: settings.lineHeight,
+                      WebkitTextStroke: settings.strokeWidth > 0 && settings.strokeColor !== 'transparent' ? `${settings.strokeWidth / 2}px ${settings.strokeColor}` : undefined,
+                    }}
+                  >
+                    자막 미리보기
+                  </p>
+                </div>
 
-              {/* 호버 시 업로드 버튼 */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                <label className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium cursor-pointer shadow-lg transition-all">
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                  {previewImage ? '이미지 변경' : '이미지 업로드'}
-                </label>
+                {/* 호버 시 업로드 버튼 */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/50 backdrop-blur-sm">
+                  <label className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold cursor-pointer shadow-2xl transition-all transform hover:scale-105 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                    <span>{previewImage ? '이미지 변경' : '배경 이미지 추가'}</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -936,44 +953,60 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
             </div>
 
             {/* 템플릿 그리드 */}
-            <div className="grid grid-cols-4 gap-1.5 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600">
+            <div className="grid grid-cols-3 gap-3 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600">
               {filteredTemplates.map((tmpl) => (
                 <button
                   key={tmpl.id}
                   onClick={() => applyTemplate(tmpl)}
-                  className="group relative aspect-video bg-slate-900 rounded-lg overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all transform hover:scale-105"
+                  className="group relative rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:scale-105 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 hover:border-indigo-500"
                   title={tmpl.name}
                 >
-                  {/* 배경 효과 */}
-                  {tmpl.settings.backgroundColor && (
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        backgroundColor: tmpl.settings.backgroundColor,
-                        opacity: tmpl.settings.bgOpacity || 0.8,
-                      }}
-                    />
-                  )}
+                  {/* 미리보기 영역 */}
+                  <div className="aspect-video relative bg-gradient-to-br from-slate-900 to-black flex items-center justify-center p-4">
+                    {/* 배경 */}
+                    {tmpl.settings.backgroundColor && (
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          backgroundColor: tmpl.settings.backgroundColor,
+                          opacity: tmpl.settings.bgOpacity || 0.8,
+                        }}
+                      />
+                    )}
 
-                  {/* 텍스트 */}
-                  <div className="relative h-full flex items-center justify-center p-1.5">
-                    <span
-                      className="text-[10px] font-bold text-center leading-tight"
-                      style={{
-                        color: tmpl.settings.textColor,
-                        fontFamily: tmpl.settings.fontFamily,
-                        WebkitTextStroke:
-                          tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
-                            ? `${Math.max(0.3, tmpl.settings.strokeWidth / 2.5)}px ${tmpl.settings.strokeColor}`
-                            : undefined,
-                      }}
-                    >
-                      {tmpl.name}
-                    </span>
+                    {/* 샘플 텍스트 */}
+                    <div className="relative">
+                      <span
+                        className="text-sm font-bold leading-tight block"
+                        style={{
+                          color: tmpl.settings.textColor,
+                          fontFamily: tmpl.settings.fontFamily,
+                          textShadow: tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
+                            ? `0 0 ${tmpl.settings.strokeWidth}px ${tmpl.settings.strokeColor},
+                               ${tmpl.settings.strokeWidth / 2}px ${tmpl.settings.strokeWidth / 2}px 0 ${tmpl.settings.strokeColor},
+                               -${tmpl.settings.strokeWidth / 2}px -${tmpl.settings.strokeWidth / 2}px 0 ${tmpl.settings.strokeColor}`
+                            : 'none',
+                        }}
+                      >
+                        자막
+                      </span>
+                    </div>
+
+                    {/* 호버 오버레이 */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-indigo-600/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </div>
 
-                  {/* 호버 오버레이 */}
-                  <div className="absolute inset-0 bg-indigo-600 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                  {/* 템플릿 이름 */}
+                  <div className="px-3 py-2 bg-slate-800/90 backdrop-blur-sm">
+                    <p className="text-xs font-semibold text-slate-200 truncate">{tmpl.name}</p>
+                  </div>
+
+                  {/* 선택 표시 */}
+                  <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
                 </button>
               ))}
             </div>
