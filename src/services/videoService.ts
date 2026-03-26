@@ -35,7 +35,7 @@ async function getFFmpeg(): Promise<FFmpeg> {
   return ffmpegInstance;
 }
 
-// 간단한 줌인-줌아웃 비디오 생성 (API 키 없을 때) - MP4 포맷 - export
+// 간단한 줌인-줌아웃 비디오 생성 (API 키 없을 때) - FFmpeg 직접 사용 (초고속)
 export async function generateSimpleZoomVideo(
   imageUrl: string,
   subtitle: string = '',
@@ -45,227 +45,188 @@ export async function generateSimpleZoomVideo(
   panDirection?: 'left' | 'right' | 'up' | 'down' | 'center',
   intensity?: number // 1-10, 긴박도 (속도/확대율 결정)
 ): Promise<Blob> {
-  if (onProgress) onProgress(10, `${zoomDirection === 'in' ? '줌인' : '줌아웃'} 효과 생성 중...`);
+  if (onProgress) onProgress(5, '프레임 생성 준비 중...');
 
-  // 1단계: WebM 비디오 생성
-  const webmBlob = await new Promise<Blob>((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      reject(new Error('Canvas context not available'));
-      return;
-    }
+  const ffmpeg = await getFFmpeg();
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
+  // 캔버스 설정
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas context not available');
 
-    img.onload = async () => {
-      // 1080p 고해상도
-      canvas.width = 1920;
-      canvas.height = 1080;
+  // 1080p
+  canvas.width = 1920;
+  canvas.height = 1080;
 
-      // 폰트 명시적 로드 대기 (자막 깨짐 완전 방지)
-      const fontFamily = subtitleSettings?.fontFamily || 'Pretendard';
-      const fontSize = subtitleSettings?.fontSize || 48; // 1080p에 맞게 폰트 크기 증가
-      try {
-        await document.fonts.load(`bold ${fontSize}px "${fontFamily}"`);
-        await document.fonts.ready;
-      } catch (e) {
-        console.warn('Font loading failed, using fallback:', e);
-      }
-
-      // TTS 싱크를 위한 시간 계산 (자막 길이 + 긴박도 기반)
-      const effectIntensity = intensity || 5;
-      const subtitleLength = subtitle.length;
-
-      // 한글 기준: 3-4자/초 읽기 속도 (최소 7초 보장)
-      const baseDuration = subtitleLength > 0
-        ? Math.max(7, Math.min(12, subtitleLength / 3.0))  // 자막 있으면: 7-12초
-        : 8; // 자막 없으면: 기본 8초
-
-      // 긴박도 보정 (긴박할수록 빠르게, 차분할수록 느리게)
-      const intensityFactor = effectIntensity >= 7
-        ? 0.8  // 긴박함 (8-10) → 80% 속도 (짧게)
-        : effectIntensity <= 3
-        ? 1.3  // 차분함 (1-3) → 130% 속도 (길게)
-        : 1.0; // 보통 (4-6) → 100%
-
-      const duration = Math.max(6, Math.min(12, baseDuration * intensityFactor));
-
-      console.log(`[VIDEO] Duration: ${duration}s, Subtitle length: ${subtitleLength}, Intensity: ${effectIntensity}`);
-
-      const fps = 30; // 더 부드러운 애니메이션
-      const totalFrames = Math.floor(duration * fps);
-
-      console.log(`[VIDEO] Total frames: ${totalFrames}, FPS: ${fps}`);
-
-      // MediaRecorder 설정 (최고 품질)
-      const stream = canvas.captureStream(fps);
-      const recorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp8',
-        videoBitsPerSecond: 8000000 // 8Mbps - 최고 품질
-      });
-
-      const chunks: Blob[] = [];
-      recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        resolve(blob);
-      };
-
-      recorder.start();
-
-      // 줌인/줌아웃 애니메이션 렌더링
-      let frame = 0;
-      const interval = setInterval(() => {
-        if (frame >= totalFrames) {
-          clearInterval(interval);
-          recorder.stop();
-          return;
-        }
-
-        const progress = frame / totalFrames;
-
-        // 긴박도에 따른 확대율 (1-10 → 0.08-0.20)
-        const zoomAmount = 0.08 + (effectIntensity / 50); // 긴박할수록 크게 확대
-
-        // 줌 방향에 따라 스케일 계산
-        let scale: number;
-        if (zoomDirection === 'in') {
-          scale = 1.0 + (progress * zoomAmount); // 점진적 줌인
-        } else {
-          scale = 1.0 + zoomAmount - (progress * zoomAmount); // 점진적 줌아웃
-        }
-
-        // 패닝 방향에 따른 오프셋 계산 (자연스러운 움직임)
-        const pan = panDirection || 'center';
-        let offsetX = 0;
-        let offsetY = 0;
-
-        const panAmount = 40; // 최대 이동 거리 (픽셀)
-        if (pan === 'left') {
-          offsetX = progress * panAmount; // 좌→우 이동
-        } else if (pan === 'right') {
-          offsetX = -progress * panAmount; // 우→좌 이동
-        } else if (pan === 'up') {
-          offsetY = progress * panAmount; // 상→하 이동
-        } else if (pan === 'down') {
-          offsetY = -progress * panAmount; // 하→상 이동
-        }
-
-        // 캔버스 클리어
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 이미지 그리기 (확대 + 패닝)
-        const scaledWidth = canvas.width * scale;
-        const scaledHeight = canvas.height * scale;
-        const x = (canvas.width - scaledWidth) / 2 + offsetX;
-        const y = (canvas.height - scaledHeight) / 2 + offsetY;
-
-        ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-
-        // 자막 렌더링
-        if (subtitle && subtitleSettings) {
-          ctx.save();
-
-          // 1080p에 맞게 스케일링
-          const scaleFactor = 1.5; // 720p → 1080p (1080/720 = 1.5)
-          const scaledFontSize = Math.round(subtitleSettings.fontSize * scaleFactor);
-          const scaledYPosition = Math.round(subtitleSettings.yPosition * scaleFactor);
-
-          ctx.font = `bold ${scaledFontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'bottom';
-
-          const text = subtitle;
-          const textY = scaledYPosition;
-
-          // 배경 박스 (있을 경우)
-          if (subtitleSettings.backgroundColor) {
-            const metrics = ctx.measureText(text);
-            const textWidth = metrics.width;
-            const bgPadding = Math.round((subtitleSettings.bgPadding || 8) * scaleFactor);
-            const bgHeight = scaledFontSize + bgPadding * 2;
-
-            ctx.fillStyle = subtitleSettings.backgroundColor;
-            ctx.globalAlpha = subtitleSettings.bgOpacity || 0.8;
-            ctx.fillRect(
-              canvas.width / 2 - textWidth / 2 - bgPadding,
-              textY - scaledFontSize - bgPadding,
-              textWidth + bgPadding * 2,
-              bgHeight
-            );
-            ctx.globalAlpha = 1.0;
-          }
-
-          ctx.globalAlpha = subtitleSettings.opacity;
-
-          // 외곽선
-          if (subtitleSettings.strokeWidth > 0 && subtitleSettings.strokeColor !== 'transparent') {
-            ctx.strokeStyle = subtitleSettings.strokeColor;
-            ctx.lineWidth = Math.round(subtitleSettings.strokeWidth * scaleFactor);
-            ctx.lineJoin = 'round';
-            ctx.miterLimit = 2;
-            ctx.strokeText(text, canvas.width / 2, textY);
-          }
-
-          // 텍스트
-          ctx.fillStyle = subtitleSettings.textColor;
-          ctx.fillText(text, canvas.width / 2, textY);
-
-          ctx.restore();
-        }
-
-        frame++;
-
-        if (onProgress && frame % 5 === 0) {
-          const percent = Math.round((frame / totalFrames) * 60) + 10;
-          onProgress(percent, `${zoomDirection === 'in' ? '줌인' : '줌아웃'} 효과 생성 중...`);
-        }
-      }, 1000 / fps); // 실시간 렌더링 (30fps = 33ms interval)
-    };
-
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = imageUrl;
+  // 이미지 로드
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Failed to load image'));
+    image.src = imageUrl;
   });
 
-  if (onProgress) onProgress(70, 'MP4로 변환 중...');
-
-  // 2단계: WebM → MP4 변환 (FFmpeg.wasm)
-  try {
-    const ffmpeg = await getFFmpeg();
-
-    // WebM 파일을 FFmpeg 가상 파일 시스템에 쓰기
-    await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
-
-    // WebM → MP4 변환 (고품질)
-    await ffmpeg.exec([
-      '-i', 'input.webm',
-      '-c:v', 'libx264',
-      '-preset', 'medium', // 품질과 속도의 균형
-      '-crf', '18', // 고품질 (낮을수록 좋음, 0-51)
-      '-pix_fmt', 'yuv420p',
-      '-movflags', '+faststart',
-      'output.mp4'
-    ]);
-
-    // 변환된 MP4 읽기
-    const data = await ffmpeg.readFile('output.mp4');
-    const mp4Blob = new Blob([new Uint8Array(data as Uint8Array)], { type: 'video/mp4' });
-
-    // 임시 파일 삭제
-    await ffmpeg.deleteFile('input.webm');
-    await ffmpeg.deleteFile('output.mp4');
-
-    if (onProgress) onProgress(100, '완료');
-    return mp4Blob;
-  } catch (error) {
-    console.error('FFmpeg conversion failed:', error);
-    // 변환 실패 시 WebM 반환 (호환성)
-    if (onProgress) onProgress(100, '완료 (WebM)');
-    return webmBlob;
+  // 폰트 로드
+  if (subtitleSettings?.fontFamily) {
+    try {
+      await document.fonts.load(`bold ${subtitleSettings.fontSize || 48}px "${subtitleSettings.fontFamily}"`);
+      await document.fonts.ready;
+    } catch (e) {
+      console.warn('Font loading failed:', e);
+    }
   }
+
+  // 시간 계산
+  const effectIntensity = intensity || 5;
+  const subtitleLength = subtitle.length;
+  const baseDuration = subtitleLength > 0
+    ? Math.max(7, Math.min(12, subtitleLength / 3.0))
+    : 8;
+  const intensityFactor = effectIntensity >= 7 ? 0.8 : effectIntensity <= 3 ? 1.3 : 1.0;
+  const duration = Math.max(6, Math.min(12, baseDuration * intensityFactor));
+
+  // 15fps로 낮춤 (속도 2배 향상, 줌 효과에는 충분)
+  const fps = 15;
+  const totalFrames = Math.floor(duration * fps);
+
+  console.log(`[VIDEO] Duration: ${duration}s, Frames: ${totalFrames}, FPS: ${fps}`);
+
+  if (onProgress) onProgress(10, '프레임 렌더링 중...');
+
+  // 프레임 렌더링 (빠르게 - interval 없이)
+  const framePromises: Promise<void>[] = [];
+
+  for (let frame = 0; frame < totalFrames; frame++) {
+    const progress = frame / totalFrames;
+
+    // 줌 계산
+    const zoomAmount = 0.08 + (effectIntensity / 50);
+    let scale: number;
+    if (zoomDirection === 'in') {
+      scale = 1.0 + (progress * zoomAmount);
+    } else {
+      scale = 1.0 + zoomAmount - (progress * zoomAmount);
+    }
+
+    // 패닝 계산
+    const pan = panDirection || 'center';
+    let offsetX = 0, offsetY = 0;
+    const panAmount = 40;
+    if (pan === 'left') offsetX = progress * panAmount;
+    else if (pan === 'right') offsetX = -progress * panAmount;
+    else if (pan === 'up') offsetY = progress * panAmount;
+    else if (pan === 'down') offsetY = -progress * panAmount;
+
+    // 캔버스 렌더링
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const scaledWidth = canvas.width * scale;
+    const scaledHeight = canvas.height * scale;
+    const x = (canvas.width - scaledWidth) / 2 + offsetX;
+    const y = (canvas.height - scaledHeight) / 2 + offsetY;
+    ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
+    // 자막 렌더링
+    if (subtitle && subtitleSettings) {
+      ctx.save();
+      const scaleFactor = 1.5;
+      const scaledFontSize = Math.round(subtitleSettings.fontSize * scaleFactor);
+      const scaledYPosition = Math.round(subtitleSettings.yPosition * scaleFactor);
+
+      ctx.font = `bold ${scaledFontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+
+      const text = subtitle;
+      const textY = scaledYPosition;
+
+      if (subtitleSettings.backgroundColor) {
+        const metrics = ctx.measureText(text);
+        const textWidth = metrics.width;
+        const bgPadding = Math.round((subtitleSettings.bgPadding || 8) * scaleFactor);
+        const bgHeight = scaledFontSize + bgPadding * 2;
+
+        ctx.fillStyle = subtitleSettings.backgroundColor;
+        ctx.globalAlpha = subtitleSettings.bgOpacity || 0.8;
+        ctx.fillRect(
+          canvas.width / 2 - textWidth / 2 - bgPadding,
+          textY - scaledFontSize - bgPadding,
+          textWidth + bgPadding * 2,
+          bgHeight
+        );
+        ctx.globalAlpha = 1.0;
+      }
+
+      ctx.globalAlpha = subtitleSettings.opacity;
+
+      if (subtitleSettings.strokeWidth > 0 && subtitleSettings.strokeColor !== 'transparent') {
+        ctx.strokeStyle = subtitleSettings.strokeColor;
+        ctx.lineWidth = Math.round(subtitleSettings.strokeWidth * scaleFactor);
+        ctx.lineJoin = 'round';
+        ctx.miterLimit = 2;
+        ctx.strokeText(text, canvas.width / 2, textY);
+      }
+
+      ctx.fillStyle = subtitleSettings.textColor;
+      ctx.fillText(text, canvas.width / 2, textY);
+      ctx.restore();
+    }
+
+    // JPEG로 저장 (PNG보다 빠름)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const base64 = dataUrl.split(',')[1];
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    const frameNum = String(frame).padStart(5, '0');
+    framePromises.push(ffmpeg.writeFile(`frame${frameNum}.jpg`, bytes));
+
+    // 프로그레스 업데이트 (10프레임마다)
+    if (onProgress && frame % 10 === 0) {
+      const percent = Math.round((frame / totalFrames) * 50) + 10;
+      onProgress(percent, `프레임 렌더링 ${frame}/${totalFrames}...`);
+    }
+  }
+
+  // 모든 프레임 파일 쓰기 대기
+  await Promise.all(framePromises);
+
+  if (onProgress) onProgress(65, 'MP4 생성 중...');
+
+  // FFmpeg로 이미지 시퀀스 → 비디오 변환 (초고속)
+  await ffmpeg.exec([
+    '-framerate', String(fps),
+    '-i', 'frame%05d.jpg',
+    '-c:v', 'libx264',
+    '-preset', 'ultrafast', // 최고 속도
+    '-crf', '23', // 적정 품질 (속도 우선)
+    '-pix_fmt', 'yuv420p',
+    '-movflags', '+faststart',
+    'output.mp4'
+  ]);
+
+  if (onProgress) onProgress(90, '파일 정리 중...');
+
+  // 결과 읽기
+  const data = await ffmpeg.readFile('output.mp4');
+  const mp4Blob = new Blob([new Uint8Array(data as Uint8Array)], { type: 'video/mp4' });
+
+  // 임시 파일 삭제 (병렬)
+  const deletePromises = [];
+  for (let i = 0; i < totalFrames; i++) {
+    const frameNum = String(i).padStart(5, '0');
+    deletePromises.push(ffmpeg.deleteFile(`frame${frameNum}.jpg`).catch(() => {}));
+  }
+  deletePromises.push(ffmpeg.deleteFile('output.mp4').catch(() => {}));
+  await Promise.all(deletePromises);
+
+  if (onProgress) onProgress(100, '완료');
+  return mp4Blob;
 }
 
 // 비디오에 자막 오버레이 추가
