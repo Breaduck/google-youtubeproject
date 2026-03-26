@@ -620,53 +620,81 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">폰트</label>
-              <select
-                value={settings.fontFamily}
-                onChange={(e) => onChange({ ...settings, fontFamily: e.target.value })}
-                className="w-full px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
-              >
-                <optgroup label="📐 고딕 (Sans-Serif)">
-                  <option value="Pretendard">Pretendard</option>
-                  <option value="Noto Sans KR">Noto Sans KR</option>
-                  <option value="Nanum Gothic">나눔고딕</option>
-                  <option value="Nanum Gothic Coding">나눔고딕 코딩</option>
-                  <option value="Gothic A1">Gothic A1</option>
-                  <option value="IBM Plex Sans KR">IBM Plex Sans KR</option>
-                  <option value="Gowun Dodum">고운 도둠</option>
-                </optgroup>
-                <optgroup label="📚 명조 (Serif)">
-                  <option value="Noto Serif KR">Noto Serif KR</option>
-                  <option value="Nanum Myeongjo">나눔명조</option>
-                  <option value="Gowun Batang">고운 바탕</option>
-                  <option value="Song Myung">송명</option>
-                  <option value="Hahmlet">Hahmlet</option>
-                </optgroup>
-                <optgroup label="✍️ 손글씨/캘리">
-                  <option value="Nanum Pen Script">나눔손글씨 펜</option>
-                  <option value="Nanum Brush Script">나눔손글씨 붓</option>
-                  <option value="Gaegu">개그체</option>
-                  <option value="Poor Story">가난한 이야기</option>
-                  <option value="Single Day">싱글 데이</option>
-                  <option value="Yeon Sung">연성</option>
-                </optgroup>
-                <optgroup label="🎨 디자인/장식">
-                  <option value="Black Han Sans">검은고딕</option>
-                  <option value="Do Hyeon">도현</option>
-                  <option value="Jua">주아</option>
-                  <option value="Sunflower">해바라기</option>
-                  <option value="Stylish">스타일리시</option>
-                  <option value="Gamja Flower">감자꽃</option>
-                  <option value="Gugi">구기</option>
-                  <option value="East Sea Dokdo">동해독도</option>
-                  <option value="Dokdo">독도</option>
-                  <option value="Kirang Haerang">기랑해랑</option>
-                  <option value="Hi Melody">하이멜로디</option>
-                  <option value="Cute Font">귀여운폰트</option>
-                  <option value="Orbit">오빗</option>
-                  <option value="Dongle">동글</option>
-                  <option value="Black And White Picture">흑백사진</option>
-                </optgroup>
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={settings.fontFamily}
+                  onChange={(e) => onChange({ ...settings, fontFamily: e.target.value })}
+                  className="flex-1 px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
+                >
+                  <optgroup label="📐 고딕 (Sans-Serif)">
+                    <option value="Pretendard">Pretendard</option>
+                    <option value="Noto Sans KR">Noto Sans KR</option>
+                    <option value="Nanum Gothic">나눔고딕</option>
+                    <option value="Nanum Gothic Coding">나눔고딕 코딩</option>
+                    <option value="Gothic A1">Gothic A1</option>
+                    <option value="IBM Plex Sans KR">IBM Plex Sans KR</option>
+                    <option value="Gowun Dodum">고운 도둠</option>
+                  </optgroup>
+                  <optgroup label="📚 명조 (Serif)">
+                    <option value="Noto Serif KR">Noto Serif KR</option>
+                    <option value="Nanum Myeongjo">나눔명조</option>
+                    <option value="Gowun Batang">고운 바탕</option>
+                    <option value="Song Myung">송명</option>
+                    <option value="Hahmlet">Hahmlet</option>
+                  </optgroup>
+                  <optgroup label="✍️ 손글씨/캘리">
+                    <option value="Nanum Pen Script">나눔손글씨 펜</option>
+                    <option value="Nanum Brush Script">나눔손글씨 붓</option>
+                    <option value="Gaegu">개그체</option>
+                    <option value="Poor Story">가난한 이야기</option>
+                    <option value="Single Day">싱글 데이</option>
+                    <option value="Yeon Sung">연성</option>
+                  </optgroup>
+                  <optgroup label="🎨 디자인/장식">
+                    <option value="Black Han Sans">검은고딕</option>
+                    <option value="Do Hyeon">도현</option>
+                    <option value="Jua">주아</option>
+                    <option value="Sunflower">해바라기</option>
+                    <option value="Stylish">스타일리시</option>
+                    <option value="Gamja Flower">감자꽃</option>
+                    <option value="Gugi">구기</option>
+                    <option value="East Sea Dokdo">동해독도</option>
+                    <option value="Dokdo">독도</option>
+                    <option value="Kirang Haerang">기랑해랑</option>
+                    <option value="Hi Melody">하이멜로디</option>
+                    <option value="Cute Font">귀여운폰트</option>
+                    <option value="Orbit">오빗</option>
+                    <option value="Dongle">동글</option>
+                    <option value="Black And White Picture">흑백사진</option>
+                  </optgroup>
+                </select>
+                <select
+                  value={settings.fontWeight || 700}
+                  onChange={(e) => onChange({ ...settings, fontWeight: parseInt(e.target.value) })}
+                  className="w-28 px-2 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 text-sm"
+                >
+                  <option value="100" style={{ fontWeight: 100 }}>Thin</option>
+                  <option value="200" style={{ fontWeight: 200 }}>Extra Light</option>
+                  <option value="300" style={{ fontWeight: 300 }}>Light</option>
+                  <option value="400" style={{ fontWeight: 400 }}>Regular</option>
+                  <option value="500" style={{ fontWeight: 500 }}>Medium</option>
+                  <option value="600" style={{ fontWeight: 600 }}>Semi Bold</option>
+                  <option value="700" style={{ fontWeight: 700 }}>Bold</option>
+                  <option value="800" style={{ fontWeight: 800 }}>Extra Bold</option>
+                  <option value="900" style={{ fontWeight: 900 }}>Black</option>
+                </select>
+                <button
+                  onClick={() => onChange({ ...settings, fontStyle: settings.fontStyle === 'italic' ? 'normal' : 'italic' })}
+                  className={`w-10 h-10 flex items-center justify-center rounded-lg border text-lg font-serif italic transition-all ${
+                    settings.fontStyle === 'italic'
+                      ? 'bg-indigo-600 border-indigo-600 text-white'
+                      : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-indigo-400'
+                  }`}
+                  title="이탤릭"
+                >
+                  I
+                </button>
+              </div>
             </div>
 
             <div>
@@ -883,6 +911,8 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                     style={{
                       fontFamily: settings.fontFamily,
                       fontSize: `${settings.fontSize / 2.5}px`,
+                      fontWeight: settings.fontWeight || 700,
+                      fontStyle: settings.fontStyle || 'normal',
                       color: settings.textColor,
                       letterSpacing: `${settings.letterSpacing / 1.5}px`,
                       lineHeight: settings.lineHeight,

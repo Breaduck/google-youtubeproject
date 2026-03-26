@@ -5,6 +5,8 @@ import { SubtitleSettings, ElevenLabsSettings } from '../types';
 const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   fontSize: 32,
   fontFamily: 'Pretendard',
+  fontWeight: 700,
+  fontStyle: 'normal',
   letterSpacing: 0,
   lineHeight: 1.2,
   opacity: 1.0,

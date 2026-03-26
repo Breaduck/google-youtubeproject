@@ -83,6 +83,8 @@ export type SubtitlePosition = 'top' | 'center' | 'bottom';
 export interface SubtitleSettings {
   fontSize: number;
   fontFamily: string;
+  fontWeight: number;
+  fontStyle: 'normal' | 'italic';
   letterSpacing: number;
   lineHeight: number;
   opacity: number;

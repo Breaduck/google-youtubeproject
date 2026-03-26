@@ -221,10 +221,11 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
     const baseSettings: SubtitleSettings = {
-      fontSize: 44, fontFamily: 'Noto Sans KR', letterSpacing: 0, lineHeight: 1.2,
+      fontSize: 44, fontFamily: 'Noto Sans KR', fontWeight: 700, fontStyle: 'normal',
+      letterSpacing: 0, lineHeight: 1.2,
       opacity: 1, template: 'custom', textColor: '#FFFFFF',
       strokeColor: 'transparent', strokeWidth: 0,
-      backgroundColor: undefined, bgPadding: 12, bgOpacity: 0.8,
+      backgroundColor: undefined, bgPadding: 12, bgOpacity: 0.8, bgRadius: 8,
       position: 'bottom', yPosition: 680, lockPosition: false, lockFont: false,
     };
     setSelected({ ...baseSettings, ...template.settings, strokeWidth: 0, strokeColor: 'transparent' });
