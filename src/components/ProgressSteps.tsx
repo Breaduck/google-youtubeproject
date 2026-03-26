@@ -83,7 +83,7 @@ export default function ProgressSteps({
   );
 
   return (
-    <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
+    <div className="w-full bg-white dark:bg-slate-900 sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-8 sm:px-12 py-3">
         <div className="flex items-center justify-between">
           {steps.map((step, index) => {

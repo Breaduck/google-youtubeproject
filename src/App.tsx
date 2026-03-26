@@ -2917,7 +2917,7 @@ const App: React.FC = () => {
           {step === 'input' && (
             <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pt-4 sm:pt-6 pb-4 flex flex-col justify-center">
                <div className="text-center space-y-1 sm:space-y-2">
-                  <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight leading-tight">당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
+                  <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight" style={{ fontFamily: 'Pretendard, sans-serif' }}>당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
                   <p className="text-slate-400 font-medium text-sm sm:text-base">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
                </div>
                <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
@@ -3375,7 +3375,9 @@ const App: React.FC = () => {
                 <button onClick={() => setExpandedSetting(expandedSetting === 'bytedance' ? null : 'bytedance')} className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">영상화 API 설정</span>
-                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">ModelArk</span>
+                    {isByteplusValid && (
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                    )}
                   </div>
                   <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedSetting === 'bytedance' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
