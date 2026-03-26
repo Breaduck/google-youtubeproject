@@ -83,9 +83,9 @@ export default function ProgressSteps({
   );
 
   return (
-    <div className="w-full bg-[#FDFDFD] dark:bg-slate-950 fixed top-4 sm:top-8 left-0 right-0 z-40 pointer-events-none">
-      <div className="max-w-[800px] mx-auto px-20 sm:px-24 py-2">
-        <div className="flex items-center justify-between pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl px-6 py-3 shadow-lg border border-slate-100 dark:border-slate-800">
+    <div className="w-full bg-[#FDFDFD] dark:bg-slate-950 fixed top-4 sm:top-8 left-0 right-0 z-40">
+      <div className="max-w-[1400px] mx-auto px-8 sm:px-12 py-3">
+        <div className="flex items-center justify-between">
           {steps.map((step, index) => {
             const status = getStepStatus(index, currentStepIndex);
             const isLastStep = index === steps.length - 1;
