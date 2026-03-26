@@ -2351,14 +2351,22 @@ const App: React.FC = () => {
           )}
           <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white text-[10px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">{isDarkMode ? '라이트 모드' : '다크 모드'}</div>
         </button>
-        <button onClick={() => { setIsMyPageOpen(true); setIsSettingsFullscreen(true); }} className="w-12 h-12 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 shadow-xl rounded-full flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 transition-all group relative border border-slate-100 dark:border-slate-700">
+        <button onClick={() => {
+          if (isSettingsFullscreen) {
+            setIsMyPageOpen(false);
+            setIsSettingsFullscreen(false);
+          } else {
+            setIsMyPageOpen(true);
+            setIsSettingsFullscreen(true);
+          }
+        }} className="w-12 h-12 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 shadow-xl rounded-full flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-105 transition-all group relative border border-slate-100 dark:border-slate-700">
           <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
           <div className="absolute top-full mt-2 px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white text-[10px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap">내 페이지</div>
         </button>
       </div>
 
-      {step !== 'dashboard' && !isSettingsFullscreen && (
-        <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[205]">
+      {(step !== 'dashboard' || isSettingsFullscreen) && (
+        <div className={`fixed top-4 left-4 sm:top-8 sm:left-8 z-[205] ${isSettingsFullscreen ? 'invisible' : ''}`}>
           <button onClick={handleBack} className="w-12 h-12 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 shadow-xl rounded-full flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border border-slate-100 dark:border-slate-700">
             <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
           </button>
