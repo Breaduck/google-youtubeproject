@@ -2357,7 +2357,7 @@ const App: React.FC = () => {
         </button>
       </div>
 
-      {(step !== 'dashboard' || isSettingsFullscreen) && (
+      {step !== 'dashboard' && !isSettingsFullscreen && (
         <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[205]">
           <button onClick={handleBack} className="w-12 h-12 sm:w-14 sm:h-14 bg-white dark:bg-slate-800 shadow-xl rounded-full flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border border-slate-100 dark:border-slate-700">
             <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
