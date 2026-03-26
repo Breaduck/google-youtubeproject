@@ -150,8 +150,16 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
       {/* 좌측 사이드바 */}
       <div className="w-64 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* 헤더 */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 py-2">설정</h1>
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* 메뉴 리스트 */}

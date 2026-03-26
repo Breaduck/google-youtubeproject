@@ -83,8 +83,10 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
   }, []);
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
-    // 템플릿을 완전히 적용 (undefined 값도 명시적으로 설정)
-    const defaultSettings: SubtitleSettings = {
+    console.log('템플릿 적용:', template.name, template.settings);
+
+    // 기본값 설정
+    const baseSettings: SubtitleSettings = {
       fontSize: 48,
       fontFamily: 'Noto Sans KR',
       letterSpacing: 0,
@@ -102,7 +104,11 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
       lockPosition: false,
       lockFont: false,
     };
-    setSelected({ ...defaultSettings, ...current, ...template.settings });
+
+    // 템플릿 설정을 우선 적용
+    const newSettings = { ...baseSettings, ...template.settings };
+    console.log('적용된 설정:', newSettings);
+    setSelected(newSettings);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -195,10 +201,13 @@ export default function SubtitleTemplateModal({ current, onApply, onClose }: Sub
                   fontFamily: selected.fontFamily,
                   fontSize: `${Math.min(selected.fontSize, 48)}px`,
                   color: selected.textColor,
-                  WebkitTextStroke: selected.strokeWidth > 0 && selected.strokeColor !== 'transparent'
+                  WebkitTextStroke: selected.strokeWidth > 0 && selected.strokeColor && selected.strokeColor !== 'transparent'
                     ? `${selected.strokeWidth}px ${selected.strokeColor}`
                     : undefined,
                   paintOrder: 'stroke fill',
+                  textShadow: selected.strokeWidth > 0 && selected.strokeColor && selected.strokeColor !== 'transparent'
+                    ? `0 0 ${selected.strokeWidth * 2}px ${selected.strokeColor}`
+                    : undefined,
                 }}
               >
                 자막 미리보기
