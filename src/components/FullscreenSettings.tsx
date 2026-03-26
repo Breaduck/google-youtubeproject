@@ -146,12 +146,19 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-white dark:bg-slate-900 flex">
+    <div className="fixed inset-0 z-[300] bg-white dark:bg-slate-900 flex">
       {/* 좌측 사이드바 */}
       <div className="w-64 bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* 헤더 */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">설정</h1>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 transition-colors"
+            title="닫기 (ESC)"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
         </div>
 
         {/* 메뉴 리스트 */}
@@ -485,6 +492,7 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
   const [savedPresets, setSavedPresets] = useState<Array<{ name: string; settings: SubtitleSettings }>>([]);
   const [presetName, setPresetName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Load saved presets from localStorage
   useEffect(() => {
@@ -523,6 +531,17 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
     const newPresets = savedPresets.filter((_, i) => i !== index);
     setSavedPresets(newPresets);
     localStorage.setItem('subtitle_presets', JSON.stringify(newPresets));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreviewImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -835,9 +854,18 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
         <div className="lg:w-[450px] lg:sticky lg:top-8 space-y-4 h-fit shrink-0">
           {/* 미리보기 (실제 크기/위치 반영) */}
           <div
-            className="w-full bg-slate-900 dark:bg-slate-800 rounded-xl overflow-visible relative group cursor-pointer"
+            className="w-full bg-slate-900 dark:bg-slate-800 rounded-xl overflow-hidden relative group cursor-pointer"
             style={{ paddingTop: '56.25%' }}
           >
+            {/* 배경 이미지 */}
+            {previewImage && (
+              <img
+                src={previewImage}
+                alt="Preview background"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
+
             <div className="absolute inset-0 flex items-center justify-center p-4">
               <div
                 key={`${settings.textColor}-${settings.strokeColor}-${settings.backgroundColor}`}
@@ -876,8 +904,8 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
               {/* 호버 시 업로드 버튼 */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
                 <label className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium cursor-pointer shadow-lg transition-all">
-                  <input type="file" accept="image/*" className="hidden" />
-                  이미지 업로드
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                  {previewImage ? '이미지 변경' : '이미지 업로드'}
                 </label>
               </div>
             </div>
@@ -930,13 +958,14 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
                   {/* 텍스트 */}
                   <div className="relative h-full flex items-center justify-center p-1.5">
                     <span
-                      className="text-[10px] font-bold text-center leading-tight"
+                      className="text-[10px] font-bold text-center leading-tight drop-shadow-md"
                       style={{
                         color: tmpl.settings.textColor,
+                        textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.8)',
                         WebkitTextStroke:
                           tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
                             ? `${Math.min(0.5, tmpl.settings.strokeWidth / 4)}px ${tmpl.settings.strokeColor}`
-                            : undefined,
+                            : '0.3px rgba(0,0,0,0.5)',
                       }}
                     >
                       {tmpl.name}
