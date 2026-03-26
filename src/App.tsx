@@ -298,7 +298,9 @@ const App: React.FC = () => {
 
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
   const [isCharLoadModalOpen, setIsCharLoadModalOpen] = useState(false);
+  const [charLoadModalMode, setCharLoadModalMode] = useState<'list' | 'add'>('list');
   const [newCharData, setNewCharData] = useState({ name: '', gender: '여성', age: '성인', traits: '' });
+  const [newSavedCharData, setNewSavedCharData] = useState<{ name: string; refImages: string[] }>({ name: '', refImages: [] });
 
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
   const [promptEditType, setPromptEditType] = useState<'character' | 'scene'>('scene');
@@ -2461,7 +2463,7 @@ const App: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">등장인물 외형 설정</h1>
                   <div className="flex gap-3">
-                    <button onClick={() => setIsCharLoadModalOpen(true)} className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-base font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">인물 불러오기</button>
+                    <button onClick={() => { setCharLoadModalMode('list'); setIsCharLoadModalOpen(true); }} className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-base font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">인물 불러오기</button>
                     <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50">스토리보드 생성</button>
                     {project && project.scenes.length > 0 && (
                       <button onClick={() => proceedToStoryboard(false)} className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-base font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">기존 스토리보드 보기</button>
@@ -2548,7 +2550,7 @@ const App: React.FC = () => {
                   </div>
                   );
                 })}
-                <button onClick={() => setIsCharModalOpen(true)} className="bg-slate-50 dark:bg-slate-700 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all p-6 flex gap-6 items-center min-h-[240px]">
+                <button onClick={() => { setCharLoadModalMode('add'); setIsCharLoadModalOpen(true); }} className="bg-slate-50 dark:bg-slate-700 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all p-6 flex gap-6 items-center min-h-[240px]">
                   <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl bg-slate-100 dark:bg-slate-600 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-all">
                     <span className="text-7xl text-slate-300">+</span>
                   </div>
@@ -4093,29 +4095,119 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* 캐릭터 불러오기 모달 */}
+      {/* 캐릭터 불러오기/추가 모달 */}
       {isCharLoadModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsCharLoadModalOpen(false)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => { setIsCharLoadModalOpen(false); setCharLoadModalMode('list'); setNewSavedCharData({ name: '', refImages: [] }); }}>
           <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">저장된 캐릭터 불러오기</h3>
-            {savedCharacters.length === 0 ? (
-              <p className="text-sm text-slate-400 py-8 text-center">저장된 캐릭터가 없습니다.</p>
-            ) : (
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                {savedCharacters.map(sc => (
-                  <div key={sc.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-indigo-200 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/30 transition-all cursor-pointer" onClick={() => { if(project) { updateCurrentProject({ characters: [...project.characters, { id: crypto.randomUUID(), name: sc.name, role: '', visualDescription: sc.description, portraitUrl: sc.portraitUrl, status: sc.portraitUrl ? 'done' : 'idle' }] }); setIsCharLoadModalOpen(false); } }}>
-                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden flex-shrink-0">
-                      {sc.portraitUrl ? <img src={sc.portraitUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">{sc.name}</p>
-                      <p className="text-xs text-slate-400 truncate">{sc.description}</p>
-                    </div>
+            {charLoadModalMode === 'list' ? (
+              <>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">저장된 캐릭터 불러오기</h3>
+                <button
+                  onClick={() => setCharLoadModalMode('add')}
+                  className="w-full mb-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  새 인물 추가하기
+                </button>
+                {savedCharacters.length === 0 ? (
+                  <p className="text-sm text-slate-400 py-8 text-center">저장된 캐릭터가 없습니다.</p>
+                ) : (
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                    {savedCharacters.map(sc => (
+                      <div key={sc.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-indigo-200 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/30 transition-all cursor-pointer" onClick={() => { if(project) { updateCurrentProject({ characters: [...project.characters, { id: crypto.randomUUID(), name: sc.name, role: '', visualDescription: sc.description, portraitUrl: sc.portraitUrl, status: sc.portraitUrl ? 'done' : 'idle' }] }); setIsCharLoadModalOpen(false); } }}>
+                        <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden flex-shrink-0">
+                          {sc.portraitUrl ? <img src={sc.portraitUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">{sc.name}</p>
+                          <p className="text-xs text-slate-400 truncate">{sc.description}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+                <button onClick={() => { setIsCharLoadModalOpen(false); setCharLoadModalMode('list'); }} className="w-full mt-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">닫기</button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <button onClick={() => setCharLoadModalMode('list')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <svg className="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">새 인물 추가</h3>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">이름</label>
+                    <input
+                      type="text"
+                      value={newSavedCharData.name}
+                      onChange={e => setNewSavedCharData({ ...newSavedCharData, name: e.target.value })}
+                      placeholder="이름을 입력해주세요"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm dark:bg-slate-700 dark:text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">레퍼런스 이미지 (최대 10장)</label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {newSavedCharData.refImages.map((img, idx) => (
+                        <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden group">
+                          <img src={img} className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => setNewSavedCharData({ ...newSavedCharData, refImages: newSavedCharData.refImages.filter((_, i) => i !== idx) })}
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition-opacity"
+                          >삭제</button>
+                        </div>
+                      ))}
+                      {newSavedCharData.refImages.length < 10 && (
+                        <label className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">
+                          <span className="text-2xl text-slate-400">+</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              const remaining = 10 - newSavedCharData.refImages.length;
+                              files.slice(0, remaining).forEach(file => {
+                                const reader = new FileReader();
+                                reader.onload = (ev) => {
+                                  if (ev.target?.result) {
+                                    setNewSavedCharData(prev => ({ ...prev, refImages: [...prev.refImages, ev.target!.result as string] }));
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              });
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400">{newSavedCharData.refImages.length}/10장</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (!newSavedCharData.name.trim()) { alert('이름을 입력해주세요'); return; }
+                    if (savedCharacters.length >= 10) { alert('최대 10명까지 저장 가능합니다'); return; }
+                    const newChar = { id: crypto.randomUUID(), name: newSavedCharData.name, refImages: newSavedCharData.refImages, description: '', portraitUrl: newSavedCharData.refImages[0] || '' };
+                    setSavedCharacters([...savedCharacters, newChar]);
+                    setNewSavedCharData({ name: '', refImages: [] });
+                    setCharLoadModalMode('list');
+                  }}
+                  disabled={!newSavedCharData.name.trim()}
+                  className="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  인물 저장
+                </button>
+              </>
             )}
-            <button onClick={() => setIsCharLoadModalOpen(false)} className="w-full mt-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">닫기</button>
           </div>
         </div>
       )}
