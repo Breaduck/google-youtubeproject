@@ -337,6 +337,9 @@ const App: React.FC = () => {
   const [isElConnected, setIsElConnected] = useState(false);
   const [isAssetMenuOpen, setIsAssetMenuOpen] = useState(false);
   const [isVoiceTesting, setIsVoiceTesting] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewCurrentIndex, setPreviewCurrentIndex] = useState(0);
+  const [showExportPopup, setShowExportPopup] = useState(false);
 
   const sceneImageUploadRef = useRef<HTMLInputElement>(null);
   const sceneAudioUploadRef = useRef<HTMLInputElement>(null);
@@ -2592,8 +2595,12 @@ const App: React.FC = () => {
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-base font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all disabled:opacity-50">오디오 전체 생성</button>
                       <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-6 py-3 bg-purple-600 text-white rounded-xl text-base font-medium hover:bg-purple-700 transition-all disabled:opacity-50">비디오 전체 생성</button>
+                      <button onClick={() => { setPreviewCurrentIndex(0); setShowPreviewModal(true); }} disabled={!project.scenes.some(s => s.videoUrl || s.imageUrl)} className="px-6 py-3 bg-emerald-600 text-white rounded-xl text-base font-medium hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        전체 미리보기
+                      </button>
                       <div className="relative group">
-                        <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
+                        <button onClick={() => setShowExportPopup(true)} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
                         {project.scenes.some(s => !s.imageUrl || !s.audioUrl) && (
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                             이미지와 오디오 모두가 필요합니다
@@ -3013,6 +3020,122 @@ const App: React.FC = () => {
       )}
 
       {selectedImage && <div className="fixed inset-0 bg-slate-900/95 z-[250] flex items-center justify-center p-2 sm:p-4 cursor-zoom-out animate-in fade-in" onClick={() => setSelectedImage(null)}><img src={selectedImage} className="max-w-full max-h-[90vh] object-contain rounded-2xl sm:rounded-[40px] shadow-2xl border-4 sm:border-8 border-white/10" /></div>}
+
+      {/* 전체 미리보기 모달 */}
+      {showPreviewModal && project && (
+        <div className="fixed inset-0 bg-black/95 z-[300] flex flex-col" onClick={() => setShowPreviewModal(false)}>
+          <div className="flex-1 flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
+            <div className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
+              {project.scenes[previewCurrentIndex]?.videoUrl ? (
+                <video
+                  key={previewCurrentIndex}
+                  src={project.scenes[previewCurrentIndex].videoUrl}
+                  className="w-full h-full object-contain"
+                  autoPlay
+                  onEnded={() => {
+                    if (previewCurrentIndex < project.scenes.length - 1) {
+                      setPreviewCurrentIndex(previewCurrentIndex + 1);
+                    }
+                  }}
+                />
+              ) : project.scenes[previewCurrentIndex]?.imageUrl ? (
+                <img src={project.scenes[previewCurrentIndex].imageUrl} className="w-full h-full object-contain" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-500">미디어 없음</div>
+              )}
+              {/* 씬 번호 표시 */}
+              <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/70 rounded-lg text-white text-sm font-medium">
+                #{previewCurrentIndex + 1} / {project.scenes.length}
+              </div>
+              {/* 비디오/이미지 표시 */}
+              <div className="absolute top-4 right-4 px-3 py-1.5 bg-black/70 rounded-lg text-xs font-medium" style={{ color: project.scenes[previewCurrentIndex]?.videoUrl ? '#a78bfa' : '#60a5fa' }}>
+                {project.scenes[previewCurrentIndex]?.videoUrl ? 'AI 비디오' : '이미지'}
+              </div>
+            </div>
+          </div>
+          {/* 하단 컨트롤 */}
+          <div className="p-4 bg-black/80" onClick={e => e.stopPropagation()}>
+            <div className="max-w-5xl mx-auto">
+              {/* 썸네일 스크롤 */}
+              <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-thin">
+                {project.scenes.map((scene, idx) => (
+                  <button
+                    key={scene.id}
+                    onClick={() => setPreviewCurrentIndex(idx)}
+                    className={`relative flex-shrink-0 w-20 h-12 rounded-lg overflow-hidden border-2 transition-all ${idx === previewCurrentIndex ? 'border-indigo-500 scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  >
+                    {scene.imageUrl ? (
+                      <img src={scene.imageUrl} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-slate-700 flex items-center justify-center text-xs text-slate-400">#{idx + 1}</div>
+                    )}
+                    {scene.videoUrl && <div className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-purple-500 rounded-full" />}
+                  </button>
+                ))}
+              </div>
+              {/* 네비게이션 버튼 */}
+              <div className="flex items-center justify-center gap-4">
+                <button onClick={() => setPreviewCurrentIndex(Math.max(0, previewCurrentIndex - 1))} disabled={previewCurrentIndex === 0} className="px-4 py-2 bg-slate-700 text-white rounded-lg disabled:opacity-30">이전</button>
+                <button onClick={() => setShowPreviewModal(false)} className="px-6 py-2 bg-slate-600 text-white rounded-lg">닫기</button>
+                <button onClick={() => setPreviewCurrentIndex(Math.min(project.scenes.length - 1, previewCurrentIndex + 1))} disabled={previewCurrentIndex === project.scenes.length - 1} className="px-4 py-2 bg-slate-700 text-white rounded-lg disabled:opacity-30">다음</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 동영상 추출 팝업 */}
+      {showExportPopup && project && (() => {
+        const videoCount = project.scenes.filter(s => s.videoUrl).length;
+        const imageCount = project.scenes.filter(s => s.imageUrl && !s.videoUrl).length;
+        const totalScenes = project.scenes.length;
+        const estimatedLength = project.scenes.reduce((acc, s) => {
+          const textLen = s.scriptSegment?.length || 0;
+          return acc + Math.max(5, Math.min(12, textLen / 3));
+        }, 0);
+        const estimatedTime = Math.ceil((videoCount * 3 + imageCount * 8 + totalScenes * 2) / 60);
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setShowExportPopup(false)}>
+            <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">동영상 추출</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">최종 영상을 생성합니다</p>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-xl text-center">
+                    <div className="text-2xl font-bold text-purple-600">{videoCount}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">AI 비디오</div>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-xl text-center">
+                    <div className="text-2xl font-bold text-blue-600">{imageCount}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">이미지 (줌효과)</div>
+                  </div>
+                </div>
+                <div className="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-xl space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">예상 영상 길이</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">{Math.floor(estimatedLength / 60)}분 {Math.round(estimatedLength % 60)}초</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">예상 소요 시간</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">약 {estimatedTime}분</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">총 씬 개수</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">{totalScenes}개</span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400 text-center">자막과 오디오가 싱크에 맞춰 자동으로 합성됩니다</p>
+              </div>
+              <div className="p-6 pt-0 flex gap-3">
+                <button onClick={() => setShowExportPopup(false)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">취소</button>
+                <button onClick={() => { setShowExportPopup(false); exportVideo(); }} className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all">추출 시작</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {isRegenerateModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsRegenerateModalOpen(false)}>
