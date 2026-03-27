@@ -28,8 +28,11 @@ app = modal.App("byteplus-proxy")
 # Modal volumes
 upload_volume = modal.Volume.from_name("byteplus-uploads", create_if_missing=True)
 cache_volume = modal.Volume.from_name("byteplus-1080p-cache", create_if_missing=True)
+user_db_volume = modal.Volume.from_name("user-database", create_if_missing=True)
 UPLOAD_DIR = "/uploads"
 CACHE_DIR = "/cache"
+USER_DB_DIR = "/user-db"
+USER_DB_PATH = "/user-db/users.db"
 
 # Modal Image with BytePlus SDK + Runware SDK + all dependencies
 image = (
@@ -50,6 +53,144 @@ fast_app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ============ 유저 DB 관리 ============
+import sqlite3
+import hashlib
+from datetime import datetime
+
+def init_user_db():
+    """SQLite 유저 DB 초기화"""
+    conn = sqlite3.connect(USER_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            email TEXT,
+            approved INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+@fast_app.post("/api/v3/auth/register")
+async def register_user(request: Request):
+    """회원가입 (승인 대기 상태로 등록)"""
+    try:
+        init_user_db()
+        body = await request.json()
+        username = body.get("username", "").strip()
+        password = body.get("password", "")
+        email = body.get("email", "").strip()
+
+        if not username or not password:
+            return JSONResponse({"success": False, "error": "missing_fields"}, status_code=400)
+
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+
+        # 중복 체크
+        cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+        if cursor.fetchone():
+            conn.close()
+            return JSONResponse({"success": False, "error": "duplicate_username"})
+
+        # 새 유저 추가
+        password_hash = hash_password(password)
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, email, approved) VALUES (?, ?, ?, 0)",
+            (username, password_hash, email)
+        )
+        conn.commit()
+        conn.close()
+        user_db_volume.commit()
+
+        return JSONResponse({"success": True, "message": "registered_pending_approval"})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+@fast_app.post("/api/v3/auth/login")
+async def login_user(request: Request):
+    """로그인 (승인된 유저만 가능)"""
+    try:
+        init_user_db()
+        body = await request.json()
+        username = body.get("username", "").strip()
+        password = body.get("password", "")
+
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, username, email, approved FROM users WHERE username = ? AND password_hash = ?",
+            (username, hash_password(password))
+        )
+        user = cursor.fetchone()
+        conn.close()
+
+        if not user:
+            return JSONResponse({"success": False, "error": "invalid_credentials"})
+
+        if user[3] != 1:
+            return JSONResponse({"success": False, "error": "not_approved"})
+
+        return JSONResponse({
+            "success": True,
+            "user": {"id": user[0], "username": user[1], "email": user[2]}
+        })
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+@fast_app.get("/api/v3/auth/users")
+async def list_users(request: Request):
+    """관리자용: 모든 유저 목록 (승인 관리)"""
+    try:
+        # 간단한 관리자 키 체크 (ENV에서 ADMIN_KEY 설정)
+        admin_key = request.headers.get("X-Admin-Key", "")
+        expected_key = os.getenv("ADMIN_KEY", "admin123")  # 기본값, 나중에 변경
+        if admin_key != expected_key:
+            return JSONResponse({"success": False, "error": "unauthorized"}, status_code=401)
+
+        init_user_db()
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, email, approved, created_at FROM users ORDER BY created_at DESC")
+        users = [{"id": r[0], "username": r[1], "email": r[2], "approved": r[3], "created_at": r[4]} for r in cursor.fetchall()]
+        conn.close()
+
+        return JSONResponse({"success": True, "users": users})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+@fast_app.post("/api/v3/auth/approve")
+async def approve_user(request: Request):
+    """관리자용: 유저 승인"""
+    try:
+        admin_key = request.headers.get("X-Admin-Key", "")
+        expected_key = os.getenv("ADMIN_KEY", "admin123")
+        if admin_key != expected_key:
+            return JSONResponse({"success": False, "error": "unauthorized"}, status_code=401)
+
+        body = await request.json()
+        user_id = body.get("user_id")
+        approved = body.get("approved", 1)
+
+        init_user_db()
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET approved = ? WHERE id = ?", (approved, user_id))
+        conn.commit()
+        conn.close()
+        user_db_volume.commit()
+
+        return JSONResponse({"success": True})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
 @fast_app.post("/api/v3/uploads")
 async def upload_image(request: Request):
@@ -947,7 +1088,7 @@ async def health():
 @app.function(
     image=image,
     timeout=600,
-    volumes={UPLOAD_DIR: upload_volume, CACHE_DIR: cache_volume},
+    volumes={UPLOAD_DIR: upload_volume, CACHE_DIR: cache_volume, USER_DB_DIR: user_db_volume},
     secrets=[modal.Secret.from_name("imgur-client-id")],
 )
 @modal.asgi_app()

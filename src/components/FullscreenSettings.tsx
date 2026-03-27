@@ -710,6 +710,8 @@ function SubtitleSettingsPanel({
   );
 }
 
+const AUTH_API = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
+
 function AccountSettings({ isLoggedIn, onLoginStateChange }: {
   isLoggedIn: boolean;
   onLoginStateChange: (loggedIn: boolean) => void;
@@ -718,43 +720,69 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const currentUser = isLoggedIn ? JSON.parse(localStorage.getItem('currentUser') || '{}') : null;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (mode === 'login') {
       if (!username || !password) {
         alert('아이디와 비밀번호를 입력해주세요.');
         return;
       }
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = users.find((u: any) => u.username === username && u.password === password);
-      if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        onLoginStateChange(true);
-        setUsername('');
-        setPassword('');
-        alert('로그인 성공!');
-      } else {
-        alert('아이디 또는 비밀번호가 일치하지 않습니다.');
+      setIsLoading(true);
+      try {
+        const res = await fetch(`${AUTH_API}/api/v3/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          localStorage.setItem('currentUser', JSON.stringify(data.user));
+          onLoginStateChange(true);
+          setUsername('');
+          setPassword('');
+          alert('로그인 성공!');
+        } else if (data.error === 'not_approved') {
+          alert('관리자 승인 대기 중입니다. 승인 후 로그인 가능합니다.');
+        } else {
+          alert('아이디 또는 비밀번호가 일치하지 않습니다.');
+        }
+      } catch (e) {
+        alert('서버 오류가 발생했습니다.');
+      } finally {
+        setIsLoading(false);
       }
     } else {
       if (!username || !password || !email) {
         alert('모든 필드를 입력해주세요.');
         return;
       }
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      if (users.find((u: any) => u.username === username)) {
-        alert('이미 존재하는 아이디입니다.');
-        return;
+      setIsLoading(true);
+      try {
+        const res = await fetch(`${AUTH_API}/api/v3/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, email })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setUsername('');
+          setPassword('');
+          setEmail('');
+          setMode('login');
+          alert('회원가입 완료! 관리자 승인 후 로그인 가능합니다.');
+        } else if (data.error === 'duplicate_username') {
+          alert('이미 존재하는 아이디입니다.');
+        } else {
+          alert('회원가입 중 오류가 발생했습니다.');
+        }
+      } catch (e) {
+        alert('서버 오류가 발생했습니다.');
+      } finally {
+        setIsLoading(false);
       }
-      users.push({ username, password, email });
-      localStorage.setItem('users', JSON.stringify(users));
-      setUsername('');
-      setPassword('');
-      setEmail('');
-      setMode('login');
-      alert('회원가입 완료! 로그인해주세요.');
     }
   };
 
@@ -878,9 +906,10 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
 
               <button
                 onClick={handleSubmit}
-                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/50 transition-all transform hover:scale-[1.02]"
+                disabled={isLoading}
+                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-slate-400 disabled:to-slate-500 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/50 transition-all transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed"
               >
-                {mode === 'login' ? '로그인' : '계정 만들기'}
+                {isLoading ? '처리 중...' : (mode === 'login' ? '로그인' : '계정 만들기')}
               </button>
 
               {mode === 'login' && (
