@@ -198,7 +198,14 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
               onCheckGeminiKey={onCheckGeminiKey}
             />
           )}
-          {activeTab === 'subtitle' && <SubtitleSettingsPanel settings={subtitleSettings} onChange={setSubtitleSettings} />}
+          {activeTab === 'subtitle' && (
+            <SubtitleSettingsPanel
+              settings={subtitleSettings}
+              onChange={setSubtitleSettings}
+              showTemplatePopup={showTemplatePopup}
+              setShowTemplatePopup={setShowTemplatePopup}
+            />
+          )}
           {activeTab === 'narration' && (
             <NarrationSettings
               audioProvider={audioProvider}
@@ -488,7 +495,17 @@ function GeminiSettings({
   );
 }
 
-function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSettings; onChange: (s: SubtitleSettings) => void }) {
+function SubtitleSettingsPanel({
+  settings,
+  onChange,
+  showTemplatePopup,
+  setShowTemplatePopup,
+}: {
+  settings: SubtitleSettings;
+  onChange: (s: SubtitleSettings) => void;
+  showTemplatePopup: boolean;
+  setShowTemplatePopup: (show: boolean) => void;
+}) {
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const [savedPresets, setSavedPresets] = useState<Array<{ name: string; settings: SubtitleSettings }>>([]);
   const [presetName, setPresetName] = useState('');
@@ -1037,9 +1054,9 @@ function SubtitleSettingsPanel({ settings, onChange }: { settings: SubtitleSetti
       {/* 자막 템플릿 팝업 모달 */}
       {showTemplatePopup && (
         <SubtitleTemplateModal
-          current={subtitleSettings}
+          current={settings}
           onApply={(newSettings) => {
-            setSubtitleSettings(newSettings);
+            onChange(newSettings);
             setShowTemplatePopup(false);
           }}
           onClose={() => setShowTemplatePopup(false)}
