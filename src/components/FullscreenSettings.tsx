@@ -495,11 +495,26 @@ function GeminiSettings({
   );
 }
 
+// 텍스트 그림자 계산 (템플릿 미리보기용)
+const getTextShadow = (color: string, hasBg: boolean) => {
+  if (color === '#00FF88' || color === '#FF00FF' || color === '#00D4FF') {
+    return `0 0 8px ${color}, 0 0 16px ${color}, 0 0 24px ${color}80`;
+  }
+  if (color === '#FFD700' || color === '#D4AF37') {
+    return `0 2px 4px rgba(0,0,0,0.6), 0 0 8px rgba(255,215,0,0.3)`;
+  }
+  if (color === '#C0C0C0') {
+    return `0 2px 4px rgba(0,0,0,0.6), 0 0 6px rgba(192,192,192,0.4)`;
+  }
+  if (!hasBg) {
+    return '2px 2px 4px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.6), 0 0 8px rgba(0,0,0,0.4)';
+  }
+  return undefined;
+};
+
 function SubtitleSettingsPanel({
   settings,
   onChange,
-  showTemplatePopup,
-  setShowTemplatePopup,
 }: {
   settings: SubtitleSettings;
   onChange: (s: SubtitleSettings) => void;
@@ -507,478 +522,80 @@ function SubtitleSettingsPanel({
   setShowTemplatePopup: (show: boolean) => void;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
-  const [savedPresets, setSavedPresets] = useState<Array<{ name: string; settings: SubtitleSettings }>>([]);
-  const [presetName, setPresetName] = useState('');
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  // Load saved presets from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('subtitle_presets');
-    if (saved) {
-      try {
-        setSavedPresets(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load subtitle presets:', e);
-      }
-    }
-  }, []);
 
   const categories = ['전체', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
   const filteredTemplates = selectedCategory === '전체' ? TEMPLATES : TEMPLATES.filter(t => t.category === selectedCategory);
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
-    onChange({ ...settings, ...template.settings });
-  };
-
-  const saveCurrentPreset = () => {
-    if (!presetName.trim()) return;
-    const newPresets = [...savedPresets, { name: presetName.trim(), settings }];
-    setSavedPresets(newPresets);
-    localStorage.setItem('subtitle_presets', JSON.stringify(newPresets));
-    setPresetName('');
-    setShowSaveDialog(false);
-    alert('자막 설정이 저장되었습니다.');
-  };
-
-  const loadPreset = (preset: { name: string; settings: SubtitleSettings }) => {
-    onChange(preset.settings);
-  };
-
-  const deletePreset = (index: number) => {
-    const newPresets = savedPresets.filter((_, i) => i !== index);
-    setSavedPresets(newPresets);
-    localStorage.setItem('subtitle_presets', JSON.stringify(newPresets));
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setPreviewImage(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    const baseSettings: SubtitleSettings = {
+      fontSize: 44, fontFamily: 'Noto Sans KR', fontWeight: 700, fontStyle: 'normal',
+      letterSpacing: 0, lineHeight: 1.2, opacity: 1, template: 'custom', textColor: '#FFFFFF',
+      strokeColor: 'transparent', strokeWidth: 0, backgroundColor: undefined,
+      bgPadding: 12, bgOpacity: 0.8, bgRadius: 8, position: 'bottom', yPosition: 680,
+      lockPosition: false, lockFont: false,
+    };
+    onChange({ ...baseSettings, ...template.settings, strokeWidth: 0, strokeColor: 'transparent' });
   };
 
   return (
     <div className="space-y-6">
+      {/* 헤더 */}
       <div className="pt-2">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 설정</h2>
-        <p className="text-slate-600 dark:text-slate-400">영상에 표시될 자막 스타일을 설정합니다.</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 스타일</h2>
+        <p className="text-slate-600 dark:text-slate-400">원하는 자막 템플릿을 선택하세요.</p>
       </div>
 
-      {/* 저장 다이얼로그 */}
-      {showSaveDialog && (
-        <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 space-y-3">
-          <input
-            type="text"
-            value={presetName}
-            onChange={(e) => setPresetName(e.target.value)}
-            placeholder="프리셋 이름 입력..."
-            className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={saveCurrentPreset}
-              disabled={!presetName.trim()}
-              className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-            >
-              저장
-            </button>
-            <button
-              onClick={() => setShowSaveDialog(false)}
-              className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg transition-colors"
-            >
-              취소
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 현재 설정 저장 버튼 */}
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowSaveDialog(!showSaveDialog)}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
-        >
-          현재 설정 저장
-        </button>
+      {/* 카테고리 탭 */}
+      <div className="flex flex-wrap gap-2">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              selectedCategory === cat
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
 
-      {/* 저장된 프리셋 */}
-      {savedPresets.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">내가 저장한 프리셋</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-            {savedPresets.map((preset, index) => (
-              <div key={index} className="relative group">
-                <button
-                  onClick={() => loadPreset(preset)}
-                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm transition-colors"
-                >
-                  {preset.name}
-                </button>
-                <button
-                  onClick={() => deletePreset(index)}
-                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* 템플릿 그리드 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {filteredTemplates.map(tmpl => {
+          const s = tmpl.settings;
+          const hasBg = !!s.backgroundColor;
+          const textShadow = getTextShadow(s.textColor || '#FFFFFF', hasBg);
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* 좌측: 설정 */}
-        <div className="flex-1 space-y-4">
-          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">폰트</label>
-              <div className="flex gap-2">
-                <select
-                  value={settings.fontFamily}
-                  onChange={(e) => onChange({ ...settings, fontFamily: e.target.value })}
-                  className="flex-1 px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
-                >
-                  <optgroup label="📐 고딕 (Sans-Serif)">
-                    <option value="Pretendard">Pretendard</option>
-                    <option value="Noto Sans KR">Noto Sans KR</option>
-                    <option value="Nanum Gothic">나눔고딕</option>
-                    <option value="Nanum Gothic Coding">나눔고딕 코딩</option>
-                    <option value="Gothic A1">Gothic A1</option>
-                    <option value="IBM Plex Sans KR">IBM Plex Sans KR</option>
-                    <option value="Gowun Dodum">고운 도둠</option>
-                  </optgroup>
-                  <optgroup label="📚 명조 (Serif)">
-                    <option value="Noto Serif KR">Noto Serif KR</option>
-                    <option value="Nanum Myeongjo">나눔명조</option>
-                    <option value="Gowun Batang">고운 바탕</option>
-                    <option value="Song Myung">송명</option>
-                    <option value="Hahmlet">Hahmlet</option>
-                  </optgroup>
-                  <optgroup label="✍️ 손글씨/캘리">
-                    <option value="Nanum Pen Script">나눔손글씨 펜</option>
-                    <option value="Nanum Brush Script">나눔손글씨 붓</option>
-                    <option value="Gaegu">개그체</option>
-                    <option value="Poor Story">가난한 이야기</option>
-                    <option value="Single Day">싱글 데이</option>
-                    <option value="Yeon Sung">연성</option>
-                  </optgroup>
-                  <optgroup label="🎨 디자인/장식">
-                    <option value="Black Han Sans">검은고딕</option>
-                    <option value="Do Hyeon">도현</option>
-                    <option value="Jua">주아</option>
-                    <option value="Sunflower">해바라기</option>
-                    <option value="Stylish">스타일리시</option>
-                    <option value="Gamja Flower">감자꽃</option>
-                    <option value="Gugi">구기</option>
-                    <option value="East Sea Dokdo">동해독도</option>
-                    <option value="Dokdo">독도</option>
-                    <option value="Kirang Haerang">기랑해랑</option>
-                    <option value="Hi Melody">하이멜로디</option>
-                    <option value="Cute Font">귀여운폰트</option>
-                    <option value="Orbit">오빗</option>
-                    <option value="Dongle">동글</option>
-                    <option value="Black And White Picture">흑백사진</option>
-                  </optgroup>
-                </select>
-                <select
-                  value={settings.fontWeight || 700}
-                  onChange={(e) => onChange({ ...settings, fontWeight: parseInt(e.target.value) })}
-                  className="w-28 px-2 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 text-sm"
-                >
-                  <option value="100" style={{ fontWeight: 100 }}>Thin</option>
-                  <option value="200" style={{ fontWeight: 200 }}>Extra Light</option>
-                  <option value="300" style={{ fontWeight: 300 }}>Light</option>
-                  <option value="400" style={{ fontWeight: 400 }}>Regular</option>
-                  <option value="500" style={{ fontWeight: 500 }}>Medium</option>
-                  <option value="600" style={{ fontWeight: 600 }}>Semi Bold</option>
-                  <option value="700" style={{ fontWeight: 700 }}>Bold</option>
-                  <option value="800" style={{ fontWeight: 800 }}>Extra Bold</option>
-                  <option value="900" style={{ fontWeight: 900 }}>Black</option>
-                </select>
-                <button
-                  onClick={() => onChange({ ...settings, fontStyle: settings.fontStyle === 'italic' ? 'normal' : 'italic' })}
-                  className={`w-10 h-10 flex items-center justify-center rounded-lg border text-lg font-serif italic transition-all ${
-                    settings.fontStyle === 'italic'
-                      ? 'bg-indigo-600 border-indigo-600 text-white'
-                      : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-indigo-400'
-                  }`}
-                  title="이탤릭"
-                >
-                  I
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">크기: {settings.fontSize}px</label>
-              <input
-                type="range"
-                min="16"
-                max="80"
-                value={settings.fontSize}
-                onChange={(e) => onChange({ ...settings, fontSize: parseInt(e.target.value) })}
-                className="w-full accent-indigo-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">자간: {settings.letterSpacing}px</label>
-              <input
-                type="range"
-                min="-2"
-                max="10"
-                step="0.5"
-                value={settings.letterSpacing}
-                onChange={(e) => onChange({ ...settings, letterSpacing: parseFloat(e.target.value) })}
-                className="w-full accent-indigo-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">행간: {settings.lineHeight}</label>
-              <input
-                type="range"
-                min="1.0"
-                max="2.5"
-                step="0.1"
-                value={settings.lineHeight}
-                onChange={(e) => onChange({ ...settings, lineHeight: parseFloat(e.target.value) })}
-                className="w-full accent-indigo-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">투명도: {Math.round(settings.opacity * 100)}%</label>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={settings.opacity}
-                onChange={(e) => onChange({ ...settings, opacity: parseFloat(e.target.value) })}
-                className="w-full accent-indigo-600"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 w-24">텍스트 색상</label>
-              <input
-                type="color"
-                value={settings.textColor}
-                onChange={(e) => onChange({ ...settings, textColor: e.target.value })}
-                className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-full"
-                style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-              />
-              <input
-                type="text"
-                value={settings.textColor}
-                onChange={(e) => onChange({ ...settings, textColor: e.target.value })}
-                className="px-3 py-2 w-28 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
-                placeholder="#FFFFFF"
-              />
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                <input
-                  type="checkbox"
-                  checked={!!settings.backgroundColor}
-                  onChange={(e) => onChange({ ...settings, backgroundColor: e.target.checked ? '#000000' : undefined })}
-                  className="rounded"
-                />
-                배경 색상 사용
-              </label>
-              {settings.backgroundColor && (
-                <>
-                  <div className="flex items-center gap-3 mb-2">
-                    <input
-                      type="color"
-                      value={settings.backgroundColor}
-                      onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })}
-                      className="w-10 h-10 rounded-full cursor-pointer border-2 border-slate-300 dark:border-slate-600 appearance-none p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-full"
-                      style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-                    />
-                    <input
-                      type="text"
-                      value={settings.backgroundColor}
-                      onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })}
-                      className="px-3 py-2 w-28 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
-                      placeholder="#000000"
-                    />
-                  </div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">배경 투명도: {Math.round(settings.bgOpacity * 100)}%</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={settings.bgOpacity}
-                    onChange={(e) => onChange({ ...settings, bgOpacity: parseFloat(e.target.value) })}
-                    className="w-full accent-indigo-600 mb-2"
-                  />
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">배경 여백: {settings.bgPadding}px</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="30"
-                    value={settings.bgPadding}
-                    onChange={(e) => onChange({ ...settings, bgPadding: parseInt(e.target.value) })}
-                    className="w-full accent-indigo-600 mb-2"
-                  />
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">배경 라운딩: {settings.bgRadius || 0}px</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="30"
-                    value={settings.bgRadius || 0}
-                    onChange={(e) => onChange({ ...settings, bgRadius: parseInt(e.target.value) })}
-                    className="w-full accent-indigo-600"
-                  />
-                </>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">자막 위치</label>
-              <select
-                value={settings.position}
-                onChange={(e) => {
-                  const pos = e.target.value as SubtitlePosition;
-                  const yPos = pos === 'top' ? 150 : pos === 'center' ? 360 : 650;
-                  onChange({ ...settings, position: pos, yPosition: yPos });
-                }}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          return (
+            <div key={tmpl.id} className="flex flex-col gap-1">
+              <button
+                onClick={() => applyTemplate(tmpl)}
+                className="w-full h-14 rounded-lg bg-gray-950 flex items-center justify-center hover:ring-2 hover:ring-indigo-500 transition-all"
               >
-                <option value="top">상단</option>
-                <option value="center">중앙</option>
-                <option value="bottom">하단</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">수직 위치 (세밀 조정): {settings.yPosition}px</label>
-              <input
-                type="range"
-                min="100"
-                max="700"
-                value={settings.yPosition}
-                onChange={(e) => onChange({ ...settings, yPosition: parseInt(e.target.value) })}
-                className="w-full accent-indigo-600"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* 우측: 미리보기 + 템플릿 (Sticky) */}
-        <div className="lg:w-[450px] lg:sticky lg:top-8 space-y-4 h-fit shrink-0">
-          {/* 미리보기 */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-bold text-slate-900 dark:text-slate-100">실시간 미리보기</label>
-              <span className="text-xs text-slate-500 dark:text-slate-400">클릭하여 배경 이미지 변경</span>
-            </div>
-            <div
-              className="w-full rounded-xl overflow-hidden relative group cursor-pointer shadow-2xl border-2 border-slate-300 dark:border-slate-700 hover:border-indigo-500 transition-all"
-              style={{ paddingTop: '56.25%' }}
-            >
-              {/* 배경 이미지 */}
-              {previewImage ? (
-                <img
-                  src={previewImage}
-                  alt="Preview background"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-                  <div className="absolute inset-0 opacity-10"
-                    style={{
-                      backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.3), transparent 50%), radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.3), transparent 50%)'
-                    }}
-                  />
-                </div>
-              )}
-
-              <div className="absolute inset-0 flex items-center justify-center p-4">
-                <div
-                  key={`${settings.textColor}-${settings.strokeColor}-${settings.backgroundColor}`}
-                  className="absolute left-1/2 -translate-x-1/2 transition-all duration-300"
+                <span
                   style={{
-                    top: `${Math.min((settings.yPosition / 720) * 100, 85)}%`,
-                    opacity: settings.opacity,
+                    fontFamily: `"${s.fontFamily || 'Noto Sans KR'}", sans-serif`,
+                    fontSize: '15px',
+                    fontWeight: 'bold',
+                    color: s.textColor,
+                    backgroundColor: hasBg ? s.backgroundColor : undefined,
+                    padding: hasBg ? '5px 14px' : undefined,
+                    borderRadius: hasBg ? '4px' : undefined,
+                    opacity: hasBg ? (s.bgOpacity || 0.85) : 1,
+                    textShadow: textShadow,
                   }}
                 >
-                  {settings.backgroundColor && (
-                    <div
-                      className="absolute -z-10 transition-all duration-300"
-                      style={{
-                        backgroundColor: settings.backgroundColor,
-                        opacity: settings.bgOpacity,
-                        inset: `-${settings.bgPadding / 2}px`,
-                        borderRadius: `${settings.bgRadius || 0}px`,
-                      }}
-                    />
-                  )}
-                  <p
-                    className="relative whitespace-nowrap text-center transition-all duration-300"
-                    style={{
-                      fontFamily: settings.fontFamily,
-                      fontSize: `${settings.fontSize / 2.5}px`,
-                      fontWeight: settings.fontWeight || 700,
-                      fontStyle: settings.fontStyle || 'normal',
-                      color: settings.textColor,
-                      letterSpacing: `${settings.letterSpacing / 1.5}px`,
-                      lineHeight: settings.lineHeight,
-                      WebkitTextStroke: settings.strokeWidth > 0 && settings.strokeColor !== 'transparent' ? `${settings.strokeWidth / 2}px ${settings.strokeColor}` : undefined,
-                    }}
-                  >
-                    자막 미리보기
-                  </p>
-                </div>
-
-                {/* 호버 시 업로드 버튼 */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/50 backdrop-blur-sm">
-                  <label className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold cursor-pointer shadow-2xl transition-all transform hover:scale-105 flex items-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                    <span>{previewImage ? '이미지 변경' : '배경 이미지 추가'}</span>
-                  </label>
-                </div>
-              </div>
+                  가나다라 ABC
+                </span>
+              </button>
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center">{tmpl.name}</p>
             </div>
-          </div>
-
-          {/* 템플릿 선택 */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">템플릿</h3>
-            <button
-              onClick={() => setShowTemplatePopup(true)}
-              className="w-full px-4 py-2.5 text-sm font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all"
-            >
-              템플릿 선택하기
-            </button>
-          </div>
-        </div>
+          );
+        })}
       </div>
-
-      {/* 자막 템플릿 팝업 모달 */}
-      {showTemplatePopup && (
-        <SubtitleTemplateModal
-          current={settings}
-          onApply={(newSettings) => {
-            onChange(newSettings);
-            setShowTemplatePopup(false);
-          }}
-          onClose={() => setShowTemplatePopup(false)}
-        />
-      )}
     </div>
   );
 }
