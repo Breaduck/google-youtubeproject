@@ -2591,8 +2591,9 @@ const App: React.FC = () => {
                     <div className="flex flex-wrap gap-3 items-center">
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-base font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-6 py-3 bg-purple-600 text-white rounded-xl text-base font-medium hover:bg-purple-700 transition-all disabled:opacity-50">비디오 전체 생성</button>
                       <div className="relative group">
-                        <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 전체 생성</button>
+                        <button onClick={exportVideo} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
                         {project.scenes.some(s => !s.imageUrl || !s.audioUrl) && (
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                             이미지와 오디오 모두가 필요합니다
@@ -2918,10 +2919,10 @@ const App: React.FC = () => {
           )}
 
           {step === 'input' && (
-            <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pt-4 sm:pt-6 pb-4 flex flex-col justify-center">
-               <div className="text-center space-y-1 sm:space-y-2">
-                  <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight" style={{ fontFamily: 'Pretendard, sans-serif' }}>당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
-                  <p className="text-slate-400 font-medium text-sm sm:text-base">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
+            <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4 pt-2 sm:pt-4 pb-2 flex flex-col justify-center min-h-[calc(100vh-120px)]">
+               <div className="text-center space-y-0.5 sm:space-y-1">
+                  <h1 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight" style={{ fontFamily: 'Pretendard, sans-serif' }}>당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
+                  <p className="text-slate-400 font-medium text-xs sm:text-sm">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
                </div>
                <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
                   {['realistic', '2d-animation', 'custom'].map(s => (

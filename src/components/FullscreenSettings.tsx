@@ -957,96 +957,15 @@ function SubtitleSettingsPanel({
 
           {/* 템플릿 선택 */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">템플릿</h3>
-              <button
-                onClick={() => setShowTemplatePopup(true)}
-                className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-1.5"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
-                팝업으로 선택
-              </button>
-            </div>
-
-            {/* 카테고리 필터 */}
-            <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-all ${
-                    selectedCategory === cat
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
-            {/* 템플릿 그리드 */}
-            <div className="grid grid-cols-4 gap-2.5 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600 p-1">
-              {filteredTemplates.map((tmpl) => (
-                <button
-                  key={tmpl.id}
-                  onClick={() => applyTemplate(tmpl)}
-                  className="group relative aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700/50 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-200"
-                  title={tmpl.name}
-                >
-                  {/* 배경 */}
-                  {tmpl.settings.backgroundColor && (
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        backgroundColor: tmpl.settings.backgroundColor,
-                        opacity: tmpl.settings.bgOpacity || 0.8,
-                      }}
-                    />
-                  )}
-
-                  {/* 템플릿 이름을 실제 스타일로 표시 */}
-                  <div className="relative w-full h-full flex items-center justify-center p-2">
-                    <div className="relative inline-block max-w-full">
-                      {tmpl.settings.backgroundColor && (
-                        <div
-                          className="absolute inset-0 -z-10"
-                          style={{
-                            backgroundColor: tmpl.settings.backgroundColor,
-                            opacity: tmpl.settings.bgOpacity || 0.8,
-                            padding: `${(tmpl.settings.bgPadding || 8) / 4}px ${(tmpl.settings.bgPadding || 8) / 3}px`,
-                            borderRadius: '3px',
-                          }}
-                        />
-                      )}
-                      <span
-                        className="text-[10px] font-bold leading-tight block text-center"
-                        style={{
-                          color: tmpl.settings.textColor,
-                          fontFamily: tmpl.settings.fontFamily,
-                          WebkitTextStroke: tmpl.settings.strokeWidth && tmpl.settings.strokeWidth > 0 && tmpl.settings.strokeColor !== 'transparent'
-                            ? `${Math.max(0.2, tmpl.settings.strokeWidth / 5)}px ${tmpl.settings.strokeColor}`
-                            : undefined,
-                        }}
-                      >
-                        {tmpl.name}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 호버 시 선택 표시 */}
-                  <div className="absolute inset-0 bg-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => setShowTemplatePopup(true)}
+              className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              </svg>
+              템플릿 선택
+            </button>
           </div>
         </div>
       </div>
