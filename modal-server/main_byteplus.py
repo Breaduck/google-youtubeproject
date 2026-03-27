@@ -1089,7 +1089,10 @@ async def health():
     image=image,
     timeout=600,
     volumes={UPLOAD_DIR: upload_volume, CACHE_DIR: cache_volume, USER_DB_DIR: user_db_volume},
-    secrets=[modal.Secret.from_name("imgur-client-id")],
+    secrets=[
+        modal.Secret.from_name("imgur-client-id"),
+        modal.Secret.from_name("admin-key"),
+    ],
 )
 @modal.asgi_app()
 def web():

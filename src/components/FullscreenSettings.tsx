@@ -2009,6 +2009,106 @@ function SavedCharactersPanel({
           ))}
         </div>
       )}
+
+      {/* 관리자 패널 (엄청 작게) */}
+      <AdminPanel />
+    </div>
+  );
+}
+
+// 관리자 패널 컴포넌트
+function AdminPanel() {
+  const [adminKey, setAdminKey] = useState('');
+  const [users, setUsers] = useState<any[]>([]);
+  const [showPanel, setShowPanel] = useState(false);
+  const AUTH_API = 'https://hiyoonsh1--byteplus-proxy-web.modal.run';
+
+  const loadUsers = async () => {
+    if (!adminKey.trim()) {
+      alert('관리자 키를 입력하세요');
+      return;
+    }
+    try {
+      const res = await fetch(`${AUTH_API}/api/v3/auth/users?admin_key=${adminKey}`);
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(data.users || []);
+      } else {
+        alert(data.error || '유저 목록 로드 실패');
+      }
+    } catch (err) {
+      alert('네트워크 에러');
+    }
+  };
+
+  const approveUser = async (username: string) => {
+    try {
+      const res = await fetch(`${AUTH_API}/api/v3/auth/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, admin_key: adminKey })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('승인 완료');
+        loadUsers();
+      } else {
+        alert(data.error || '승인 실패');
+      }
+    } catch (err) {
+      alert('네트워크 에러');
+    }
+  };
+
+  return (
+    <div className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-700">
+      <button
+        onClick={() => setShowPanel(!showPanel)}
+        className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+      >
+        {showPanel ? '관리자 ▲' : '관리자 ▼'}
+      </button>
+
+      {showPanel && (
+        <div className="mt-3 bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-xs">
+          <div className="space-y-2">
+            <input
+              type="password"
+              value={adminKey}
+              onChange={e => setAdminKey(e.target.value)}
+              placeholder="Admin Key"
+              className="w-full px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            />
+            <button
+              onClick={loadUsers}
+              className="px-3 py-1 bg-slate-600 text-white rounded text-xs hover:bg-slate-700"
+            >
+              유저 목록
+            </button>
+          </div>
+
+          {users.length > 0 && (
+            <div className="mt-3 space-y-1 max-h-48 overflow-y-auto">
+              {users.map((user: any) => (
+                <div key={user.id} className="flex items-center justify-between bg-white dark:bg-slate-800 p-2 rounded">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{user.username}</div>
+                    <div className="text-xs text-slate-500">{user.approved ? '✓ 승인됨' : '대기중'}</div>
+                  </div>
+                  {!user.approved && (
+                    <button
+                      onClick={() => approveUser(user.username)}
+                      className="ml-2 px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                    >
+                      승인
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
