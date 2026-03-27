@@ -550,7 +550,7 @@ function SubtitleSettingsPanel({
         <div className="xl:w-[400px] shrink-0 space-y-4">
           {/* 미리보기 */}
           <div className="rounded-xl overflow-hidden relative" style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}>
-            <div className="absolute inset-0 flex items-end justify-center pb-6">
+            <div className="absolute inset-0 flex justify-center" style={{ alignItems: 'flex-start' }}>
               <span
                 style={{
                   fontFamily: `"${settings.fontFamily}", sans-serif`,
@@ -562,6 +562,7 @@ function SubtitleSettingsPanel({
                   borderRadius: settings.backgroundColor ? `${settings.bgRadius || 4}px` : undefined,
                   opacity: settings.backgroundColor ? (settings.bgOpacity || 0.8) : 1,
                   textShadow: !settings.backgroundColor ? '2px 2px 4px rgba(0,0,0,0.9)' : undefined,
+                  marginTop: `${(settings.yPosition / 720) * 100}%`,
                 }}
               >
                 자막 미리보기
