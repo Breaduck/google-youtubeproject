@@ -23,7 +23,8 @@ const steps: Step[] = [
   { label: '스크립트 분할', icon: '3' },
   { label: '이미지 생성', icon: '4' },
   { label: '나레이션 생성', icon: '5' },
-  { label: '영상 생성', icon: '6' },
+  { label: 'AI 영상 생성', icon: '6' },
+  { label: '영상 합치기', icon: '7' },
 ];
 
 const getCurrentStepIndex = (
@@ -83,8 +84,8 @@ export default function ProgressSteps({
   );
 
   return (
-    <div className="w-full bg-transparent relative z-0 pt-2 sm:pt-3 mb-4">
-      <div className="max-w-[1400px] mx-auto px-20 sm:px-24 py-3">
+    <div className="w-full bg-transparent relative z-0 mt-4 sm:mt-8 mb-2">
+      <div className="max-w-[1400px] mx-auto px-20 sm:px-24 py-2">
         <div className="flex items-center justify-between">
           {steps.map((step, index) => {
             const status = getStepStatus(index, currentStepIndex);

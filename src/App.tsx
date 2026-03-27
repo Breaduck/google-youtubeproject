@@ -2592,14 +2592,14 @@ const App: React.FC = () => {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 items-center">
-                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
+                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-400 text-white rounded-lg text-sm font-medium hover:bg-indigo-500 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-all disabled:opacity-50">오디오 전체 생성</button>
-                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 transition-all disabled:opacity-50">비디오 전체 생성</button>
-                      <button onClick={() => { setPreviewCurrentIndex(0); setShowPreviewModal(true); }} className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-all flex items-center gap-1.5">
+                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">비디오 전체 생성</button>
+                      <button onClick={() => { setPreviewCurrentIndex(0); setShowPreviewModal(true); }} className="px-4 py-2 bg-indigo-700 text-white rounded-lg text-sm font-medium hover:bg-indigo-800 transition-all flex items-center gap-1.5">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         전체 미리보기
                       </button>
-                      <button onClick={() => setShowExportPopup(true)} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
+                      <button onClick={() => setShowExportPopup(true)} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-indigo-900 text-white rounded-lg text-sm font-medium hover:bg-indigo-800 transition-all disabled:opacity-50">동영상 추출</button>
                     </div>
                   </div>
 
@@ -2924,18 +2924,18 @@ const App: React.FC = () => {
                   <h1 className="text-4xl sm:text-6xl font-bold tracking-tight leading-tight" style={{ fontFamily: 'Pretendard, sans-serif' }}>당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
                   <p className="text-slate-400 font-medium text-xs sm:text-sm">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
                </div>
-               <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
-                  {['realistic', '2d-animation', 'custom'].map(s => (
-                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${style === s ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{s === '2d-animation' ? '2D 애니메이션' : s === 'realistic' ? '실사화' : '맞춤형'}</button>
+               <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+                  {['realistic', '2d-animation'].map(s => (
+                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-4 py-2 sm:px-6 sm:py-3 rounded-xl transition-all font-semibold text-sm ${style === s ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{s === '2d-animation' ? '2D 애니메이션' : '실사화'}</button>
                   ))}
                   <button
                     onClick={() => {
                       setTempSelectedTemplate(selectedStyleTemplate);
                       setIsTemplateModalOpen(true);
                     }}
-                    className="px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base bg-white dark:bg-slate-800 border-2 border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                    className={`px-4 py-2 sm:px-6 sm:py-3 rounded-xl transition-all font-semibold text-sm ${selectedStyleTemplate ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                   >
-                    {selectedStyleTemplate ? `🎨 ${selectedStyleTemplate.name}` : '🎨 그림체 템플릿'}
+                    {selectedStyleTemplate ? `${selectedStyleTemplate.name}` : '그림체 템플릿'}
                   </button>
                   {savedStyles.length > 0 && (
                     <div className="relative group/styles">
@@ -2969,30 +2969,6 @@ const App: React.FC = () => {
                       <div className="flex gap-2 items-center overflow-x-auto">
                          {currentSavedStyle.refImages.map((img, i) => <img key={i} src={img} className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl object-cover border-2 border-white shadow-sm shrink-0" />)}
                       </div>
-                   </div>
-                 </div>
-               )}
-               {style === 'custom' && (
-                 <div className="animate-in fade-in slide-in-bottom bg-indigo-50/50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 p-3 sm:p-5 rounded-[20px] sm:rounded-[28px] space-y-3">
-                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <div>
-                        <h4 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-200">맞춤형 스타일 학습</h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">레퍼런스 이미지 업로드 (최대 7장, 최소 3장 권장)</p>
-                      </div>
-                      <div className="flex gap-2 w-full sm:w-auto">
-                        <button onClick={() => styleRefImageInputRef.current?.click()} className="flex-1 sm:flex-none px-4 py-2 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 rounded-xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all">이미지 업로드</button>
-                        {refImages.length > 0 && (
-                          <button onClick={saveCustomStyleFromInput} className="px-4 py-2 bg-indigo-600 border border-indigo-600 rounded-xl text-xs font-semibold text-white hover:bg-indigo-700 transition-all">저장하기</button>
-                        )}
-                      </div>
-                   </div>
-                   <div className="flex gap-2 flex-wrap">
-                      {refImages.map((img, idx) => (
-                        <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl overflow-hidden border-2 border-white shadow-md group">
-                          <img src={img} className="w-full h-full object-cover" />
-                          <button onClick={() => removeStyleRefImage(idx)} className="absolute inset-0 bg-black/60 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">삭제</button>
-                        </div>
-                      ))}
                    </div>
                  </div>
                )}
@@ -3627,49 +3603,15 @@ const App: React.FC = () => {
                   </button>
                 </div>
                 {expandedSetting === 'subtitle' && (
-                  <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
-                    {/* 크기 & 글씨체 - 컴팩트 */}
-                    <div className="space-y-2 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400">글자 크기</label>
-                        <input
-                          type="number"
-                          min="16"
-                          max="80"
-                          value={subtitleSettings.fontSize}
-                          onChange={(e) => setSubtitleSettings({...subtitleSettings, fontSize: Math.max(16, Math.min(80, parseInt(e.target.value) || 32))})}
-                          className="w-24 px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded text-center dark:bg-slate-700 dark:text-slate-100"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400">글씨체</label>
-                        <select
-                          value={subtitleSettings.fontFamily}
-                          onChange={(e) => setSubtitleSettings({...subtitleSettings, fontFamily: e.target.value})}
-                          className="flex-1 px-2 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded dark:bg-slate-700 dark:text-slate-100"
-                        >
-                          <option value="Pretendard">Pretendard (기본)</option>
-                          <option value="Noto Sans KR">Noto Sans KR</option>
-                          <option value="Nanum Gothic">나눔고딕</option>
-                          <option value="Malgun Gothic">맑은 고딕</option>
-                          <option value="Nanum Myeongjo">나눔명조</option>
-                          <option value="Arial">Arial</option>
-                          <option value="Impact">Impact</option>
-                        </select>
-                      </div>
-                      {subtitleSettings.backgroundColor && (
-                        <div className="flex items-center justify-between gap-3">
-                          <label className="text-xs font-medium text-slate-600 dark:text-slate-400">배경 불투명도</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={Math.round(subtitleSettings.bgOpacity * 100)}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, bgOpacity: Math.max(0, Math.min(100, parseInt(e.target.value) || 80)) / 100})}
-                            className="w-24 px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded text-center dark:bg-slate-700 dark:text-slate-100"
-                          />
-                        </div>
-                      )}
+                  <div className="px-4 pb-4 space-y-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
+                    {/* 템플릿 선택 - 상단 */}
+                    <div className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+                      <button
+                        onClick={() => setShowSubtitleEditor(true)}
+                        className="w-full px-4 py-3 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all"
+                      >
+                        템플릿 선택하기
+                      </button>
                     </div>
 
                     {/* 위치 설정 - 컴팩트 */}
@@ -3722,17 +3664,6 @@ const App: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
-
-                    {/* 템플릿 선택 */}
-                    <div className="space-y-2 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">템플릿</label>
-                      <button
-                        onClick={() => setShowSubtitleEditor(true)}
-                        className="w-full px-3 py-2 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all"
-                      >
-                        템플릿 선택하기
-                      </button>
                     </div>
 
                     {/* 색상 설정 - 애플 스타일 */}

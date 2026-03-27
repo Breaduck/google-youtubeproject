@@ -150,7 +150,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
         </div>
 
         {/* 본문 */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)] custom-scrollbar">
+        <div className="p-6 overflow-y-auto max-h-[calc(85vh-140px)] custom-scrollbar">
           {isAddMode ? (
             /* 맞춤형 스타일 학습 UI */
             <div className="space-y-6">
