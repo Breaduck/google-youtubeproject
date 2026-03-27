@@ -542,59 +542,153 @@ function SubtitleSettingsPanel({
       {/* 헤더 */}
       <div className="pt-2">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자막 스타일</h2>
-        <p className="text-slate-600 dark:text-slate-400">원하는 자막 템플릿을 선택하세요.</p>
+        <p className="text-slate-600 dark:text-slate-400">템플릿을 선택하거나 직접 설정하세요.</p>
       </div>
 
-      {/* 카테고리 탭 */}
-      <div className="flex flex-wrap gap-2">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              selectedCategory === cat
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* 템플릿 그리드 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {filteredTemplates.map(tmpl => {
-          const s = tmpl.settings;
-          const hasBg = !!s.backgroundColor;
-          const textShadow = getTextShadow(s.textColor || '#FFFFFF', hasBg);
-
-          return (
-            <div key={tmpl.id} className="flex flex-col gap-1">
-              <button
-                onClick={() => applyTemplate(tmpl)}
-                className="w-full h-14 rounded-lg bg-gray-950 flex items-center justify-center hover:ring-2 hover:ring-indigo-500 transition-all"
+      <div className="flex flex-col xl:flex-row gap-6">
+        {/* 좌측: 미리보기 + 설정 */}
+        <div className="xl:w-[400px] shrink-0 space-y-4">
+          {/* 미리보기 */}
+          <div className="rounded-xl overflow-hidden relative" style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}>
+            <div className="absolute inset-0 flex items-end justify-center pb-6">
+              <span
+                style={{
+                  fontFamily: `"${settings.fontFamily}", sans-serif`,
+                  fontSize: `${settings.fontSize * 0.4}px`,
+                  fontWeight: settings.fontWeight || 700,
+                  color: settings.textColor,
+                  backgroundColor: settings.backgroundColor || undefined,
+                  padding: settings.backgroundColor ? `${settings.bgPadding * 0.4}px ${settings.bgPadding * 0.6}px` : undefined,
+                  borderRadius: settings.backgroundColor ? `${settings.bgRadius || 4}px` : undefined,
+                  opacity: settings.backgroundColor ? (settings.bgOpacity || 0.8) : 1,
+                  textShadow: !settings.backgroundColor ? '2px 2px 4px rgba(0,0,0,0.9)' : undefined,
+                }}
               >
-                <span
-                  style={{
-                    fontFamily: `"${s.fontFamily || 'Noto Sans KR'}", sans-serif`,
-                    fontSize: '15px',
-                    fontWeight: 'bold',
-                    color: s.textColor,
-                    backgroundColor: hasBg ? s.backgroundColor : undefined,
-                    padding: hasBg ? '5px 14px' : undefined,
-                    borderRadius: hasBg ? '4px' : undefined,
-                    opacity: hasBg ? (s.bgOpacity || 0.85) : 1,
-                    textShadow: textShadow,
-                  }}
-                >
-                  가나다라 ABC
-                </span>
-              </button>
-              <p className="text-xs text-slate-500 dark:text-slate-400 text-center">{tmpl.name}</p>
+                자막 미리보기
+              </span>
             </div>
-          );
-        })}
+          </div>
+
+          {/* 세부 설정 */}
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-4 space-y-4">
+            {/* 폰트 + 굵기 */}
+            <div className="flex gap-2">
+              <select
+                value={settings.fontFamily}
+                onChange={(e) => onChange({ ...settings, fontFamily: e.target.value })}
+                className="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
+              >
+                <optgroup label="고딕">
+                  <option value="Noto Sans KR">Noto Sans KR</option>
+                  <option value="Pretendard">Pretendard</option>
+                  <option value="Gothic A1">Gothic A1</option>
+                </optgroup>
+                <optgroup label="명조">
+                  <option value="Noto Serif KR">Noto Serif KR</option>
+                  <option value="Nanum Myeongjo">나눔명조</option>
+                </optgroup>
+                <optgroup label="디자인">
+                  <option value="Black Han Sans">검은고딕</option>
+                  <option value="Jua">주아</option>
+                  <option value="Do Hyeon">도현</option>
+                </optgroup>
+              </select>
+              <select
+                value={settings.fontWeight || 700}
+                onChange={(e) => onChange({ ...settings, fontWeight: parseInt(e.target.value) })}
+                className="w-24 px-2 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
+              >
+                <option value="400">Regular</option>
+                <option value="500">Medium</option>
+                <option value="600">Semi Bold</option>
+                <option value="700">Bold</option>
+                <option value="800">Extra Bold</option>
+              </select>
+            </div>
+
+            {/* 크기 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">크기: {settings.fontSize}px</label>
+              <input type="range" min="24" max="72" value={settings.fontSize} onChange={(e) => onChange({ ...settings, fontSize: Number(e.target.value) })} className="w-full accent-indigo-600" />
+            </div>
+
+            {/* 텍스트 색상 */}
+            <div className="flex items-center gap-3">
+              <label className="text-xs text-slate-500 w-16">텍스트</label>
+              <input type="color" value={settings.textColor} onChange={(e) => onChange({ ...settings, textColor: e.target.value })} className="w-8 h-8 rounded cursor-pointer border border-slate-300" />
+              <input type="text" value={settings.textColor} onChange={(e) => onChange({ ...settings, textColor: e.target.value })} className="flex-1 px-2 py-1 text-xs bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded" />
+            </div>
+
+            {/* 배경 색상 */}
+            <div>
+              <label className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                <input type="checkbox" checked={!!settings.backgroundColor} onChange={(e) => onChange({ ...settings, backgroundColor: e.target.checked ? '#000000' : undefined })} className="rounded" />
+                배경 사용
+              </label>
+              {settings.backgroundColor && (
+                <div className="flex items-center gap-3">
+                  <input type="color" value={settings.backgroundColor} onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })} className="w-8 h-8 rounded cursor-pointer border border-slate-300" />
+                  <input type="text" value={settings.backgroundColor} onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })} className="flex-1 px-2 py-1 text-xs bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 우측: 템플릿 그리드 */}
+        <div className="flex-1 space-y-4">
+          {/* 카테고리 탭 */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  selectedCategory === cat
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* 템플릿 그리드 */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {filteredTemplates.map(tmpl => {
+              const s = tmpl.settings;
+              const hasBg = !!s.backgroundColor;
+              const textShadow = getTextShadow(s.textColor || '#FFFFFF', hasBg);
+
+              return (
+                <div key={tmpl.id} className="flex flex-col gap-1">
+                  <button
+                    onClick={() => applyTemplate(tmpl)}
+                    className="w-full h-12 rounded-lg bg-slate-900 flex items-center justify-center hover:ring-2 hover:ring-indigo-500 transition-all"
+                  >
+                    <span
+                      style={{
+                        fontFamily: `"${s.fontFamily || 'Noto Sans KR'}", sans-serif`,
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                        color: s.textColor,
+                        backgroundColor: hasBg ? s.backgroundColor : undefined,
+                        padding: hasBg ? '4px 10px' : undefined,
+                        borderRadius: hasBg ? '3px' : undefined,
+                        opacity: hasBg ? (s.bgOpacity || 0.85) : 1,
+                        textShadow: textShadow,
+                      }}
+                    >
+                      가나다 ABC
+                    </span>
+                  </button>
+                  <p className="text-[10px] text-slate-500 text-center">{tmpl.name}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
