@@ -2456,23 +2456,23 @@ const App: React.FC = () => {
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
           {step === 'character_setup' && (
-            <div className="w-full px-6 pt-6">
+            <div className="w-full px-6 pt-2">
               {bgTask ? (
-                <div className="text-center py-20">
-                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-slate-500">{bgTask.message}</p>
-                  <p className="text-indigo-600 font-semibold mt-2">{bgProgress}%</p>
+                <div className="text-center py-16">
+                  <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                  <p className="text-slate-500 text-sm">{bgTask.message}</p>
+                  <p className="text-indigo-600 font-semibold mt-1">{bgProgress}%</p>
                 </div>
               ) : (
               <>
-              <div className="bg-white dark:bg-slate-800 rounded-[24px] shadow-xl p-6 sm:p-8 py-12 sm:py-16 mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">등장인물 외형 설정</h1>
-                  <div className="flex gap-3">
-                    <button onClick={() => { setCharLoadModalMode('list'); setIsCharLoadModalOpen(true); }} className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-base font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">인물 불러오기</button>
-                    <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50">스토리보드 생성</button>
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-4 sm:p-6 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">등장인물 외형 설정</h1>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setCharLoadModalMode('list'); setIsCharLoadModalOpen(true); }} className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">인물 불러오기</button>
+                    <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium shadow hover:bg-indigo-700 transition-all disabled:opacity-50">스토리보드 생성</button>
                     {project && project.scenes.length > 0 && (
-                      <button onClick={() => proceedToStoryboard(false)} className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-base font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">기존 스토리보드 보기</button>
+                      <button onClick={() => proceedToStoryboard(false)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">기존 스토리보드 보기</button>
                     )}
                   </div>
                 </div>
@@ -2503,7 +2503,7 @@ const App: React.FC = () => {
                       <button onClick={() => updateCurrentProject({ characters: project!.characters.filter(c => c.id !== char.id) })} className="p-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-500 hover:border-red-300 transition-all" title="삭제"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                     </div>
                     <div
-                      className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0 relative group/portrait cursor-pointer flex items-center justify-center"
+                      className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0 relative group/portrait cursor-pointer flex items-center justify-center"
                       onClick={() => char.portraitUrl && setSelectedImage(char.portraitUrl)}
                     >
                       {char.status === 'loading' && (
@@ -2579,34 +2579,27 @@ const App: React.FC = () => {
               ) : (
               <>
               {/* 상단바 - 토스 스타일 */}
-              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 sm:p-10 mb-8">
-                <div className="flex flex-col gap-6">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 sm:p-5 mb-4">
+                <div className="flex flex-col gap-3">
                   {/* 첫 번째 줄: 제목 & 버튼들 */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-2">
                       <input
                         type="text"
                         value={project.title}
                         onChange={(e) => updateCurrentProject({ title: e.target.value })}
-                        className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none focus:outline-none w-auto min-w-[250px]"
+                        className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none focus:outline-none w-auto min-w-[200px]"
                       />
                     </div>
-                    <div className="flex flex-wrap gap-3 items-center">
-                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-base font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
-                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-base font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all disabled:opacity-50">오디오 전체 생성</button>
-                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-6 py-3 bg-purple-600 text-white rounded-xl text-base font-medium hover:bg-purple-700 transition-all disabled:opacity-50">비디오 전체 생성</button>
-                      <button onClick={() => { setPreviewCurrentIndex(0); setShowPreviewModal(true); }} disabled={!project.scenes.some(s => s.videoUrl || s.imageUrl)} className="px-6 py-3 bg-emerald-600 text-white rounded-xl text-base font-medium hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center gap-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">이미지 전체 생성</button>
+                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 transition-all disabled:opacity-50">비디오 전체 생성</button>
+                      <button onClick={() => { setPreviewCurrentIndex(0); setShowPreviewModal(true); }} className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-all flex items-center gap-1.5">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         전체 미리보기
                       </button>
-                      <div className="relative group">
-                        <button onClick={() => setShowExportPopup(true)} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
-                        {project.scenes.some(s => !s.imageUrl || !s.audioUrl) && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                            이미지와 오디오 모두가 필요합니다
-                          </div>
-                        )}
-                      </div>
+                      <button onClick={() => setShowExportPopup(true)} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-all disabled:opacity-50">동영상 추출</button>
                     </div>
                   </div>
 
@@ -2928,7 +2921,7 @@ const App: React.FC = () => {
           {step === 'input' && (
             <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4 pt-2 sm:pt-4 pb-2 flex flex-col justify-center min-h-[calc(100vh-120px)]">
                <div className="text-center space-y-0.5 sm:space-y-1">
-                  <h1 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight" style={{ fontFamily: 'Pretendard, sans-serif' }}>당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
+                  <h1 className="text-4xl sm:text-6xl font-bold tracking-tight leading-tight" style={{ fontFamily: 'Pretendard, sans-serif' }}>당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
                   <p className="text-slate-400 font-medium text-xs sm:text-sm">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
                </div>
                <div className="flex flex-wrap justify-center gap-2 sm:gap-4">

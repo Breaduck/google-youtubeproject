@@ -111,15 +111,15 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[350] flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[350] flex items-center justify-center p-4 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="bg-[#16213e] rounded-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
+        className="bg-white rounded-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
             {isAddMode && (
               <button
@@ -128,20 +128,20 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
                   setNewStyleName('');
                   setNewStyleImages([]);
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-700 text-slate-400 transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500 transition-all"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
             )}
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-slate-900">
               {isAddMode ? '맞춤형 스타일 학습' : '스타일 템플릿'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-700 text-slate-400 transition-all"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500 transition-all"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -156,25 +156,25 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
             <div className="space-y-6">
               {/* 스타일 이름 입력 */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">그림체 이름</label>
+                <label className="text-sm font-medium text-slate-700">그림체 이름</label>
                 <input
                   type="text"
                   value={newStyleName}
                   onChange={(e) => setNewStyleName(e.target.value)}
                   placeholder="예: 지브리풍, 디즈니 스타일..."
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                 />
               </div>
 
               {/* 이미지 업로드 안내 */}
-              <div className="bg-indigo-900/30 border border-indigo-700/50 rounded-xl p-4 space-y-2">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="text-indigo-300 font-medium">레퍼런스 이미지 업로드</span>
+                  <span className="text-indigo-700 font-medium">레퍼런스 이미지 업로드</span>
                 </div>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-slate-600">
                   최대 7장, 최소 3장 권장. AI가 이미지들을 분석하여 그림체 특징을 학습합니다.
                 </p>
               </div>
@@ -191,7 +191,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={newStyleImages.length >= 7}
-                className="w-full py-4 border-2 border-dashed border-slate-600 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-400 hover:bg-indigo-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -219,7 +219,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
               )}
 
               {/* 안내 텍스트 */}
-              <p className="text-xs text-slate-500 text-center">
+              <p className="text-xs text-slate-400 text-center">
                 비슷한 화풍의 이미지를 여러 장 업로드하면 더 정확한 스타일 학습이 가능합니다.
               </p>
             </div>
@@ -235,10 +235,10 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
         </div>
 
         {/* 하단 */}
-        <div className="p-6 border-t border-slate-700 flex items-center justify-between bg-[#1a1a2e]">
+        <div className="p-6 border-t border-slate-200 flex items-center justify-between bg-slate-50">
           {isAddMode ? (
             <>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-slate-500">
                 {newStyleImages.length > 0 ? (
                   <span>{newStyleImages.length}장의 이미지가 준비됨</span>
                 ) : (
@@ -265,9 +265,9 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
             </>
           ) : (
             <>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-slate-500">
                 {selectedTemplate ? (
-                  <span>선택됨: <span className="text-purple-400 font-medium">{selectedTemplate.name}</span></span>
+                  <span>선택됨: <span className="text-purple-600 font-medium">{selectedTemplate.name}</span></span>
                 ) : (
                   <span>템플릿을 선택하세요</span>
                 )}
