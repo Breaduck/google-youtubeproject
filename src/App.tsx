@@ -45,7 +45,7 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   bgOpacity: 0.8,
   bgRadius: 8,
   position: 'bottom',
-  yPosition: 680,
+  yPosition: 650,
   lockPosition: true,
   lockFont: true,
 };
@@ -2939,7 +2939,7 @@ const App: React.FC = () => {
                       setTempSelectedTemplate(selectedStyleTemplate);
                       setIsTemplateModalOpen(true);
                     }}
-                    className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${selectedStyleTemplate ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-300 dark:border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                    className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${(style !== 'realistic' && style !== '2d-animation') ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-300 dark:border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                   >
                     {selectedStyleTemplate ? `${selectedStyleTemplate.name}` : '그림체 템플릿'}
                   </button>
@@ -3637,7 +3637,7 @@ const App: React.FC = () => {
                           중앙
                         </button>
                         <button
-                          onClick={() => setSubtitleSettings({...subtitleSettings, position: 'bottom', yPosition: 680})}
+                          onClick={() => setSubtitleSettings({...subtitleSettings, position: 'bottom', yPosition: 650})}
                           className={`flex-1 px-2 py-1.5 text-xs rounded-md border transition-all ${subtitleSettings.position === 'bottom' ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
                         >
                           하단

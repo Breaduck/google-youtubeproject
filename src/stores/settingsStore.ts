@@ -19,7 +19,7 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   bgOpacity: 0.8,
   bgRadius: 8,
   position: 'bottom',
-  yPosition: 680,
+  yPosition: 650,
   lockPosition: true,
   lockFont: true,
 };

@@ -117,7 +117,10 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
   const [showAzureKey, setShowAzureKey] = useState(false);
   const [showElKey, setShowElKey] = useState(false);
   const [showTemplatePopup, setShowTemplatePopup] = useState(false);
+  const [previewBgImage, setPreviewBgImage] = useState<string | null>(null);
+  const [showPreviewFullscreen, setShowPreviewFullscreen] = useState(false);
   const wavUploadRef = useRef<HTMLInputElement>(null);
+  const previewUploadRef = useRef<HTMLInputElement>(null);
 
   // ESC 키로 닫기
   useEffect(() => {
@@ -204,6 +207,11 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
               onChange={setSubtitleSettings}
               showTemplatePopup={showTemplatePopup}
               setShowTemplatePopup={setShowTemplatePopup}
+              previewBgImage={previewBgImage}
+              setPreviewBgImage={setPreviewBgImage}
+              showPreviewFullscreen={showPreviewFullscreen}
+              setShowPreviewFullscreen={setShowPreviewFullscreen}
+              previewUploadRef={previewUploadRef}
             />
           )}
           {activeTab === 'narration' && (
@@ -515,11 +523,21 @@ const getTextShadow = (color: string, hasBg: boolean) => {
 function SubtitleSettingsPanel({
   settings,
   onChange,
+  previewBgImage,
+  setPreviewBgImage,
+  showPreviewFullscreen,
+  setShowPreviewFullscreen,
+  previewUploadRef,
 }: {
   settings: SubtitleSettings;
   onChange: (s: SubtitleSettings) => void;
   showTemplatePopup: boolean;
   setShowTemplatePopup: (show: boolean) => void;
+  previewBgImage: string | null;
+  setPreviewBgImage: (img: string | null) => void;
+  showPreviewFullscreen: boolean;
+  setShowPreviewFullscreen: (show: boolean) => void;
+  previewUploadRef: React.RefObject<HTMLInputElement | null>;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
 
@@ -531,7 +549,7 @@ function SubtitleSettingsPanel({
       fontSize: 44, fontFamily: 'Noto Sans KR', fontWeight: 700, fontStyle: 'normal',
       letterSpacing: 0, lineHeight: 1.2, opacity: 1, template: 'custom', textColor: '#FFFFFF',
       strokeColor: 'transparent', strokeWidth: 0, backgroundColor: undefined,
-      bgPadding: 12, bgOpacity: 0.8, bgRadius: 8, position: 'bottom', yPosition: 680,
+      bgPadding: 12, bgOpacity: 0.8, bgRadius: 8, position: 'bottom', yPosition: 650,
       lockPosition: false, lockFont: false,
     };
     onChange({ ...baseSettings, ...template.settings, strokeWidth: 0, strokeColor: 'transparent' });
@@ -549,7 +567,11 @@ function SubtitleSettingsPanel({
         {/* 좌측: 미리보기 + 설정 */}
         <div className="xl:w-[400px] shrink-0 space-y-4">
           {/* 미리보기 */}
-          <div className="rounded-xl overflow-hidden relative" style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}>
+          <div className="rounded-xl overflow-hidden relative group/preview" style={{ aspectRatio: '16/9', background: previewBgImage ? 'none' : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}>
+            {previewBgImage && (
+              <img src={previewBgImage} className="absolute inset-0 w-full h-full object-cover" alt="배경" />
+            )}
+
             <span
               style={{
                 position: 'absolute',
@@ -565,10 +587,49 @@ function SubtitleSettingsPanel({
                 borderRadius: settings.backgroundColor ? `${settings.bgRadius || 4}px` : undefined,
                 opacity: settings.backgroundColor ? (settings.bgOpacity || 0.8) : 1,
                 textShadow: !settings.backgroundColor ? '2px 2px 4px rgba(0,0,0,0.9)' : undefined,
+                zIndex: 10,
               }}
             >
               자막 미리보기
             </span>
+
+            {/* 호버 시 버튼들 */}
+            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover/preview:opacity-100 transition-opacity z-20">
+              <input
+                ref={previewUploadRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => setPreviewBgImage(ev.target?.result as string);
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+              <button
+                onClick={() => previewUploadRef.current?.click()}
+                className="p-2 bg-white/90 dark:bg-slate-800/90 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-all"
+                title="배경 이미지 업로드"
+              >
+                <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+              </button>
+              {previewBgImage && (
+                <button
+                  onClick={() => setShowPreviewFullscreen(true)}
+                  className="p-2 bg-white/90 dark:bg-slate-800/90 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-all"
+                  title="전체화면"
+                >
+                  <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* 세부 설정 */}
@@ -708,6 +769,29 @@ function SubtitleSettingsPanel({
           </div>
         </div>
       </div>
+
+      {/* 전체화면 모달 */}
+      {showPreviewFullscreen && previewBgImage && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowPreviewFullscreen(false)}
+        >
+          <button
+            onClick={() => setShowPreviewFullscreen(false)}
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={previewBgImage}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+            alt="미리보기"
+          />
+        </div>
+      )}
     </div>
   );
 }
