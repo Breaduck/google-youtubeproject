@@ -955,40 +955,30 @@ function SubtitleSettingsPanel({
             </div>
           </div>
 
-          {/* 템플릿 선택 - 직접 표시 */}
+          {/* 템플릿 선택 */}
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">템플릿</h3>
-            <div className="grid grid-cols-4 gap-2 max-h-[300px] overflow-y-auto scrollbar-thin p-1">
-              {TEMPLATES.map((tmpl) => (
-                <button
-                  key={tmpl.id}
-                  onClick={() => onChange({ ...settings, ...tmpl.settings })}
-                  className="group relative aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 border border-slate-200 dark:border-slate-600 hover:border-indigo-500 hover:shadow-md transition-all"
-                  title={tmpl.name}
-                >
-                  <div className="relative w-full h-full flex items-center justify-center p-1">
-                    {tmpl.settings.backgroundColor && (
-                      <div
-                        className="absolute inset-1 rounded"
-                        style={{ backgroundColor: tmpl.settings.backgroundColor, opacity: tmpl.settings.bgOpacity || 0.8 }}
-                      />
-                    )}
-                    <span
-                      className="relative text-[8px] font-bold text-center leading-tight"
-                      style={{
-                        color: tmpl.settings.textColor,
-                        fontFamily: tmpl.settings.fontFamily,
-                      }}
-                    >
-                      {tmpl.name}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => setShowTemplatePopup(true)}
+              className="w-full px-4 py-2.5 text-sm font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all"
+            >
+              템플릿 선택하기
+            </button>
           </div>
         </div>
       </div>
+
+      {/* 자막 템플릿 팝업 모달 */}
+      {showTemplatePopup && (
+        <SubtitleTemplateModal
+          current={settings}
+          onApply={(newSettings) => {
+            onChange(newSettings);
+            setShowTemplatePopup(false);
+          }}
+          onClose={() => setShowTemplatePopup(false)}
+        />
+      )}
     </div>
   );
 }
