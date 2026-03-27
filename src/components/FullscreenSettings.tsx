@@ -578,19 +578,29 @@ function SubtitleSettingsPanel({
                 onChange={(e) => onChange({ ...settings, fontFamily: e.target.value })}
                 className="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
               >
-                <optgroup label="고딕">
-                  <option value="Noto Sans KR">Noto Sans KR</option>
+                <optgroup label="📐 고딕 (Sans-Serif)">
                   <option value="Pretendard">Pretendard</option>
+                  <option value="Noto Sans KR">Noto Sans KR</option>
+                  <option value="Nanum Gothic">나눔고딕</option>
                   <option value="Gothic A1">Gothic A1</option>
+                  <option value="IBM Plex Sans KR">IBM Plex Sans KR</option>
                 </optgroup>
-                <optgroup label="명조">
+                <optgroup label="📚 명조 (Serif)">
                   <option value="Noto Serif KR">Noto Serif KR</option>
                   <option value="Nanum Myeongjo">나눔명조</option>
+                  <option value="Gowun Batang">고운 바탕</option>
                 </optgroup>
-                <optgroup label="디자인">
+                <optgroup label="✍️ 손글씨">
+                  <option value="Nanum Pen Script">나눔손글씨 펜</option>
+                  <option value="Gaegu">개그체</option>
+                  <option value="Poor Story">가난한 이야기</option>
+                </optgroup>
+                <optgroup label="🎨 디자인">
                   <option value="Black Han Sans">검은고딕</option>
-                  <option value="Jua">주아</option>
                   <option value="Do Hyeon">도현</option>
+                  <option value="Jua">주아</option>
+                  <option value="Sunflower">해바라기</option>
+                  <option value="Hi Melody">하이멜로디</option>
                 </optgroup>
               </select>
               <select
@@ -631,6 +641,12 @@ function SubtitleSettingsPanel({
                   <input type="text" value={settings.backgroundColor} onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })} className="flex-1 px-2 py-1 text-xs bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded" />
                 </div>
               )}
+            </div>
+
+            {/* Y축 위치 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">Y축 위치: {settings.yPosition}px</label>
+              <input type="range" min="100" max="700" value={settings.yPosition} onChange={(e) => onChange({ ...settings, yPosition: Number(e.target.value) })} className="w-full accent-indigo-600" />
             </div>
           </div>
         </div>
