@@ -716,10 +716,12 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
   isLoggedIn: boolean;
   onLoginStateChange: (loggedIn: boolean) => void;
 }) {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'profile'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const currentUser = isLoggedIn ? JSON.parse(localStorage.getItem('currentUser') || '{}') : null;
@@ -754,9 +756,9 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
       } finally {
         setIsLoading(false);
       }
-    } else {
-      if (!username || !password || !email) {
-        alert('모든 필드를 입력해주세요.');
+    } else if (mode === 'signup') {
+      if (!username || !password) {
+        alert('아이디와 비밀번호를 입력해주세요.');
         return;
       }
       setIsLoading(true);
@@ -783,6 +785,55 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
       } finally {
         setIsLoading(false);
       }
+    } else if (mode === 'profile') {
+      // 프로필 수정
+      if (!password) {
+        alert('현재 비밀번호를 입력해주세요.');
+        return;
+      }
+      if (newPassword && newPassword !== confirmPassword) {
+        alert('새 비밀번호가 일치하지 않습니다.');
+        return;
+      }
+      setIsLoading(true);
+      try {
+        // 먼저 현재 비밀번호 확인
+        const loginRes = await fetch(`${AUTH_API}/api/v3/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser.username, password })
+        });
+        if (!loginRes.ok) {
+          alert('현재 비밀번호가 일치하지 않습니다.');
+          setIsLoading(false);
+          return;
+        }
+
+        // 비밀번호 변경
+        if (newPassword) {
+          const updateRes = await fetch(`${AUTH_API}/api/v3/auth/update-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser.username, old_password: password, new_password: newPassword })
+          });
+          const data = await updateRes.json();
+          if (data.success) {
+            alert('비밀번호가 변경되었습니다.');
+            setPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+            setMode('login');
+          } else {
+            alert(data.error || '비밀번호 변경 실패');
+          }
+        } else {
+          alert('변경할 내용이 없습니다.');
+        }
+      } catch (e) {
+        alert('서버 오류가 발생했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -793,7 +844,85 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
         <p className="text-slate-600 dark:text-slate-400">클라우드 동기화 및 프로젝트 저장</p>
       </div>
 
-      {isLoggedIn ? (
+      {mode === 'profile' ? (
+        /* 프로필 수정 폼 */
+        <div className="max-w-md mx-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="p-8 space-y-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">프로필 수정</h3>
+                <button
+                  onClick={() => setMode('login')}
+                  className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                >
+                  ← 돌아가기
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
+                  아이디
+                </label>
+                <input
+                  type="text"
+                  value={currentUser?.username || ''}
+                  disabled
+                  className="w-full px-4 py-3.5 bg-slate-100 dark:bg-slate-700 border-0 rounded-xl text-slate-600 dark:text-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
+                  현재 비밀번호 (확인용)
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="현재 비밀번호 입력"
+                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-0 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
+                  새 비밀번호 (선택사항)
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="변경할 비밀번호"
+                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-0 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                />
+              </div>
+
+              {newPassword && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
+                    새 비밀번호 확인
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="비밀번호 재입력"
+                    className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-0 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  />
+                </div>
+              )}
+
+              <button
+                onClick={handleSubmit}
+                disabled={isLoading}
+                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-slate-400 disabled:to-slate-500 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/50 transition-all transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed"
+              >
+                {isLoading ? '처리 중...' : '변경사항 저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : isLoggedIn ? (
         <div className="max-w-md mx-auto">
           <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-8 text-white shadow-2xl">
             <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
@@ -821,7 +950,10 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
                 >
                   로그아웃
                 </button>
-                <button className="flex-1 py-3 bg-white hover:bg-gray-50 text-indigo-600 rounded-xl font-medium transition-all">
+                <button
+                  onClick={() => setMode('profile')}
+                  className="flex-1 py-3 bg-white hover:bg-gray-50 text-indigo-600 rounded-xl font-medium transition-all"
+                >
                   프로필 수정
                 </button>
               </div>
@@ -892,7 +1024,7 @@ function AccountSettings({ isLoggedIn, onLoginStateChange }: {
               {mode === 'signup' && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
-                    이메일
+                    이메일 (선택사항)
                   </label>
                   <input
                     type="email"

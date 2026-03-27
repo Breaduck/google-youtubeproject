@@ -192,6 +192,42 @@ async def approve_user(request: Request):
     except Exception as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
+@fast_app.post("/api/v3/auth/update-password")
+async def update_password(request: Request):
+    """비밀번호 변경"""
+    try:
+        body = await request.json()
+        username = body.get("username")
+        old_password = body.get("old_password")
+        new_password = body.get("new_password")
+
+        if not username or not old_password or not new_password:
+            return JSONResponse({"success": False, "error": "missing_fields"}, status_code=400)
+
+        init_user_db()
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+
+        # 기존 비밀번호 확인
+        old_hash = hash_password(old_password)
+        cursor.execute("SELECT id FROM users WHERE username = ? AND password_hash = ?", (username, old_hash))
+        user = cursor.fetchone()
+
+        if not user:
+            conn.close()
+            return JSONResponse({"success": False, "error": "wrong_password"}, status_code=401)
+
+        # 새 비밀번호로 업데이트
+        new_hash = hash_password(new_password)
+        cursor.execute("UPDATE users SET password_hash = ? WHERE username = ?", (new_hash, username))
+        conn.commit()
+        conn.close()
+        user_db_volume.commit()
+
+        return JSONResponse({"success": True})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
 @fast_app.post("/api/v3/uploads")
 async def upload_image(request: Request):
     """Data URL을 Imgur에 업로드하고 공개 URL 반환 (BytePlus 호환)"""
