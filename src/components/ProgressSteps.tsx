@@ -84,7 +84,7 @@ export default function ProgressSteps({
   );
 
   return (
-    <div className="w-full bg-[#FDFDFD] dark:bg-slate-950 relative z-0 mt-4 sm:mt-8 mb-2">
+    <div className="w-full relative z-0 mt-4 sm:mt-8 mb-2">
       <div className="max-w-[1400px] mx-auto px-20 sm:px-24 py-2">
         <div className="flex items-center justify-between">
           {steps.map((step, index) => {

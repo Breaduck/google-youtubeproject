@@ -2484,7 +2484,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                 {(project?.characters || []).map(char => {
                   const isSaved = savedCharacters.some(sc => sc.id === char.id);
                   return (
@@ -2585,7 +2585,7 @@ const App: React.FC = () => {
               ) : (
               <>
               {/* 상단바 - 토스 스타일 */}
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 sm:p-5 mb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 sm:p-5 mb-2">
                 <div className="flex flex-col gap-3">
                   {/* 첫 번째 줄: 제목 & 버튼들 */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -2925,7 +2925,7 @@ const App: React.FC = () => {
           )}
 
           {step === 'input' && (
-            <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4 pt-2 sm:pt-4 pb-2 flex flex-col justify-center min-h-[calc(100vh-120px)]">
+            <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3 pt-2 sm:pt-4 pb-2 flex flex-col justify-center min-h-[calc(100vh-120px)]">
                <div className="text-center space-y-0.5 sm:space-y-1">
                   <h1 className="text-4xl sm:text-6xl font-bold tracking-tight leading-tight" style={{ fontFamily: 'Pretendard, sans-serif' }}>당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
                   <p className="text-slate-400 font-medium text-xs sm:text-sm">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
