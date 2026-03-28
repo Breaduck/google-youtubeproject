@@ -7,7 +7,7 @@ import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabs
 import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
 import StyleTemplateSelector from './components/StyleTemplateSelector';
-import SubtitleTemplateModal from './components/SubtitleTemplateModal';
+import SubtitleTemplateModal, { TEMPLATES } from './components/SubtitleTemplateModal';
 import FullscreenSettings from './components/FullscreenSettings';
 import ProgressSteps from './components/ProgressSteps';
 import { styleTemplates } from './data/styleTemplates';
@@ -3195,10 +3195,10 @@ const App: React.FC = () => {
         const successScenes = project.scenes.filter(s => s.videoUrl);
 
         return (
-          <div className="fixed inset-0 bg-gray-900/95 z-[300] flex flex-col" onClick={() => { setShowPreviewModal(false); setIsMergedView(false); setExpandedSceneIndex(null); }}>
-            <div className="flex-shrink-0 p-4 border-b border-gray-700" onClick={e => e.stopPropagation()}>
+          <div className={`fixed inset-0 z-[300] flex flex-col ${isDarkMode ? 'bg-gray-950' : 'bg-white'}`} onClick={() => { setShowPreviewModal(false); setIsMergedView(false); setExpandedSceneIndex(null); }}>
+            <div className={`flex-shrink-0 p-4 border-b ${isDarkMode ? 'bg-gray-950 border-gray-800' : 'bg-white border-gray-200'}`} onClick={e => e.stopPropagation()}>
               <div className="max-w-7xl mx-auto flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-100">
+                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   영상 미리보기 <span className="text-indigo-400">({successCount}개 / 전체 {totalCount}개)</span>
                 </h2>
                 <div className="flex items-center gap-3">
@@ -3210,6 +3210,21 @@ const App: React.FC = () => {
                       {isMergedView ? '그리드로 돌아가기' : '합쳐서 보기'}
                     </button>
                   )}
+                  <select
+                    value={selectedSubtitleTemplate}
+                    onChange={(e) => setSelectedSubtitleTemplate(e.target.value)}
+                    className={`text-sm w-44 px-3 py-2 rounded-lg border transition-all ${
+                      isDarkMode
+                        ? 'bg-gray-800 border-gray-700 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    {TEMPLATES.map(tmpl => (
+                      <option key={tmpl.id} value={tmpl.id}>
+                        {tmpl.name}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     onClick={() => setShowSubtitlePrompt(true)}
                     disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)}
@@ -3219,9 +3234,13 @@ const App: React.FC = () => {
                   </button>
                   <button
                     onClick={() => { setShowPreviewModal(false); setIsMergedView(false); setExpandedSceneIndex(null); }}
-                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                    className={`p-2 rounded-lg transition-colors ${
+                      isDarkMode
+                        ? 'bg-gray-800 text-white hover:bg-gray-700'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                   >
-                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -3244,7 +3263,7 @@ const App: React.FC = () => {
                           autoPlay
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">영상 없음</div>
+                        <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>영상 없음</div>
                       )}
                       <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/70 rounded-lg text-white text-sm font-medium">
                         #{expandedSceneIndex + 1}
@@ -3252,7 +3271,11 @@ const App: React.FC = () => {
                     </div>
                     <button
                       onClick={() => setExpandedSceneIndex(null)}
-                      className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-100 rounded-xl font-medium transition-all"
+                      className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                        isDarkMode
+                          ? 'bg-gray-800 hover:bg-gray-700 text-white'
+                          : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                      }`}
                     >
                       그리드로 돌아가기
                     </button>
@@ -3278,8 +3301,8 @@ const App: React.FC = () => {
                       />
                     </div>
                     <div className="w-full max-w-5xl">
-                      <p className="text-sm text-gray-400 mb-2">타임라인 (씬 순서)</p>
-                      <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-gray-800">
+                      <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>타임라인 (씬 순서)</p>
+                      <div className={`flex gap-1 h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
                         {successScenes.map((scene, idx) => (
                           <div
                             key={scene.id}
@@ -3298,8 +3321,12 @@ const App: React.FC = () => {
                         key={scene.id}
                         className={`group relative aspect-video rounded-xl overflow-hidden transition-all ${
                           scene.videoUrl
-                            ? 'bg-gray-800 border border-gray-700 hover:border-indigo-500'
-                            : 'bg-gray-800/50 border-2 border-dashed border-gray-600'
+                            ? isDarkMode
+                              ? 'bg-gray-800 border border-gray-700 hover:border-indigo-500'
+                              : 'bg-gray-100 border border-gray-200 hover:border-indigo-500'
+                            : isDarkMode
+                              ? 'bg-gray-800/50 border-2 border-dashed border-gray-700'
+                              : 'bg-gray-50 border-2 border-dashed border-gray-300'
                         }`}
                       >
                         {scene.videoUrl ? (
@@ -3352,6 +3379,22 @@ const App: React.FC = () => {
                               </svg>
                             </button>
                           </div>
+                          {/* 우측 상단 다운로드 버튼 */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const a = document.createElement('a');
+                              a.href = scene.videoUrl!;
+                              a.download = `scene-${idx + 1}.mp4`;
+                              a.click();
+                            }}
+                            className="absolute top-2 right-2 w-8 h-8 bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="다운로드"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          </button>
                           {/* 씬 번호 */}
                           <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
                             #{idx + 1}
@@ -3361,7 +3404,7 @@ const App: React.FC = () => {
                           /* 빈 씬 표시 */
                           <>
                             <div className="w-full h-full flex items-center justify-center">
-                              <p className="text-sm text-gray-500">미생성</p>
+                              <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>미생성</p>
                             </div>
                             <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
                               #{idx + 1}
@@ -3375,10 +3418,14 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-shrink-0 p-4 border-t border-gray-700 flex justify-center" onClick={e => e.stopPropagation()}>
+            <div className={`flex-shrink-0 p-4 border-t flex justify-center ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`} onClick={e => e.stopPropagation()}>
               <button
                 onClick={() => { setShowPreviewModal(false); setIsMergedView(false); setExpandedSceneIndex(null); }}
-                className="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-gray-100 rounded-xl font-medium transition-all"
+                className={`px-8 py-3 rounded-xl font-medium transition-all ${
+                  isDarkMode
+                    ? 'bg-gray-800 hover:bg-gray-700 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                }`}
               >
                 닫기
               </button>
