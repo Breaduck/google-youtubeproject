@@ -306,6 +306,7 @@ const App: React.FC = () => {
   const [charLoadModalMode, setCharLoadModalMode] = useState<'list' | 'add'>('list');
   const [newCharData, setNewCharData] = useState({ name: '', gender: '여성', age: '성인', traits: '' });
   const [newSavedCharData, setNewSavedCharData] = useState<{ name: string; refImages: string[] }>({ name: '', refImages: [] });
+  const [isSavingChar, setIsSavingChar] = useState(false);
 
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
   const [promptEditType, setPromptEditType] = useState<'character' | 'scene'>('scene');
@@ -4240,18 +4241,40 @@ const App: React.FC = () => {
                     e.stopPropagation();
                     if (!newSavedCharData.name.trim()) { alert('이름을 입력해주세요'); return; }
                     if (savedCharacters.length >= 10) { alert('최대 10명까지 저장 가능합니다'); return; }
-                    const newChar = { id: crypto.randomUUID(), name: newSavedCharData.name, refImages: newSavedCharData.refImages, description: '', portraitUrl: newSavedCharData.refImages[0] || '' };
+
+                    setIsSavingChar(true);
+
+                    const newChar = {
+                      id: crypto.randomUUID(),
+                      name: newSavedCharData.name,
+                      refImages: newSavedCharData.refImages,
+                      description: '',
+                      portraitUrl: newSavedCharData.refImages[0] || ''
+                    };
+
                     setSavedCharacters([...savedCharacters, newChar]);
+                    alert('저장되었습니다.');
+
                     setTimeout(() => {
-                      alert('저장 완료되었습니다.');
-                    }, 500);
-                    setNewSavedCharData({ name: '', refImages: [] });
-                    setCharLoadModalMode('list');
+                      setNewSavedCharData({ name: '', refImages: [] });
+                      setCharLoadModalMode('list');
+                      setIsSavingChar(false);
+                    }, 1000);
                   }}
-                  disabled={!newSavedCharData.name.trim()}
-                  className="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!newSavedCharData.name.trim() || isSavingChar}
+                  className="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  인물 저장
+                  {isSavingChar ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      저장 중...
+                    </>
+                  ) : (
+                    '인물 저장'
+                  )}
                 </button>
               </>
             )}
