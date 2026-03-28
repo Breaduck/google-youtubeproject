@@ -4456,7 +4456,7 @@ const App: React.FC = () => {
                       portraitUrl: newSavedCharData.refImages[0] || ''
                     };
 
-                    setSavedCharacters(prev => [...prev, newChar]);
+                    setSavedCharacters([...savedCharacters, newChar]);
                     alert('저장되었습니다.');
                     setNewSavedCharData({ name: '', refImages: [] });
                     setCharLoadModalMode('list');
