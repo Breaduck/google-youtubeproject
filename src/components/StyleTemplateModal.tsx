@@ -101,7 +101,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
       setNewStyleImages([]);
     } catch (err) {
       console.error('Failed to save style:', err);
-      alert('그림체 저장 중 오류가 발생했습니다.');
+      alert('GEMINI API 키를 입력해주세요.');
     } finally {
       setIsSaving(false);
     }
@@ -124,7 +124,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
       <div
         className={fullscreen
           ? "w-full h-full overflow-auto"
-          : "bg-white dark:bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
+          : "bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
         }
         onClick={(e) => e.stopPropagation()}
       >
@@ -182,10 +182,10 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
                   <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="text-indigo-700 font-medium">레퍼런스 이미지 업로드</span>
+                  <span className="text-indigo-700 font-medium">참고 이미지 업로드</span>
                 </div>
                 <p className="text-sm text-slate-600">
-                  최대 7장, 최소 3장 권장. AI가 이미지들을 분석하여 그림체 특징을 학습합니다.
+                  AI가 이미지들을 분석하여 그림체 특징을 학습합니다.
                 </p>
               </div>
 
@@ -230,7 +230,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
 
               {/* 안내 텍스트 */}
               <p className="text-xs text-slate-400 text-center">
-                비슷한 화풍의 이미지를 여러 장 업로드하면 더 정확한 스타일 학습이 가능합니다.
+                비슷한 화풍의 이미지를 여러 장(최소 3장 이상) 업로드하면 더 정확한 스타일 학습이 가능합니다.
               </p>
             </div>
           ) : (
