@@ -6,6 +6,7 @@ import { generateSceneVideo, generateBatchVideos, VideoEngine, mergeVideos, gene
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect, SubtitleSettings } from './types';
 import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
+import StyleTemplateSelector from './components/StyleTemplateSelector';
 import SubtitleTemplateModal from './components/SubtitleTemplateModal';
 import FullscreenSettings from './components/FullscreenSettings';
 import ProgressSteps from './components/ProgressSteps';
@@ -364,10 +365,10 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  // 그림체 설정 페이지 진입 시 템플릿 모달 자동 열기
+  // 그림체 설정 페이지에서는 모달 사용 안함
   useEffect(() => {
     if (step === 'style_selection') {
-      setIsTemplateModalOpen(true);
+      setIsTemplateModalOpen(false);
     }
   }, [step]);
 
@@ -2469,7 +2470,34 @@ const App: React.FC = () => {
 
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
-          {step === 'style_selection' && null}
+          {step === 'style_selection' && (
+            <div className="w-full px-6 pt-0">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg py-8 px-4 mb-6">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">그림체를 선택해주세요</h1>
+              </div>
+
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
+                <StyleTemplateSelector
+                  selectedTemplate={tempSelectedTemplate}
+                  onSelectTemplate={setTempSelectedTemplate}
+                  savedStyles={savedStyles}
+                  onAddTemplate={() => setIsTemplateModalOpen(true)}
+                />
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => {
+                      setSelectedStyleTemplate(tempSelectedTemplate);
+                      setStep('character_setup');
+                    }}
+                    className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all shadow-lg"
+                  >
+                    적용하기
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {step === 'character_setup' && (
             <div className="w-full px-6 pt-0">
