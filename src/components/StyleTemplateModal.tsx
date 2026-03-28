@@ -13,10 +13,11 @@ interface Props {
   onAddTemplate?: () => void;
   onSaveNewStyle?: (name: string, images: string[]) => Promise<void>;
   fullscreen?: boolean;
+  initialAddMode?: boolean;
 }
 
-export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, onSelectTemplate, onApply, savedStyles = [], onAddTemplate, onSaveNewStyle, fullscreen = false }: Props) {
-  const [isAddMode, setIsAddMode] = useState(false);
+export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, onSelectTemplate, onApply, savedStyles = [], onAddTemplate, onSaveNewStyle, fullscreen = false, initialAddMode = false }: Props) {
+  const [isAddMode, setIsAddMode] = useState(initialAddMode);
   const [newStyleName, setNewStyleName] = useState('');
   const [newStyleImages, setNewStyleImages] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -40,14 +41,16 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
     }
   }, [isOpen, isAddMode, onClose]);
 
-  // Reset add mode when modal closes
+  // Reset add mode when modal closes or open with initialAddMode
   useEffect(() => {
     if (!isOpen) {
       setIsAddMode(false);
       setNewStyleName('');
       setNewStyleImages([]);
+    } else if (initialAddMode) {
+      setIsAddMode(true);
     }
-  }, [isOpen]);
+  }, [isOpen, initialAddMode]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -121,7 +124,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
       <div
         className={fullscreen
           ? "w-full h-full overflow-auto"
-          : "bg-white dark:bg-slate-800 rounded-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
+          : "bg-white dark:bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
         }
         onClick={(e) => e.stopPropagation()}
       >

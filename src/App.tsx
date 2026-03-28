@@ -222,6 +222,7 @@ const App: React.FC = () => {
     styleTemplates.find(t => t.id === 'modern-anime') || null
   );
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isTemplateAddMode, setIsTemplateAddMode] = useState(false);
   const [tempSelectedTemplate, setTempSelectedTemplate] = useState<StyleTemplate | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -2472,7 +2473,10 @@ const App: React.FC = () => {
                   selectedTemplate={tempSelectedTemplate}
                   onSelectTemplate={setTempSelectedTemplate}
                   savedStyles={savedStyles}
-                  onAddTemplate={() => setIsTemplateModalOpen(true)}
+                  onAddTemplate={() => {
+                    setIsTemplateAddMode(true);
+                    setIsTemplateModalOpen(true);
+                  }}
                 />
 
                 <div className="mt-6 flex justify-end">
@@ -4364,17 +4368,22 @@ const App: React.FC = () => {
 
       <StyleTemplateModal
         isOpen={isTemplateModalOpen}
-        onClose={() => setIsTemplateModalOpen(false)}
+        onClose={() => {
+          setIsTemplateModalOpen(false);
+          setIsTemplateAddMode(false);
+        }}
         selectedTemplate={tempSelectedTemplate}
         onSelectTemplate={setTempSelectedTemplate}
         onApply={() => {
           setSelectedStyleTemplate(tempSelectedTemplate);
           setIsTemplateModalOpen(false);
+          setIsTemplateAddMode(false);
           if (step === 'style_selection') {
             setStep('character_setup');
           }
         }}
         savedStyles={savedStyles}
+        initialAddMode={isTemplateAddMode}
         onSaveNewStyle={async (name, images) => {
           setBgTask({ type: 'style', message: '참고 이미지를 바탕으로 화풍을 학습중입니다' });
           setBgProgress(0);
