@@ -2469,11 +2469,7 @@ const App: React.FC = () => {
 
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
-          {step === 'style_selection' && (
-            <div className="fixed inset-0 z-[400] bg-white dark:bg-slate-900">
-              {/* 템플릿 모달이 자동으로 전체화면 표시됨 */}
-            </div>
-          )}
+          {step === 'style_selection' && null}
 
           {step === 'character_setup' && (
             <div className="w-full px-6 pt-0">
@@ -4225,6 +4221,7 @@ const App: React.FC = () => {
                     setSavedCharacters([...savedCharacters, newChar]);
                     setNewSavedCharData({ name: '', refImages: [] });
                     setCharLoadModalMode('list');
+                    alert('저장 완료되었습니다.');
                   }}
                   disabled={!newSavedCharData.name.trim()}
                   className="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
