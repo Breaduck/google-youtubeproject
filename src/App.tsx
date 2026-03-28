@@ -1699,7 +1699,22 @@ const App: React.FC = () => {
 
   const generateAllImages = async () => {
     if (!project) return;
+
+    // API 키 체크
+    if (!geminiApiKey || geminiApiKey.length < 10) {
+      alert('GEMINI API키를 입력해주시기 바랍니다.');
+      return;
+    }
+
     const scenesToGenerate = project.scenes.filter(s => !s.imageUrl);
+    const alreadyGenerated = project.scenes.filter(s => s.imageUrl).length;
+
+    // 재생성 확인
+    if (scenesToGenerate.length === 0 || alreadyGenerated > 0) {
+      if (!confirm('정말 전체 이미지를 전부 생성하시겠습니까?')) {
+        return;
+      }
+    }
 
     // 60장씩 배치 분할 (Rate Limit 회피)
     const batchSize = 60;
@@ -1724,6 +1739,22 @@ const App: React.FC = () => {
   const generateBatchAudio = async () => {
     if (!checkAndOpenAudioSettings()) return;
     if (!project) return;
+
+    // API 키 체크
+    if (!chirpApiKey || chirpApiKey.length < 10) {
+      alert('CHIRP API키를 입력해주시기 바랍니다.');
+      return;
+    }
+
+    const scenesToGenerate = project.scenes.filter(s => !s.audioUrl);
+    const alreadyGenerated = project.scenes.filter(s => s.audioUrl).length;
+
+    // 재생성 확인
+    if (scenesToGenerate.length === 0 || alreadyGenerated > 0) {
+      if (!confirm('정말 전체 오디오를 전부 생성하시겠습니까?')) {
+        return;
+      }
+    }
 
     setIsBatchGenerating(true);
     setLoadingText('오디오 일괄 생성 중...');
@@ -1863,11 +1894,28 @@ const App: React.FC = () => {
   const generateAllVideos = async () => {
     if (!project) return;
 
+    // API 키 체크
+    let hasApiKey = false;
+    if (videoProvider === 'byteplus') {
+      hasApiKey = !!(bytedanceApiKey && bytedanceApiKey.length >= 10);
+    } else if (videoProvider === 'evolink') {
+      hasApiKey = !!(evolinkApiKey && evolinkApiKey.length >= 10);
+    } else if (videoProvider === 'runware') {
+      hasApiKey = !!(runwareApiKey && runwareApiKey.length >= 10);
+    }
+
+    if (!hasApiKey) {
+      alert('API키를 입력해주시기 바랍니다.\n\n설정 > Video Provider에서 API 키를 입력해주세요.');
+      return;
+    }
+
     // videoGenerationRange 이내의 장면만 필터링 (각 장면은 10초)
     const scenesNeedingVideo = project.scenes.filter((s, index) => {
       const sceneStartTime = index * 10; // 각 scene은 10초
       return s.imageUrl && !s.videoUrl && sceneStartTime < videoGenerationRange;
     });
+
+    const alreadyGenerated = project.scenes.filter(s => s.videoUrl).length;
 
     if (scenesNeedingVideo.length === 0) {
       const totalScenes = project.scenes.filter(s => s.imageUrl && !s.videoUrl).length;
@@ -1879,17 +1927,27 @@ const App: React.FC = () => {
       return;
     }
 
+    // 예상 비용 계산 (8초 기준 54원)
+    const estimatedCost = Math.ceil(scenesNeedingVideo.length * 54);
+
     // 영상 생성 범위 외의 장면 개수 계산
     const skippedScenes = project.scenes.filter((s, index) => {
       const sceneStartTime = index * 10;
       return s.imageUrl && !s.videoUrl && sceneStartTime >= videoGenerationRange;
     }).length;
 
+    // 재생성 확인
+    let confirmMessage = `${scenesNeedingVideo.length}개 장면을 영상으로 생성합니다.\n예상 비용: 약 ${estimatedCost}원`;
     if (skippedScenes > 0) {
-      const proceed = confirm(
-        `${scenesNeedingVideo.length}개 장면을 영상으로 생성하고,\n${skippedScenes}개 장면은 줌인-줌아웃 효과만 적용합니다.\n\n계속하시겠습니까?`
-      );
-      if (!proceed) return;
+      confirmMessage += `\n\n${skippedScenes}개 장면은 줌인-줌아웃 효과만 적용합니다.`;
+    }
+    if (alreadyGenerated > 0) {
+      confirmMessage = `정말 전체 비디오를 전부 생성하시겠습니까?\n\n` + confirmMessage;
+    }
+    confirmMessage += '\n\n계속하시겠습니까?';
+
+    if (!confirm(confirmMessage)) {
+      return;
     }
 
     // 5개씩 제한 제거 (전체 범위 생성)
