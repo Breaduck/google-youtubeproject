@@ -343,6 +343,8 @@ const App: React.FC = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [isMergedView, setIsMergedView] = useState(false);
   const [expandedSceneIndex, setExpandedSceneIndex] = useState<number | null>(null);
+  const [videoRegenerateSceneId, setVideoRegenerateSceneId] = useState<string | null>(null);
+  const [videoRegeneratePrompt, setVideoRegeneratePrompt] = useState('');
   const [showExportPopup, setShowExportPopup] = useState(false);
   const [showSubtitlePrompt, setShowSubtitlePrompt] = useState(false);
   const [includeSubtitles, setIncludeSubtitles] = useState(false);
@@ -3078,7 +3080,7 @@ const App: React.FC = () => {
                   영상 미리보기 <span className="text-indigo-400">({successCount}개 / 전체 {totalCount}개)</span>
                 </h2>
                 <div className="flex items-center gap-3">
-                  {successScenes.length > 0 && !expandedSceneIndex && (
+                  {successScenes.length > 0 && expandedSceneIndex === null && (
                     <button
                       onClick={() => setIsMergedView(!isMergedView)}
                       className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-all"
@@ -3160,54 +3162,70 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  /* 그리드 모드 */
+                  /* 그리드 모드 - 영상 생성된 씬만 표시 */
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {project.scenes.map((scene, idx) => (
-                      <div
-                        key={scene.id}
-                        onClick={() => scene.videoUrl && setExpandedSceneIndex(idx)}
-                        className={`group relative aspect-video rounded-xl overflow-hidden transition-all ${
-                          scene.videoUrl
-                            ? 'bg-gray-800 border border-gray-700 hover:border-indigo-500 cursor-pointer hover:scale-105'
-                            : 'bg-gray-800/50 border-2 border-dashed border-gray-700'
-                        }`}
-                      >
-                        {scene.videoUrl ? (
-                          <>
-                            <video src={scene.videoUrl} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                                <svg className="w-6 h-6 text-gray-900 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </div>
-                            </div>
-                            <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
-                              #{idx + 1}
-                            </div>
-                          </>
-                        ) : scene.imageUrl ? (
-                          <>
-                            <img src={scene.imageUrl} className="w-full h-full object-cover opacity-50" />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <p className="text-sm text-gray-400">영상 미생성</p>
-                            </div>
-                            <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
-                              #{idx + 1}
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <p className="text-sm text-gray-500">생성 실패</p>
-                            </div>
-                            <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
-                              #{idx + 1}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
+                    {successScenes.map((scene, idx) => {
+                      const originalIdx = project.scenes.findIndex(s => s.id === scene.id);
+                      return (
+                        <div
+                          key={scene.id}
+                          className="group relative aspect-video rounded-xl overflow-hidden bg-gray-800 border border-gray-700 hover:border-indigo-500 transition-all"
+                        >
+                          <video
+                            src={scene.videoUrl!}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => setExpandedSceneIndex(originalIdx)}
+                          />
+                          {/* 호버 시 버튼 */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedSceneIndex(originalIdx);
+                              }}
+                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                              title="재생"
+                            >
+                              <svg className="w-6 h-6 text-gray-900 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const a = document.createElement('a');
+                                a.href = scene.videoUrl!;
+                                a.download = `scene-${originalIdx + 1}.mp4`;
+                                a.click();
+                              }}
+                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                              title="다운로드"
+                            >
+                              <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setVideoRegenerateSceneId(scene.id);
+                                setVideoRegeneratePrompt('');
+                              }}
+                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                              title="재생성"
+                            >
+                              <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            </button>
+                          </div>
+                          {/* 씬 번호 */}
+                          <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
+                            #{originalIdx + 1}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -3225,6 +3243,183 @@ const App: React.FC = () => {
         );
       })()}
 
+      {/* 영상 재생성 프롬프트 팝업 */}
+      {videoRegenerateSceneId && project && (() => {
+        const scene = project.scenes.find(s => s.id === videoRegenerateSceneId);
+        if (!scene) return null;
+
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => { setVideoRegenerateSceneId(null); setVideoRegeneratePrompt(''); }}>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">영상 재생성</h3>
+              <p className="text-sm text-slate-400 mb-6">변경하고 싶은 부분을 입력해주세요. (선택사항)</p>
+              <textarea
+                value={videoRegeneratePrompt}
+                onChange={e => setVideoRegeneratePrompt(e.target.value)}
+                placeholder="예: 조명을 더 밝게, 배경을 바다로 변경"
+                className="w-full px-4 py-4 rounded-xl bg-gray-50 dark:bg-slate-700 border-none focus:ring-2 focus:ring-indigo-200 outline-none text-sm h-28 resize-none dark:text-slate-100"
+              />
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => { setVideoRegenerateSceneId(null); setVideoRegeneratePrompt(''); }}
+                  className="flex-1 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-600 transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={async () => {
+                    const sceneId = videoRegenerateSceneId;
+                    setVideoRegenerateSceneId(null);
+                    setVideoRegeneratePrompt('');
+                    setShowPreviewModal(false);
+
+                    // 영상 재생성
+                    updateProjects(prev => prev.map(p => p.id === project.id ? {
+                      ...p,
+                      scenes: p.scenes.map(s => s.id === sceneId ? { ...s, videoUrl: null, videoStatus: 'loading' } : s)
+                    } : p));
+
+                    try {
+                      let finalPrompt = scene.imagePrompt;
+                      if (videoRegeneratePrompt.trim()) {
+                        finalPrompt = `${scene.imagePrompt}\n\n수정사항: ${videoRegeneratePrompt}`;
+                      }
+
+                      const videoBlob = await generateSceneVideo(
+                        scene.imageUrl!,
+                        finalPrompt,
+                        scene.scriptSegment || '',
+                        '',
+                        false
+                      );
+                      const videoUrl = URL.createObjectURL(videoBlob);
+
+                      updateProjects(prev => prev.map(p => p.id === project.id ? {
+                        ...p,
+                        scenes: p.scenes.map(s => s.id === sceneId ? { ...s, videoUrl, videoStatus: 'done' } : s)
+                      } : p));
+                    } catch (err: any) {
+                      alert('영상 재생성 실패: ' + (err.message || '알 수 없는 오류'));
+                      updateProjects(prev => prev.map(p => p.id === project.id ? {
+                        ...p,
+                        scenes: p.scenes.map(s => s.id === sceneId ? { ...s, videoStatus: 'error' } : s)
+                      } : p));
+                    }
+                  }}
+                  className="flex-1 py-3 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all"
+                >
+                  재생성
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 대본 인물 추가 팝업 */}
+      {showScriptCharPrompt && project && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowScriptCharPrompt(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">등장인물 추가</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">대본에서 추가할까요?</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    if (!project || !project.script) { alert('대본이 없습니다'); return; }
+                    setShowScriptCharPrompt(false);
+                    const prompt = `다음 대본을 분석하여 등장하는 인물의 이름만 JSON 배열로 추출해주세요. 예시: ["철수", "영희"]\n\n대본:\n${project.script}`;
+                    try {
+                      const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
+                      const response = await genAI.models.generateContent({
+                        model: geminiModel,
+                        contents: prompt
+                      });
+                      const text = response.text || '';
+                      const match = text.match(/\[.*\]/);
+                      if (match) {
+                        const chars = JSON.parse(match[0]);
+                        setScriptCharacters(chars);
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      alert('대본 분석 실패');
+                    }
+                  }}
+                  className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
+                >
+                  네
+                </button>
+                <button
+                  onClick={() => {
+                    setShowScriptCharPrompt(false);
+                    setCharLoadModalMode('add');
+                    setIsCharLoadModalOpen(true);
+                  }}
+                  className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
+                >
+                  아니오
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 대본 인물 목록 팝업 */}
+      {scriptCharacters.length > 0 && project && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setScriptCharacters([])}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">대본 속 등장인물</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">이름을 클릭하면 추가됩니다</p>
+            </div>
+            <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
+              {scriptCharacters.map((name, idx) => (
+                <button
+                  key={idx}
+                  onClick={async () => {
+                    if (!project) return;
+                    const prompt = `대본 맥락을 분석하여 "${name}"의 외형을 상세히 묘사해주세요. 대본:\n${project.script}`;
+                    try {
+                      const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
+                      const response = await genAI.models.generateContent({
+                        model: geminiModel,
+                        contents: prompt
+                      });
+                      const desc = (response.text || '').trim();
+                      updateCurrentProject({
+                        characters: [...project.characters, {
+                          id: crypto.randomUUID(),
+                          name,
+                          role: '',
+                          visualDescription: desc,
+                          portraitUrl: null,
+                          status: 'idle'
+                        }]
+                      });
+                      setScriptCharacters(prev => prev.filter(n => n !== name));
+                    } catch (err) {
+                      console.error(err);
+                      alert('외형 생성 실패');
+                    }
+                  }}
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl text-left transition-all"
+                >
+                  <p className="font-medium text-slate-900 dark:text-slate-100">{name}</p>
+                  <p className="text-xs text-slate-400 mt-1">클릭하여 추가</p>
+                </button>
+              ))}
+            </div>
+            <div className="p-6 pt-0">
+              <button onClick={() => setScriptCharacters([])} className="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 동영상 추출 팝업 */}
       {showExportPopup && project && (() => {
         const videoCount = project.scenes.filter(s => s.videoUrl).length;
@@ -3237,110 +3432,6 @@ const App: React.FC = () => {
         const estimatedTime = Math.ceil((videoCount * 3 + imageCount * 8 + totalScenes * 2) / 60);
         return (
           <>
-            {/* 대본 인물 추가 팝업 */}
-            {showScriptCharPrompt && (
-              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowScriptCharPrompt(false)}>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-                  <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">등장인물 추가</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">대본에서 추가할까요?</p>
-                  </div>
-                  <div className="p-6 space-y-4">
-                    <div className="flex gap-3">
-                      <button
-                        onClick={async () => {
-                          if (!project || !project.script) { alert('대본이 없습니다'); return; }
-                          setShowScriptCharPrompt(false);
-                          const prompt = `다음 대본을 분석하여 등장하는 인물의 이름만 JSON 배열로 추출해주세요. 예시: ["철수", "영희"]\n\n대본:\n${project.script}`;
-                          try {
-                            const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
-                            const response = await genAI.models.generateContent({
-                              model: geminiModel,
-                              contents: prompt
-                            });
-                            const text = response.text || '';
-                            const match = text.match(/\[.*\]/);
-                            if (match) {
-                              const chars = JSON.parse(match[0]);
-                              setScriptCharacters(chars);
-                            }
-                          } catch (err) {
-                            console.error(err);
-                            alert('대본 분석 실패');
-                          }
-                        }}
-                        className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
-                      >
-                        네
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowScriptCharPrompt(false);
-                          setCharLoadModalMode('add');
-                          setIsCharLoadModalOpen(true);
-                        }}
-                        className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
-                      >
-                        아니오
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 대본 인물 목록 팝업 */}
-            {scriptCharacters.length > 0 && (
-              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setScriptCharacters([])}>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-                  <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">대본 속 등장인물</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">이름을 클릭하면 추가됩니다</p>
-                  </div>
-                  <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
-                    {scriptCharacters.map((name, idx) => (
-                      <button
-                        key={idx}
-                        onClick={async () => {
-                          if (!project) return;
-                          const prompt = `대본 맥락을 분석하여 "${name}"의 외형을 상세히 묘사해주세요. 대본:\n${project.script}`;
-                          try {
-                            const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
-                            const response = await genAI.models.generateContent({
-                              model: geminiModel,
-                              contents: prompt
-                            });
-                            const desc = (response.text || '').trim();
-                            updateCurrentProject({
-                              characters: [...project.characters, {
-                                id: crypto.randomUUID(),
-                                name,
-                                role: '',
-                                visualDescription: desc,
-                                portraitUrl: null,
-                                status: 'idle'
-                              }]
-                            });
-                            setScriptCharacters(prev => prev.filter(n => n !== name));
-                          } catch (err) {
-                            console.error(err);
-                            alert('외형 생성 실패');
-                          }
-                        }}
-                        className="w-full p-4 bg-slate-50 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl text-left transition-all"
-                      >
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{name}</p>
-                        <p className="text-xs text-slate-400 mt-1">클릭하여 추가</p>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="p-6 pt-0">
-                    <button onClick={() => setScriptCharacters([])} className="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">닫기</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* 자막 팝업 */}
             {showSubtitlePrompt && (
               <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowSubtitlePrompt(false)}>
