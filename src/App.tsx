@@ -345,6 +345,8 @@ const App: React.FC = () => {
   const [showExportPopup, setShowExportPopup] = useState(false);
   const [showSubtitlePrompt, setShowSubtitlePrompt] = useState(false);
   const [includeSubtitles, setIncludeSubtitles] = useState(false);
+  const [showScriptCharPrompt, setShowScriptCharPrompt] = useState(false);
+  const [scriptCharacters, setScriptCharacters] = useState<string[]>([]);
 
   const sceneImageUploadRef = useRef<HTMLInputElement>(null);
   const sceneAudioUploadRef = useRef<HTMLInputElement>(null);
@@ -2598,7 +2600,7 @@ const App: React.FC = () => {
                   </div>
                   );
                 })}
-                <button onClick={() => { setCharLoadModalMode('add'); setIsCharLoadModalOpen(true); }} className="bg-slate-50 dark:bg-slate-700 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all p-5 flex gap-5 items-center">
+                <button onClick={() => setShowScriptCharPrompt(true)} className="bg-slate-50 dark:bg-slate-700 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all p-5 flex gap-5 items-center">
                   <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-xl bg-slate-100 dark:bg-slate-600 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-all">
                     <span className="text-6xl text-slate-300">+</span>
                   </div>
@@ -2836,22 +2838,22 @@ const App: React.FC = () => {
 
                     {/* 컨텐츠 영역 */}
                     <div className="p-4 space-y-3">
+                      {/* 장면 대사 - 항상 표시 */}
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-medium mb-1.5 uppercase tracking-wide">Scene 대사</p>
+                        <textarea
+                          value={scene.scriptSegment}
+                          onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
+                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                          placeholder="장면 대사..."
+                        />
+                      </div>
+
                       {scene.imageUrl && (
                         <>
-                          {/* 장면 대사 */}
-                          <div>
-                            <p className="text-[10px] text-slate-400 font-medium mb-1.5 uppercase tracking-wide">Scene 대사</p>
-                            <textarea
-                              value={scene.scriptSegment}
-                              onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                              className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                              placeholder="장면 대사..."
-                            />
-                          </div>
-
                           {/* 아이콘 버튼 row */}
                           <div className="flex items-center justify-center gap-3 pt-2">
-                            {/* 오디오 */}
+                            {/* 오디오 생성 */}
                             <button
                               onClick={() => !scene.audioUrl && generateAudio(scene.id)}
                               disabled={scene.audioStatus === 'loading'}
@@ -2860,7 +2862,6 @@ const App: React.FC = () => {
                                   ? 'bg-indigo-100 dark:bg-indigo-600 text-indigo-600 dark:text-white'
                                   : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-600 hover:text-indigo-600 dark:hover:text-white'
                               } disabled:opacity-50`}
-                              title="오디오 생성"
                             >
                               {scene.audioStatus === 'loading' ? (
                                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
@@ -2878,12 +2879,23 @@ const App: React.FC = () => {
                                   )}
                                 </>
                               )}
-                              <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap">
-                                오디오 생성
+                              <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
+                                개별 오디오 생성
                               </div>
                             </button>
 
-                            {/* 비디오 */}
+                            {/* 오디오 업로드 */}
+                            <label className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-center transition-all cursor-pointer group relative">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                              </svg>
+                              <input type="file" className="hidden" accept="audio/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { if(scene.audioUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.audioUrl); const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, audioUrl: url, audioStatus: 'done' } : s) }); } }} />
+                              <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
+                                개별 오디오 업로드
+                              </div>
+                            </label>
+
+                            {/* 비디오 생성 */}
                             <button
                               onClick={() => !scene.videoUrl && generateVideo(scene.id)}
                               disabled={!scene.imageUrl || scene.videoStatus === 'loading'}
@@ -2892,7 +2904,6 @@ const App: React.FC = () => {
                                   ? 'bg-indigo-100 dark:bg-indigo-600 text-indigo-600 dark:text-white'
                                   : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-600 hover:text-indigo-600 dark:hover:text-white'
                               } disabled:opacity-50`}
-                              title="비디오 생성"
                             >
                               {scene.videoStatus === 'loading' ? (
                                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
@@ -2911,8 +2922,8 @@ const App: React.FC = () => {
                                   )}
                                 </>
                               )}
-                              <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap">
-                                비디오 생성
+                              <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
+                                개별 동영상 생성
                               </div>
                             </button>
 
@@ -2927,32 +2938,12 @@ const App: React.FC = () => {
                                   a.click();
                                 }}
                                 className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-600 hover:text-indigo-600 dark:hover:text-white flex items-center justify-center transition-all group relative"
-                                title="다운로드"
                               >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
-                                <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap">
+                                <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
                                   1080p 다운로드
-                                </div>
-                              </button>
-                            )}
-
-                            {/* 오디오 player (작은 아이콘) */}
-                            {scene.audioUrl && (
-                              <button
-                                onClick={() => {
-                                  const audio = new Audio(scene.audioUrl!);
-                                  audio.play();
-                                }}
-                                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-center transition-all group relative"
-                                title="오디오 재생"
-                              >
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                                <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap">
-                                  오디오 재생
                                 </div>
                               </button>
                             )}
@@ -3098,6 +3089,106 @@ const App: React.FC = () => {
         const estimatedTime = Math.ceil((videoCount * 3 + imageCount * 8 + totalScenes * 2) / 60);
         return (
           <>
+            {/* 대본 인물 추가 팝업 */}
+            {showScriptCharPrompt && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowScriptCharPrompt(false)}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">등장인물 추가</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">대본에서 추가할까요?</p>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="flex gap-3">
+                      <button
+                        onClick={async () => {
+                          if (!project || !project.script) { alert('대본이 없습니다'); return; }
+                          setShowScriptCharPrompt(false);
+                          const prompt = `다음 대본을 분석하여 등장하는 인물의 이름만 JSON 배열로 추출해주세요. 예시: ["철수", "영희"]\n\n대본:\n${project.script}`;
+                          try {
+                            const genAI = new GoogleGenAI(geminiApiKey);
+                            const model = genAI.getGenerativeModel({ model: geminiModel });
+                            const result = await model.generateContent(prompt);
+                            const text = result.response.text();
+                            const match = text.match(/\[.*\]/);
+                            if (match) {
+                              const chars = JSON.parse(match[0]);
+                              setScriptCharacters(chars);
+                            }
+                          } catch (err) {
+                            console.error(err);
+                            alert('대본 분석 실패');
+                          }
+                        }}
+                        className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
+                      >
+                        네
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowScriptCharPrompt(false);
+                          setCharLoadModalMode('add');
+                          setIsCharLoadModalOpen(true);
+                        }}
+                        className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
+                      >
+                        아니오
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 대본 인물 목록 팝업 */}
+            {scriptCharacters.length > 0 && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setScriptCharacters([])}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">대본 속 등장인물</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">이름을 클릭하면 추가됩니다</p>
+                  </div>
+                  <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
+                    {scriptCharacters.map((name, idx) => (
+                      <button
+                        key={idx}
+                        onClick={async () => {
+                          if (!project) return;
+                          const prompt = `대본 맥락을 분석하여 "${name}"의 외형을 상세히 묘사해주세요. 대본:\n${project.script}`;
+                          try {
+                            const genAI = new GoogleGenAI(geminiApiKey);
+                            const model = genAI.getGenerativeModel({ model: geminiModel });
+                            const result = await model.generateContent(prompt);
+                            const desc = result.response.text().trim();
+                            updateCurrentProject({
+                              characters: [...project.characters, {
+                                id: crypto.randomUUID(),
+                                name,
+                                role: '',
+                                visualDescription: desc,
+                                portraitUrl: null,
+                                status: 'idle'
+                              }]
+                            });
+                            setScriptCharacters(prev => prev.filter(n => n !== name));
+                          } catch (err) {
+                            console.error(err);
+                            alert('외형 생성 실패');
+                          }
+                        }}
+                        className="w-full p-4 bg-slate-50 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl text-left transition-all"
+                      >
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{name}</p>
+                        <p className="text-xs text-slate-400 mt-1">클릭하여 추가</p>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="p-6 pt-0">
+                    <button onClick={() => setScriptCharacters([])} className="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">닫기</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 자막 팝업 */}
             {showSubtitlePrompt && (
               <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowSubtitlePrompt(false)}>
