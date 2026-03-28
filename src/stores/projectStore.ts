@@ -120,12 +120,74 @@ export const useProjectStore = create<ProjectStore>()(
     }),
     {
       name: 'user_projects_v1',
-      partialize: (state) => ({
-        projects: state.projects,
-        currentProjectId: state.currentProjectId,
-        savedStyles: state.savedStyles,
-        savedCharacters: state.savedCharacters,
-      }),
+      partialize: (state) => {
+        // base64 이미지 제외하여 localStorage 용량 초과 방지
+        const isBase64 = (url: string | null | undefined) =>
+          url?.startsWith('data:image/') ?? false;
+
+        const cleanProjects = state.projects.map(p => ({
+          ...p,
+          characters: p.characters.map(c => ({
+            ...c,
+            // base64는 제외, 외부 URL만 유지
+            portraitUrl: isBase64(c.portraitUrl) ? null : c.portraitUrl,
+          })),
+          scenes: p.scenes.map(s => ({
+            ...s,
+            // base64는 제외, 외부 URL만 유지
+            imageUrl: isBase64(s.imageUrl) ? null : s.imageUrl,
+          })),
+          // 스타일 레퍼런스 이미지도 제외
+          styleReferenceImages: [],
+        }));
+
+        const cleanSavedStyles = state.savedStyles.map(s => ({
+          ...s,
+          refImages: s.refImages?.filter((img: string) => !isBase64(img)) || [],
+        }));
+
+        const cleanSavedCharacters = state.savedCharacters.map(c => ({
+          ...c,
+          refImages: c.refImages?.filter((img: string) => !isBase64(img)) || [],
+          portraitUrl: isBase64(c.portraitUrl) ? '' : c.portraitUrl,
+        }));
+
+        return {
+          projects: cleanProjects,
+          currentProjectId: state.currentProjectId,
+          savedStyles: cleanSavedStyles,
+          savedCharacters: cleanSavedCharacters,
+        };
+      },
+      // 저장 실패 시 에러 무시 (용량 초과 등)
+      storage: {
+        getItem: (name) => {
+          try {
+            const str = localStorage.getItem(name);
+            return str ? JSON.parse(str) : null;
+          } catch {
+            return null;
+          }
+        },
+        setItem: (name, value) => {
+          try {
+            localStorage.setItem(name, JSON.stringify(value));
+          } catch (e) {
+            console.warn('localStorage 저장 실패 (용량 초과):', e);
+            // 용량 초과 시 오래된 프로젝트 정리 시도
+            try {
+              const parsed = JSON.parse(JSON.stringify(value));
+              if (parsed.state?.projects?.length > 5) {
+                parsed.state.projects = parsed.state.projects.slice(-5);
+                localStorage.setItem(name, JSON.stringify(parsed));
+              }
+            } catch {
+              // 무시
+            }
+          }
+        },
+        removeItem: (name) => localStorage.removeItem(name),
+      },
     }
   )
 );
