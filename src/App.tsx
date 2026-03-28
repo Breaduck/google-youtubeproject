@@ -351,6 +351,10 @@ const App: React.FC = () => {
   const [showExportPopup, setShowExportPopup] = useState(false);
   const [showSubtitlePrompt, setShowSubtitlePrompt] = useState(false);
   const [includeSubtitles, setIncludeSubtitles] = useState(false);
+  const [showVideoGenerationPopup, setShowVideoGenerationPopup] = useState(false);
+  const [videoGenerationCount, setVideoGenerationCount] = useState(0);
+  const [showMergeImageSelectPopup, setShowMergeImageSelectPopup] = useState(false);
+  const [mergingScenesData, setMergingScenesData] = useState<{scenes: Scene[], selectedImageIndex: number} | null>(null);
   const [showScriptCharPrompt, setShowScriptCharPrompt] = useState(false);
   const [scriptCharacters, setScriptCharacters] = useState<string[]>([]);
 
@@ -1805,15 +1809,34 @@ const App: React.FC = () => {
     setIsBatchGenerating(true);
     setLoadingText('오디오 일괄 생성 중...');
     setTargetProgress(0);
+
     try {
-      for (let i = 0; i < project.scenes.length; i++) {
-        const scene = project.scenes[i];
-        if (!scene.audioUrl) {
-          setTargetProgress(Math.round((i / project.scenes.length) * 100));
-          await generateAudio(scene.id);
-        }
-      }
+      // 병렬 실행을 위한 Promise 배열 생성
+      const audioPromises = project.scenes
+        .filter(s => !s.audioUrl)
+        .map(scene => generateAudio(scene.id));
+
+      // 진행률 업데이트를 위한 간격 설정
+      let completed = 0;
+      const total = audioPromises.length;
+
+      // Promise.allSettled로 병렬 실행 (일부 실패해도 계속 진행)
+      const results = await Promise.allSettled(
+        audioPromises.map((promise) =>
+          promise.then(() => {
+            completed++;
+            setTargetProgress(Math.round((completed / total) * 100));
+          })
+        )
+      );
+
       setTargetProgress(100);
+
+      // 실패한 작업 개수 확인
+      const failedCount = results.filter(r => r.status === 'rejected').length;
+      if (failedCount > 0) {
+        console.warn(`${failedCount}개의 오디오 생성 실패`);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -1937,7 +1960,7 @@ const App: React.FC = () => {
     }
   };
 
-  const generateAllVideos = async () => {
+  const openVideoGenerationPopup = () => {
     if (!project) return;
 
     // API 키 체크
@@ -1960,13 +1983,11 @@ const App: React.FC = () => {
       return;
     }
 
-    // videoGenerationRange 이내의 장면만 필터링 (각 장면은 10초)
+    // videoGenerationRange 이내의 장면만 필터링
     const scenesNeedingVideo = project.scenes.filter((s, index) => {
-      const sceneStartTime = index * 10; // 각 scene은 10초
+      const sceneStartTime = index * 10;
       return s.imageUrl && !s.videoUrl && sceneStartTime < videoGenerationRange;
     });
-
-    const alreadyGenerated = project.scenes.filter(s => s.videoUrl).length;
 
     if (scenesNeedingVideo.length === 0) {
       const totalScenes = project.scenes.filter(s => s.imageUrl && !s.videoUrl).length;
@@ -1978,28 +1999,20 @@ const App: React.FC = () => {
       return;
     }
 
-    // 예상 비용 계산 (8초 기준 54원)
-    const estimatedCost = Math.ceil(scenesNeedingVideo.length * 54);
+    // 팝업 열기
+    setVideoGenerationCount(scenesNeedingVideo.length);
+    setShowVideoGenerationPopup(true);
+  };
 
-    // 영상 생성 범위 외의 장면 개수 계산
-    const skippedScenes = project.scenes.filter((s, index) => {
+  const generateAllVideos = async (count: number) => {
+    if (!project) return;
+    setShowVideoGenerationPopup(false);
+
+    // videoGenerationRange 이내의 장면만 필터링
+    const scenesNeedingVideo = project.scenes.filter((s, index) => {
       const sceneStartTime = index * 10;
-      return s.imageUrl && !s.videoUrl && sceneStartTime >= videoGenerationRange;
-    }).length;
-
-    // 재생성 확인
-    let confirmMessage = `${scenesNeedingVideo.length}개 장면을 영상으로 생성합니다.\n예상 비용: 약 ${estimatedCost}원`;
-    if (skippedScenes > 0) {
-      confirmMessage += `\n\n${skippedScenes}개 장면은 줌인-줌아웃 효과만 적용합니다.`;
-    }
-    if (alreadyGenerated > 0) {
-      confirmMessage = `정말 전체 비디오를 전부 생성하시겠습니까?\n\n` + confirmMessage;
-    }
-    confirmMessage += '\n\n계속하시겠습니까?';
-
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+      return s.imageUrl && !s.videoUrl && sceneStartTime < videoGenerationRange;
+    }).slice(0, count); // 사용자가 선택한 개수만큼
 
     // 5개씩 제한 제거 (전체 범위 생성)
     const limitedScenes = scenesNeedingVideo;
@@ -2375,7 +2388,7 @@ const App: React.FC = () => {
     updateCurrentProject({ scenes: project.scenes.map(s => s.id === id ? { ...s, imageUrl: null, status: 'idle' } : s) });
   };
 
-  const mergeSelectedScenes = async () => {
+  const openMergePopup = () => {
     if (!project || selectedSceneIds.length < 2) return;
 
     // Get selected scenes in order
@@ -2383,24 +2396,44 @@ const App: React.FC = () => {
       .filter(s => selectedSceneIds.includes(s.id))
       .sort((a, b) => project.scenes.indexOf(a) - project.scenes.indexOf(b));
 
+    // 이미지가 있는 씬이 있는지 확인
+    const hasImages = selectedScenes.some(s => s.imageUrl);
+
+    if (!hasImages) {
+      // 이미지가 없으면 바로 합치기
+      executeMerge(selectedScenes, 0);
+      return;
+    }
+
+    // 팝업 열기 (디폴트: 첫 번째 씬)
+    setMergingScenesData({ scenes: selectedScenes, selectedImageIndex: 0 });
+    setShowMergeImageSelectPopup(true);
+  };
+
+  const executeMerge = (selectedScenes: Scene[], imageIndex: number) => {
+    if (!project) return;
+
     // Combine script segments
     const combinedScript = selectedScenes.map(s => s.scriptSegment).join(' ');
 
     // Find position of first selected scene
     const firstSceneIndex = project.scenes.findIndex(s => s.id === selectedScenes[0].id);
 
-    // 단순히 대본 합치기 (Gemini API 호출 제거)
+    // 선택한 씬의 이미지 사용
+    const selectedImageScene = selectedScenes[imageIndex];
+
+    // 대본만 합치고 선택한 이미지 유지
     const mergedScene: Scene = {
       id: crypto.randomUUID(),
       scriptSegment: combinedScript,
-      imagePrompt: selectedScenes[0].imagePrompt, // 첫 번째 씬의 프롬프트 사용
-      imageUrl: null,
+      imagePrompt: selectedImageScene.imagePrompt,
+      imageUrl: selectedImageScene.imageUrl, // 선택한 씬의 이미지 유지
       audioUrl: null,
       videoUrl: null,
-      status: 'idle',
+      status: selectedImageScene.imageUrl ? 'done' : 'idle',
       audioStatus: 'idle',
       videoStatus: 'idle',
-      effect: selectedScenes[0].effect
+      effect: selectedImageScene.effect
     };
 
     // Remove selected scenes and insert merged scene at first position
@@ -2410,7 +2443,11 @@ const App: React.FC = () => {
     updateCurrentProject({ scenes: newScenes });
     setSelectedSceneIds([]);
     setIsSelectionMode(false);
+    setShowMergeImageSelectPopup(false);
+    setMergingScenesData(null);
   };
+
+  const mergeSelectedScenes = openMergePopup;
 
   const addNewProject = () => {
     const newId = crypto.randomUUID();
@@ -2508,6 +2545,11 @@ const App: React.FC = () => {
         hasImages={!!project && project.scenes.length > 0 && project.scenes.every(s => s.imageUrl)}
         hasAudios={!!project && project.scenes.length > 0 && project.scenes.every(s => s.audioUrl)}
         hasVideos={!!project && project.scenes.some(s => s.videoUrl)}
+        characterCount={project?.characters.length || 0}
+        sceneCount={project?.scenes.length || 0}
+        imageCount={project?.scenes.filter(s => s.imageUrl).length || 0}
+        audioCount={project?.scenes.filter(s => s.audioUrl).length || 0}
+        videoCount={project?.scenes.filter(s => s.videoUrl).length || 0}
         onStepClick={(stepIndex) => {
           if (stepIndex === 0) setStep('input');
           else if (stepIndex === 1) setStep('style_selection');
@@ -2783,7 +2825,7 @@ const App: React.FC = () => {
                     <div className="flex flex-wrap gap-2 items-center">
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
-                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">비디오 전체 생성</button>
+                      <button onClick={openVideoGenerationPopup} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">비디오 전체 생성</button>
                       <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">동영상 합치기</button>
                     </div>
                   </div>
@@ -2886,19 +2928,41 @@ const App: React.FC = () => {
                 {project.scenes.map((scene, idx) => (
                   <div key={scene.id} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-700' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}>
                     {/* 이미지 영역 */}
-                    <div
-                      className={`aspect-video bg-slate-50 dark:bg-slate-700 relative group/img ${isSelectionMode ? 'cursor-pointer' : ''}`}
-                      onClick={() => {
-                        if (isSelectionMode) {
-                          setSelectedSceneIds(prev =>
-                            prev.includes(scene.id)
-                              ? prev.filter(id => id !== scene.id)
-                              : [...prev, scene.id]
-                          );
-                        }
-                      }}
-                    >
-                      <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-slate-900/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-xs font-semibold">#{idx + 1}</div>
+                    <div className={`aspect-video bg-slate-50 dark:bg-slate-700 relative group/img`}>
+                      {/* 씬 번호 & 선택 체크박스 */}
+                      <div className="absolute top-3 left-3 z-40 flex items-center gap-2">
+                        <div className="px-2.5 py-1 bg-slate-900/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-xs font-semibold">
+                          #{idx + 1}
+                        </div>
+                        {/* 선택 모드 시 체크박스 */}
+                        {isSelectionMode && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSceneIds(prev =>
+                                prev.includes(scene.id)
+                                  ? prev.filter(id => id !== scene.id)
+                                  : [...prev, scene.id]
+                              );
+                            }}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all shadow-lg ${
+                              selectedSceneIds.includes(scene.id)
+                                ? 'bg-lime-500 text-white'
+                                : 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-2 border-slate-300 dark:border-slate-600 text-slate-400'
+                            }`}
+                          >
+                            {selectedSceneIds.includes(scene.id) ? (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10" />
+                              </svg>
+                            )}
+                          </button>
+                        )}
+                      </div>
 
                       {/* 아이폰 스타일 선택 오버레이 */}
                       {isSelectionMode && (
@@ -3644,6 +3708,187 @@ const App: React.FC = () => {
             </div>
             <div className="p-6 pt-0">
               <button onClick={() => setScriptCharacters([])} className="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 비디오 전체 생성 팝업 */}
+      {showVideoGenerationPopup && project && (() => {
+        const maxCount = project.scenes.filter((s, index) => {
+          const sceneStartTime = index * 10;
+          return s.imageUrl && !s.videoUrl && sceneStartTime < videoGenerationRange;
+        }).length;
+
+        const costPerScene = videoProvider === 'byteplus' ? 307 :
+                            videoProvider === 'evolink' ? 190 :
+                            videoProvider === 'runware' ? 195 : 307;
+        const estimatedCost = videoGenerationCount * costPerScene;
+
+        const providerName = videoProvider === 'byteplus' ? 'BytePlus' :
+                            videoProvider === 'evolink' ? 'Evolink' :
+                            videoProvider === 'runware' ? 'Runware' : 'Video';
+
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowVideoGenerationPopup(false)}>
+            <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">비디오 전체 생성</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">생성할 영상 개수를 선택하세요</p>
+              </div>
+              <div className="p-6 space-y-4">
+                {/* Provider 정보 */}
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg">
+                  <p className="text-sm text-indigo-900 dark:text-indigo-300">
+                    <span className="font-bold">{providerName}</span> 사용 중
+                  </p>
+                  <p className="text-xs text-indigo-700 dark:text-indigo-400 mt-1">
+                    영상당 {costPerScene}원
+                  </p>
+                </div>
+
+                {/* 개수 선택 */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    생성할 개수: <span className="text-indigo-600 dark:text-indigo-400 font-bold">{videoGenerationCount}개</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max={maxCount}
+                    value={videoGenerationCount}
+                    onChange={(e) => setVideoGenerationCount(parseInt(e.target.value))}
+                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>1개</span>
+                    <span>{maxCount}개 (최대)</span>
+                  </div>
+                </div>
+
+                {/* 예상 비용 */}
+                <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-emerald-900 dark:text-emerald-300">예상 비용</span>
+                    <span className="text-2xl font-bold text-emerald-900 dark:text-emerald-300">₩{estimatedCost.toLocaleString()}</span>
+                  </div>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
+                    {videoGenerationCount}개 × {costPerScene}원
+                  </p>
+                </div>
+
+                {/* 설정 반영 체크박스 */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={videoGenerationCount === maxCount}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setVideoGenerationRange(maxCount * 10);
+                          setVideoGenerationCount(maxCount);
+                        }
+                      }}
+                      className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
+                    />
+                    <span className="text-sm text-slate-700 dark:text-slate-300">
+                      설정에 반영 (생성 범위: {videoGenerationCount * 10}초)
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <div className="p-6 border-t border-slate-100 dark:border-slate-700 flex gap-3">
+                <button
+                  onClick={() => setShowVideoGenerationPopup(false)}
+                  className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => generateAllVideos(videoGenerationCount)}
+                  className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
+                >
+                  생성 시작
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 씬 합치기 이미지 선택 팝업 */}
+      {showMergeImageSelectPopup && mergingScenesData && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowMergeImageSelectPopup(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">씬 합치기</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {mergingScenesData.scenes.length}개의 씬을 합칩니다. 유지할 이미지를 선택하세요.
+              </p>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4">
+                {mergingScenesData.scenes.map((scene, idx) => {
+                  const isSelected = mergingScenesData.selectedImageIndex === idx;
+                  const sceneIndex = project?.scenes.indexOf(scene) || 0;
+                  return (
+                    <button
+                      key={scene.id}
+                      onClick={() => setMergingScenesData({ ...mergingScenesData, selectedImageIndex: idx })}
+                      className={`relative rounded-xl overflow-hidden transition-all ${
+                        isSelected
+                          ? 'ring-4 ring-indigo-500 scale-105'
+                          : 'ring-2 ring-slate-200 dark:ring-slate-700 hover:ring-slate-300 dark:hover:ring-slate-600'
+                      }`}
+                    >
+                      {/* 이미지 */}
+                      <div className="aspect-video bg-slate-100 dark:bg-slate-700 relative">
+                        {scene.imageUrl ? (
+                          <img src={scene.imageUrl} alt={`씬 ${sceneIndex + 1}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                            이미지 없음
+                          </div>
+                        )}
+                        {/* 선택 표시 */}
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-indigo-500/20 flex items-center justify-center">
+                            <div className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center shadow-2xl">
+                              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {/* 씬 번호 */}
+                      <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 backdrop-blur-sm rounded text-white text-xs font-semibold">
+                        #{sceneIndex + 1}
+                      </div>
+                      {/* 디폴트 표시 */}
+                      {idx === 0 && !isSelected && (
+                        <div className="absolute top-2 right-2 px-2 py-1 bg-slate-900/70 backdrop-blur-sm rounded text-white text-xs font-semibold">
+                          디폴트
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-100 dark:border-slate-700 flex gap-3">
+              <button
+                onClick={() => setShowMergeImageSelectPopup(false)}
+                className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => executeMerge(mergingScenesData.scenes, mergingScenesData.selectedImageIndex)}
+                className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
+              >
+                합치기
+              </button>
             </div>
           </div>
         </div>

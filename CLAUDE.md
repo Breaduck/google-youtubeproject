@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 핵심 지표 (North Star)
-- **생성 비용:** 8초 영상 기준 54원 (Aggressive Quality Mode, 환율 1,450원/$)
+- **생성 비용:** 8초 영상 기준 307원 (BytePlus SeeDANCE API, 환율 1,450원/$)
 - **품질 우선:** 표정 & 움직임 해결 최우선 (비용 2배 투자)
 
 협업 가이드 (Communication Rules)

@@ -11,6 +11,12 @@ interface ProgressStepsProps {
   hasVideos: boolean;
   isGeneratingVideo?: boolean;
   onStepClick?: (stepIndex: number) => void;
+  // 상세 정보
+  characterCount?: number;
+  sceneCount?: number;
+  imageCount?: number;
+  audioCount?: number;
+  videoCount?: number;
 }
 
 interface Step {
@@ -63,6 +69,48 @@ const getStepStatus = (
   return 'upcoming';
 };
 
+const getStepTooltip = (
+  stepIndex: number,
+  hasScript: boolean,
+  hasCharacters: boolean,
+  hasScenes: boolean,
+  hasImages: boolean,
+  hasAudios: boolean,
+  hasVideos: boolean,
+  characterCount: number,
+  sceneCount: number,
+  imageCount: number,
+  audioCount: number,
+  videoCount: number
+): string => {
+  switch (stepIndex) {
+    case 0: return hasScript ? '대본 업로드 완료' : '대본을 업로드해주세요';
+    case 1: return '그림체 설정';
+    case 2:
+      if (!hasCharacters || characterCount === 0) return '등장인물이 0명입니다';
+      return `등장인물 ${characterCount}명`;
+    case 3:
+      if (!hasScenes || sceneCount === 0) return '씬이 0개입니다';
+      return `씬 ${sceneCount}개`;
+    case 4:
+      if (!hasScenes || sceneCount === 0) return '씬이 없습니다';
+      if (!hasImages) return `이미지 ${imageCount}/${sceneCount}개 생성됨`;
+      return `이미지 생성 완료 (${imageCount}개)`;
+    case 5:
+      if (!hasScenes || sceneCount === 0) return '씬이 없습니다';
+      if (!hasAudios) return `오디오 ${audioCount}/${sceneCount}개 생성됨`;
+      return `오디오 생성 완료 (${audioCount}개)`;
+    case 6:
+      if (!hasScenes || sceneCount === 0) return '씬이 없습니다';
+      if (videoCount === 0) return '영상을 생성해주세요';
+      return `영상 ${videoCount}/${sceneCount}개 생성됨`;
+    case 7:
+      if (!hasAudios || !hasImages) return '이미지와 오디오를 먼저 생성해주세요';
+      return '영상 합치기 준비 완료';
+    default: return '';
+  }
+};
+
 export default function ProgressSteps({
   currentStep,
   hasScript,
@@ -73,6 +121,11 @@ export default function ProgressSteps({
   hasVideos,
   isGeneratingVideo = false,
   onStepClick,
+  characterCount = 0,
+  sceneCount = 0,
+  imageCount = 0,
+  audioCount = 0,
+  videoCount = 0,
 }: ProgressStepsProps) {
   if (currentStep === 'dashboard') return null;
 
@@ -98,9 +151,23 @@ export default function ProgressSteps({
 
             return (
               <React.Fragment key={index}>
-                <div className="flex flex-col items-center" style={{ minWidth: '80px' }}>
+                <div className="flex flex-col items-center relative group" style={{ minWidth: '80px' }}>
                   <button
                     onClick={() => onStepClick?.(index)}
+                    title={getStepTooltip(
+                      index,
+                      hasScript,
+                      hasCharacters,
+                      hasScenes,
+                      hasImages,
+                      hasAudios,
+                      hasVideos,
+                      characterCount,
+                      sceneCount,
+                      imageCount,
+                      audioCount,
+                      videoCount
+                    )}
                     className={`
                       w-7 h-7 rounded-full flex items-center justify-center
                       transition-all duration-300 text-xs font-semibold z-10
@@ -122,6 +189,24 @@ export default function ProgressSteps({
                       <span>{step.icon}</span>
                     )}
                   </button>
+                  {/* 커스텀 툴팁 */}
+                  <div className="absolute top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 pointer-events-none">
+                    {getStepTooltip(
+                      index,
+                      hasScript,
+                      hasCharacters,
+                      hasScenes,
+                      hasImages,
+                      hasAudios,
+                      hasVideos,
+                      characterCount,
+                      sceneCount,
+                      imageCount,
+                      audioCount,
+                      videoCount
+                    )}
+                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 dark:bg-slate-700 rotate-45" />
+                  </div>
                   <span
                     className={`
                       text-xs text-center transition-colors whitespace-nowrap mt-2
