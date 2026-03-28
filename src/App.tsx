@@ -2469,7 +2469,11 @@ const App: React.FC = () => {
 
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
-          {step === 'style_selection' && null}
+          {step === 'style_selection' && (
+            <div className="fixed inset-0 z-[400] bg-white dark:bg-slate-900">
+              {/* 템플릿 모달이 자동으로 전체화면 표시됨 */}
+            </div>
+          )}
 
           {step === 'character_setup' && (
             <div className="w-full px-6 pt-0">
@@ -2935,8 +2939,10 @@ const App: React.FC = () => {
           )}
 
           {step === 'input' && (
-            <div className="max-w-5xl mx-auto space-y-4 pt-0 pb-2 flex flex-col justify-center min-h-[calc(100vh-200px)]">
-               <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100 text-center">대본을 입력해주세요</h1>
+            <div className="max-w-5xl mx-auto space-y-4 pt-0 pb-2">
+               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg py-8 px-4 mb-6">
+                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">대본을 입력해주세요</h1>
+               </div>
                <div className="bg-white dark:bg-slate-800 p-3 rounded-[24px] sm:rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-700 relative">
                  <textarea className="w-full h-80 sm:h-96 bg-slate-50/50 dark:bg-slate-700/50 border-none rounded-[18px] sm:rounded-[24px] p-5 sm:p-7 text-base sm:text-xl text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-500" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
@@ -4346,6 +4352,9 @@ const App: React.FC = () => {
         onApply={() => {
           setSelectedStyleTemplate(tempSelectedTemplate);
           setIsTemplateModalOpen(false);
+          if (step === 'style_selection') {
+            setStep('character_setup');
+          }
         }}
         savedStyles={savedStyles}
         onSaveNewStyle={async (name, images) => {
