@@ -1951,7 +1951,12 @@ const App: React.FC = () => {
     }
 
     if (!hasApiKey) {
-      alert('API키를 입력해주시기 바랍니다.\n\n설정 > Video Provider에서 API 키를 입력해주세요.');
+      const providerName = videoProvider === 'byteplus' ? 'BytePlus' :
+                           videoProvider === 'evolink' ? 'Evolink' :
+                           videoProvider === 'runware' ? 'Runware' : 'Video';
+      alert(`${providerName} API 키를 입력해주세요.\n\n설정 페이지에서 API 키를 입력해주세요.`);
+      setIsMyPageOpen(true);
+      setExpandedSetting('bytedance');
       return;
     }
 
