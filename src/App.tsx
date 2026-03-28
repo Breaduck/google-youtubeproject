@@ -3110,10 +3110,12 @@ const App: React.FC = () => {
                           setShowScriptCharPrompt(false);
                           const prompt = `다음 대본을 분석하여 등장하는 인물의 이름만 JSON 배열로 추출해주세요. 예시: ["철수", "영희"]\n\n대본:\n${project.script}`;
                           try {
-                            const genAI = new GoogleGenAI(geminiApiKey);
-                            const model = genAI.getGenerativeModel({ model: geminiModel });
-                            const result = await model.generateContent(prompt);
-                            const text = result.response.text();
+                            const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
+                            const response = await genAI.models.generateContent({
+                              model: geminiModel,
+                              contents: prompt
+                            });
+                            const text = response.text || '';
                             const match = text.match(/\[.*\]/);
                             if (match) {
                               const chars = JSON.parse(match[0]);
@@ -3160,10 +3162,12 @@ const App: React.FC = () => {
                           if (!project) return;
                           const prompt = `대본 맥락을 분석하여 "${name}"의 외형을 상세히 묘사해주세요. 대본:\n${project.script}`;
                           try {
-                            const genAI = new GoogleGenAI(geminiApiKey);
-                            const model = genAI.getGenerativeModel({ model: geminiModel });
-                            const result = await model.generateContent(prompt);
-                            const desc = result.response.text().trim();
+                            const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
+                            const response = await genAI.models.generateContent({
+                              model: geminiModel,
+                              contents: prompt
+                            });
+                            const desc = (response.text || '').trim();
                             updateCurrentProject({
                               characters: [...project.characters, {
                                 id: crypto.randomUUID(),
