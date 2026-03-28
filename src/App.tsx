@@ -2542,7 +2542,7 @@ const App: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">등장인물 외형 설정</h1>
                   <div className="flex gap-2">
-                    <button onClick={() => { setCharLoadModalMode('list'); setIsCharLoadModalOpen(true); }} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">인물 불러오기</button>
+                    <button onClick={() => { setCharLoadModalMode('list'); setIsCharLoadModalOpen(true); }} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">인물 불러오기</button>
                     <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">스토리보드 생성</button>
                     {project && project.scenes.length > 0 && (
                       <button onClick={() => proceedToStoryboard(false)} className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">기존 스토리보드 보기</button>
@@ -2665,9 +2665,9 @@ const App: React.FC = () => {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 items-center">
-                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
-                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
-                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">비디오 전체 생성</button>
+                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
+                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">비디오 전체 생성</button>
                       <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">동영상 합치기</button>
                     </div>
                   </div>
@@ -3018,21 +3018,60 @@ const App: React.FC = () => {
           )}
 
           {step === 'input' && (
-            <div className="max-w-5xl mx-auto space-y-4 pt-0 pb-2">
-               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg py-8 px-4 mb-6">
-                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">대본을 입력해주세요</h1>
-               </div>
-               <div className="bg-white dark:bg-slate-800 p-3 rounded-[24px] sm:rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-700 relative">
-                 <textarea className="w-full h-80 sm:h-96 bg-slate-50/50 dark:bg-slate-700/50 border-none rounded-[18px] sm:rounded-[24px] p-5 sm:p-7 text-base sm:text-xl text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-500" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
-               </div>
-               <div className="flex flex-col sm:flex-row gap-3">
-                 <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-4 sm:py-5 bg-indigo-600 text-white rounded-[18px] sm:rounded-[24px] font-semibold text-base sm:text-xl shadow-xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
-                 {project && (project.characters.length > 0 || project.scenes.length > 0) && (
-                   <button onClick={() => setStep('style_selection')} className="px-6 py-4 sm:py-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-[18px] sm:rounded-[24px] font-semibold text-sm sm:text-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-lg">
-                     그림체 설정으로 이동 &gt;
-                   </button>
-                 )}
-               </div>
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
+              <div className="max-w-2xl mx-auto w-full px-6">
+                {/* 인사말 */}
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                    오늘은 어떤 영상을 만들어볼까요?
+                  </h1>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                    대본을 입력하면 AI가 영상으로 만들어드려요
+                  </p>
+                </div>
+
+                {/* 텍스트 입력창 */}
+                <textarea
+                  className="w-full rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-5 min-h-[140px] max-h-[280px] resize-y text-base leading-relaxed text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 outline-none shadow-sm transition-all"
+                  placeholder="여기에 대본을 입력하세요..."
+                  value={script}
+                  onChange={(e) => setScript(e.target.value)}
+                  spellCheck={false}
+                />
+
+                {/* 글자수 & 스타일 선택 */}
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-gray-400">{script.length}자</span>
+                  <div className="flex gap-2">
+                    <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full text-xs px-3 py-1">실사화</button>
+                    <button className="bg-transparent text-gray-500 rounded-full text-xs px-3 py-1 border border-gray-200 dark:border-gray-700">애니메이션</button>
+                    <button className="bg-transparent text-gray-500 rounded-full text-xs px-3 py-1 border border-gray-200 dark:border-gray-700">템플릿</button>
+                  </div>
+                </div>
+
+                {/* 프로젝트 시작하기 버튼 */}
+                <button
+                  onClick={startAnalysis}
+                  disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()}
+                  className={`mt-6 w-full max-w-md mx-auto block bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full py-3 text-sm font-medium hover:bg-gray-700 dark:hover:bg-gray-200 transition-all ${
+                    !script.trim() ? 'opacity-40 cursor-not-allowed' : ''
+                  }`}
+                >
+                  프로젝트 시작하기
+                </button>
+
+                {/* 그림체 설정으로 이동 */}
+                {project && (project.characters.length > 0 || project.scenes.length > 0) && (
+                  <div className="mt-3 text-center">
+                    <button
+                      onClick={() => setStep('style_selection')}
+                      className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    >
+                      그림체 설정으로 이동
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -3143,26 +3182,30 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  /* 그리드 모드 - 영상 생성된 씬만 표시 */
+                  /* 그리드 모드 - 전체 씬 표시 (빈 씬 포함) */
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {successScenes.map((scene, idx) => {
-                      const originalIdx = project.scenes.findIndex(s => s.id === scene.id);
-                      return (
-                        <div
-                          key={scene.id}
-                          className="group relative aspect-video rounded-xl overflow-hidden bg-gray-800 border border-gray-700 hover:border-indigo-500 transition-all"
-                        >
-                          <video
-                            src={scene.videoUrl!}
-                            className="w-full h-full object-cover cursor-pointer"
-                            onClick={() => setExpandedSceneIndex(originalIdx)}
-                          />
+                    {project.scenes.map((scene, idx) => (
+                      <div
+                        key={scene.id}
+                        className={`group relative aspect-video rounded-xl overflow-hidden transition-all ${
+                          scene.videoUrl
+                            ? 'bg-gray-800 border border-gray-700 hover:border-indigo-500'
+                            : 'bg-gray-800/50 border-2 border-dashed border-gray-600'
+                        }`}
+                      >
+                        {scene.videoUrl ? (
+                          <>
+                            <video
+                              src={scene.videoUrl}
+                              className="w-full h-full object-cover cursor-pointer"
+                              onClick={() => setExpandedSceneIndex(idx)}
+                            />
                           {/* 호버 시 버튼 */}
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setExpandedSceneIndex(originalIdx);
+                                setExpandedSceneIndex(idx);
                               }}
                               className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
                               title="재생"
@@ -3176,7 +3219,7 @@ const App: React.FC = () => {
                                 e.stopPropagation();
                                 const a = document.createElement('a');
                                 a.href = scene.videoUrl!;
-                                a.download = `scene-${originalIdx + 1}.mp4`;
+                                a.download = `scene-${idx + 1}.mp4`;
                                 a.click();
                               }}
                               className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
@@ -3202,11 +3245,22 @@ const App: React.FC = () => {
                           </div>
                           {/* 씬 번호 */}
                           <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
-                            #{originalIdx + 1}
+                            #{idx + 1}
                           </div>
-                        </div>
-                      );
-                    })}
+                          </>
+                        ) : (
+                          /* 빈 씬 표시 */
+                          <>
+                            <div className="w-full h-full flex items-center justify-center">
+                              <p className="text-sm text-gray-500">미생성</p>
+                            </div>
+                            <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
+                              #{idx + 1}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
