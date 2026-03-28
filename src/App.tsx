@@ -2854,10 +2854,38 @@ const App: React.FC = () => {
                         />
                       </div>
 
-                      {scene.imageUrl && (
-                        <>
-                          {/* 아이콘 버튼 row */}
-                          <div className="flex items-center justify-center gap-3 pt-2">
+                      {/* 오디오 플레이어 */}
+                      {scene.audioUrl && (
+                        <div className="flex items-center gap-2">
+                          <audio src={scene.audioUrl} controls className="flex-1 h-9 rounded-lg" />
+                          <div className="relative group">
+                            <button className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center transition-all">
+                              <svg className="w-4 h-4 text-slate-600 dark:text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="5" r="1.5" />
+                                <circle cx="12" cy="12" r="1.5" />
+                                <circle cx="12" cy="19" r="1.5" />
+                              </svg>
+                            </button>
+                            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl py-1 min-w-[120px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 border border-slate-200 dark:border-slate-700">
+                              <button
+                                onClick={() => {
+                                  if (!scene.audioUrl) return;
+                                  const a = document.createElement('a');
+                                  a.href = scene.audioUrl;
+                                  a.download = `scene-${idx+1}_audio.mp3`;
+                                  a.click();
+                                }}
+                                className="w-full px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                              >
+                                다운로드
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 아이콘 버튼 row - 항상 표시 */}
+                      <div className="flex items-center justify-center gap-3 pt-2">
                             {/* 오디오 생성 */}
                             <button
                               onClick={() => !scene.audioUrl && generateAudio(scene.id)}
@@ -2953,8 +2981,6 @@ const App: React.FC = () => {
                               </button>
                             )}
                           </div>
-                        </>
-                      )}
 
                       {/* 프롬프트 - 접힌 스타일 */}
                       <details className="group/prompt">
@@ -4430,10 +4456,10 @@ const App: React.FC = () => {
                       portraitUrl: newSavedCharData.refImages[0] || ''
                     };
 
-                    setSavedCharacters([...savedCharacters, newChar]);
+                    setSavedCharacters(prev => [...prev, newChar]);
+                    alert('저장되었습니다.');
                     setNewSavedCharData({ name: '', refImages: [] });
                     setCharLoadModalMode('list');
-                    alert('저장되었습니다.');
                   }}
                   disabled={!newSavedCharData.name.trim()}
                   className="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
