@@ -2462,7 +2462,7 @@ const App: React.FC = () => {
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
           {step === 'character_setup' && (
-            <div className="w-full px-6 pt-2">
+            <div className="w-full px-6 pt-0">
               {bgTask ? (
                 <div className="text-center py-16">
                   <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
@@ -2577,7 +2577,7 @@ const App: React.FC = () => {
           )}
 
           {step === 'storyboard' && (
-            <div className="w-full px-4 sm:px-8 pt-2">
+            <div className="w-full px-4 sm:px-8 pt-0">
               {!project ? (
                 <div className="text-center py-20">
                   <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -2925,11 +2925,7 @@ const App: React.FC = () => {
           )}
 
           {step === 'input' && (
-            <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3 pt-2 sm:pt-4 pb-2 flex flex-col justify-center min-h-[calc(100vh-120px)]">
-               <div className="text-center space-y-0.5 sm:space-y-1">
-                  <h1 className="text-4xl sm:text-6xl font-bold tracking-tight leading-tight" style={{ fontFamily: 'Pretendard, sans-serif' }}>당신의 대본을 <span className="text-indigo-600">살아있는 영상</span>으로</h1>
-                  <p className="text-slate-400 font-medium text-xs sm:text-sm">캐릭터 일관성 유지 + AI 내레이션 + 자동 자막</p>
-               </div>
+            <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3 pt-0 pb-2">
                <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
                   {['realistic', '2d-animation'].map(s => (
                     <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); setSelectedStyleTemplate(null); }} className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${style === s && selectedStyleTemplate === null ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-300 dark:border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>{s === '2d-animation' ? '애니메이션' : '실사화'}</button>
