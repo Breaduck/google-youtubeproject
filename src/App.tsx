@@ -365,12 +365,7 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  // 그림체 설정 페이지에서는 모달 사용 안함
-  useEffect(() => {
-    if (step === 'style_selection') {
-      setIsTemplateModalOpen(false);
-    }
-  }, [step]);
+  // 그림체 설정 페이지 진입 시 처리 (삭제됨 - 템플릿 추가 모달 허용)
 
   // Build version log
   useEffect(() => {
