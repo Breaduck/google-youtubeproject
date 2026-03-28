@@ -43,17 +43,22 @@ const getCurrentStepIndex = (
   hasImages: boolean,
   hasAudios: boolean,
   hasVideos: boolean,
-  isGeneratingVideo: boolean
+  isGeneratingVideo: boolean,
+  characterCount: number,
+  sceneCount: number,
+  imageCount: number,
+  audioCount: number,
+  videoCount: number
 ): number => {
   if (currentStep === 'input') return 0;
   else if (currentStep === 'style_selection') return 1;
   else if (currentStep === 'character_setup') return 2;
   else if (currentStep === 'storyboard') {
-    if (hasVideos) return 6;
-    if (hasAudios) return 5;
-    if (hasImages) return 4;
-    if (hasScenes) return 3;
-    if (hasCharacters) return 2;
+    if (hasVideos && videoCount > 0) return 6;
+    if (hasAudios && audioCount > 0) return 5;
+    if (hasImages && imageCount > 0) return 4;
+    if (hasScenes && sceneCount > 0) return 3;
+    if (hasCharacters && characterCount > 0) return 2;
     if (hasScript) return 1;
     return 0;
   }
@@ -137,7 +142,12 @@ export default function ProgressSteps({
     hasImages,
     hasAudios,
     hasVideos,
-    isGeneratingVideo
+    isGeneratingVideo,
+    characterCount,
+    sceneCount,
+    imageCount,
+    audioCount,
+    videoCount
   );
 
   return (
