@@ -4238,9 +4238,11 @@ const App: React.FC = () => {
                     if (savedCharacters.length >= 10) { alert('최대 10명까지 저장 가능합니다'); return; }
                     const newChar = { id: crypto.randomUUID(), name: newSavedCharData.name, refImages: newSavedCharData.refImages, description: '', portraitUrl: newSavedCharData.refImages[0] || '' };
                     setSavedCharacters([...savedCharacters, newChar]);
+                    setTimeout(() => {
+                      alert('저장 완료되었습니다.');
+                    }, 100);
                     setNewSavedCharData({ name: '', refImages: [] });
                     setCharLoadModalMode('list');
-                    alert('저장 완료되었습니다.');
                   }}
                   disabled={!newSavedCharData.name.trim()}
                   className="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -4373,7 +4375,6 @@ const App: React.FC = () => {
           }
         }}
         savedStyles={savedStyles}
-        fullscreen={step === 'style_selection'}
         onSaveNewStyle={async (name, images) => {
           setBgTask({ type: 'style', message: '참고 이미지를 바탕으로 화풍을 학습중입니다' });
           setBgProgress(0);
