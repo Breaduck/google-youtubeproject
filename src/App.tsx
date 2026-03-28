@@ -345,6 +345,8 @@ const App: React.FC = () => {
   const [expandedSceneIndex, setExpandedSceneIndex] = useState<number | null>(null);
   const [videoRegenerateSceneId, setVideoRegenerateSceneId] = useState<string | null>(null);
   const [videoRegeneratePrompt, setVideoRegeneratePrompt] = useState('');
+  const [previewSubtitleEnabled, setPreviewSubtitleEnabled] = useState(false);
+  const [selectedSubtitleTemplate, setSelectedSubtitleTemplate] = useState<string>('default');
   const [showExportPopup, setShowExportPopup] = useState(false);
   const [showSubtitlePrompt, setShowSubtitlePrompt] = useState(false);
   const [includeSubtitles, setIncludeSubtitles] = useState(false);
@@ -2540,8 +2542,8 @@ const App: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">등장인물 외형 설정</h1>
                   <div className="flex gap-2">
-                    <button onClick={() => { setCharLoadModalMode('list'); setIsCharLoadModalOpen(true); }} className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">인물 불러오기</button>
-                    <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow hover:bg-indigo-700 transition-all disabled:opacity-50">스토리보드 생성</button>
+                    <button onClick={() => { setCharLoadModalMode('list'); setIsCharLoadModalOpen(true); }} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">인물 불러오기</button>
+                    <button onClick={() => proceedToStoryboard(true)} disabled={bgTask !== null} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">스토리보드 생성</button>
                     {project && project.scenes.length > 0 && (
                       <button onClick={() => proceedToStoryboard(false)} className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">기존 스토리보드 보기</button>
                     )}
@@ -2874,36 +2876,22 @@ const App: React.FC = () => {
 
                       {/* 오디오 플레이어 */}
                       {scene.audioUrl && (
-                        <div className="flex items-center gap-2">
-                          <audio src={scene.audioUrl} controls className="flex-1 h-9 rounded-lg" />
-                          <div className="relative group">
-                            <button className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center transition-all">
-                              <svg className="w-4 h-4 text-slate-600 dark:text-slate-400" fill="currentColor" viewBox="0 0 24 24">
-                                <circle cx="12" cy="5" r="1.5" />
-                                <circle cx="12" cy="12" r="1.5" />
-                                <circle cx="12" cy="19" r="1.5" />
-                              </svg>
-                            </button>
-                            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl py-1 min-w-[120px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 border border-slate-200 dark:border-slate-700">
-                              <button
-                                onClick={() => {
-                                  if (!scene.audioUrl) return;
-                                  const a = document.createElement('a');
-                                  a.href = scene.audioUrl;
-                                  a.download = `scene-${idx+1}_audio.mp3`;
-                                  a.click();
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
-                              >
-                                다운로드
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                        <audio src={scene.audioUrl} controls className="w-full h-9 rounded-lg" />
                       )}
 
                       {/* 아이콘 버튼 row - 항상 표시 */}
                       <div className="flex items-center justify-center gap-3 pt-2">
+                            {/* 오디오 업로드 */}
+                            <label className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-center transition-all cursor-pointer group relative">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                              </svg>
+                              <input type="file" className="hidden" accept="audio/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { if(scene.audioUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.audioUrl); const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, audioUrl: url, audioStatus: 'done' } : s) }); } }} />
+                              <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
+                                개별 오디오 업로드
+                              </div>
+                            </label>
+
                             {/* 오디오 생성 */}
                             <button
                               onClick={() => !scene.audioUrl && generateAudio(scene.id)}
@@ -2934,17 +2922,6 @@ const App: React.FC = () => {
                                 개별 오디오 생성
                               </div>
                             </button>
-
-                            {/* 오디오 업로드 */}
-                            <label className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-center transition-all cursor-pointer group relative">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                              </svg>
-                              <input type="file" className="hidden" accept="audio/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { if(scene.audioUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.audioUrl); const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, audioUrl: url, audioStatus: 'done' } : s) }); } }} />
-                              <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
-                                개별 오디오 업로드
-                              </div>
-                            </label>
 
                             {/* 비디오 생성 */}
                             <button
