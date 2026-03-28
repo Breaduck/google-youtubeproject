@@ -31,7 +31,7 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
   return (
     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6 space-y-4 border border-slate-200 dark:border-slate-700">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">스타일 템플릿</h2>
+        <h2 className="text-3xl font-black text-slate-900 dark:text-white">스타일 템플릿</h2>
         <button
           onClick={() => onAddTemplate?.()}
           className="px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors flex items-center gap-1"

@@ -2632,10 +2632,10 @@ const App: React.FC = () => {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 items-center">
-                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 dark:text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-all disabled:opacity-50">이미지 전체 생성</button>
-                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-100 border border-indigo-300 text-indigo-700 dark:text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-all disabled:opacity-50">오디오 전체 생성</button>
-                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-indigo-200 text-indigo-800 dark:text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-300 transition-all disabled:opacity-50">비디오 전체 생성</button>
-                      <button onClick={() => { setPreviewCurrentIndex(0); setShowPreviewModal(true); }} className="px-4 py-2 bg-sky-400 text-white rounded-lg text-sm font-medium hover:bg-sky-500 transition-all flex items-center gap-1.5">
+                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-100 text-indigo-700 dark:text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-all disabled:opacity-50">이미지 전체 생성</button>
+                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-200 text-indigo-800 dark:text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-300 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-indigo-400 text-white rounded-lg text-sm font-medium hover:bg-indigo-500 transition-all disabled:opacity-50">비디오 전체 생성</button>
+                      <button onClick={() => { setPreviewCurrentIndex(0); setShowPreviewModal(true); }} className="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-all flex items-center gap-1.5">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         생성된 동영상 미리보기
                       </button>
