@@ -2978,7 +2978,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {selectedImage && <div className="fixed inset-0 bg-slate-900/95 z-[250] flex items-center justify-center p-2 sm:p-4 cursor-zoom-out animate-in fade-in" onClick={() => setSelectedImage(null)}><img src={selectedImage} className="max-w-full max-h-[90vh] object-contain rounded-2xl sm:rounded-[40px] shadow-2xl border-4 sm:border-8 border-white/10" /></div>}
+      {selectedImage && <div className="fixed inset-0 bg-slate-900/95 z-[350] flex items-center justify-center p-2 sm:p-4 cursor-zoom-out animate-in fade-in" onClick={() => setSelectedImage(null)}><img src={selectedImage} className="max-w-full max-h-[90vh] object-contain rounded-2xl sm:rounded-[40px] shadow-2xl border-4 sm:border-8 border-white/10" /></div>}
 
       {/* 전체 미리보기 모달 */}
       {showPreviewModal && project && (
@@ -4244,7 +4244,7 @@ const App: React.FC = () => {
                     setSavedCharacters([...savedCharacters, newChar]);
                     setTimeout(() => {
                       alert('저장 완료되었습니다.');
-                    }, 100);
+                    }, 500);
                     setNewSavedCharData({ name: '', refImages: [] });
                     setCharLoadModalMode('list');
                   }}

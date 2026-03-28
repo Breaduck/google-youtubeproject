@@ -124,7 +124,7 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
       <div
         className={fullscreen
           ? "w-full h-full overflow-auto"
-          : "bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
+          : "bg-white dark:bg-slate-800 rounded-2xl w-full max-w-xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
         }
         onClick={(e) => e.stopPropagation()}
       >
@@ -164,18 +164,6 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
           {isAddMode ? (
             /* 맞춤형 스타일 학습 UI */
             <div className="space-y-6">
-              {/* 스타일 이름 입력 */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">그림체 이름</label>
-                <input
-                  type="text"
-                  value={newStyleName}
-                  onChange={(e) => setNewStyleName(e.target.value)}
-                  placeholder="예: 지브리풍, 디즈니 스타일..."
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                />
-              </div>
-
               {/* 이미지 업로드 안내 */}
               <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-2">
                 <div className="flex items-center gap-2">
@@ -187,6 +175,18 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
                 <p className="text-sm text-slate-600">
                   AI가 이미지들을 분석하여 그림체 특징을 학습합니다.
                 </p>
+              </div>
+
+              {/* 스타일 이름 입력 */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">그림체 이름</label>
+                <input
+                  type="text"
+                  value={newStyleName}
+                  onChange={(e) => setNewStyleName(e.target.value)}
+                  placeholder="예: 지브리풍, 디즈니 스타일..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                />
               </div>
 
               {/* 업로드 버튼 */}
@@ -249,10 +249,8 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
           {isAddMode ? (
             <>
               <div className="text-sm text-slate-500">
-                {newStyleImages.length > 0 ? (
+                {newStyleImages.length > 0 && (
                   <span>{newStyleImages.length}장의 이미지가 준비됨</span>
-                ) : (
-                  <span>레퍼런스 이미지를 업로드하세요</span>
                 )}
               </div>
               <button
