@@ -2469,28 +2469,7 @@ const App: React.FC = () => {
 
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
-          {step === 'style_selection' && (
-            <div className="w-full px-6 pt-0">
-              <div className="max-w-4xl mx-auto text-center py-20">
-                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">그림체를 선택해주세요</h1>
-                <p className="text-slate-500 dark:text-slate-400 mb-8">템플릿 모달에서 원하는 그림체를 선택하거나, 나만의 스타일을 만들어보세요.</p>
-                <button
-                  onClick={() => setIsTemplateModalOpen(true)}
-                  className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-semibold shadow-xl hover:bg-indigo-700 transition-all"
-                >
-                  그림체 템플릿 보기
-                </button>
-                <div className="mt-8">
-                  <button
-                    onClick={() => setStep('character_setup')}
-                    className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
-                  >
-                    다음 단계로 &gt;
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          {step === 'style_selection' && null}
 
           {step === 'character_setup' && (
             <div className="w-full px-6 pt-0">
@@ -2956,9 +2935,10 @@ const App: React.FC = () => {
           )}
 
           {step === 'input' && (
-            <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3 pt-0 pb-2 flex flex-col justify-center min-h-[calc(100vh-200px)]">
-               <div className="bg-white dark:bg-slate-800 p-2 rounded-[24px] sm:rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-700 relative">
-                 <textarea className="w-full h-56 sm:h-72 bg-slate-50/50 dark:bg-slate-700/50 border-none rounded-[18px] sm:rounded-[24px] p-4 sm:p-6 text-sm sm:text-lg text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-500" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
+            <div className="max-w-5xl mx-auto space-y-4 pt-0 pb-2 flex flex-col justify-center min-h-[calc(100vh-200px)]">
+               <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100 text-center">대본을 입력해주세요</h1>
+               <div className="bg-white dark:bg-slate-800 p-3 rounded-[24px] sm:rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-700 relative">
+                 <textarea className="w-full h-80 sm:h-96 bg-slate-50/50 dark:bg-slate-700/50 border-none rounded-[18px] sm:rounded-[24px] p-5 sm:p-7 text-base sm:text-xl text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-500" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
                <div className="flex flex-col sm:flex-row gap-3">
                  <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-4 sm:py-5 bg-indigo-600 text-white rounded-[18px] sm:rounded-[24px] font-semibold text-base sm:text-xl shadow-xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
@@ -4231,7 +4211,8 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     if (!newSavedCharData.name.trim()) { alert('이름을 입력해주세요'); return; }
                     if (savedCharacters.length >= 10) { alert('최대 10명까지 저장 가능합니다'); return; }
                     const newChar = { id: crypto.randomUUID(), name: newSavedCharData.name, refImages: newSavedCharData.refImages, description: '', portraitUrl: newSavedCharData.refImages[0] || '' };
