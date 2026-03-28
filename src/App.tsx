@@ -343,6 +343,8 @@ const App: React.FC = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewCurrentIndex, setPreviewCurrentIndex] = useState(0);
   const [showExportPopup, setShowExportPopup] = useState(false);
+  const [showSubtitlePrompt, setShowSubtitlePrompt] = useState(false);
+  const [includeSubtitles, setIncludeSubtitles] = useState(false);
 
   const sceneImageUploadRef = useRef<HTMLInputElement>(null);
   const sceneAudioUploadRef = useRef<HTMLInputElement>(null);
@@ -2639,7 +2641,7 @@ const App: React.FC = () => {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         생성된 동영상 미리보기
                       </button>
-                      <button onClick={() => setShowExportPopup(true)} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">동영상 합치기</button>
+                      <button onClick={() => setShowSubtitlePrompt(true)} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">동영상 합치기</button>
                     </div>
                   </div>
 
@@ -2834,89 +2836,129 @@ const App: React.FC = () => {
 
                     {/* 컨텐츠 영역 */}
                     <div className="p-4 space-y-3">
-                      {/* 장면 대사 */}
-                      <div>
-                        <p className="text-[10px] text-slate-400 font-medium mb-1.5 uppercase tracking-wide">Scene 대사</p>
-                        <textarea
-                          value={scene.scriptSegment}
-                          onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                          placeholder="장면 대사..."
-                        />
-                      </div>
+                      {scene.imageUrl && (
+                        <>
+                          {/* 장면 대사 */}
+                          <div>
+                            <p className="text-[10px] text-slate-400 font-medium mb-1.5 uppercase tracking-wide">Scene 대사</p>
+                            <textarea
+                              value={scene.scriptSegment}
+                              onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
+                              className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                              placeholder="장면 대사..."
+                            />
+                          </div>
 
-                      {/* 오디오 버튼 */}
-                      <div className="flex items-center gap-2">
-                        {scene.audioUrl ? (
-                          <audio src={scene.audioUrl} controls className="flex-1 h-9 rounded-xl" />
-                        ) : (
-                          <button
-                            onClick={() => generateAudio(scene.id)}
-                            disabled={scene.audioStatus === 'loading'}
-                            className="flex-1 py-2.5 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                          >
-                            {scene.audioStatus === 'loading' ? (
-                              <div className="w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-                            )}
-                            오디오 생성
-                          </button>
-                        )}
-                        <label className="w-9 h-9 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all cursor-pointer flex-shrink-0">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                          <input type="file" className="hidden" accept="audio/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { if(scene.audioUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.audioUrl); const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, audioUrl: url, audioStatus: 'done' } : s) }); } }} />
-                        </label>
-                      </div>
+                          {/* 아이콘 버튼 row */}
+                          <div className="flex items-center justify-center gap-3 pt-2">
+                            {/* 오디오 */}
+                            <button
+                              onClick={() => !scene.audioUrl && generateAudio(scene.id)}
+                              disabled={scene.audioStatus === 'loading'}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all group relative ${
+                                scene.audioUrl
+                                  ? 'bg-indigo-100 dark:bg-indigo-600 text-indigo-600 dark:text-white'
+                                  : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-600 hover:text-indigo-600 dark:hover:text-white'
+                              } disabled:opacity-50`}
+                              title="오디오 생성"
+                            >
+                              {scene.audioStatus === 'loading' ? (
+                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <>
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                  </svg>
+                                  {scene.audioUrl && (
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center">
+                                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                              <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap">
+                                오디오 생성
+                              </div>
+                            </button>
 
-                      {/* 비디오 버튼 */}
-                      <div className="flex items-center gap-2">
-                        {scene.videoUrl ? (
-                          <>
+                            {/* 비디오 */}
                             <button
-                              onClick={() => {
-                                if (!scene.videoUrl) return;
-                                console.log('[UI] downloading 1080p (recommended)');
-                                const a = document.createElement('a');
-                                a.href = scene.videoUrl.includes('?') ? `${scene.videoUrl}&export=1080` : `${scene.videoUrl}?export=1080`;
-                                a.download = `scene-${idx+1}_1080p.mp4`;
-                                a.click();
-                              }}
-                              className="flex-1 py-2 px-3 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-1.5"
+                              onClick={() => !scene.videoUrl && generateVideo(scene.id)}
+                              disabled={!scene.imageUrl || scene.videoStatus === 'loading'}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all group relative ${
+                                scene.videoUrl
+                                  ? 'bg-indigo-100 dark:bg-indigo-600 text-indigo-600 dark:text-white'
+                                  : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-600 hover:text-indigo-600 dark:hover:text-white'
+                              } disabled:opacity-50`}
+                              title="비디오 생성"
                             >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
-                              1080p 유튜브용
+                              {scene.videoStatus === 'loading' ? (
+                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <>
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  {scene.videoUrl && (
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center">
+                                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                              <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap">
+                                비디오 생성
+                              </div>
                             </button>
-                            <button
-                              onClick={() => {
-                                if (!scene.videoUrl) return;
-                                console.log('[UI] downloading 720p original');
-                                const a = document.createElement('a');
-                                a.href = scene.videoUrl;
-                                a.download = `scene-${idx+1}_720p.mp4`;
-                                a.click();
-                              }}
-                              className="flex-1 py-2 px-3 bg-slate-50 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-100 transition-all flex items-center justify-center gap-1.5"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                              720p 원본
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => generateVideo(scene.id)}
-                            disabled={!scene.imageUrl || scene.videoStatus === 'loading'}
-                            className="flex-1 py-2.5 bg-green-50 text-green-600 text-xs font-semibold rounded-xl hover:bg-green-100 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                          >
-                            {scene.videoStatus === 'loading' ? (
-                              <div className="w-3.5 h-3.5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+
+                            {/* 다운로드 */}
+                            {scene.videoUrl && (
+                              <button
+                                onClick={() => {
+                                  if (!scene.videoUrl) return;
+                                  const a = document.createElement('a');
+                                  a.href = scene.videoUrl.includes('?') ? `${scene.videoUrl}&export=1080` : `${scene.videoUrl}?export=1080`;
+                                  a.download = `scene-${idx+1}_1080p.mp4`;
+                                  a.click();
+                                }}
+                                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-600 hover:text-indigo-600 dark:hover:text-white flex items-center justify-center transition-all group relative"
+                                title="다운로드"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap">
+                                  1080p 다운로드
+                                </div>
+                              </button>
                             )}
-                            비디오 생성
-                          </button>
-                        )}
-                      </div>
+
+                            {/* 오디오 player (작은 아이콘) */}
+                            {scene.audioUrl && (
+                              <button
+                                onClick={() => {
+                                  const audio = new Audio(scene.audioUrl!);
+                                  audio.play();
+                                }}
+                                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-center transition-all group relative"
+                                title="오디오 재생"
+                              >
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                                <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap">
+                                  오디오 재생
+                                </div>
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
 
                       {/* 프롬프트 - 접힌 스타일 */}
                       <details className="group/prompt">
@@ -3055,7 +3097,44 @@ const App: React.FC = () => {
         }, 0);
         const estimatedTime = Math.ceil((videoCount * 3 + imageCount * 8 + totalScenes * 2) / 60);
         return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setShowExportPopup(false)}>
+          <>
+            {/* 자막 팝업 */}
+            {showSubtitlePrompt && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowSubtitlePrompt(false)}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">자막 설정</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">자막을 표시할까요?</p>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setIncludeSubtitles(true);
+                          setShowSubtitlePrompt(false);
+                          setShowExportPopup(true);
+                        }}
+                        className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
+                      >
+                        네
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIncludeSubtitles(false);
+                          setShowSubtitlePrompt(false);
+                          setShowExportPopup(true);
+                        }}
+                        className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
+                      >
+                        아니오
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setShowExportPopup(false)}>
             <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="p-6 border-b border-slate-100 dark:border-slate-700">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">동영상 합치기</h2>
@@ -3094,6 +3173,7 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
+          </>
         );
       })()}
 
