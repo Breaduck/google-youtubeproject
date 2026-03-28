@@ -3262,43 +3262,21 @@ const App: React.FC = () => {
           <div className={`fixed inset-0 z-[300] flex flex-col ${isDarkMode ? 'bg-gray-950' : 'bg-white'}`} onClick={() => { setShowPreviewModal(false); setIsMergedView(false); setExpandedSceneIndex(null); }}>
             <div className={`flex-shrink-0 p-4 border-b ${isDarkMode ? 'bg-gray-950 border-gray-800' : 'bg-white border-gray-200'}`} onClick={e => e.stopPropagation()}>
               <div className="max-w-7xl mx-auto flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    영상 미리보기 <span className="text-indigo-400">(AI생성 영상 {aiVideoCount}개, 줌인줌아웃 {zoomVideoCount}개)</span>
-                  </h2>
+                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  영상 미리보기 <span className="text-indigo-400">(AI생성 영상 {aiVideoCount}개, 줌인줌아웃 {zoomVideoCount}개)</span>
+                </h2>
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowSubtitleEditor(true)}
                     className="px-4 py-2 text-sm font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all"
                   >
                     자막 템플릿 선택
                   </button>
-                </div>
-                <div className="flex items-center gap-3">
-                  {successScenes.length > 0 && expandedSceneIndex === null && (
-                    <button
-                      onClick={() => setIsMergedView(!isMergedView)}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-all"
-                    >
-                      {isMergedView ? '그리드로 돌아가기' : '합쳐서 보기'}
-                    </button>
-                  )}
-                  <select
-                    value={selectedSubtitleTemplate}
-                    onChange={(e) => setSelectedSubtitleTemplate(e.target.value)}
-                    className={`text-sm w-44 px-3 py-2 rounded-lg border transition-all ${
-                      isDarkMode
-                        ? 'bg-gray-800 border-gray-700 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  >
-                    {TEMPLATES.map(tmpl => (
-                      <option key={tmpl.id} value={tmpl.id}>
-                        {tmpl.name}
-                      </option>
-                    ))}
-                  </select>
                   <button
-                    onClick={() => setShowSubtitlePrompt(true)}
+                    onClick={() => {
+                      setIncludeSubtitles(true);
+                      exportVideo();
+                    }}
                     disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)}
                     className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
                   >
@@ -3322,72 +3300,8 @@ const App: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
               <div className="max-w-7xl mx-auto">
-                {expandedSceneIndex !== null ? (
-                  /* 확대 재생 모드 */
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="relative w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
-                      {project.scenes[expandedSceneIndex]?.videoUrl ? (
-                        <video
-                          key={expandedSceneIndex}
-                          src={project.scenes[expandedSceneIndex].videoUrl}
-                          className="w-full h-full object-contain"
-                          controls
-                          autoPlay
-                        />
-                      ) : (
-                        <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>영상 없음</div>
-                      )}
-                      <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/70 rounded-lg text-white text-sm font-medium">
-                        #{expandedSceneIndex + 1}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setExpandedSceneIndex(null)}
-                      className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                        isDarkMode
-                          ? 'bg-gray-800 hover:bg-gray-700 text-white'
-                          : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                      }`}
-                    >
-                      그리드로 돌아가기
-                    </button>
-                  </div>
-                ) : isMergedView ? (
-                  /* 합쳐서 보기 모드 */
-                  <div className="flex flex-col items-center gap-6">
-                    <div className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
-                      <video
-                        className="w-full h-full object-contain"
-                        controls
-                        autoPlay
-                        onEnded={(e) => {
-                          const videoEl = e.currentTarget;
-                          const currentSrc = videoEl.src;
-                          const currentIdx = successScenes.findIndex(s => s.videoUrl === currentSrc);
-                          if (currentIdx < successScenes.length - 1) {
-                            videoEl.src = successScenes[currentIdx + 1].videoUrl!;
-                            videoEl.play();
-                          }
-                        }}
-                        src={successScenes[0]?.videoUrl || ''}
-                      />
-                    </div>
-                    <div className="w-full max-w-5xl">
-                      <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>타임라인 (씬 순서)</p>
-                      <div className={`flex gap-1 h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
-                        {successScenes.map((scene, idx) => (
-                          <div
-                            key={scene.id}
-                            className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-500"
-                            style={{ opacity: 0.7 + (idx * 0.3 / successScenes.length) }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  /* 그리드 모드 - 전체 씬 표시 (빈 씬 포함) */
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {/* 그리드 모드 - 전체 씬 표시 (빈 씬 포함) */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {project.scenes.map((scene, idx) => (
                       <div
                         key={scene.id}
@@ -3405,68 +3319,40 @@ const App: React.FC = () => {
                           <>
                             <video
                               src={scene.videoUrl}
-                              className="w-full h-full object-cover cursor-pointer"
-                              onClick={() => setExpandedSceneIndex(idx)}
+                              className="w-full h-full object-cover"
                             />
-                          {/* 호버 시 버튼 */}
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setExpandedSceneIndex(idx);
-                              }}
-                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
-                              title="재생"
-                            >
-                              <svg className="w-6 h-6 text-gray-900 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const a = document.createElement('a');
-                                a.href = scene.videoUrl!;
-                                a.download = `scene-${idx + 1}.mp4`;
-                                a.click();
-                              }}
-                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
-                              title="다운로드"
-                            >
-                              <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setVideoRegenerateSceneId(scene.id);
-                                setVideoRegeneratePrompt('');
-                              }}
-                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
-                              title="재생성"
-                            >
-                              <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                            </button>
-                          </div>
-                          {/* 우측 상단 다운로드 버튼 */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const a = document.createElement('a');
-                              a.href = scene.videoUrl!;
-                              a.download = `scene-${idx + 1}.mp4`;
-                              a.click();
-                            }}
-                            className="absolute top-2 right-2 w-8 h-8 bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="다운로드"
+                          {/* 우측 상단 업로드 버튼 */}
+                          <label
+                            className="absolute top-2 right-2 w-8 h-8 bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            title="영상 업로드"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                             </svg>
-                          </button>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="video/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  if (scene.videoUrl?.startsWith('blob:')) {
+                                    URL.revokeObjectURL(scene.videoUrl);
+                                  }
+                                  const url = URL.createObjectURL(file);
+                                  updateCurrentProject({
+                                    scenes: project.scenes.map(s =>
+                                      s.id === scene.id
+                                        ? { ...s, videoUrl: url, videoType: 'manual' }
+                                        : s
+                                    )
+                                  });
+                                }
+                                if (e.target) e.target.value = '';
+                              }}
+                            />
+                          </label>
                           {/* 씬 번호 */}
                           <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
                             #{idx + 1}
