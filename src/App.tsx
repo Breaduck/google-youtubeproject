@@ -2663,10 +2663,10 @@ const App: React.FC = () => {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 items-center">
-                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-100 text-indigo-700 dark:text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-all disabled:opacity-50">이미지 전체 생성</button>
-                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-200 text-indigo-800 dark:text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-300 transition-all disabled:opacity-50">오디오 전체 생성</button>
-                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-indigo-400 text-white rounded-lg text-sm font-medium hover:bg-indigo-500 transition-all disabled:opacity-50">비디오 전체 생성</button>
-                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">동영상 합치기</button>
+                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
+                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">비디오 전체 생성</button>
+                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">동영상 합치기</button>
                     </div>
                   </div>
 
@@ -3439,12 +3439,40 @@ const App: React.FC = () => {
             {/* 자막 팝업 */}
             {showSubtitlePrompt && (
               <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowSubtitlePrompt(false)}>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
                   <div className="p-6 border-b border-slate-100 dark:border-slate-700">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">자막 설정</h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">자막을 표시할까요?</p>
                   </div>
                   <div className="p-6 space-y-4">
+                    {/* 예시 이미지 */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden relative">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="text-center">
+                              <div className="w-12 h-12 bg-white/20 rounded-full mx-auto mb-2"></div>
+                              <div className="text-xs text-white/60">영상</div>
+                            </div>
+                          </div>
+                          <div className="absolute bottom-3 left-3 right-3 bg-black/80 text-white text-xs px-3 py-1.5 rounded">
+                            안녕하세요
+                          </div>
+                        </div>
+                        <p className="text-xs text-center font-medium text-slate-700 dark:text-slate-300">자막 ON</p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden relative">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="text-center">
+                              <div className="w-12 h-12 bg-white/20 rounded-full mx-auto mb-2"></div>
+                              <div className="text-xs text-white/60">영상</div>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-center font-medium text-slate-700 dark:text-slate-300">자막 OFF</p>
+                      </div>
+                    </div>
                     <div className="flex gap-3">
                       <button
                         onClick={() => {
@@ -3454,7 +3482,7 @@ const App: React.FC = () => {
                         }}
                         className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
                       >
-                        네
+                        자막 ON
                       </button>
                       <button
                         onClick={() => {
@@ -3464,7 +3492,7 @@ const App: React.FC = () => {
                         }}
                         className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
                       >
-                        아니오
+                        자막 OFF
                       </button>
                     </div>
                   </div>
