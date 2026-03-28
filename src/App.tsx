@@ -2323,7 +2323,7 @@ const App: React.FC = () => {
   const currentSavedStyle = savedStyles.find(s => s.id === style);
 
   const getStyleDisplayName = (styleValue: string) => {
-    if (styleValue === '2d-animation') return '2D 애니메이션';
+    if (styleValue === '2d-animation') return '애니메이션';
     if (styleValue === 'realistic') return '실사화';
     if (styleValue === 'animation') return '3D 애니메이션';
     if (styleValue === 'custom') return '맞춤형';
@@ -2932,14 +2932,14 @@ const App: React.FC = () => {
                </div>
                <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
                   {['realistic', '2d-animation'].map(s => (
-                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); }} className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${style === s ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-300 dark:border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>{s === '2d-animation' ? '2D 애니메이션' : '실사화'}</button>
+                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); setSelectedStyleTemplate(null); }} className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${style === s && selectedStyleTemplate === null ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-300 dark:border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>{s === '2d-animation' ? '애니메이션' : '실사화'}</button>
                   ))}
                   <button
                     onClick={() => {
                       setTempSelectedTemplate(selectedStyleTemplate);
                       setIsTemplateModalOpen(true);
                     }}
-                    className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${(style !== 'realistic' && style !== '2d-animation') ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-300 dark:border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                    className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${selectedStyleTemplate !== null ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-300 dark:border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                   >
                     {selectedStyleTemplate ? `${selectedStyleTemplate.name}` : '그림체 템플릿'}
                   </button>

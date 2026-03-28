@@ -2290,11 +2290,12 @@ function AdminPanel() {
       {showPanel && (
         <div className="mt-3 bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-xs">
           <div className="space-y-2">
+            <p className="text-xs text-slate-400">※ 일반 사용자는 입력 불필요 (관리자 전용)</p>
             <input
               type="password"
               value={adminKey}
               onChange={e => setAdminKey(e.target.value)}
-              placeholder="Admin Key"
+              placeholder="Admin Key (관리자 전용)"
               className="w-full px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
             />
             <button
