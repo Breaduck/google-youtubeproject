@@ -2471,7 +2471,7 @@ const App: React.FC = () => {
                 </div>
               ) : (
               <>
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-3 sm:p-4 mb-3">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg py-8 px-4 mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">등장인물 외형 설정</h1>
                   <div className="flex gap-2">
@@ -2577,7 +2577,7 @@ const App: React.FC = () => {
           )}
 
           {step === 'storyboard' && (
-            <div className="w-full px-4 sm:px-8 pt-6">
+            <div className="w-full px-4 sm:px-8 pt-2">
               {!project ? (
                 <div className="text-center py-20">
                   <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -2585,7 +2585,7 @@ const App: React.FC = () => {
               ) : (
               <>
               {/* 상단바 - 토스 스타일 */}
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 sm:p-5 mb-2">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 py-8 px-5 mb-4 min-h-[100px]">
                 <div className="flex flex-col gap-3">
                   {/* 첫 번째 줄: 제목 & 버튼들 */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
