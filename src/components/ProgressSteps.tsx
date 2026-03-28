@@ -67,9 +67,35 @@ const getCurrentStepIndex = (
 
 const getStepStatus = (
   stepIndex: number,
-  currentStepIndex: number
+  currentStepIndex: number,
+  hasScript: boolean,
+  hasCharacters: boolean,
+  hasScenes: boolean,
+  hasImages: boolean,
+  hasAudios: boolean,
+  hasVideos: boolean,
+  characterCount: number,
+  sceneCount: number,
+  imageCount: number,
+  audioCount: number,
+  videoCount: number
 ): 'completed' | 'current' | 'upcoming' => {
-  if (stepIndex < currentStepIndex) return 'completed';
+  // 각 단계별 실제 완료 여부 체크
+  const isStepCompleted = (index: number): boolean => {
+    switch (index) {
+      case 0: return hasScript;
+      case 1: return true; // 그림체 설정은 항상 통과 (선택 사항)
+      case 2: return hasCharacters && characterCount > 0;
+      case 3: return hasScenes && sceneCount > 0;
+      case 4: return hasImages && imageCount > 0;
+      case 5: return hasAudios && audioCount > 0;
+      case 6: return hasVideos && videoCount > 0;
+      case 7: return hasImages && hasAudios; // 영상 합치기
+      default: return false;
+    }
+  };
+
+  if (isStepCompleted(stepIndex)) return 'completed';
   if (stepIndex === currentStepIndex) return 'current';
   return 'upcoming';
 };
@@ -155,9 +181,23 @@ export default function ProgressSteps({
       <div className="max-w-[1400px] mx-auto px-20 sm:px-24 py-2">
         <div className="flex items-center justify-between">
           {steps.map((step, index) => {
-            const status = getStepStatus(index, currentStepIndex);
+            const status = getStepStatus(
+              index,
+              currentStepIndex,
+              hasScript,
+              hasCharacters,
+              hasScenes,
+              hasImages,
+              hasAudios,
+              hasVideos,
+              characterCount,
+              sceneCount,
+              imageCount,
+              audioCount,
+              videoCount
+            );
             const isLastStep = index === steps.length - 1;
-            const isLineCompleted = index < currentStepIndex;
+            const isLineCompleted = status === 'completed';
 
             return (
               <React.Fragment key={index}>

@@ -2819,7 +2819,7 @@ const App: React.FC = () => {
                         type="text"
                         value={project.title}
                         onChange={(e) => updateCurrentProject({ title: e.target.value })}
-                        className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none focus:outline-none w-auto min-w-[200px]"
+                        className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none focus:outline-none w-auto min-w-[200px]"
                         style={{ fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
                       />
                     </div>
@@ -3283,7 +3283,7 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowSubtitleEditor(true)}
-                    className="px-4 py-2 text-sm font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all"
+                    className="px-5 py-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-semibold rounded-2xl hover:from-blue-600 hover:to-indigo-700 transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95"
                   >
                     자막 템플릿 선택
                   </button>
@@ -3293,7 +3293,7 @@ const App: React.FC = () => {
                       exportVideo();
                     }}
                     disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+                    className="px-5 py-2.5 bg-gradient-to-br from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-2xl hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 disabled:hover:scale-100"
                   >
                     영상 합치기
                   </button>
@@ -3336,6 +3336,53 @@ const App: React.FC = () => {
                               src={scene.videoUrl}
                               className="w-full h-full object-cover"
                             />
+                          {/* 호버 시 중앙 버튼 */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const video = e.currentTarget.closest('.group')?.querySelector('video') as HTMLVideoElement;
+                                if (video) {
+                                  if (video.paused) video.play();
+                                  else video.pause();
+                                }
+                              }}
+                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                              title="재생"
+                            >
+                              <svg className="w-6 h-6 text-gray-900 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const a = document.createElement('a');
+                                a.href = scene.videoUrl!;
+                                a.download = `scene-${idx + 1}.mp4`;
+                                a.click();
+                              }}
+                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                              title="다운로드"
+                            >
+                              <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setVideoRegenerateSceneId(scene.id);
+                                setVideoRegeneratePrompt('');
+                              }}
+                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                              title="재생성"
+                            >
+                              <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            </button>
+                          </div>
                           {/* 우측 상단 업로드 버튼 */}
                           <label
                             className="absolute top-2 right-2 w-8 h-8 bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
