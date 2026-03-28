@@ -12,9 +12,10 @@ interface Props {
   savedStyles?: SavedStyle[];
   onAddTemplate?: () => void;
   onSaveNewStyle?: (name: string, images: string[]) => Promise<void>;
+  fullscreen?: boolean;
 }
 
-export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, onSelectTemplate, onApply, savedStyles = [], onAddTemplate, onSaveNewStyle }: Props) {
+export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, onSelectTemplate, onApply, savedStyles = [], onAddTemplate, onSaveNewStyle, fullscreen = false }: Props) {
   const [isAddMode, setIsAddMode] = useState(false);
   const [newStyleName, setNewStyleName] = useState('');
   const [newStyleImages, setNewStyleImages] = useState<string[]>([]);
@@ -111,11 +112,17 @@ export default function StyleTemplateModal({ isOpen, onClose, selectedTemplate, 
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[350] flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={onClose}
+      className={fullscreen
+        ? "fixed inset-0 z-[350] bg-white dark:bg-slate-900"
+        : "fixed inset-0 bg-black/40 backdrop-blur-sm z-[350] flex items-center justify-center p-4 animate-in fade-in duration-200"
+      }
+      onClick={fullscreen ? undefined : onClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
+        className={fullscreen
+          ? "w-full h-full overflow-auto"
+          : "bg-white dark:bg-slate-800 rounded-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden shadow-2xl animate-in slide-in-bottom duration-200"
+        }
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}

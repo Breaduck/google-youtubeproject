@@ -4354,6 +4354,7 @@ const App: React.FC = () => {
           }
         }}
         savedStyles={savedStyles}
+        fullscreen={step === 'style_selection'}
         onSaveNewStyle={async (name, images) => {
           setBgTask({ type: 'style', message: '참고 이미지를 바탕으로 화풍을 학습중입니다' });
           setBgProgress(0);
