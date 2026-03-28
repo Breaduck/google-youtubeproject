@@ -184,12 +184,12 @@ const App: React.FC = () => {
     return projects.find(p => p.id === currentProjectId) || null;
   }, [projects, currentProjectId]);
 
-  // 현재 페이지 상태에 따라 step 자동 동기화
+  // 현재 페이지 상태에 따라 step 자동 동기화 (프로젝트 ID 변경 시에만)
   useEffect(() => {
     if (!currentProjectId) {
       setStep('dashboard');
     } else if (project) {
-      // 프로젝트가 있을 때는 진행 상황에 따라 자동 설정
+      // 프로젝트 ID가 변경될 때만 자동 step 설정 (캐릭터 추가 시 step 유지)
       if (project.scenes && project.scenes.length > 0) {
         setStep('storyboard');
       } else if (project.characters && project.characters.length > 0) {
@@ -200,7 +200,7 @@ const App: React.FC = () => {
         setStep('input');
       }
     }
-  }, [currentProjectId, project?.scenes?.length, project?.characters?.length, project?.script]);
+  }, [currentProjectId]); // 의존성에서 characters/scenes length 제거 → step 유지
 
   // Wrappers to keep functional update pattern working
   const updateProjects = (updater: (prev: StoryProject[]) => StoryProject[]) => {
@@ -1102,8 +1102,14 @@ const App: React.FC = () => {
 
       // 학습된 그림체 스타일 100% 적용
       let finalPrompt = char.visualDescription;
+
+      // 스타일 템플릿 프리픽스 추가 (씬과 동일하게 적용)
+      if (selectedStyleTemplate) {
+        finalPrompt = `${selectedStyleTemplate.imagePromptPrefix} ${finalPrompt}`;
+      }
+
       if (activeProject.customStyleDescription) {
-        finalPrompt = `${char.visualDescription}, Art style: ${activeProject.customStyleDescription}`;
+        finalPrompt = `${finalPrompt}, Art style: ${activeProject.customStyleDescription}`;
       }
 
       // 레퍼런스 이미지 속 캐릭터 외형 정보 추가
@@ -1359,8 +1365,14 @@ const App: React.FC = () => {
 
       // 학습된 그림체 스타일 100% 적용
       let finalPrompt = newPrompt;
+
+      // 스타일 템플릿 프리픽스 추가 (캐릭터/씬 모두 동일 적용)
+      if (selectedStyleTemplate) {
+        finalPrompt = `${selectedStyleTemplate.imagePromptPrefix} ${finalPrompt}`;
+      }
+
       if (project.customStyleDescription) {
-        finalPrompt = `${newPrompt}, Art style: ${project.customStyleDescription}`;
+        finalPrompt = `${finalPrompt}, Art style: ${project.customStyleDescription}`;
       }
 
       // 레퍼런스 이미지 속 캐릭터 외형 정보 추가
@@ -1475,8 +1487,14 @@ const App: React.FC = () => {
 
       // 학습된 그림체 스타일 100% 적용
       let finalPrompt = newPrompt;
+
+      // 스타일 템플릿 프리픽스 추가 (캐릭터/씬 모두 동일 적용)
+      if (selectedStyleTemplate) {
+        finalPrompt = `${selectedStyleTemplate.imagePromptPrefix} ${finalPrompt}`;
+      }
+
       if (project.customStyleDescription) {
-        finalPrompt = `${newPrompt}, Art style: ${project.customStyleDescription}`;
+        finalPrompt = `${finalPrompt}, Art style: ${project.customStyleDescription}`;
       }
 
       // 레퍼런스 이미지 속 캐릭터 외형 정보 추가
@@ -4457,8 +4475,9 @@ const App: React.FC = () => {
                     };
 
                     setSavedCharacters([...savedCharacters, newChar]);
-                    alert('저장되었습니다.');
+                    alert('저장이 완료되었습니다.');
                     setNewSavedCharData({ name: '', refImages: [] });
+                    setIsCharLoadModalOpen(false);
                     setCharLoadModalMode('list');
                   }}
                   disabled={!newSavedCharData.name.trim()}
