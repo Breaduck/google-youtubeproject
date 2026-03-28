@@ -364,6 +364,13 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
+  // 그림체 설정 페이지 진입 시 템플릿 모달 자동 열기
+  useEffect(() => {
+    if (step === 'style_selection') {
+      setIsTemplateModalOpen(true);
+    }
+  }, [step]);
+
   // Build version log
   useEffect(() => {
     console.log(`[APP] BUILD_VERSION: ${BUILD_VERSION}`);
@@ -1016,13 +1023,13 @@ const App: React.FC = () => {
     }
 
     if (activeProject.characters.length > 0 && activeProject.script === script) {
-      setStep('character_setup');
+      setStep('style_selection');
       setHasVisitedSetup(true);
       return;
     }
 
     // 먼저 화면 이동
-    setStep('character_setup');
+    setStep('style_selection');
     setHasVisitedSetup(true);
     setBgTask({ type: 'analysis', message: '등장인물 분석 중...' });
     setBgProgress(10);
@@ -2315,7 +2322,8 @@ const App: React.FC = () => {
     }
     // 일반 단계 네비게이션
     if (step === 'storyboard') setStep('character_setup');
-    else if (step === 'character_setup') setStep('input');
+    else if (step === 'character_setup') setStep('style_selection');
+    else if (step === 'style_selection') setStep('input');
     else if (step === 'input') setStep('dashboard');
     else setStep('dashboard');
   };
@@ -2461,6 +2469,29 @@ const App: React.FC = () => {
 
       {step !== 'dashboard' && (
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
+          {step === 'style_selection' && (
+            <div className="w-full px-6 pt-0">
+              <div className="max-w-4xl mx-auto text-center py-20">
+                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">그림체를 선택해주세요</h1>
+                <p className="text-slate-500 dark:text-slate-400 mb-8">템플릿 모달에서 원하는 그림체를 선택하거나, 나만의 스타일을 만들어보세요.</p>
+                <button
+                  onClick={() => setIsTemplateModalOpen(true)}
+                  className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-semibold shadow-xl hover:bg-indigo-700 transition-all"
+                >
+                  그림체 템플릿 보기
+                </button>
+                <div className="mt-8">
+                  <button
+                    onClick={() => setStep('character_setup')}
+                    className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
+                  >
+                    다음 단계로 &gt;
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {step === 'character_setup' && (
             <div className="w-full px-6 pt-0">
               {bgTask ? (
@@ -2925,63 +2956,15 @@ const App: React.FC = () => {
           )}
 
           {step === 'input' && (
-            <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3 pt-0 pb-2">
-               <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
-                  {['realistic', '2d-animation'].map(s => (
-                    <button key={s} onClick={() => { setStyle(s as VisualStyle); updateCurrentProject({ style: s }); setSelectedStyleTemplate(null); }} className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${style === s && selectedStyleTemplate === null ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-300 dark:border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>{s === '2d-animation' ? '애니메이션' : '실사화'}</button>
-                  ))}
-                  <button
-                    onClick={() => {
-                      setTempSelectedTemplate(selectedStyleTemplate);
-                      setIsTemplateModalOpen(true);
-                    }}
-                    className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base ${selectedStyleTemplate !== null ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-300 dark:border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-                  >
-                    {selectedStyleTemplate ? `${selectedStyleTemplate.name}` : '그림체 템플릿'}
-                  </button>
-                  {savedStyles.length > 0 && (
-                    <div className="relative group/styles">
-                      <button className={`px-4 py-3 sm:px-8 sm:py-5 rounded-[16px] sm:rounded-[24px] transition-all font-semibold text-sm sm:text-base flex items-center gap-2 ${savedStyles.some(s => s.id === style) ? 'bg-indigo-600 text-white shadow-xl' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-                        자주 쓰는 그림체
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                      </button>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1 min-w-[180px] opacity-0 invisible group-hover/styles:opacity-100 group-hover/styles:visible transition-all z-50">
-                        {savedStyles.map(s => (
-                          <button
-                            key={s.id}
-                            onClick={() => { setStyle(s.id as VisualStyle); updateCurrentProject({ style: s.id }); }}
-                            className={`w-full px-3 py-2 text-left text-sm font-medium transition-all flex items-center gap-2 ${style === s.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                          >
-                            {s.refImages[0] && <img src={s.refImages[0]} className="w-6 h-6 rounded-md object-cover" />}
-                            <span>{s.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-               </div>
-               {currentSavedStyle && (
-                 <div className="animate-in fade-in slide-in-bottom bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-3 sm:p-5 rounded-[20px] sm:rounded-[28px] space-y-2">
-                   <h4 className="text-base sm:text-lg font-semibold text-slate-900">{currentSavedStyle.name} 상세 정보</h4>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      <div className="space-y-1">
-                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">학습된 스타일 묘사</p>
-                         <p className="text-xs text-slate-600 leading-relaxed font-medium h-16 overflow-y-auto custom-scrollbar">{currentSavedStyle.description}</p>
-                      </div>
-                      <div className="flex gap-2 items-center overflow-x-auto">
-                         {currentSavedStyle.refImages.map((img, i) => <img key={i} src={img} className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl object-cover border-2 border-white shadow-sm shrink-0" />)}
-                      </div>
-                   </div>
-                 </div>
-               )}
+            <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3 pt-0 pb-2 flex flex-col justify-center min-h-[calc(100vh-200px)]">
                <div className="bg-white dark:bg-slate-800 p-2 rounded-[24px] sm:rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-700 relative">
                  <textarea className="w-full h-56 sm:h-72 bg-slate-50/50 dark:bg-slate-700/50 border-none rounded-[18px] sm:rounded-[24px] p-4 sm:p-6 text-sm sm:text-lg text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none leading-relaxed placeholder:text-slate-300 dark:placeholder:text-slate-500" placeholder="시나리오를 입력하세요..." value={script} onChange={(e) => setScript(e.target.value)} />
                </div>
                <div className="flex flex-col sm:flex-row gap-3">
                  <button onClick={startAnalysis} disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()} className="flex-1 py-4 sm:py-5 bg-indigo-600 text-white rounded-[18px] sm:rounded-[24px] font-semibold text-base sm:text-xl shadow-xl active:scale-[0.98] disabled:opacity-50 transition-all">프로젝트 시작하기</button>
                  {project && (project.characters.length > 0 || project.scenes.length > 0) && (
-                   <button onClick={() => setStep('character_setup')} className="px-6 py-4 sm:py-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-[18px] sm:rounded-[24px] font-semibold text-sm sm:text-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-lg">
-                     등장인물 보드로 이동 &gt;
+                   <button onClick={() => setStep('style_selection')} className="px-6 py-4 sm:py-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-[18px] sm:rounded-[24px] font-semibold text-sm sm:text-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-lg">
+                     그림체 설정으로 이동 &gt;
                    </button>
                  )}
                </div>

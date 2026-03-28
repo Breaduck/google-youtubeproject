@@ -19,12 +19,13 @@ interface Step {
 
 const steps: Step[] = [
   { label: '대본 업로드', icon: '1' },
-  { label: '등장인물 설정', icon: '2' },
-  { label: '스크립트 분할', icon: '3' },
-  { label: '이미지 생성', icon: '4' },
-  { label: '나레이션 생성', icon: '5' },
-  { label: 'AI 영상 생성', icon: '6' },
-  { label: '영상 합치기', icon: '7' },
+  { label: '그림체 설정', icon: '2' },
+  { label: '등장인물 설정', icon: '3' },
+  { label: '스크립트 분할', icon: '4' },
+  { label: '이미지 생성', icon: '5' },
+  { label: '나레이션 생성', icon: '6' },
+  { label: 'AI 영상 생성', icon: '7' },
+  { label: '영상 합치기', icon: '8' },
 ];
 
 const getCurrentStepIndex = (
@@ -38,14 +39,15 @@ const getCurrentStepIndex = (
   isGeneratingVideo: boolean
 ): number => {
   if (currentStep === 'input') return 0;
-  else if (currentStep === 'character_setup') return 1;
+  else if (currentStep === 'style_selection') return 1;
+  else if (currentStep === 'character_setup') return 2;
   else if (currentStep === 'storyboard') {
-    if (hasVideos) return 5;
-    if (hasAudios) return 4;
-    if (hasImages) return 3;
-    if (hasScenes) return 2;
-    if (hasCharacters) return 1;
-    if (hasScript) return 0;
+    if (hasVideos) return 6;
+    if (hasAudios) return 5;
+    if (hasImages) return 4;
+    if (hasScenes) return 3;
+    if (hasCharacters) return 2;
+    if (hasScript) return 1;
     return 0;
   }
   return 0;

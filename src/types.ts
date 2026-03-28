@@ -1,4 +1,4 @@
-export type AppStep = 'dashboard' | 'input' | 'character_setup' | 'storyboard';
+export type AppStep = 'dashboard' | 'input' | 'style_selection' | 'character_setup' | 'storyboard';
 
 export type VisualStyle = '2d-animation' | 'realistic' | 'animation' | 'custom';
 
