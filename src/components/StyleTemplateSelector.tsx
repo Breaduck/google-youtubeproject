@@ -73,7 +73,7 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
       </div>
 
       {/* 템플릿 카드 그리드 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[640px] overflow-y-auto">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[800px] overflow-y-auto">
         {filteredTemplates.map((template) => {
           const isSelected = selectedTemplate?.id === template.id;
           return (

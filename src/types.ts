@@ -32,6 +32,7 @@ export interface Scene {
   audioStatus: 'idle' | 'loading' | 'done' | 'error';
   videoStatus: 'idle' | 'loading' | 'done' | 'error';  // Video generation status
   effect?: SceneEffect;
+  videoType?: 'ai' | 'zoom' | 'manual';  // 비디오 생성 방식
 }
 
 export interface StoryProject {
