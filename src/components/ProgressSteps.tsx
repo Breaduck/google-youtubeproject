@@ -10,6 +10,7 @@ interface ProgressStepsProps {
   hasAudios: boolean;
   hasVideos: boolean;
   isGeneratingVideo?: boolean;
+  onStepClick?: (stepIndex: number) => void;
 }
 
 interface Step {
@@ -71,6 +72,7 @@ export default function ProgressSteps({
   hasAudios,
   hasVideos,
   isGeneratingVideo = false,
+  onStepClick,
 }: ProgressStepsProps) {
   if (currentStep === 'dashboard') return null;
 
@@ -97,10 +99,12 @@ export default function ProgressSteps({
             return (
               <React.Fragment key={index}>
                 <div className="flex flex-col items-center" style={{ minWidth: '80px' }}>
-                  <div
+                  <button
+                    onClick={() => onStepClick?.(index)}
                     className={`
                       w-7 h-7 rounded-full flex items-center justify-center
                       transition-all duration-300 text-xs font-semibold z-10
+                      ${onStepClick ? 'cursor-pointer hover:scale-110' : ''}
                       ${
                         status === 'completed'
                           ? 'bg-indigo-500 text-white'
@@ -117,7 +121,7 @@ export default function ProgressSteps({
                     ) : (
                       <span>{step.icon}</span>
                     )}
-                  </div>
+                  </button>
                   <span
                     className={`
                       text-xs text-center transition-colors whitespace-nowrap mt-2

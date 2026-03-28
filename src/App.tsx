@@ -177,6 +177,7 @@ const App: React.FC = () => {
   } = useProjectStore();
 
   const [step, setStep] = useState<AppStep>('dashboard'); // 첫 화면: 프로젝트 목록
+  const [stepHistory, setStepHistory] = useState<AppStep[]>([]); // Ctrl+Z를 위한 히스토리
   // 브랜치2: 비디오 API 전용
   const [videoEngine, setVideoEngine] = useState<VideoEngine>('bytedance');
 
@@ -492,6 +493,51 @@ const App: React.FC = () => {
     if (user) {
       setIsLoggedIn(true);
     }
+  }, []);
+
+  // Step 변경 시 히스토리에 추가
+  useEffect(() => {
+    setStepHistory(prev => {
+      // 중복 방지: 마지막 항목과 같으면 추가하지 않음
+      if (prev.length > 0 && prev[prev.length - 1] === step) {
+        return prev;
+      }
+      // 최대 50개까지만 유지
+      const newHistory = [...prev, step];
+      return newHistory.slice(-50);
+    });
+  }, [step]);
+
+  // Ctrl+Z로 이전 페이지로 복원
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        // 텍스트 입력 중이면 무시
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
+
+        e.preventDefault();
+
+        // 히스토리에서 현재 단계 이전으로 돌아가기
+        setStepHistory(prev => {
+          if (prev.length <= 1) return prev;
+
+          const newHistory = prev.slice(0, -1);
+          const previousStep = newHistory[newHistory.length - 1];
+
+          if (previousStep) {
+            setStep(previousStep);
+          }
+
+          return newHistory;
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const gemini = useMemo(() => new GeminiService(), []);
@@ -2457,6 +2503,13 @@ const App: React.FC = () => {
         hasImages={!!project && project.scenes.length > 0 && project.scenes.every(s => s.imageUrl)}
         hasAudios={!!project && project.scenes.length > 0 && project.scenes.every(s => s.audioUrl)}
         hasVideos={!!project && project.scenes.some(s => s.videoUrl)}
+        onStepClick={(stepIndex) => {
+          if (stepIndex === 0) setStep('input');
+          else if (stepIndex === 1) setStep('style_selection');
+          else if (stepIndex === 2) setStep('character_setup');
+          else if (stepIndex >= 3 && stepIndex <= 6) setStep('storyboard');
+          else if (stepIndex === 7) setShowExportPopup(true);
+        }}
       />
 
       <div className="fixed top-4 right-4 sm:top-8 sm:right-8 z-[205] flex gap-2 sm:gap-3">
@@ -3089,22 +3142,15 @@ const App: React.FC = () => {
                 </div>
 
                 {/* 텍스트 입력창 */}
-                <textarea
-                  className="w-full rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-5 min-h-[140px] max-h-[280px] resize-y text-base leading-relaxed text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 outline-none shadow-sm transition-all"
-                  placeholder="여기에 대본을 입력하세요..."
-                  value={script}
-                  onChange={(e) => setScript(e.target.value)}
-                  spellCheck={false}
-                />
-
-                {/* 글자수 & 스타일 선택 */}
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-xs text-gray-400">{script.length}자</span>
-                  <div className="flex gap-2">
-                    <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full text-xs px-3 py-1">실사화</button>
-                    <button className="bg-transparent text-gray-500 rounded-full text-xs px-3 py-1 border border-gray-200 dark:border-gray-700">애니메이션</button>
-                    <button className="bg-transparent text-gray-500 rounded-full text-xs px-3 py-1 border border-gray-200 dark:border-gray-700">템플릿</button>
-                  </div>
+                <div className="relative">
+                  <textarea
+                    className="w-full rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-5 pb-8 min-h-[140px] max-h-[280px] resize-y text-base leading-relaxed text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 outline-none shadow-sm transition-all"
+                    placeholder="여기에 대본을 입력하세요..."
+                    value={script}
+                    onChange={(e) => setScript(e.target.value)}
+                    spellCheck={false}
+                  />
+                  <span className="absolute bottom-3 right-5 text-xs text-gray-400 pointer-events-none">{script.length}자</span>
                 </div>
 
                 {/* 프로젝트 시작하기 버튼 */}
