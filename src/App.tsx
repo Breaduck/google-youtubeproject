@@ -2666,10 +2666,7 @@ const App: React.FC = () => {
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-100 text-indigo-700 dark:text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-200 text-indigo-800 dark:text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-300 transition-all disabled:opacity-50">오디오 전체 생성</button>
                       <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-indigo-400 text-white rounded-lg text-sm font-medium hover:bg-indigo-500 transition-all disabled:opacity-50">비디오 전체 생성</button>
-                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} className="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-all">
-                        생성된 동영상 미리보기
-                      </button>
-                      <button onClick={() => setShowSubtitlePrompt(true)} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">동영상 합치기</button>
+                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">동영상 합치기</button>
                     </div>
                   </div>
 
@@ -2870,7 +2867,7 @@ const App: React.FC = () => {
                         <textarea
                           value={scene.scriptSegment}
                           onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                          className="w-full text-lg font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300 dark:placeholder:text-slate-600"
                           placeholder="장면 대사..."
                         />
                       </div>
@@ -3088,6 +3085,13 @@ const App: React.FC = () => {
                       {isMergedView ? '그리드로 돌아가기' : '합쳐서 보기'}
                     </button>
                   )}
+                  <button
+                    onClick={() => setShowSubtitlePrompt(true)}
+                    disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+                  >
+                    영상 합치기
+                  </button>
                   <button
                     onClick={() => { setShowPreviewModal(false); setIsMergedView(false); setExpandedSceneIndex(null); }}
                     className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
@@ -3345,7 +3349,7 @@ const App: React.FC = () => {
                       }
                     } catch (err) {
                       console.error(err);
-                      alert('대본 분석 실패');
+                      alert('GEMINI API키를 입력해주세요');
                     }
                   }}
                   className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
