@@ -2472,10 +2472,6 @@ const App: React.FC = () => {
         <div className="max-w-[1700px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
           {step === 'style_selection' && (
             <div className="w-full px-6 pt-0">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg py-8 px-4 mb-6">
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">그림체를 선택해주세요</h1>
-              </div>
-
               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
                 <StyleTemplateSelector
                   selectedTemplate={tempSelectedTemplate}
@@ -2582,7 +2578,7 @@ const App: React.FC = () => {
                         type="text"
                         value={char.name}
                         onChange={(e) => updateCurrentProject({ characters: project!.characters.map(c => c.id === char.id ? { ...c, name: e.target.value } : c) })}
-                        className="font-bold text-slate-900 dark:text-slate-100 text-lg sm:text-xl mb-2 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-700 rounded-lg px-2 py-0.5 flex-shrink-0"
+                        className="font-bold text-slate-900 dark:text-slate-100 text-2xl sm:text-3xl mb-2 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-700 rounded-lg px-2 py-0.5 flex-shrink-0"
                         placeholder="이름을 입력하세요..."
                       />
                       <div className="relative flex-1">
@@ -2636,14 +2632,14 @@ const App: React.FC = () => {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 items-center">
-                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-sky-50 border border-sky-200 text-sky-700 rounded-lg text-sm font-medium hover:bg-sky-100 transition-all disabled:opacity-50">이미지 전체 생성</button>
-                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-sky-100 border border-sky-300 text-sky-700 rounded-lg text-sm font-medium hover:bg-sky-200 transition-all disabled:opacity-50">오디오 전체 생성</button>
-                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-sky-200 text-sky-800 rounded-lg text-sm font-medium hover:bg-sky-300 transition-all disabled:opacity-50">비디오 전체 생성</button>
+                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 dark:text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-all disabled:opacity-50">이미지 전체 생성</button>
+                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-indigo-100 border border-indigo-300 text-indigo-700 dark:text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <button onClick={generateAllVideos} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-indigo-200 text-indigo-800 dark:text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-300 transition-all disabled:opacity-50">비디오 전체 생성</button>
                       <button onClick={() => { setPreviewCurrentIndex(0); setShowPreviewModal(true); }} className="px-4 py-2 bg-sky-400 text-white rounded-lg text-sm font-medium hover:bg-sky-500 transition-all flex items-center gap-1.5">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         전체 미리보기
                       </button>
-                      <button onClick={() => setShowExportPopup(true)} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-medium hover:bg-sky-700 transition-all disabled:opacity-50">동영상 합치기</button>
+                      <button onClick={() => setShowExportPopup(true)} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">동영상 합치기</button>
                     </div>
                   </div>
 
