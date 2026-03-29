@@ -76,6 +76,7 @@ const getStepStatus = (
   hasImages: boolean,
   hasAudios: boolean,
   hasVideos: boolean,
+  hasViewedPreview: boolean,
   characterCount: number,
   sceneCount: number,
   imageCount: number,
@@ -197,6 +198,7 @@ export default function ProgressSteps({
               hasImages,
               hasAudios,
               hasVideos,
+              hasViewedPreview,
               characterCount,
               sceneCount,
               imageCount,
@@ -207,7 +209,7 @@ export default function ProgressSteps({
             // 선 완료 여부: 가장 마지막으로 완료된 단계까지 모두 연결
             let lastCompletedIndex = -1;
             for (let i = steps.length - 1; i >= 0; i--) {
-              const stepStatus = getStepStatus(i, currentStepIndex, hasScript, hasCharacters, hasScenes, hasImages, hasAudios, hasVideos, characterCount, sceneCount, imageCount, audioCount, videoCount);
+              const stepStatus = getStepStatus(i, currentStepIndex, hasScript, hasCharacters, hasScenes, hasImages, hasAudios, hasVideos, hasViewedPreview, characterCount, sceneCount, imageCount, audioCount, videoCount);
               if (stepStatus === 'completed') {
                 lastCompletedIndex = i;
                 break;
