@@ -352,6 +352,7 @@ const App: React.FC = () => {
   const [selectedSubtitleTemplate, setSelectedSubtitleTemplate] = useState<string>('default');
   const [showExportPopup, setShowExportPopup] = useState(false);
   const [showSubtitlePrompt, setShowSubtitlePrompt] = useState(false);
+  const [videoGenerationModePopup, setVideoGenerationModePopup] = useState<string | null>(null); // 개별 영상 생성 모드 선택
   const [includeSubtitles, setIncludeSubtitles] = useState(true); // 자막 ON/OFF (기본 ON)
   const [showVideoGenerationPopup, setShowVideoGenerationPopup] = useState(false);
   const [videoGenerationCount, setVideoGenerationCount] = useState(0);
@@ -3000,7 +3001,7 @@ const App: React.FC = () => {
                 {project.scenes.map((scene, idx) => (
                   <div key={scene.id} onClick={() => { if (isSelectionMode) { if (selectedSceneIds.includes(scene.id)) { setSelectedSceneIds(selectedSceneIds.filter(id => id !== scene.id)); } else { setSelectedSceneIds([...selectedSceneIds, scene.id]); } } }} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode ? 'cursor-pointer' : ''} ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-700' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}>
                     {/* 이미지 영역 */}
-                    <div className={`aspect-video bg-slate-50 dark:bg-slate-700 relative group/img`} onClick={(e) => { if (!isSelectionMode) return; e.stopPropagation(); }}>
+                    <div className={`aspect-video bg-slate-50 dark:bg-slate-700 relative group/img`}>
                       {/* 씬 번호 & 선택 체크박스 */}
                       <div className="absolute top-3 left-3 z-40 flex items-center gap-2">
                         <div className="px-2.5 py-1 bg-slate-900/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-xs font-semibold">
@@ -3014,8 +3015,8 @@ const App: React.FC = () => {
                           {selectedSceneIds.includes(scene.id) ? (
                             <>
                               {/* 선택된 카드: 블러 + 연두색 체크 */}
-                              <div className="absolute inset-0 z-5 backdrop-blur-sm bg-black/30 pointer-events-none" />
-                              <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                              <div className="absolute inset-0 z-50 backdrop-blur-sm bg-black/30 pointer-events-none" />
+                              <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none">
                                 <div className="w-20 h-20 bg-lime-500 rounded-full flex items-center justify-center shadow-2xl animate-scale-in">
                                   <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="4">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -3025,7 +3026,7 @@ const App: React.FC = () => {
                             </>
                           ) : (
                             /* 선택 안 된 카드: 정중앙 큰 선택 버튼 */
-                            <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity group-hover/card:opacity-100">
+                            <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity group-hover/card:opacity-100">
                               <div className="w-24 h-24 bg-white/90 dark:bg-slate-800/90 rounded-full flex items-center justify-center shadow-xl border-2 border-slate-300 dark:border-slate-600">
                                 <svg className="w-12 h-12 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                                   <circle cx="12" cy="12" r="10" />
@@ -3168,7 +3169,7 @@ const App: React.FC = () => {
 
                             {/* 비디오 생성 */}
                             <button
-                              onClick={() => !scene.videoUrl && generateVideo(scene.id)}
+                              onClick={() => setVideoGenerationModePopup(scene.id)}
                               disabled={!scene.imageUrl || scene.videoStatus === 'loading'}
                               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all group relative ${
                                 scene.videoUrl
@@ -4003,6 +4004,70 @@ const App: React.FC = () => {
         return (
           <>
             {/* 자막 팝업 */}
+            {/* 개별 영상 생성 모드 선택 팝업 */}
+            {videoGenerationModePopup && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[320] flex items-center justify-center p-4" onClick={() => setVideoGenerationModePopup(null)}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">영상 생성 방식 선택</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">어떤 방식으로 영상을 생성할까요?</p>
+                  </div>
+                  <div className="p-6 space-y-3">
+                    <button
+                      onClick={() => {
+                        const sceneId = videoGenerationModePopup;
+                        setVideoGenerationModePopup(null);
+                        generateVideo(sceneId);
+                      }}
+                      className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+                    >
+                      🤖 AI 영상 생성 (고품질)
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const sceneId = videoGenerationModePopup;
+                        setVideoGenerationModePopup(null);
+                        if (!project) return;
+                        const scene = project.scenes.find(s => s.id === sceneId);
+                        if (!scene?.imageUrl) return;
+
+                        setLoading(true);
+                        setLoadingText('줌인-줌아웃 영상 생성 중...');
+                        try {
+                          const videoBlob = await generateSimpleZoomVideo(
+                            scene.imageUrl,
+                            scene.scriptSegment,
+                            'in',
+                            includeSubtitles ? subtitleSettings : undefined,
+                            (p, msg) => { setTargetProgress(p); setLoadingText(msg); }
+                          );
+
+                          let finalBlob = videoBlob;
+                          if (scene.audioUrl) {
+                            setLoadingText('오디오 통합 중...');
+                            finalBlob = await addAudioToVideo(videoBlob, scene.audioUrl);
+                          }
+
+                          const url = URL.createObjectURL(finalBlob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `scene-${project.scenes.findIndex(s => s.id === sceneId) + 1}_zoom.mp4`;
+                          a.click();
+                        } catch (err: any) {
+                          alert('영상 생성 실패: ' + (err.message || '알 수 없는 오류'));
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="w-full py-4 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
+                    >
+                      📹 줌인-줌아웃 영상 (빠름)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {showSubtitlePrompt && (
               <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowSubtitlePrompt(false)}>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
