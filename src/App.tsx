@@ -4056,7 +4056,6 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-      })()}
 
       {showSubtitlePrompt && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowSubtitlePrompt(false)}>
@@ -4120,7 +4119,6 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-      })()}
 
       {showExportPopup && project && (() => {
         const videoCount = project.scenes.filter(s => s.videoUrl).length;
@@ -4171,7 +4169,6 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
-          </>
         );
       })()}
 
