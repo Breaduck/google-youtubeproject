@@ -1974,7 +1974,7 @@ const App: React.FC = () => {
       }
       alert(userMessage);
       updateCurrentProject({
-        scenes: project.scenes.map(s => s.id === sceneId ? { ...s, videoUrl: undefined, videoStatus: 'error' } : s)
+        scenes: project.scenes.map(s => s.id === sceneId ? { ...s, videoUrl: null, videoStatus: 'error' } : s)
       });
     }
   };
