@@ -10,7 +10,7 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   letterSpacing: 0,
   lineHeight: 1.2,
   opacity: 1.0,
-  template: 'black-box',
+  template: 'custom',
   textColor: '#FFFFFF',
   strokeColor: 'transparent',
   strokeWidth: 0,

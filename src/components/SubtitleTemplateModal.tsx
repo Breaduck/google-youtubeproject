@@ -212,6 +212,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   const [showFontModal, setShowFontModal] = useState(false);
   const [googleFontUrl, setGoogleFontUrl] = useState('');
   const [tempPreviewImage, setTempPreviewImage] = useState<string | null>(null);
+  const [subtitleEnabled, setSubtitleEnabled] = useState(true);
 
   useEffect(() => {
     loadFonts().then((fonts) => {
@@ -324,6 +325,16 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <h2 className="text-xl font-bold text-white">자막 스타일</h2>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSubtitleEnabled(!subtitleEnabled)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                subtitleEnabled
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-700 text-gray-400'
+              }`}
+            >
+              자막 {subtitleEnabled ? 'ON' : 'OFF'}
+            </button>
             <button
               onClick={() => setShowFontModal(true)}
               className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm"

@@ -139,23 +139,42 @@ export async function generateSimpleZoomVideo(
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
-      // 줄바꿈 처리 (최대 너비: 화면의 85%)
-      const maxWidth = canvas.width * 0.85;
+      // 줄바꿈 처리 (20자 기준, 단어 중간 안 끊김)
       const lines: string[] = [];
-      const words = subtitle.split(' ');
       let currentLine = '';
+      const chars = subtitle.split('');
 
-      for (const word of words) {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && currentLine) {
-          lines.push(currentLine);
-          currentLine = word;
+      for (let i = 0; i < chars.length; i++) {
+        const char = chars[i];
+        const testLine = currentLine + char;
+
+        if (testLine.length >= 20) {
+          // 공백이면 바로 줄바꿈
+          if (char === ' ') {
+            lines.push(currentLine);
+            currentLine = '';
+          }
+          // 다음 글자가 공백이면 현재까지 줄바꿈
+          else if (chars[i + 1] === ' ') {
+            lines.push(testLine);
+            currentLine = '';
+            i++; // 공백 스킵
+          }
+          // 현재가 공백이 아니고 이전에 공백이 있었으면 그 전까지 줄바꿈
+          else {
+            const lastSpace = currentLine.lastIndexOf(' ');
+            if (lastSpace > 0) {
+              lines.push(currentLine.slice(0, lastSpace));
+              currentLine = currentLine.slice(lastSpace + 1) + char;
+            } else {
+              currentLine = testLine;
+            }
+          }
         } else {
           currentLine = testLine;
         }
       }
-      if (currentLine) lines.push(currentLine);
+      if (currentLine.trim()) lines.push(currentLine.trim());
 
       const lineHeight = scaledFontSize * (subtitleSettings.lineHeight || 1.2);
       const totalHeight = lines.length * lineHeight;
