@@ -2331,6 +2331,13 @@ const App: React.FC = () => {
 
   const addCharacterManually = async () => {
     if (!project || !newCharData.name.trim()) return;
+
+    // Gemini API 키 체크
+    if (!geminiApiKey || geminiApiKey.length < 10) {
+      alert('Gemini API 키를 먼저 설정해주세요.\n설정 > API 설정에서 입력할 수 있습니다.');
+      return;
+    }
+
     setLoading(true);
     setLoadingText(`${newCharData.name} 분석 중...`);
     try {
@@ -4045,7 +4052,7 @@ const App: React.FC = () => {
                             scene.imageUrl,
                             scene.scriptSegment,
                             'in',
-                            includeSubtitles ? subtitleSettings : undefined,
+                            subtitleSettings,
                             (p, msg) => { setTargetProgress(p); setLoadingText(msg); }
                           );
 
@@ -4070,7 +4077,6 @@ const App: React.FC = () => {
                           URL.revokeObjectURL(url);
                         } catch (err: any) {
                           console.error('Zoom video generation failed:', err);
-                          alert('영상 생성 실패: ' + (err.message || '알 수 없는 오류'));
                         } finally {
                           setLoading(false);
                           setTargetProgress(0);
