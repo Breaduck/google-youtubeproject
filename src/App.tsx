@@ -2556,8 +2556,16 @@ const App: React.FC = () => {
           if (stepIndex === 0) setStep('input');
           else if (stepIndex === 1) setStep('style_selection');
           else if (stepIndex === 2) setStep('character_setup');
-          else if (stepIndex >= 3 && stepIndex <= 6) setStep('storyboard');
-          else if (stepIndex === 7) setShowExportPopup(true);
+          else if (stepIndex >= 3 && stepIndex <= 5) setStep('storyboard');
+          else if (stepIndex === 6) {
+            // AI영상 생성 - 설정 팝업
+            const sceneCount = project?.scenes.length || 0;
+            const videoRangeScenes = Math.floor(videoGenerationRange / 10);
+            setVideoGenerationCount(Math.min(sceneCount, videoRangeScenes));
+            setShowVideoGenerationPopup(true);
+          }
+          else if (stepIndex === 7) setShowPreviewModal(true);
+          else if (stepIndex === 8) setShowExportPopup(true);
         }}
       />
 
@@ -3195,10 +3203,10 @@ const App: React.FC = () => {
               <div className="max-w-2xl mx-auto w-full px-6">
                 {/* 인사말 */}
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                  <h1 className="text-3xl font-semibold text-gray-800 dark:text-gray-100 mb-2" style={{ fontFamily: 'Pretendard, sans-serif', fontWeight: 600 }}>
                     오늘은 어떤 영상을 만들어볼까요?
                   </h1>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                  <p className="text-sm text-gray-400 dark:text-gray-500" style={{ fontFamily: 'Pretendard, sans-serif' }}>
                     대본을 입력하면 AI가 영상으로 만들어드려요
                   </p>
                 </div>
@@ -3768,8 +3776,10 @@ const App: React.FC = () => {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowVideoGenerationPopup(false)}>
             <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">비디오 전체 생성</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">생성할 영상 개수를 선택하세요</p>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">AI 영상 생성 설정</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  설정에서 <span className="font-bold text-indigo-600 dark:text-indigo-400">{Math.floor(videoGenerationRange / 10)}개</span>의 이미지를 비디오로 만든다고 설정되어있습니다
+                </p>
               </div>
               <div className="p-6 space-y-4">
                 {/* Provider 정보 */}
@@ -3812,25 +3822,15 @@ const App: React.FC = () => {
                   </p>
                 </div>
 
-                {/* 설정 반영 체크박스 */}
-                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={videoGenerationCount === maxCount}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setVideoGenerationRange(maxCount * 10);
-                          setVideoGenerationCount(maxCount);
-                        }
-                      }}
-                      className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
-                    />
-                    <span className="text-sm text-slate-700 dark:text-slate-300">
-                      설정에 반영 (생성 범위: {videoGenerationCount * 10}초)
-                    </span>
-                  </label>
-                </div>
+                {/* 설정에 즉시 반영 버튼 */}
+                <button
+                  onClick={() => {
+                    setVideoGenerationRange(videoGenerationCount * 10);
+                  }}
+                  className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                >
+                  설정에 반영 (생성 범위: {videoGenerationCount * 10}초)
+                </button>
               </div>
               <div className="p-6 border-t border-slate-100 dark:border-slate-700 flex gap-3">
                 <button

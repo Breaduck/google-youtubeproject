@@ -32,7 +32,8 @@ const steps: Step[] = [
   { label: '이미지 생성', icon: '5' },
   { label: '나레이션 생성', icon: '6' },
   { label: 'AI 영상 생성', icon: '7' },
-  { label: '영상 합치기', icon: '8' },
+  { label: '영상 검토', icon: '8' },
+  { label: '영상 합치기', icon: '9' },
 ];
 
 const getCurrentStepIndex = (
@@ -90,7 +91,8 @@ const getStepStatus = (
       case 4: return hasImages && imageCount > 0;
       case 5: return hasAudios && audioCount > 0;
       case 6: return hasVideos && videoCount > 0;
-      case 7: return hasImages && hasAudios; // 영상 합치기
+      case 7: return hasImages && hasAudios; // 영상 검토
+      case 8: return hasImages && hasAudios; // 영상 합치기
       default: return false;
     }
   };
@@ -136,6 +138,9 @@ const getStepTooltip = (
       if (videoCount === 0) return '영상을 생성해주세요';
       return `영상 ${videoCount}/${sceneCount}개 생성됨`;
     case 7:
+      if (!hasAudios || !hasImages) return '이미지와 오디오를 먼저 생성해주세요';
+      return '영상 검토 준비 완료';
+    case 8:
       if (!hasAudios || !hasImages) return '이미지와 오디오를 먼저 생성해주세요';
       return '영상 합치기 준비 완료';
     default: return '';
@@ -275,13 +280,13 @@ export default function ProgressSteps({
                   </div>
                   <span
                     className={`
-                      text-xs text-center transition-colors whitespace-nowrap mt-2
+                      text-center transition-all whitespace-nowrap mt-2
                       ${
                         status === 'completed'
-                          ? 'text-indigo-600 dark:text-indigo-400 font-medium'
+                          ? 'text-xs text-indigo-600 dark:text-indigo-400 font-medium'
                           : status === 'current'
-                          ? 'text-slate-900 dark:text-slate-100 font-bold'
-                          : 'text-slate-400 dark:text-slate-500'
+                          ? 'text-sm text-slate-900 dark:text-slate-100 font-bold'
+                          : 'text-xs text-slate-400 dark:text-slate-500'
                       }
                     `}
                   >

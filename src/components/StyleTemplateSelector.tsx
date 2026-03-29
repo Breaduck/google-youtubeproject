@@ -37,15 +37,6 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6 space-y-4 border border-slate-200 dark:border-slate-700">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-black text-slate-900 dark:text-white">스타일 템플릿</h2>
-        <button
-          onClick={() => onAddTemplate?.()}
-          className="w-9 h-9 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-all shadow-sm hover:shadow active:scale-95"
-          title="나만의 템플릿 추가"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
       </div>
 
       {/* 카테고리 탭 */}
