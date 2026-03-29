@@ -11,6 +11,7 @@ interface ProgressStepsProps {
   hasVideos: boolean;
   isGeneratingVideo?: boolean;
   onStepClick?: (stepIndex: number) => void;
+  hasViewedPreview?: boolean;
   // 상세 정보
   characterCount?: number;
   sceneCount?: number;
@@ -91,7 +92,7 @@ const getStepStatus = (
       case 4: return hasImages && imageCount > 0;
       case 5: return hasAudios && audioCount > 0;
       case 6: return hasVideos && videoCount > 0;
-      case 7: return false; // 영상 검토 - 자동 완료 안 함
+      case 7: return hasViewedPreview; // 영상 검토 - 버튼 클릭 시 완료
       case 8: return false; // 영상 합치기 - 자동 완료 안 함
       default: return false;
     }
@@ -157,6 +158,7 @@ export default function ProgressSteps({
   hasVideos,
   isGeneratingVideo = false,
   onStepClick,
+  hasViewedPreview = false,
   characterCount = 0,
   sceneCount = 0,
   imageCount = 0,
@@ -254,7 +256,7 @@ export default function ProgressSteps({
                     ) : (
                       // upcoming 상태인데 뒤에 completed 단계가 있으면 경고 표시
                       lastCompletedIndex > index ? (
-                        <span className="text-lg leading-none flex items-center justify-center w-full h-full">⚠️</span>
+                        <span className="text-lg flex items-center justify-center w-full h-full" style={{ marginTop: '-2px' }}>⚠️</span>
                       ) : (
                         <span>{step.icon}</span>
                       )

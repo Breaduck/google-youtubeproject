@@ -86,8 +86,8 @@ export async function generateSimpleZoomVideo(
   const intensityFactor = effectIntensity >= 7 ? 0.8 : effectIntensity <= 3 ? 1.3 : 1.0;
   const duration = Math.max(6, Math.min(12, baseDuration * intensityFactor));
 
-  // 15fps로 낮춤 (속도 2배 향상, 줌 효과에는 충분)
-  const fps = 15;
+  // 24fps (부드러운 재생)
+  const fps = 24;
   const totalFrames = Math.floor(duration * fps);
 
   console.log(`[VIDEO] Duration: ${duration}s, Frames: ${totalFrames}, FPS: ${fps}`);
@@ -135,25 +135,49 @@ export async function generateSimpleZoomVideo(
       const scaledFontSize = Math.round(subtitleSettings.fontSize * scaleFactor);
       const scaledYPosition = Math.round(subtitleSettings.yPosition * scaleFactor);
 
-      ctx.font = `bold ${scaledFontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
+      ctx.font = `${subtitleSettings.fontWeight || 700} ${scaledFontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
-      const text = subtitle;
-      const textY = scaledYPosition;
+      // 줄바꿈 처리 (최대 너비: 화면의 85%)
+      const maxWidth = canvas.width * 0.85;
+      const lines: string[] = [];
+      const words = subtitle.split(' ');
+      let currentLine = '';
 
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+
+      const lineHeight = scaledFontSize * (subtitleSettings.lineHeight || 1.2);
+      const totalHeight = lines.length * lineHeight;
+      let textY = scaledYPosition;
+
+      // 배경 렌더링 (여러 줄)
       if (subtitleSettings.backgroundColor) {
-        const metrics = ctx.measureText(text);
-        const textWidth = metrics.width;
+        let maxLineWidth = 0;
+        lines.forEach(line => {
+          const metrics = ctx.measureText(line);
+          if (metrics.width > maxLineWidth) maxLineWidth = metrics.width;
+        });
+
         const bgPadding = Math.round((subtitleSettings.bgPadding || 8) * scaleFactor);
-        const bgHeight = scaledFontSize + bgPadding * 2;
+        const bgHeight = totalHeight + bgPadding * 2;
 
         ctx.fillStyle = subtitleSettings.backgroundColor;
         ctx.globalAlpha = subtitleSettings.bgOpacity || 0.8;
         ctx.fillRect(
-          canvas.width / 2 - textWidth / 2 - bgPadding,
-          textY - scaledFontSize - bgPadding,
-          textWidth + bgPadding * 2,
+          canvas.width / 2 - maxLineWidth / 2 - bgPadding,
+          textY - totalHeight - bgPadding,
+          maxLineWidth + bgPadding * 2,
           bgHeight
         );
         ctx.globalAlpha = 1.0;
@@ -161,16 +185,22 @@ export async function generateSimpleZoomVideo(
 
       ctx.globalAlpha = subtitleSettings.opacity;
 
-      if (subtitleSettings.strokeWidth > 0 && subtitleSettings.strokeColor !== 'transparent') {
-        ctx.strokeStyle = subtitleSettings.strokeColor;
-        ctx.lineWidth = Math.round(subtitleSettings.strokeWidth * scaleFactor);
-        ctx.lineJoin = 'round';
-        ctx.miterLimit = 2;
-        ctx.strokeText(text, canvas.width / 2, textY);
-      }
+      // 텍스트 렌더링 (여러 줄)
+      lines.forEach((line, i) => {
+        const y = textY - totalHeight + (i + 1) * lineHeight;
 
-      ctx.fillStyle = subtitleSettings.textColor;
-      ctx.fillText(text, canvas.width / 2, textY);
+        if (subtitleSettings.strokeWidth > 0 && subtitleSettings.strokeColor !== 'transparent') {
+          ctx.strokeStyle = subtitleSettings.strokeColor;
+          ctx.lineWidth = Math.round(subtitleSettings.strokeWidth * scaleFactor);
+          ctx.lineJoin = 'round';
+          ctx.miterLimit = 2;
+          ctx.strokeText(line, canvas.width / 2, y);
+        }
+
+        ctx.fillStyle = subtitleSettings.textColor;
+        ctx.fillText(line, canvas.width / 2, y);
+      });
+
       ctx.restore();
     }
 

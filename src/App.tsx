@@ -357,6 +357,7 @@ const App: React.FC = () => {
   const [videoGenerationCount, setVideoGenerationCount] = useState(0);
   const [showMergeImageSelectPopup, setShowMergeImageSelectPopup] = useState(false);
   const [fullscreenVideoUrl, setFullscreenVideoUrl] = useState<string | null>(null);
+  const [hasViewedPreview, setHasViewedPreview] = useState(false);
   const [mergingScenesData, setMergingScenesData] = useState<{scenes: Scene[], selectedImageIndex: number} | null>(null);
   const [showScriptCharPrompt, setShowScriptCharPrompt] = useState(false);
   const [scriptCharacters, setScriptCharacters] = useState<string[]>([]);
@@ -2554,6 +2555,7 @@ const App: React.FC = () => {
         hasImages={!!project && project.scenes.length > 0 && project.scenes.every(s => s.imageUrl)}
         hasAudios={!!project && project.scenes.length > 0 && project.scenes.every(s => s.audioUrl)}
         hasVideos={!!project && project.scenes.some(s => s.videoUrl)}
+        hasViewedPreview={hasViewedPreview}
         characterCount={project?.characters.length || 0}
         sceneCount={project?.scenes.length || 0}
         imageCount={project?.scenes.filter(s => s.imageUrl).length || 0}
@@ -2844,7 +2846,7 @@ const App: React.FC = () => {
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
                       <button onClick={openVideoGenerationPopup} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">AI 영상 전체 생성</button>
-                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">최종 영상 검토</button>
+                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); setHasViewedPreview(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">최종 영상 검토</button>
                     </div>
                   </div>
 
