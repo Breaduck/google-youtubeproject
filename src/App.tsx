@@ -2846,7 +2846,7 @@ const App: React.FC = () => {
           )}
 
           {step === 'storyboard' && (
-            <div className="w-full px-4 sm:px-8 pt-0">
+            <div id="storyboard-section" className="w-full px-4 sm:px-8 pt-0">
               {!project ? (
                 <div className="text-center py-20">
                   <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -2854,7 +2854,7 @@ const App: React.FC = () => {
               ) : (
               <>
               {/* 상단바 - 토스 스타일 */}
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 py-4 px-5 mb-4">
+              <div id="image-section" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 py-4 px-5 mb-4">
                 <div className="flex flex-col gap-3">
                   {/* 첫 번째 줄: 제목 & 버튼들 */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -2868,10 +2868,13 @@ const App: React.FC = () => {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 items-center">
+                      <span id="video-section" className="absolute -top-20"></span>
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
                       <button onClick={openVideoGenerationPopup} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">AI 영상 전체 생성</button>
+                      <span id="preview-section" className="absolute -top-20"></span>
                       <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); setHasViewedPreview(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">최종 영상 검토</button>
+                      <span id="merge-section" className="absolute -top-20"></span>
                     </div>
                   </div>
 
@@ -2969,7 +2972,7 @@ const App: React.FC = () => {
               </div>
 
               {/* 씬 그리드 - 깔끔한 카드 스타일 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div id="narration-section" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {project.scenes.map((scene, idx) => (
                   <div key={scene.id} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-700' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}>
                     {/* 이미지 영역 */}
