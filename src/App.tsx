@@ -356,6 +356,7 @@ const App: React.FC = () => {
   const [showVideoGenerationPopup, setShowVideoGenerationPopup] = useState(false);
   const [videoGenerationCount, setVideoGenerationCount] = useState(0);
   const [showMergeImageSelectPopup, setShowMergeImageSelectPopup] = useState(false);
+  const [fullscreenVideoUrl, setFullscreenVideoUrl] = useState<string | null>(null);
   const [mergingScenesData, setMergingScenesData] = useState<{scenes: Scene[], selectedImageIndex: number} | null>(null);
   const [showScriptCharPrompt, setShowScriptCharPrompt] = useState(false);
   const [scriptCharacters, setScriptCharacters] = useState<string[]>([]);
@@ -3050,9 +3051,9 @@ const App: React.FC = () => {
                         <textarea
                           value={scene.scriptSegment}
                           onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                          className="w-full text-lg font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none max-h-[84px] overflow-y-auto custom-scrollbar placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none max-h-[72px] overflow-y-auto custom-scrollbar placeholder:text-slate-300 dark:placeholder:text-slate-600"
                           placeholder="장면 대사..."
-                          style={{ lineHeight: '1.75rem' }}
+                          style={{ lineHeight: '1.5rem' }}
                         />
                       </div>
 
@@ -3289,8 +3290,8 @@ const App: React.FC = () => {
 
       {/* 전체 미리보기 모달 */}
       {showPreviewModal && project && (() => {
-        const aiVideoCount = project.scenes.filter(s => s.videoUrl && s.videoType === 'ai').length;
-        const zoomVideoCount = project.scenes.filter(s => s.videoUrl && (s.videoType === 'zoom' || s.videoType === 'manual' || !s.videoType)).length;
+        const aiVideoCount = project.scenes.filter(s => s.videoUrl).length;
+        const zoomVideoCount = project.scenes.filter(s => s.imageUrl && !s.videoUrl).length;
         const successScenes = project.scenes.filter(s => s.videoUrl);
 
         return (
@@ -3361,14 +3362,10 @@ const App: React.FC = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const video = e.currentTarget.closest('.group')?.querySelector('video') as HTMLVideoElement;
-                                if (video) {
-                                  if (video.paused) video.play();
-                                  else video.pause();
-                                }
+                                setFullscreenVideoUrl(scene.videoUrl!);
                               }}
                               className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
-                              title="재생"
+                              title="전체화면 재생"
                             >
                               <svg className="w-6 h-6 text-gray-900 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z" />
@@ -3783,55 +3780,57 @@ const App: React.FC = () => {
                 </p>
               </div>
               <div className="p-6 space-y-4">
-                {/* Provider 정보 */}
-                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg">
-                  <p className="text-sm text-indigo-900 dark:text-indigo-300">
-                    <span className="font-bold">{providerName}</span> 사용 중
-                  </p>
-                  <p className="text-xs text-indigo-700 dark:text-indigo-400 mt-1">
-                    영상당 {costPerScene}원
-                  </p>
-                </div>
-
-                {/* 개수 선택 */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    생성할 개수: <span className="text-indigo-600 dark:text-indigo-400 font-bold">{videoGenerationCount}개</span>
+                {/* 영상 생성할 장면 수 */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                    영상 생성할 장면 수 (최대 180장)
                   </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max={maxCount}
-                    value={videoGenerationCount}
-                    onChange={(e) => setVideoGenerationCount(parseInt(e.target.value))}
-                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                  />
-                  <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>1개</span>
-                    <span>{maxCount}개 (최대)</span>
+                  <div className="flex gap-3 items-center">
+                    <input
+                      type="range"
+                      min="0"
+                      max="180"
+                      value={Math.floor(videoGenerationRange / 10)}
+                      onChange={(e) => setVideoGenerationRange(parseInt(e.target.value) * 10)}
+                      className="flex-1 accent-indigo-600"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      max="180"
+                      value={Math.floor(videoGenerationRange / 10)}
+                      onChange={(e) => setVideoGenerationRange(Math.max(0, Math.min(180, parseInt(e.target.value) || 0)) * 10)}
+                      className="w-20 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-slate-100"
+                    />
+                    <span className="text-sm text-slate-600 dark:text-slate-400">장</span>
                   </div>
                 </div>
 
-                {/* 예상 비용 */}
-                <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-emerald-900 dark:text-emerald-300">예상 비용</span>
-                    <span className="text-2xl font-bold text-emerald-900 dark:text-emerald-300">₩{estimatedCost.toLocaleString()}</span>
-                  </div>
-                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
-                    {videoGenerationCount}개 × {costPerScene}원
-                  </p>
-                </div>
-
-                {/* 설정에 즉시 반영 버튼 */}
-                <button
-                  onClick={() => {
-                    setVideoGenerationRange(videoGenerationCount * 10);
-                  }}
-                  className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
-                >
-                  설정에 반영 (생성 범위: {videoGenerationCount * 10}초)
-                </button>
+                {/* 비용 계산 */}
+                {(() => {
+                  const numScenes = Math.floor(videoGenerationRange / 10);
+                  const totalCost = numScenes * costPerScene;
+                  return (
+                    <div className="px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg space-y-2">
+                      <div className="flex items-baseline justify-between">
+                        <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-300">
+                          💰 {numScenes}장 영상화 예정
+                        </p>
+                        <p className="text-lg font-bold text-indigo-700 dark:text-indigo-400">
+                          ₩{totalCost.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-indigo-600 dark:text-indigo-400">
+                          1장당 ₩{costPerScene.toLocaleString()} (10초 기준)
+                        </span>
+                        <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400">
+                          총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
               <div className="p-6 border-t border-slate-100 dark:border-slate-700 flex gap-3">
                 <button
@@ -3841,7 +3840,11 @@ const App: React.FC = () => {
                   취소
                 </button>
                 <button
-                  onClick={() => generateAllVideos(videoGenerationCount)}
+                  onClick={() => {
+                    const count = Math.floor(videoGenerationRange / 10);
+                    generateAllVideos(count);
+                    setShowVideoGenerationPopup(false);
+                  }}
                   className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
                 >
                   생성 시작
@@ -5387,6 +5390,30 @@ const App: React.FC = () => {
           }}
           onClose={() => setShowSubtitleEditor(false)}
         />
+      )}
+
+      {/* 전체화면 비디오 재생 모달 */}
+      {fullscreenVideoUrl && (
+        <div
+          className="fixed inset-0 bg-black z-[400] flex items-center justify-center"
+          onClick={() => setFullscreenVideoUrl(null)}
+        >
+          <button
+            onClick={() => setFullscreenVideoUrl(null)}
+            className="absolute top-4 right-4 z-10 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <video
+            src={fullscreenVideoUrl}
+            controls
+            autoPlay
+            className="max-w-full max-h-full"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       )}
     </div>
   );

@@ -91,8 +91,8 @@ const getStepStatus = (
       case 4: return hasImages && imageCount > 0;
       case 5: return hasAudios && audioCount > 0;
       case 6: return hasVideos && videoCount > 0;
-      case 7: return hasImages && hasAudios; // 영상 검토
-      case 8: return hasImages && hasAudios; // 영상 합치기
+      case 7: return false; // 영상 검토 - 자동 완료 안 함
+      case 8: return false; // 영상 합치기 - 자동 완료 안 함
       default: return false;
     }
   };
@@ -254,7 +254,7 @@ export default function ProgressSteps({
                     ) : (
                       // upcoming 상태인데 뒤에 completed 단계가 있으면 경고 표시
                       lastCompletedIndex > index ? (
-                        <span className="text-base leading-none flex items-center justify-center">⚠️</span>
+                        <span className="text-lg leading-none flex items-center justify-center w-full h-full">⚠️</span>
                       ) : (
                         <span>{step.icon}</span>
                       )
