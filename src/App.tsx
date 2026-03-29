@@ -351,8 +351,8 @@ const App: React.FC = () => {
   const [previewSubtitleEnabled, setPreviewSubtitleEnabled] = useState(false);
   const [selectedSubtitleTemplate, setSelectedSubtitleTemplate] = useState<string>('default');
   const [showExportPopup, setShowExportPopup] = useState(false);
-  const [showSubtitlePrompt, setShowSubtitlePrompt] = useState(false);
   const [videoGenerationModePopup, setVideoGenerationModePopup] = useState<string | null>(null); // 개별 영상 생성 모드 선택
+  const [showApiKeyPopup, setShowApiKeyPopup] = useState(false); // API키 입력 팝업
   const [includeSubtitles, setIncludeSubtitles] = useState(true); // 자막 ON/OFF (기본 ON)
   const [showVideoGenerationPopup, setShowVideoGenerationPopup] = useState(false);
   const [videoGenerationCount, setVideoGenerationCount] = useState(0);
@@ -1974,7 +1974,7 @@ const App: React.FC = () => {
       }
       alert(userMessage);
       updateCurrentProject({
-        scenes: project.scenes.map(s => s.id === sceneId ? { ...s, videoStatus: 'error' } : s)
+        scenes: project.scenes.map(s => s.id === sceneId ? { ...s, videoUrl: undefined, videoStatus: 'error' } : s)
       });
     }
   };
@@ -2244,7 +2244,7 @@ const App: React.FC = () => {
             project.characters.length > 1,
             undefined,
             videoEngine,
-            subtitleSettings,
+            includeSubtitles ? subtitleSettings : undefined,
             (progress, message) => {
               const baseProgress = Math.round((i / project.scenes.length) * 50);
               const sceneProgress = Math.round((progress / 100) * (50 / project.scenes.length));
@@ -2259,7 +2259,7 @@ const App: React.FC = () => {
             scene.imageUrl!,
             scene.scriptSegment, // 자막
             zoomSettings.direction,
-            subtitleSettings,
+            includeSubtitles ? subtitleSettings : undefined,
             (progress, message) => {
               const baseProgress = Math.round((i / project.scenes.length) * 50);
               const sceneProgress = Math.round((progress / 100) * (50 / project.scenes.length));
@@ -3172,7 +3172,7 @@ const App: React.FC = () => {
                             {/* 비디오 생성 */}
                             <button
                               onClick={() => setVideoGenerationModePopup(scene.id)}
-                              disabled={!scene.imageUrl || scene.videoStatus === 'loading'}
+                              disabled={!scene.imageUrl || !scene.audioUrl || scene.videoStatus === 'loading'}
                               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all group relative ${
                                 scene.videoUrl
                                   ? 'bg-indigo-100 dark:bg-indigo-600 text-indigo-600 dark:text-white'
@@ -3197,7 +3197,7 @@ const App: React.FC = () => {
                                 </>
                               )}
                               <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
-                                개별 동영상 생성
+                                {!scene.imageUrl || !scene.audioUrl ? '이미지와 오디오를 먼저 생성해주세요' : '개별 동영상 생성'}
                               </div>
                             </button>
 
@@ -3374,7 +3374,7 @@ const App: React.FC = () => {
                   </button>
                   <button
                     onClick={() => {
-                      setShowSubtitlePrompt(true);
+                      setShowExportPopup(true);
                     }}
                     disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)}
                     className="px-5 py-2.5 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow active:scale-95 disabled:hover:scale-100"
@@ -4004,6 +4004,22 @@ const App: React.FC = () => {
                   <div className="p-6 space-y-3">
                     <button
                       onClick={() => {
+                        // API 키 체크
+                        let hasApiKey = false;
+                        if (videoProvider === 'byteplus') {
+                          hasApiKey = !!(bytedanceApiKey && bytedanceApiKey.length >= 10);
+                        } else if (videoProvider === 'evolink') {
+                          hasApiKey = !!(evolinkApiKey && evolinkApiKey.length >= 10);
+                        } else if (videoProvider === 'runware') {
+                          hasApiKey = !!(runwareApiKey && runwareApiKey.length >= 10);
+                        }
+
+                        if (!hasApiKey) {
+                          setVideoGenerationModePopup(null);
+                          setShowApiKeyPopup(true);
+                          return;
+                        }
+
                         const sceneId = videoGenerationModePopup;
                         setVideoGenerationModePopup(null);
                         generateVideo(sceneId);
@@ -4021,6 +4037,7 @@ const App: React.FC = () => {
                         if (!scene?.imageUrl) return;
 
                         setLoading(true);
+                        setTargetProgress(0);
                         setLoadingText('줌인-줌아웃 영상 생성 중...');
                         try {
                           const videoBlob = await generateSimpleZoomVideo(
@@ -4033,19 +4050,29 @@ const App: React.FC = () => {
 
                           let finalBlob = videoBlob;
                           if (scene.audioUrl) {
+                            setTargetProgress(90);
                             setLoadingText('오디오 통합 중...');
-                            finalBlob = await addAudioToVideo(videoBlob, scene.audioUrl);
+                            finalBlob = await addAudioToVideo(videoBlob, scene.audioUrl, (p, msg) => {
+                              setTargetProgress(90 + p * 0.1);
+                              setLoadingText(msg);
+                            });
                           }
+
+                          setTargetProgress(100);
+                          setLoadingText('다운로드 준비 중...');
 
                           const url = URL.createObjectURL(finalBlob);
                           const a = document.createElement('a');
                           a.href = url;
                           a.download = `scene-${project.scenes.findIndex(s => s.id === sceneId) + 1}_zoom.mp4`;
                           a.click();
+                          URL.revokeObjectURL(url);
                         } catch (err: any) {
+                          console.error('Zoom video generation failed:', err);
                           alert('영상 생성 실패: ' + (err.message || '알 수 없는 오류'));
                         } finally {
                           setLoading(false);
+                          setTargetProgress(0);
                         }
                       }}
                       className="w-full py-4 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
@@ -4057,68 +4084,47 @@ const App: React.FC = () => {
               </div>
             )}
 
-      {showSubtitlePrompt && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowSubtitlePrompt(false)}>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
-                  <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">자막 설정</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">자막을 표시할까요?</p>
-                  </div>
-                  <div className="p-6 space-y-4">
-                    {/* 예시 이미지 */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden relative">
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="text-center">
-                              <div className="w-12 h-12 bg-white/20 rounded-full mx-auto mb-2"></div>
-                              <div className="text-xs text-white/60">영상</div>
-                            </div>
-                          </div>
-                          <div className="absolute bottom-3 left-3 right-3 bg-black/80 text-white text-xs px-3 py-1.5 rounded">
-                            안녕하세요
-                          </div>
-                        </div>
-                        <p className="text-xs text-center font-medium text-slate-700 dark:text-slate-300">자막 ON</p>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden relative">
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="text-center">
-                              <div className="w-12 h-12 bg-white/20 rounded-full mx-auto mb-2"></div>
-                              <div className="text-xs text-white/60">영상</div>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-xs text-center font-medium text-slate-700 dark:text-slate-300">자막 OFF</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => {
-                          setIncludeSubtitles(true);
-                          setShowSubtitlePrompt(false);
-                          setShowExportPopup(true);
-                        }}
-                        className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
-                      >
-                        자막 ON
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIncludeSubtitles(false);
-                          setShowSubtitlePrompt(false);
-                          setShowExportPopup(true);
-                        }}
-                        className="flex-1 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
-                      >
-                        자막 OFF
-                      </button>
-                    </div>
-                  </div>
-                </div>
+      {/* API키 입력 팝업 */}
+      {showApiKeyPopup && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowApiKeyPopup(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">영상화 API키 필요</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">AI 영상 생성을 위해 API키를 입력해주세요</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl">
+                <p className="text-sm text-amber-900 dark:text-amber-200">
+                  고품질 AI 영상 생성을 위해 BytePlus, Evolink, 또는 Runware API키가 필요합니다.
+                </p>
               </div>
-            )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowApiKeyPopup(false)}
+                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    setShowApiKeyPopup(false);
+                    setCurrentStep('dashboard');
+                    setTimeout(() => {
+                      const settingsSection = document.querySelector('[data-section="video-api"]');
+                      if (settingsSection) {
+                        settingsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }, 100);
+                  }}
+                  className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
+                >
+                  설정으로 이동
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showExportPopup && project && (() => {
         const videoCount = project.scenes.filter(s => s.videoUrl).length;
@@ -4160,6 +4166,25 @@ const App: React.FC = () => {
                     <span className="text-slate-600 dark:text-slate-400">총 씬 개수</span>
                     <span className="font-bold text-slate-900 dark:text-slate-100">{totalScenes}개</span>
                   </div>
+                </div>
+                {/* 자막 ON/OFF 스위치 */}
+                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">자막 표시</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">(검정 배경, 하얀 글씨)</span>
+                  </div>
+                  <button
+                    onClick={() => setIncludeSubtitles(!includeSubtitles)}
+                    className={`relative w-12 h-6 rounded-full transition-all ${
+                      includeSubtitles ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                        includeSubtitles ? 'translate-x-6' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
                 <p className="text-xs text-slate-400 text-center">자막과 오디오가 싱크에 맞춰 자동으로 합성됩니다</p>
               </div>
@@ -4533,7 +4558,7 @@ const App: React.FC = () => {
               </div>
 
               {/* 영상화 API 설정 - 아코디언 */}
-              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+              <div data-section="video-api" className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                 <button onClick={() => setExpandedSetting(expandedSetting === 'bytedance' ? null : 'bytedance')} className="w-full px-4 py-4 flex items-center justify-between bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">영상화 API 설정</span>
