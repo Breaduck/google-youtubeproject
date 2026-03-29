@@ -307,7 +307,7 @@ const App: React.FC = () => {
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
   const [isCharLoadModalOpen, setIsCharLoadModalOpen] = useState(false);
   const [charLoadModalMode, setCharLoadModalMode] = useState<'list' | 'add'>('list');
-  const [newCharData, setNewCharData] = useState({ name: '', gender: '여성', age: '성인', traits: '' });
+  const [newCharData, setNewCharData] = useState({ name: '', gender: '여성', age: '성인', traits: '', images: [] as string[] });
   const [newSavedCharData, setNewSavedCharData] = useState<{ name: string; refImages: string[] }>({ name: '', refImages: [] });
   const [isSavingChar, setIsSavingChar] = useState(false);
 
@@ -2329,12 +2329,29 @@ const App: React.FC = () => {
   };
 
   const addCharacterManually = async () => {
-    if (!project || !newCharData.name.trim() || !newCharData.traits.trim()) return;
+    if (!project || !newCharData.name.trim()) return;
     setLoading(true);
-    setLoadingText(`${newCharData.name} 생성 중...`);
+    setLoadingText(`${newCharData.name} 분석 중...`);
     try {
-      const fullPrompt = `${newCharData.gender}, ${newCharData.age}, ${newCharData.traits}`;
-      const portraitUrl = await gemini.generateImage(fullPrompt, true, geminiImageModel);
+      let fullPrompt = '';
+      let portraitUrl: string | null = null;
+
+      // 이미지가 있으면 Gemini로 분석
+      if (newCharData.images.length > 0) {
+        setLoadingText('이미지 분석 중...');
+        const analysis = await gemini.analyzeStyle(newCharData.images);
+        fullPrompt = analysis.characterAppearance || analysis.style;
+        portraitUrl = newCharData.images[0];
+      } else if (newCharData.traits.trim()) {
+        // 텍스트 설명으로 이미지 생성
+        fullPrompt = `${newCharData.gender}, ${newCharData.age}, ${newCharData.traits}`;
+        setLoadingText('이미지 생성 중...');
+        portraitUrl = await gemini.generateImage(fullPrompt, true, geminiImageModel);
+      } else {
+        alert('이미지를 업로드하거나 외형 특징을 입력해주세요.');
+        return;
+      }
+
       const newChar: CharacterProfile = {
         id: crypto.randomUUID(),
         name: newCharData.name,
@@ -2345,7 +2362,7 @@ const App: React.FC = () => {
       };
       updateCurrentProject({ characters: [...project.characters, newChar] });
       setIsCharModalOpen(false);
-      setNewCharData({ name: '', gender: '여성', age: '성인', traits: '' });
+      setNewCharData({ name: '', gender: '여성', age: '성인', traits: '', images: [] });
     } catch (err) {
       console.error(err);
       alert("캐릭터 생성에 실패했습니다.");
@@ -5133,8 +5150,26 @@ const App: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">외형 특징</label>
-                <textarea value={newCharData.traits} onChange={e => setNewCharData({...newCharData, traits: e.target.value})} placeholder="머리색, 옷차림, 특징 등" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm h-24 resize-none dark:bg-slate-700 dark:text-slate-100" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">레퍼런스 이미지 (최대 10장)</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {newCharData.images.map((img, i) => (
+                    <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700">
+                      <img src={img} className="w-full h-full object-cover" />
+                      <button onClick={() => setNewCharData({...newCharData, images: newCharData.images.filter((_, idx) => idx !== i)})} className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">×</button>
+                    </div>
+                  ))}
+                  {newCharData.images.length < 10 && (
+                    <label className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center cursor-pointer hover:border-indigo-400 transition-colors">
+                      <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                      <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file && newCharData.images.length < 10) { const reader = new FileReader(); reader.onload = (ev) => { setNewCharData({...newCharData, images: [...newCharData.images, ev.target?.result as string]}); }; reader.readAsDataURL(file); } }} />
+                    </label>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">이미지를 업로드하면 Gemini가 자동으로 외형을 분석합니다</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">외형 특징 (선택사항)</label>
+                <textarea value={newCharData.traits} onChange={e => setNewCharData({...newCharData, traits: e.target.value})} placeholder="이미지 없이 텍스트로만 생성하려면 입력" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm h-24 resize-none dark:bg-slate-700 dark:text-slate-100" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
