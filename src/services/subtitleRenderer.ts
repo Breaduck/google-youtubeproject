@@ -32,12 +32,51 @@ export async function renderSubtitleToCanvas(
   const textY = settings.yPosition * scaleFactor;
   const textX = width / 2;
 
+  // 줄바꿈 처리 (20자 기준)
+  const lines: string[] = [];
+  let currentLine = '';
+  const chars = text.split('');
+
+  for (let i = 0; i < chars.length; i++) {
+    const char = chars[i];
+    const testLine = currentLine + char;
+
+    if (testLine.length >= 20) {
+      if (char === ' ') {
+        lines.push(currentLine);
+        currentLine = '';
+      } else if (chars[i + 1] === ' ') {
+        lines.push(testLine);
+        currentLine = '';
+        i++;
+      } else {
+        const lastSpace = currentLine.lastIndexOf(' ');
+        if (lastSpace > 0) {
+          lines.push(currentLine.slice(0, lastSpace));
+          currentLine = currentLine.slice(lastSpace + 1) + char;
+        } else {
+          currentLine = testLine;
+        }
+      }
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine.trim()) lines.push(currentLine.trim());
+
+  const lineHeight = settings.fontSize * (settings.lineHeight || 1.2);
+  const totalHeight = lines.length * lineHeight;
+
   // 배경 박스
   if (settings.backgroundColor) {
-    const metrics = ctx.measureText(text);
-    const textWidth = metrics.width;
+    let maxLineWidth = 0;
+    lines.forEach(line => {
+      const metrics = ctx.measureText(line);
+      if (metrics.width > maxLineWidth) maxLineWidth = metrics.width;
+    });
+
     const bgPadding = settings.bgPadding;
-    const bgHeight = settings.fontSize + bgPadding * 2;
+    const bgHeight = totalHeight + bgPadding * 2;
 
     const hex = settings.backgroundColor;
     const r = parseInt(hex.slice(1, 3), 16);
@@ -47,9 +86,9 @@ export async function renderSubtitleToCanvas(
 
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
     const bgRadius = settings.bgRadius || 0;
-    const x = textX - textWidth / 2 - bgPadding;
-    const y = textY - settings.fontSize - bgPadding;
-    const w = textWidth + bgPadding * 2;
+    const x = textX - maxLineWidth / 2 - bgPadding;
+    const y = textY - totalHeight - bgPadding;
+    const w = maxLineWidth + bgPadding * 2;
     const h = bgHeight;
 
     if (bgRadius > 0 && ctx.roundRect) {
@@ -63,17 +102,22 @@ export async function renderSubtitleToCanvas(
 
   ctx.globalAlpha = settings.opacity;
 
-  // 외곽선
-  if (settings.strokeWidth > 0 && settings.strokeColor !== 'transparent') {
-    ctx.strokeStyle = settings.strokeColor;
-    ctx.lineWidth = settings.strokeWidth;
-    ctx.lineJoin = 'round';
-    ctx.strokeText(text, textX, textY);
-  }
+  // 텍스트 렌더링 (여러 줄)
+  lines.forEach((line, i) => {
+    const y = textY - totalHeight + (i + 1) * lineHeight;
 
-  // 텍스트
-  ctx.fillStyle = settings.textColor;
-  ctx.fillText(text, textX, textY);
+    // 외곽선
+    if (settings.strokeWidth > 0 && settings.strokeColor !== 'transparent') {
+      ctx.strokeStyle = settings.strokeColor;
+      ctx.lineWidth = settings.strokeWidth;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(line, textX, y);
+    }
+
+    // 텍스트
+    ctx.fillStyle = settings.textColor;
+    ctx.fillText(line, textX, y);
+  });
 
   ctx.globalAlpha = 1.0;
 

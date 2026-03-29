@@ -4197,7 +4197,7 @@ const App: React.FC = () => {
                 <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-slate-900 dark:text-slate-100">자막 표시</span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">(검정 배경, 하얀 글씨)</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">({subtitleSettings.template || '현재 템플릿'})</span>
                   </div>
                   <button
                     onClick={() => setIncludeSubtitles(!includeSubtitles)}
