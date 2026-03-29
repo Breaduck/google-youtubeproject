@@ -438,7 +438,7 @@ async function generateByteDanceVideo(
   const storageDataParams = storageData ? JSON.parse(storageData).state : {};
   const model = testParams?.model || storageDataParams.bytedanceModel || 'seedance-1-0-pro-fast-251015';
   const duration_sec = testParams?.duration_sec || 5;
-  const resolution = testParams?.resolution || '720p';
+  const resolution = testParams?.resolution || '1080p';
 
   // 프롬프트 구성 (BytePlus는 파라미터를 프롬프트에 포함)
   const sceneDesc = (imagePrompt || 'anime character in a clean 2D scene').trim().substring(0, 200);
@@ -620,7 +620,7 @@ async function generateEvolinkVideo(
 
   const startTime = Date.now();
   const duration = testParams?.duration_sec || storageState.evolinkDuration || 5;
-  const quality = testParams?.resolution || storageState.evolinkResolution || '720p';
+  const quality = testParams?.resolution || storageState.evolinkResolution || '1080p';
 
   const API_BASE = 'https://byteplus-video-proxy.hiyoonsh1.workers.dev';
 
@@ -732,7 +732,7 @@ async function generateRunwareVideo(
 
   const startTime = Date.now();
   const duration = testParams?.duration_sec || storageState.runwareDuration || 5;
-  const resolution = testParams?.resolution || storageState.runwareResolution || '720p';
+  const resolution = testParams?.resolution || storageState.runwareResolution || '1080p';
 
   // 해상도 매핑 (Runware aspect ratio)
   const resolutionMap: Record<string, string> = {

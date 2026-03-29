@@ -2829,7 +2829,7 @@ const App: React.FC = () => {
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
                       <button onClick={openVideoGenerationPopup} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">비디오 전체 생성</button>
-                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">동영상 합치기</button>
+                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">최종 동영상 추출</button>
                     </div>
                   </div>
 
@@ -3320,7 +3320,7 @@ const App: React.FC = () => {
                     disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)}
                     className="px-5 py-2.5 bg-gradient-to-br from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-2xl hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 disabled:hover:scale-100"
                   >
-                    영상 합치기
+                    최종 동영상 추출
                   </button>
                   <button
                     onClick={() => { setShowPreviewModal(false); setIsMergedView(false); setExpandedSceneIndex(null); }}
@@ -3842,9 +3842,11 @@ const App: React.FC = () => {
                           : 'ring-2 ring-slate-200 dark:ring-slate-700 hover:ring-slate-300 dark:hover:ring-slate-600'
                       }`}
                     >
-                      {/* 이미지 */}
+                      {/* 이미지/영상 */}
                       <div className="aspect-video bg-slate-100 dark:bg-slate-700 relative">
-                        {scene.imageUrl ? (
+                        {scene.videoUrl ? (
+                          <video src={scene.videoUrl} className="w-full h-full object-cover" muted playsInline />
+                        ) : scene.imageUrl ? (
                           <img src={scene.imageUrl} alt={`씬 ${sceneIndex + 1}`} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
@@ -3866,12 +3868,10 @@ const App: React.FC = () => {
                       <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 backdrop-blur-sm rounded text-white text-xs font-semibold">
                         #{sceneIndex + 1}
                       </div>
-                      {/* 디폴트 표시 */}
-                      {idx === 0 && !isSelected && (
-                        <div className="absolute top-2 right-2 px-2 py-1 bg-slate-900/70 backdrop-blur-sm rounded text-white text-xs font-semibold">
-                          디폴트
-                        </div>
-                      )}
+                      {/* 타입 표시 */}
+                      <div className="absolute top-2 right-2 px-2 py-1 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded text-white text-[10px] font-medium">
+                        {scene.videoUrl ? 'AI영상' : '줌인-줌아웃'}
+                      </div>
                     </button>
                   );
                 })}
@@ -3974,7 +3974,7 @@ const App: React.FC = () => {
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setShowExportPopup(false)}>
             <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">동영상 합치기</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">최종 동영상 추출</h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">최종 영상을 생성합니다</p>
               </div>
               <div className="p-6 space-y-4">
