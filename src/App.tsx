@@ -3012,6 +3012,8 @@ const App: React.FC = () => {
                       {/* 아이폰 스타일 선택 오버레이 */}
                       {isSelectionMode && (
                         <>
+                          {/* 투명 클릭 차단 레이어 (뒤 버튼 차단) */}
+                          <div className="absolute inset-0 z-40" />
                           {selectedSceneIds.includes(scene.id) ? (
                             <>
                               {/* 선택된 카드: 블러 + 연두색 체크 */}
@@ -3372,7 +3374,6 @@ const App: React.FC = () => {
                   </button>
                   <button
                     onClick={() => {
-                      setShowPreviewModal(false);
                       setShowSubtitlePrompt(true);
                     }}
                     disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)}
