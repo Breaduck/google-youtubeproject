@@ -197,38 +197,16 @@ export default function ProgressSteps({
               videoCount
             );
             const isLastStep = index === steps.length - 1;
-            // 선 완료 여부: 현재 원과 다음 원 모두 완료되어야 선이 완료됨
-            const currentStepStatus = getStepStatus(
-              index,
-              currentStepIndex,
-              hasScript,
-              hasCharacters,
-              hasScenes,
-              hasImages,
-              hasAudios,
-              hasVideos,
-              characterCount,
-              sceneCount,
-              imageCount,
-              audioCount,
-              videoCount
-            );
-            const nextStepStatus = !isLastStep ? getStepStatus(
-              index + 1,
-              currentStepIndex,
-              hasScript,
-              hasCharacters,
-              hasScenes,
-              hasImages,
-              hasAudios,
-              hasVideos,
-              characterCount,
-              sceneCount,
-              imageCount,
-              audioCount,
-              videoCount
-            ) : 'upcoming';
-            const isLineCompleted = currentStepStatus === 'completed' && nextStepStatus === 'completed';
+            // 선 완료 여부: 가장 마지막으로 완료된 단계까지 모두 연결
+            let lastCompletedIndex = -1;
+            for (let i = steps.length - 1; i >= 0; i--) {
+              const stepStatus = getStepStatus(i, currentStepIndex, hasScript, hasCharacters, hasScenes, hasImages, hasAudios, hasVideos, characterCount, sceneCount, imageCount, audioCount, videoCount);
+              if (stepStatus === 'completed') {
+                lastCompletedIndex = i;
+                break;
+              }
+            }
+            const isLineCompleted = index < lastCompletedIndex;
 
             return (
               <React.Fragment key={index}>
@@ -266,8 +244,15 @@ export default function ProgressSteps({
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                       </svg>
-                    ) : (
+                    ) : status === 'current' ? (
                       <span>{step.icon}</span>
+                    ) : (
+                      // upcoming 상태인데 뒤에 completed 단계가 있으면 경고 표시
+                      lastCompletedIndex > index ? (
+                        <span className="text-lg">⚠️</span>
+                      ) : (
+                        <span>{step.icon}</span>
+                      )
                     )}
                   </button>
                   {/* 커스텀 툴팁 */}

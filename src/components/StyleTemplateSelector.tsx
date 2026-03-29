@@ -34,12 +34,12 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
         <h2 className="text-3xl font-black text-slate-900 dark:text-white">스타일 템플릿</h2>
         <button
           onClick={() => onAddTemplate?.()}
-          className="px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors flex items-center gap-1"
+          className="w-9 h-9 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-all shadow-sm hover:shadow active:scale-95"
+          title="템플릿 추가"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
-          템플릿 추가
         </button>
       </div>
 
@@ -63,8 +63,8 @@ export default function StyleTemplateSelector({ selectedTemplate, onSelectTempla
             onClick={() => setActiveCategory(cat)}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
               activeCategory === cat
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'bg-blue-500 text-white shadow-sm'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 shadow-sm'
             }`}
           >
             {cat}
