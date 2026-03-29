@@ -41,7 +41,7 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   textColor: '#FFFFFF',
   strokeColor: 'transparent',
   strokeWidth: 0,
-  backgroundColor: undefined,
+  backgroundColor: '#000000',
   bgPadding: 12,
   bgOpacity: 0.8,
   bgRadius: 8,

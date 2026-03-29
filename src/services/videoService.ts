@@ -144,7 +144,7 @@ export async function generateSimpleZoomVideo(
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
-      // 줄바꿈 처리 (15자 기준, 더 짧게 분할)
+      // 줄바꿈 처리 (20자 기준)
       const lines: string[] = [];
       let currentLine = '';
       const chars = subtitle.split('');
@@ -153,7 +153,7 @@ export async function generateSimpleZoomVideo(
         const char = chars[i];
         const testLine = currentLine + char;
 
-        if (testLine.length >= 15) {
+        if (testLine.length >= 20) {
           // 공백이면 바로 줄바꿈
           if (char === ' ') {
             lines.push(currentLine);
