@@ -2829,7 +2829,7 @@ const App: React.FC = () => {
                         type="text"
                         value={project.title}
                         onChange={(e) => updateCurrentProject({ title: e.target.value })}
-                        className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none focus:outline-none w-auto min-w-[200px]"
+                        className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-none focus:outline-none w-auto min-w-[200px]"
                         style={{ fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
                       />
                     </div>
@@ -3050,8 +3050,9 @@ const App: React.FC = () => {
                         <textarea
                           value={scene.scriptSegment}
                           onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                          className="w-full text-lg font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none min-h-[52px] placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                          className="w-full text-lg font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none max-h-[84px] overflow-y-auto custom-scrollbar placeholder:text-slate-300 dark:placeholder:text-slate-600"
                           placeholder="장면 대사..."
+                          style={{ lineHeight: '1.75rem' }}
                         />
                       </div>
 
@@ -3297,7 +3298,7 @@ const App: React.FC = () => {
             <div className={`flex-shrink-0 p-4 border-b ${isDarkMode ? 'bg-gray-950 border-gray-800' : 'bg-white border-gray-200'}`} onClick={e => e.stopPropagation()}>
               <div className="max-w-7xl mx-auto flex items-center justify-between">
                 <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  영상 미리보기 <span className="text-indigo-400">(AI생성 영상 {aiVideoCount}개, 줌인줌아웃 {zoomVideoCount}개)</span>
+                  영상 미리보기 <span className="text-indigo-400">(AI생성 영상 {aiVideoCount}개, 줌인 줌아웃 {zoomVideoCount}개)</span>
                 </h2>
                 <div className="flex items-center gap-3">
                   <button
@@ -3314,7 +3315,7 @@ const App: React.FC = () => {
                     disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)}
                     className="px-5 py-2.5 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow active:scale-95 disabled:hover:scale-100"
                   >
-                    최종 영상 검토
+                    최종 영상 추출
                   </button>
                   <button
                     onClick={() => { setShowPreviewModal(false); setIsMergedView(false); setExpandedSceneIndex(null); }}

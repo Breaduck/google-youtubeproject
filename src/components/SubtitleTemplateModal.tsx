@@ -211,6 +211,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
   const [showFontModal, setShowFontModal] = useState(false);
   const [googleFontUrl, setGoogleFontUrl] = useState('');
+  const [tempPreviewImage, setTempPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     loadFonts().then((fonts) => {
@@ -343,20 +344,43 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
           <div className="w-[340px] flex-shrink-0 p-4 border-r border-gray-800 flex flex-col">
             {/* 큰 미리보기 */}
             <div
-              className="relative rounded-xl overflow-hidden flex-shrink-0"
+              className="relative rounded-xl overflow-hidden flex-shrink-0 group/preview"
               style={{
                 aspectRatio: '16/9',
-                background: previewImage
-                  ? `url(${previewImage}) center/cover`
+                background: (tempPreviewImage || previewImage)
+                  ? `url(${tempPreviewImage || previewImage}) center/cover`
                   : 'linear-gradient(135deg, #374151 0%, #1f2937 50%, #111827 100%)',
               }}
             >
+              {/* 호버 시 업로드 버튼 */}
+              <label className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-all flex items-center justify-center cursor-pointer z-20">
+                <div className="px-4 py-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  예시 이미지 업로드
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setTempPreviewImage(ev.target?.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+
               <div className="absolute inset-0 flex items-end justify-center pb-4">
                 <span
                   style={{
                     fontFamily: `"${selected.fontFamily}", sans-serif`,
                     fontSize: `${selected.fontSize * 0.36}px`,
-                    fontWeight: 'bold',
+                    fontWeight: selected.fontWeight || 700,
                     color: selected.textColor,
                     backgroundColor: selected.backgroundColor || undefined,
                     padding: selected.backgroundColor ? `${selected.bgPadding * 0.36}px ${selected.bgPadding * 0.5}px` : undefined,
@@ -372,16 +396,34 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
 
             {/* 설정 패널 */}
             <div className="mt-4 space-y-3 flex-1 overflow-y-auto">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">폰트</label>
-                <select
-                  value={selected.fontFamily}
-                  onChange={(e) => setSelected({ ...selected, fontFamily: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white"
-                  style={{ fontFamily: selected.fontFamily }}
-                >
-                  {allFonts.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
-                </select>
+              {/* 폰트 + 굵기 */}
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 mb-1 block">폰트</label>
+                  <select
+                    value={selected.fontFamily}
+                    onChange={(e) => setSelected({ ...selected, fontFamily: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white"
+                    style={{ fontFamily: selected.fontFamily }}
+                  >
+                    {allFonts.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
+                  </select>
+                </div>
+                <div className="w-28">
+                  <label className="text-xs text-gray-500 mb-1 block">굵기</label>
+                  <select
+                    value={selected.fontWeight || 700}
+                    onChange={(e) => setSelected({ ...selected, fontWeight: parseInt(e.target.value) })}
+                    className="w-full px-2 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white"
+                  >
+                    <option value="400">Regular</option>
+                    <option value="500">Medium</option>
+                    <option value="600">Semi Bold</option>
+                    <option value="700">Bold</option>
+                    <option value="800">Extra Bold</option>
+                    <option value="900">Black</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -389,6 +431,15 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                 <input
                   type="range" min="24" max="72" value={selected.fontSize}
                   onChange={(e) => setSelected({ ...selected, fontSize: Number(e.target.value) })}
+                  className="w-full accent-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Y축 위치: {selected.yPosition || 680}px</label>
+                <input
+                  type="range" min="100" max="1000" value={selected.yPosition || 680}
+                  onChange={(e) => setSelected({ ...selected, yPosition: Number(e.target.value) })}
                   className="w-full accent-blue-500"
                 />
               </div>
