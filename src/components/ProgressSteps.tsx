@@ -84,8 +84,8 @@ const getStepStatus = (
   const isStepCompleted = (index: number): boolean => {
     switch (index) {
       case 0: return hasScript;
-      case 1: return true; // 그림체 설정은 항상 통과 (선택 사항)
-      case 2: return hasCharacters && characterCount > 0;
+      case 1: return hasScript; // 그림체 설정 - 대본 업로드되면 완료
+      case 2: return characterCount > 0; // 등장인물 1명 이상일 때만 완료
       case 3: return hasScenes && sceneCount > 0;
       case 4: return hasImages && imageCount > 0;
       case 5: return hasAudios && audioCount > 0;
