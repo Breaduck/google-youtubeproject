@@ -32,7 +32,7 @@ const TAG_MAP: Record<string, string> = {
 const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   fontSize: 32,
   fontFamily: 'Pretendard',
-  fontWeight: 700,
+  fontWeight: 800,
   fontStyle: 'normal',
   letterSpacing: 0,
   lineHeight: 1.2,
@@ -352,7 +352,7 @@ const App: React.FC = () => {
   const [selectedSubtitleTemplate, setSelectedSubtitleTemplate] = useState<string>('default');
   const [showExportPopup, setShowExportPopup] = useState(false);
   const [showSubtitlePrompt, setShowSubtitlePrompt] = useState(false);
-  const [includeSubtitles, setIncludeSubtitles] = useState(false);
+  const [includeSubtitles, setIncludeSubtitles] = useState(true); // 자막 ON/OFF (기본 ON)
   const [showVideoGenerationPopup, setShowVideoGenerationPopup] = useState(false);
   const [videoGenerationCount, setVideoGenerationCount] = useState(0);
   const [showMergeImageSelectPopup, setShowMergeImageSelectPopup] = useState(false);
@@ -413,7 +413,8 @@ const App: React.FC = () => {
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, 1280, 720);
 
-    ctx.font = `bold ${subtitleSettings.fontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
+    // fontWeight 800 고정 (일관성)
+    ctx.font = `800 ${subtitleSettings.fontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
 
@@ -1908,7 +1909,7 @@ const App: React.FC = () => {
         project.characters.length > 1,
         undefined,
         videoEngine,
-        subtitleSettings,
+        includeSubtitles ? subtitleSettings : undefined,
         (progress, message) => {
           setTargetProgress(progress);
           setLoadingText(message);
@@ -2562,11 +2563,35 @@ const App: React.FC = () => {
         audioCount={project?.scenes.filter(s => s.audioUrl).length || 0}
         videoCount={project?.scenes.filter(s => s.videoUrl).length || 0}
         onStepClick={(stepIndex) => {
+          // 스크롤 타겟 ID
+          const scrollTargets = [
+            'input-section',        // 0: 대본 업로드
+            'style-section',        // 1: 그림체 설정
+            'character-section',    // 2: 등장인물 설정
+            'storyboard-section',   // 3: 스크립트 분할
+            'image-section',        // 4: 이미지 생성
+            'narration-section',    // 5: 나레이션 생성
+            'video-section',        // 6: AI 영상 생성
+            'preview-section',      // 7: 영상 검토
+            'merge-section',        // 8: 영상 합치기
+          ];
+
           if (stepIndex === 0) setStep('input');
           else if (stepIndex === 1) setStep('style_selection');
           else if (stepIndex === 2) setStep('character_setup');
-          else if (stepIndex >= 3 && stepIndex <= 5) setStep('storyboard');
-          else if (stepIndex === 6) {
+          else if (stepIndex >= 3 && stepIndex <= 8) {
+            setStep('storyboard');
+            // 스크롤
+            setTimeout(() => {
+              const targetId = scrollTargets[stepIndex];
+              const element = document.getElementById(targetId);
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }, 100);
+          }
+
+          if (stepIndex === 6) {
             // AI영상 생성 - 설정 팝업
             const sceneCount = project?.scenes.length || 0;
             const videoRangeScenes = Math.floor(videoGenerationRange / 10);
@@ -4666,7 +4691,7 @@ const App: React.FC = () => {
                         <label className="text-sm font-medium text-slate-700 dark:text-slate-300">미리보기</label>
                         <span className="text-xs text-slate-500 dark:text-slate-400">클릭하여 Y축 위치 조정</span>
                       </div>
-                      <div className="relative border-2 border-slate-300 rounded-lg overflow-hidden bg-slate-900">
+                      <div className="relative border-2 border-slate-300 rounded-lg overflow-hidden bg-slate-900 group">
                         <canvas
                           id="subtitle-preview-canvas"
                           width="1280"
@@ -4680,6 +4705,19 @@ const App: React.FC = () => {
                             setSubtitleSettings({...subtitleSettings, yPosition: Math.round(clickY)});
                           }}
                         />
+                        {/* 전체화면 버튼 */}
+                        <button
+                          onClick={() => {
+                            const canvas = document.getElementById('subtitle-preview-canvas') as HTMLCanvasElement;
+                            if (canvas.requestFullscreen) canvas.requestFullscreen();
+                          }}
+                          className="absolute top-2 right-2 p-2 bg-slate-900/80 hover:bg-slate-800 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="전체화면"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   </div>
