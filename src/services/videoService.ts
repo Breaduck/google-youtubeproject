@@ -100,13 +100,17 @@ export async function generateSimpleZoomVideo(
   for (let frame = 0; frame < totalFrames; frame++) {
     const progress = frame / totalFrames;
 
+    // Easing 함수 (부드러운 가속/감속)
+    const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const easedProgress = easeInOutCubic(progress);
+
     // 줌 계산
     const zoomAmount = 0.08 + (effectIntensity / 50);
     let scale: number;
     if (zoomDirection === 'in') {
-      scale = 1.0 + (progress * zoomAmount);
+      scale = 1.0 + (easedProgress * zoomAmount);
     } else {
-      scale = 1.0 + zoomAmount - (progress * zoomAmount);
+      scale = 1.0 + zoomAmount - (easedProgress * zoomAmount);
     }
 
     // 패닝 계산
@@ -635,7 +639,8 @@ async function generateByteDanceVideo(
     if (dialogue && subtitleSettings) {
       onProgress?.(85, '자막 적용 중...');
       const { renderSubtitleToCanvas } = await import('./subtitleRenderer');
-      const subtitleCanvas = await renderSubtitleToCanvas(dialogue, subtitleSettings);
+      // 1080p 해상도로 자막 캔버스 생성 (BytePlus 비디오와 동일)
+      const subtitleCanvas = await renderSubtitleToCanvas(dialogue, subtitleSettings, 1920, 1080);
       blob = await addSubtitleOverlay(blob, subtitleCanvas, (p, msg) => {
         onProgress?.(85 + (p / 100) * 15, msg);
       });

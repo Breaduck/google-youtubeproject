@@ -1859,6 +1859,13 @@ const App: React.FC = () => {
       return;
     }
 
+    // 재생성 확인
+    if (scene.videoUrl) {
+      if (!confirm('이미 생성된 영상이 있습니다.\n다시 영상을 생성하시겠습니까?')) {
+        return;
+      }
+    }
+
     // API 키 체크
     let hasApiKey = false;
     if (videoProvider === 'byteplus') {
@@ -2974,9 +2981,9 @@ const App: React.FC = () => {
               {/* 씬 그리드 - 깔끔한 카드 스타일 */}
               <div id="narration-section" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {project.scenes.map((scene, idx) => (
-                  <div key={scene.id} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-700' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}>
+                  <div key={scene.id} onClick={() => { if (isSelectionMode) { if (selectedSceneIds.includes(scene.id)) { setSelectedSceneIds(selectedSceneIds.filter(id => id !== scene.id)); } else { setSelectedSceneIds([...selectedSceneIds, scene.id]); } } }} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode ? 'cursor-pointer' : ''} ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-700' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}>
                     {/* 이미지 영역 */}
-                    <div className={`aspect-video bg-slate-50 dark:bg-slate-700 relative group/img`}>
+                    <div className={`aspect-video bg-slate-50 dark:bg-slate-700 relative group/img`} onClick={(e) => { if (!isSelectionMode) return; e.stopPropagation(); }}>
                       {/* 씬 번호 & 선택 체크박스 */}
                       <div className="absolute top-3 left-3 z-40 flex items-center gap-2">
                         <div className="px-2.5 py-1 bg-slate-900/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-xs font-semibold">
@@ -3087,7 +3094,7 @@ const App: React.FC = () => {
                         <textarea
                           value={scene.scriptSegment}
                           onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none max-h-[78px] overflow-y-auto custom-scrollbar placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none max-h-[120px] overflow-y-auto custom-scrollbar placeholder:text-slate-300 dark:placeholder:text-slate-600"
                           placeholder="장면 대사..."
                           style={{ lineHeight: '1.625rem' }}
                         />
@@ -3347,8 +3354,8 @@ const App: React.FC = () => {
                   </button>
                   <button
                     onClick={() => {
-                      setIncludeSubtitles(true);
-                      exportVideo();
+                      setShowPreviewModal(false);
+                      setShowSubtitlePrompt(true);
                     }}
                     disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)}
                     className="px-5 py-2.5 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow active:scale-95 disabled:hover:scale-100"
