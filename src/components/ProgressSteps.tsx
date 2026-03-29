@@ -282,10 +282,10 @@ export default function ProgressSteps({
                     className={`
                       text-center transition-all whitespace-nowrap mt-2
                       ${
-                        status === 'completed'
-                          ? 'text-xs text-indigo-600 dark:text-indigo-400 font-medium'
-                          : status === 'current'
+                        index === currentStepIndex
                           ? 'text-sm text-slate-900 dark:text-slate-100 font-bold'
+                          : status === 'completed'
+                          ? 'text-xs text-indigo-600 dark:text-indigo-400 font-medium'
                           : 'text-xs text-slate-400 dark:text-slate-500'
                       }
                     `}

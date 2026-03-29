@@ -1938,6 +1938,12 @@ const App: React.FC = () => {
             : s
         )
       });
+
+      // 자동 다운로드
+      const a = document.createElement('a');
+      a.href = videoUrl;
+      a.download = `scene-${sceneIndex + 1}_1080p.mp4`;
+      a.click();
     } catch (err: any) {
       console.error('Video generation failed:', err);
       const errorMsg = err?.message || '알 수 없는 오류';
@@ -2837,7 +2843,7 @@ const App: React.FC = () => {
                     <div className="flex flex-wrap gap-2 items-center">
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
-                      <button onClick={openVideoGenerationPopup} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">비디오 전체 생성</button>
+                      <button onClick={openVideoGenerationPopup} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">AI 영상 전체 생성</button>
                       <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">최종 영상 검토</button>
                     </div>
                   </div>
@@ -3051,9 +3057,9 @@ const App: React.FC = () => {
                         <textarea
                           value={scene.scriptSegment}
                           onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none max-h-[72px] overflow-y-auto custom-scrollbar placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none max-h-[78px] overflow-y-auto custom-scrollbar placeholder:text-slate-300 dark:placeholder:text-slate-600"
                           placeholder="장면 대사..."
-                          style={{ lineHeight: '1.5rem' }}
+                          style={{ lineHeight: '1.625rem' }}
                         />
                       </div>
 
@@ -3840,14 +3846,10 @@ const App: React.FC = () => {
                   취소
                 </button>
                 <button
-                  onClick={() => {
-                    const count = Math.floor(videoGenerationRange / 10);
-                    generateAllVideos(count);
-                    setShowVideoGenerationPopup(false);
-                  }}
+                  onClick={() => setShowVideoGenerationPopup(false)}
                   className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
                 >
-                  생성 시작
+                  저장하기
                 </button>
               </div>
             </div>
