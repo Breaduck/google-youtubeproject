@@ -2829,7 +2829,7 @@ const App: React.FC = () => {
                       <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
                       <button onClick={openVideoGenerationPopup} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">비디오 전체 생성</button>
-                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">최종 동영상 추출</button>
+                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">최종 영상 검토</button>
                     </div>
                   </div>
 
@@ -3318,7 +3318,7 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowSubtitleEditor(true)}
-                    className="px-5 py-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-semibold rounded-2xl hover:from-blue-600 hover:to-indigo-700 transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95"
+                    className="px-5 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-semibold rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-all shadow-sm hover:shadow active:scale-95"
                   >
                     자막 템플릿 선택
                   </button>
@@ -3328,9 +3328,9 @@ const App: React.FC = () => {
                       exportVideo();
                     }}
                     disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)}
-                    className="px-5 py-2.5 bg-gradient-to-br from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-2xl hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 disabled:hover:scale-100"
+                    className="px-5 py-2.5 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow active:scale-95 disabled:hover:scale-100"
                   >
-                    최종 동영상 추출
+                    최종 영상 검토
                   </button>
                   <button
                     onClick={() => { setShowPreviewModal(false); setIsMergedView(false); setExpandedSceneIndex(null); }}
@@ -3348,15 +3348,15 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-              <div className="max-w-7xl mx-auto">
+            <div className="flex-1 p-6 overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="max-w-7xl mx-auto h-full overflow-y-auto">
                 {/* 그리드 모드 - 전체 씬 표시 (빈 씬 포함) */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {project.scenes.map((scene, idx) => (
                       <div
                         key={scene.id}
                         className={`group relative aspect-video rounded-xl overflow-hidden transition-all ${
-                          scene.videoUrl
+                          scene.videoUrl || scene.imageUrl
                             ? isDarkMode
                               ? 'bg-gray-800 border border-gray-700 hover:border-indigo-500'
                               : 'bg-gray-100 border border-gray-200 hover:border-indigo-500'
@@ -3455,6 +3455,53 @@ const App: React.FC = () => {
                             #{idx + 1}
                           </div>
                           </>
+                        ) : scene.imageUrl ? (
+                          /* 이미지만 있는 경우 */
+                          <>
+                            <img
+                              src={scene.imageUrl}
+                              className="w-full h-full object-cover"
+                              alt={`씬 ${idx + 1}`}
+                            />
+                            {/* 호버 시 업로드 버튼 */}
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <label className="cursor-pointer p-4 bg-white/90 hover:bg-white rounded-full transition-colors" title="영상 업로드">
+                                <svg className="w-8 h-8 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="video/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      if (scene.videoUrl?.startsWith('blob:')) {
+                                        URL.revokeObjectURL(scene.videoUrl);
+                                      }
+                                      const url = URL.createObjectURL(file);
+                                      updateCurrentProject({
+                                        scenes: project.scenes.map(s =>
+                                          s.id === scene.id
+                                            ? { ...s, videoUrl: url, videoType: 'manual' }
+                                            : s
+                                        )
+                                      });
+                                    }
+                                    if (e.target) e.target.value = '';
+                                  }}
+                                />
+                              </label>
+                            </div>
+                            {/* 씬 번호 */}
+                            <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
+                              #{idx + 1}
+                            </div>
+                            {/* 우측 상단 "이미지" 라벨 */}
+                            <div className="absolute top-2 right-2 px-2 py-1 bg-white/20 backdrop-blur-sm rounded text-white text-[10px] font-medium">
+                              이미지
+                            </div>
+                          </>
                         ) : (
                           /* 빈 씬 표시 */
                           <>
@@ -3500,19 +3547,6 @@ const App: React.FC = () => {
                     ))}
                   </div>
               </div>
-            </div>
-
-            <div className={`flex-shrink-0 p-4 border-t flex justify-center ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`} onClick={e => e.stopPropagation()}>
-              <button
-                onClick={() => { setShowPreviewModal(false); setIsMergedView(false); setExpandedSceneIndex(null); }}
-                className={`px-8 py-3 rounded-xl font-medium transition-all ${
-                  isDarkMode
-                    ? 'bg-gray-800 hover:bg-gray-700 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                }`}
-              >
-                닫기
-              </button>
             </div>
           </div>
         );
@@ -3984,7 +4018,7 @@ const App: React.FC = () => {
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setShowExportPopup(false)}>
             <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">최종 동영상 추출</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">최종 영상 검토</h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">최종 영상을 생성합니다</p>
               </div>
               <div className="p-6 space-y-4">
