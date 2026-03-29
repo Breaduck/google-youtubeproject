@@ -197,8 +197,8 @@ export default function ProgressSteps({
               videoCount
             );
             const isLastStep = index === steps.length - 1;
-            // 선 완료 여부: 현재 원이 완료되어야 다음 원으로 가는 선이 완료됨
-            const isLineCompleted = getStepStatus(
+            // 선 완료 여부: 현재 원과 다음 원 모두 완료되어야 선이 완료됨
+            const currentStepStatus = getStepStatus(
               index,
               currentStepIndex,
               hasScript,
@@ -212,7 +212,23 @@ export default function ProgressSteps({
               imageCount,
               audioCount,
               videoCount
-            ) === 'completed';
+            );
+            const nextStepStatus = !isLastStep ? getStepStatus(
+              index + 1,
+              currentStepIndex,
+              hasScript,
+              hasCharacters,
+              hasScenes,
+              hasImages,
+              hasAudios,
+              hasVideos,
+              characterCount,
+              sceneCount,
+              imageCount,
+              audioCount,
+              videoCount
+            ) : 'upcoming';
+            const isLineCompleted = currentStepStatus === 'completed' && nextStepStatus === 'completed';
 
             return (
               <React.Fragment key={index}>
