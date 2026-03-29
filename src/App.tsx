@@ -2309,6 +2309,7 @@ const App: React.FC = () => {
       }
 
       // 통합 비디오 다운로드
+      setBgProgress(100);
       setBgTask({ type: 'video', message: '비디오 다운로드 중...' });
       const url = URL.createObjectURL(finalBlob);
       const a = document.createElement('a');
@@ -2317,9 +2318,10 @@ const App: React.FC = () => {
       a.click();
       URL.revokeObjectURL(url);
 
+      await new Promise(resolve => setTimeout(resolve, 500));
+      alert(`통합 비디오 다운로드 완료!`);
       setBgTask(null);
       setBgProgress(0);
-      alert(`통합 비디오 다운로드 완료!`);
     } catch (error: any) {
       console.error('Export failed:', error);
       setBgTask(null);
@@ -4047,27 +4049,40 @@ const App: React.FC = () => {
                         setLoading(true);
                         setTargetProgress(0);
                         setLoadingText('줌인-줌아웃 영상 생성 중...');
+                        setBgTask({ type: 'video', message: '줌인-줌아웃 영상 생성 중...' });
+                        setBgProgress(0);
                         try {
                           const videoBlob = await generateSimpleZoomVideo(
                             scene.imageUrl,
                             scene.scriptSegment,
                             'in',
                             subtitleSettings,
-                            (p, msg) => { setTargetProgress(p); setLoadingText(msg); }
+                            (p, msg) => {
+                              setTargetProgress(p);
+                              setLoadingText(msg);
+                              setBgProgress(p * 0.8);
+                              setBgTask({ type: 'video', message: msg });
+                            }
                           );
 
                           let finalBlob = videoBlob;
                           if (scene.audioUrl) {
                             setTargetProgress(90);
                             setLoadingText('오디오 통합 중...');
+                            setBgProgress(80);
+                            setBgTask({ type: 'video', message: '오디오 통합 중...' });
                             finalBlob = await addAudioToVideo(videoBlob, scene.audioUrl, (p, msg) => {
                               setTargetProgress(90 + p * 0.1);
                               setLoadingText(msg);
+                              setBgProgress(80 + p * 0.2);
+                              setBgTask({ type: 'video', message: msg });
                             });
                           }
 
                           setTargetProgress(100);
                           setLoadingText('다운로드 준비 중...');
+                          setBgProgress(100);
+                          setBgTask({ type: 'video', message: '다운로드 준비 중...' });
 
                           const url = URL.createObjectURL(finalBlob);
                           const a = document.createElement('a');
@@ -4075,11 +4090,15 @@ const App: React.FC = () => {
                           a.download = `scene-${project.scenes.findIndex(s => s.id === sceneId) + 1}_zoom.mp4`;
                           a.click();
                           URL.revokeObjectURL(url);
+
+                          await new Promise(resolve => setTimeout(resolve, 500));
                         } catch (err: any) {
                           console.error('Zoom video generation failed:', err);
                         } finally {
                           setLoading(false);
                           setTargetProgress(0);
+                          setBgTask(null);
+                          setBgProgress(0);
                         }
                       }}
                       className="w-full py-4 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
