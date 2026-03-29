@@ -2937,34 +2937,6 @@ const App: React.FC = () => {
                         <div className="px-2.5 py-1 bg-slate-900/70 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-xs font-semibold">
                           #{idx + 1}
                         </div>
-                        {/* 선택 모드 시 체크박스 */}
-                        {isSelectionMode && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedSceneIds(prev =>
-                                prev.includes(scene.id)
-                                  ? prev.filter(id => id !== scene.id)
-                                  : [...prev, scene.id]
-                              );
-                            }}
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all shadow-lg ${
-                              selectedSceneIds.includes(scene.id)
-                                ? 'bg-lime-500 text-white'
-                                : 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-2 border-slate-300 dark:border-slate-600 text-slate-400'
-                            }`}
-                          >
-                            {selectedSceneIds.includes(scene.id) ? (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            ) : (
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" />
-                              </svg>
-                            )}
-                          </button>
-                        )}
                       </div>
 
                       {/* 아이폰 스타일 선택 오버레이 */}
@@ -2983,10 +2955,10 @@ const App: React.FC = () => {
                               </div>
                             </>
                           ) : (
-                            /* 선택 안 된 카드: hover 시 선택 가능 표시 */
+                            /* 선택 안 된 카드: 정중앙 큰 선택 버튼 */
                             <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity group-hover/card:opacity-100">
-                              <div className="w-20 h-20 bg-white/80 dark:bg-slate-800/80 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-300 dark:border-slate-600">
-                                <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                              <div className="w-24 h-24 bg-white/90 dark:bg-slate-800/90 rounded-full flex items-center justify-center shadow-xl border-2 border-slate-300 dark:border-slate-600">
+                                <svg className="w-12 h-12 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                                   <circle cx="12" cy="12" r="10" />
                                 </svg>
                               </div>
@@ -2995,7 +2967,8 @@ const App: React.FC = () => {
                         </>
                       )}
 
-                      {/* 상단 우측 버튼들 */}
+                      {/* 상단 우측 버튼들 (선택 모드 시 숨김) */}
+                      {!isSelectionMode && (
                       <div className="absolute top-3 right-3 z-30 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all">
                         <label className="w-7 h-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer shadow-sm">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
@@ -3017,6 +2990,7 @@ const App: React.FC = () => {
                           </button>
                         )}
                       </div>
+                      )}
 
                       {scene.status === 'loading' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm z-20">
@@ -3026,6 +3000,7 @@ const App: React.FC = () => {
                       {scene.imageUrl ? (
                         <>
                           <img src={scene.imageUrl} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)} />
+                          {!isSelectionMode && (
                           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10 cursor-pointer" onClick={() => setSelectedImage(scene.imageUrl)}>
                             <button onClick={(e) => { e.stopPropagation(); openRegenerateModal('scene', scene.id); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="재생성">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -3034,6 +3009,7 @@ const App: React.FC = () => {
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                             </button>
                           </div>
+                          )}
                         </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -3497,9 +3473,9 @@ const App: React.FC = () => {
                             <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
                               #{idx + 1}
                             </div>
-                            {/* 우측 상단 "이미지" 라벨 */}
+                            {/* 우측 상단 "줌인-줌아웃" 라벨 */}
                             <div className="absolute top-2 right-2 px-2 py-1 bg-white/20 backdrop-blur-sm rounded text-white text-[10px] font-medium">
-                              이미지
+                              줌인-줌아웃
                             </div>
                           </>
                         ) : (

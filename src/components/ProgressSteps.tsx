@@ -249,7 +249,7 @@ export default function ProgressSteps({
                     ) : (
                       // upcoming 상태인데 뒤에 completed 단계가 있으면 경고 표시
                       lastCompletedIndex > index ? (
-                        <span className="text-lg">⚠️</span>
+                        <span className="text-base leading-none flex items-center justify-center">⚠️</span>
                       ) : (
                         <span>{step.icon}</span>
                       )
