@@ -636,14 +636,20 @@ async function generateByteDanceVideo(
     console.log(`[BYTEDANCE] Done: ${elapsed}s | ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
 
     // 자막 오버레이 추가
+    console.log('[BYTEDANCE] Subtitle check:', { dialogue: dialogue?.substring(0, 50), hasSubtitleSettings: !!subtitleSettings });
     if (dialogue && subtitleSettings) {
+      console.log('[BYTEDANCE] Adding subtitle overlay...');
       onProgress?.(85, '자막 적용 중...');
       const { renderSubtitleToCanvas } = await import('./subtitleRenderer');
       // 1080p 해상도로 자막 캔버스 생성 (BytePlus 비디오와 동일)
       const subtitleCanvas = await renderSubtitleToCanvas(dialogue, subtitleSettings, 1920, 1080);
+      console.log('[BYTEDANCE] Subtitle canvas created:', subtitleCanvas.width, 'x', subtitleCanvas.height);
       blob = await addSubtitleOverlay(blob, subtitleCanvas, (p, msg) => {
         onProgress?.(85 + (p / 100) * 15, msg);
       });
+      console.log('[BYTEDANCE] Subtitle overlay applied');
+    } else {
+      console.log('[BYTEDANCE] Skipping subtitle:', { noDialogue: !dialogue, noSettings: !subtitleSettings });
     }
 
     return new Blob([blob], { type: 'video/mp4' });
