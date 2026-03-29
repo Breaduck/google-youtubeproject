@@ -4109,7 +4109,7 @@ const App: React.FC = () => {
                 <button
                   onClick={() => {
                     setShowApiKeyPopup(false);
-                    setCurrentStep('dashboard');
+                    setStep('dashboard');
                     setTimeout(() => {
                       const settingsSection = document.querySelector('[data-section="video-api"]');
                       if (settingsSection) {
