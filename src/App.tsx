@@ -3231,9 +3231,9 @@ const App: React.FC = () => {
                 <div className="relative">
                   <textarea
                     ref={scriptTextareaRef}
-                    className="w-full rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-5 pb-8 min-h-[140px] resize-y text-base leading-relaxed text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 outline-none shadow-sm transition-all"
+                    className="w-full rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-5 pb-8 min-h-[140px] resize-y text-base leading-relaxed text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 outline-none shadow-sm transition-all scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent"
                     style={{
-                      height: scriptTextareaRef.current && script.split('\n').length > 10
+                      height: scriptTextareaRef.current && script.length > 100
                         ? `${Math.min(scriptTextareaRef.current.scrollHeight, 500)}px`
                         : '140px'
                     }}
@@ -3248,10 +3248,10 @@ const App: React.FC = () => {
                     }}
                     spellCheck={false}
                   />
-                  {script.split('\n').length > 10 && (
+                  {script.length > 100 && (
                     <button
                       onClick={() => setIsScriptExpanded(true)}
-                      className="absolute top-3 right-3 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors bg-white/50 dark:bg-gray-800/50 rounded-lg backdrop-blur-sm"
+                      className="absolute top-3 right-3 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors bg-white/30 dark:bg-gray-800/30 rounded-lg backdrop-blur-sm"
                       title="크게 보기"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3263,27 +3263,37 @@ const App: React.FC = () => {
                 </div>
 
                 {/* 프로젝트 시작하기 버튼 */}
-                <button
-                  onClick={startAnalysis}
-                  disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()}
-                  className={`mt-6 w-full max-w-md mx-auto block bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full py-3 text-sm font-medium hover:bg-gray-700 dark:hover:bg-gray-200 transition-all ${
-                    !script.trim() ? 'opacity-40 cursor-not-allowed' : ''
-                  }`}
-                >
-                  프로젝트 시작하기
-                </button>
+                <div className="mt-6 flex items-center justify-center gap-3 max-w-md mx-auto">
+                  <button
+                    onClick={startAnalysis}
+                    disabled={(bgTask && bgTask.type === 'analysis') || !script.trim()}
+                    className={`flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full py-3 text-sm font-medium hover:bg-gray-700 dark:hover:bg-gray-200 transition-all ${
+                      !script.trim() ? 'opacity-40 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    프로젝트 시작하기
+                  </button>
 
-                {/* 그림체 설정으로 이동 */}
-                {project && (project.characters.length > 0 || project.scenes.length > 0) && (
-                  <div className="mt-3 text-center">
-                    <button
-                      onClick={() => setStep('style_selection')}
-                      className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                    >
-                      그림체 설정으로 이동
-                    </button>
-                  </div>
-                )}
+                  {/* 그림체 설정으로 이동 화살표 */}
+                  {project && (project.characters.length > 0 || project.scenes.length > 0) && (
+                    <div className="relative group">
+                      <button
+                        onClick={() => setStep('style_selection')}
+                        className="p-3 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                        aria-label="그림체 설정으로 이동"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </button>
+                      {/* 툴팁 */}
+                      <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 pointer-events-none">
+                        그림체 설정으로 이동
+                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 dark:bg-slate-700 rotate-45" />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

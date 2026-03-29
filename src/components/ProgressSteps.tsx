@@ -197,7 +197,22 @@ export default function ProgressSteps({
               videoCount
             );
             const isLastStep = index === steps.length - 1;
-            const isLineCompleted = status === 'completed';
+            // 선 완료 여부: 현재 원이 완료되어야 다음 원으로 가는 선이 완료됨
+            const isLineCompleted = getStepStatus(
+              index,
+              currentStepIndex,
+              hasScript,
+              hasCharacters,
+              hasScenes,
+              hasImages,
+              hasAudios,
+              hasVideos,
+              characterCount,
+              sceneCount,
+              imageCount,
+              audioCount,
+              videoCount
+            ) === 'completed';
 
             return (
               <React.Fragment key={index}>
