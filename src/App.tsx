@@ -3152,7 +3152,8 @@ const App: React.FC = () => {
                                 onClick={() => {
                                   if (!scene.videoUrl) return;
                                   const a = document.createElement('a');
-                                  a.href = scene.videoUrl.includes('?') ? `${scene.videoUrl}&export=1080` : `${scene.videoUrl}?export=1080`;
+                                  // Blob URL은 파라미터를 지원하지 않으므로 그대로 사용
+                                  a.href = scene.videoUrl.startsWith('blob:') ? scene.videoUrl : (scene.videoUrl.includes('?') ? `${scene.videoUrl}&export=1080` : `${scene.videoUrl}?export=1080`);
                                   a.download = `scene-${idx+1}_1080p.mp4`;
                                   a.click();
                                 }}

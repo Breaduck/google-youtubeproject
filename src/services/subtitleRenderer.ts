@@ -11,8 +11,8 @@ export async function renderSubtitleToCanvas(
   canvas.height = height;
   const ctx = canvas.getContext('2d')!;
 
-  // 폰트 로딩 대기
-  const fontWeight = settings.fontWeight || 700;
+  // 폰트 로딩 대기 - fontWeight 800 고정 (일관성)
+  const fontWeight = 800;
   const fontStyle = settings.fontStyle || 'normal';
   try {
     await document.fonts.load(`${fontStyle} ${fontWeight} ${settings.fontSize}px "${settings.fontFamily}"`);
@@ -27,7 +27,9 @@ export async function renderSubtitleToCanvas(
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
 
-  const textY = settings.yPosition;
+  // Y축 위치 scale 적용 (720p 기준 → 실제 해상도)
+  const scaleFactor = height / 720;
+  const textY = settings.yPosition * scaleFactor;
   const textX = width / 2;
 
   // 배경 박스

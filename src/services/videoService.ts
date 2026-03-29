@@ -135,11 +135,12 @@ export async function generateSimpleZoomVideo(
       const scaledFontSize = Math.round(subtitleSettings.fontSize * scaleFactor);
       const scaledYPosition = Math.round(subtitleSettings.yPosition * scaleFactor);
 
-      ctx.font = `${subtitleSettings.fontWeight || 700} ${scaledFontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
+      // fontWeight 800 고정 (일관성)
+      ctx.font = `800 ${scaledFontSize}px "${subtitleSettings.fontFamily}", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
-      // 줄바꿈 처리 (20자 기준, 단어 중간 안 끊김)
+      // 줄바꿈 처리 (15자 기준, 더 짧게 분할)
       const lines: string[] = [];
       let currentLine = '';
       const chars = subtitle.split('');
@@ -148,7 +149,7 @@ export async function generateSimpleZoomVideo(
         const char = chars[i];
         const testLine = currentLine + char;
 
-        if (testLine.length >= 20) {
+        if (testLine.length >= 15) {
           // 공백이면 바로 줄바꿈
           if (char === ' ') {
             lines.push(currentLine);
