@@ -3123,7 +3123,7 @@ const App: React.FC = () => {
                         <textarea
                           value={scene.scriptSegment}
                           onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
-                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none overflow-visible placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                          className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none overflow-y-auto placeholder:text-slate-300 dark:placeholder:text-slate-600 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent"
                           placeholder="장면 대사..."
                           style={{ lineHeight: '1.625rem', minHeight: '4.875rem' }}
                           rows={Math.max(3, scene.scriptSegment?.split('\n').length || 1)}
