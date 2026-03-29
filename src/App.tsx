@@ -3993,20 +3993,8 @@ const App: React.FC = () => {
       )}
 
       {/* 동영상 추출 팝업 */}
-      {showExportPopup && project && (() => {
-        const videoCount = project.scenes.filter(s => s.videoUrl).length;
-        const imageCount = project.scenes.filter(s => s.imageUrl && !s.videoUrl).length;
-        const totalScenes = project.scenes.length;
-        const estimatedLength = project.scenes.reduce((acc, s) => {
-          const textLen = s.scriptSegment?.length || 0;
-          return acc + Math.max(5, Math.min(12, textLen / 3));
-        }, 0);
-        const estimatedTime = Math.ceil((videoCount * 3 + imageCount * 8 + totalScenes * 2) / 60);
-        return (
-          <>
-            {/* 자막 팝업 */}
-            {/* 개별 영상 생성 모드 선택 팝업 */}
-            {videoGenerationModePopup && (
+      {/* 개별 영상 생성 모드 선택 팝업 */}
+      {videoGenerationModePopup && (
               <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[320] flex items-center justify-center p-4" onClick={() => setVideoGenerationModePopup(null)}>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
                   <div className="p-6 border-b border-slate-100 dark:border-slate-700">
@@ -4068,9 +4056,10 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
+      })()}
 
-            {showSubtitlePrompt && (
-              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowSubtitlePrompt(false)}>
+      {showSubtitlePrompt && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowSubtitlePrompt(false)}>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
                   <div className="p-6 border-b border-slate-100 dark:border-slate-700">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">자막 설정</h2>
@@ -4131,8 +4120,19 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
+      })()}
 
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setShowExportPopup(false)}>
+      {showExportPopup && project && (() => {
+        const videoCount = project.scenes.filter(s => s.videoUrl).length;
+        const imageCount = project.scenes.filter(s => s.imageUrl && !s.videoUrl).length;
+        const totalScenes = project.scenes.length;
+        const estimatedLength = project.scenes.reduce((acc, s) => {
+          const textLen = s.scriptSegment?.length || 0;
+          return acc + Math.max(5, Math.min(12, textLen / 3));
+        }, 0);
+        const estimatedTime = Math.ceil((videoCount * 3 + imageCount * 8 + totalScenes * 2) / 60);
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setShowExportPopup(false)}>
             <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="p-6 border-b border-slate-100 dark:border-slate-700">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">최종 영상 검토</h2>
