@@ -227,7 +227,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
       opacity: 1, template: 'custom', textColor: '#FFFFFF',
       strokeColor: 'transparent', strokeWidth: 0,
       backgroundColor: undefined, bgPadding: 12, bgPaddingX: undefined, bgPaddingY: undefined, bgOpacity: 0.8, bgRadius: 8,
-      position: 'bottom', yPosition: 680, lockPosition: false, lockFont: false,
+      position: 'bottom', yPosition: 650, lockPosition: false, lockFont: false,
     };
     setSelected({ ...baseSettings, ...template.settings, strokeWidth: 0, strokeColor: 'transparent' });
   };
@@ -377,7 +377,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
 
               <div
                 className="absolute left-0 right-0 flex justify-center"
-                style={{ top: `${((selected.yPosition || 680) / 720) * 100}%`, transform: 'translateY(-50%)' }}
+                style={{ top: `${((selected.yPosition || 650) / 720) * 100}%`, transform: 'translateY(-50%)' }}
               >
                 <span
                   style={{
@@ -441,9 +441,9 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Y축 위치: {selected.yPosition || 680}px</label>
+                <label className="text-xs text-gray-500 mb-1 block">Y축 위치: {selected.yPosition || 650}px</label>
                 <input
-                  type="range" min="100" max="1000" value={selected.yPosition || 680}
+                  type="range" min="100" max="1000" value={selected.yPosition || 650}
                   onChange={(e) => setSelected({ ...selected, yPosition: Number(e.target.value) })}
                   className="w-full accent-blue-500"
                 />

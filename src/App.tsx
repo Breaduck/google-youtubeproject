@@ -4753,7 +4753,7 @@ const App: React.FC = () => {
                             min="40"
                             max="720"
                             value={subtitleSettings.yPosition}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, yPosition: Math.max(40, Math.min(720, parseInt(e.target.value) || 680))})}
+                            onChange={(e) => setSubtitleSettings({...subtitleSettings, yPosition: Math.max(40, Math.min(720, parseInt(e.target.value) || 650))})}
                             className="w-24 px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded text-center dark:bg-slate-700 dark:text-slate-100"
                           />
                           <div className="flex flex-col gap-0.5">
