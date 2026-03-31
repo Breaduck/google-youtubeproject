@@ -444,30 +444,75 @@ export async function addAudioToVideo(
   const audioDur = await getAudioDuration(audioUrl);
   console.log(`[VIDEO] Audio duration: ${audioDur}s`);
 
-  if (onProgress) onProgress(30, '오디오 합성 중...');
+  if (onProgress) onProgress(20, '영상 길이 분석 중...');
 
-  // 오디오가 영상보다 길면 마지막 프레임을 연장 (tpad 필터)
-  // 오디오가 짧으면 그냥 합침
+  // 오디오가 영상보다 길면 마지막 프레임을 줌인 효과로 연장
   const extraTime = Math.max(0, audioDur - 10 + 0.5); // 10초 영상 기준, 여유 0.5초
 
-  if (extraTime > 0) {
-    console.log(`[VIDEO] Extending video by ${extraTime}s to match audio`);
-    // 마지막 프레임을 복제하여 연장
+  if (extraTime > 0.5) {
+    console.log(`[VIDEO] Extending video by ${extraTime}s with zoom effect`);
+
+    if (onProgress) onProgress(30, '마지막 프레임 추출 중...');
+
+    // 1. 마지막 프레임 추출 (PNG)
     await ffmpeg.exec([
+      '-sseof', '-0.1',
       '-i', 'video.mp4',
-      '-i', `audio.${audioExt}`,
-      '-filter_complex', `[0:v]tpad=stop_mode=clone:stop_duration=${extraTime}[v]`,
-      '-map', '[v]',
-      '-map', '1:a',
+      '-frames:v', '1',
+      '-q:v', '2',
+      'lastframe.jpg'
+    ]);
+
+    if (onProgress) onProgress(40, '줌인 효과 생성 중...');
+
+    // 2. 마지막 프레임으로 줌인 영상 생성 (zoompan 필터)
+    const fps = 24;
+    const totalFrames = Math.ceil(extraTime * fps);
+    // 천천히 줌인: 1.0 → 1.15 (약 15% 확대)
+    await ffmpeg.exec([
+      '-loop', '1',
+      '-i', 'lastframe.jpg',
+      '-filter_complex', `zoompan=z='1+0.15*on/${totalFrames}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${totalFrames}:s=1920x1080:fps=${fps}`,
+      '-t', String(extraTime),
       '-c:v', 'libx264',
       '-preset', 'fast',
       '-crf', '23',
+      '-pix_fmt', 'yuv420p',
+      'zoom_extend.mp4'
+    ]);
+
+    if (onProgress) onProgress(60, '영상 연결 중...');
+
+    // 3. 원본 + 줌인 영상 concat
+    await ffmpeg.writeFile('concat.txt', "file 'video.mp4'\nfile 'zoom_extend.mp4'");
+    await ffmpeg.exec([
+      '-f', 'concat',
+      '-safe', '0',
+      '-i', 'concat.txt',
+      '-c', 'copy',
+      'extended.mp4'
+    ]);
+
+    if (onProgress) onProgress(70, '오디오 합성 중...');
+
+    // 4. 오디오 합치기
+    await ffmpeg.exec([
+      '-i', 'extended.mp4',
+      '-i', `audio.${audioExt}`,
+      '-c:v', 'copy',
       '-c:a', 'aac',
       '-b:a', '192k',
       '-shortest',
       'output.mp4'
     ]);
+
+    // 임시 파일 정리
+    await ffmpeg.deleteFile('lastframe.jpg').catch(() => {});
+    await ffmpeg.deleteFile('zoom_extend.mp4').catch(() => {});
+    await ffmpeg.deleteFile('concat.txt').catch(() => {});
+    await ffmpeg.deleteFile('extended.mp4').catch(() => {});
   } else {
+    if (onProgress) onProgress(50, '오디오 합성 중...');
     // 오디오가 짧거나 같음 - 단순 합치기
     await ffmpeg.exec([
       '-i', 'video.mp4',
