@@ -35,6 +35,21 @@ async function getFFmpeg(): Promise<FFmpeg> {
   return ffmpegInstance;
 }
 
+// 오디오 길이 구하기 (초 단위)
+export async function getAudioDuration(audioUrl: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => {
+      resolve(audio.duration);
+    };
+    audio.onerror = () => {
+      reject(new Error('Failed to load audio'));
+    };
+    audio.src = audioUrl;
+  });
+}
+
 // 간단한 줌인-줌아웃 비디오 생성 (API 키 없을 때) - FFmpeg 직접 사용 (초고속)
 export async function generateSimpleZoomVideo(
   imageUrl: string,
@@ -43,7 +58,8 @@ export async function generateSimpleZoomVideo(
   subtitleSettings?: SubtitleSettings,
   onProgress?: (progress: number, message: string) => void,
   panDirection?: 'left' | 'right' | 'up' | 'down' | 'center',
-  intensity?: number // 1-10, 긴박도 (속도/확대율 결정)
+  intensity?: number, // 1-10, 긴박도 (속도/확대율 결정)
+  audioDuration?: number // 오디오 길이 (초) - 이 값이 있으면 이에 맞춤
 ): Promise<Blob> {
   if (onProgress) onProgress(5, '프레임 생성 준비 중...');
 
@@ -77,14 +93,21 @@ export async function generateSimpleZoomVideo(
     }
   }
 
-  // 시간 계산
+  // 시간 계산 - 오디오 길이 우선, 없으면 자막 기반 추정
   const effectIntensity = intensity || 5;
-  const subtitleLength = subtitle.length;
-  const baseDuration = subtitleLength > 0
-    ? Math.max(7, Math.min(12, subtitleLength / 3.0))
-    : 8;
-  const intensityFactor = effectIntensity >= 7 ? 0.8 : effectIntensity <= 3 ? 1.3 : 1.0;
-  const duration = Math.max(6, Math.min(12, baseDuration * intensityFactor));
+  let duration: number;
+  if (audioDuration && audioDuration > 0) {
+    // 오디오 길이 + 약간의 여유 (0.5초)
+    duration = audioDuration + 0.5;
+    console.log(`[VIDEO] Using audio duration: ${audioDuration}s → video: ${duration}s`);
+  } else {
+    const subtitleLength = subtitle.length;
+    const baseDuration = subtitleLength > 0
+      ? Math.max(7, Math.min(12, subtitleLength / 3.0))
+      : 8;
+    const intensityFactor = effectIntensity >= 7 ? 0.8 : effectIntensity <= 3 ? 1.3 : 1.0;
+    duration = Math.max(6, Math.min(12, baseDuration * intensityFactor));
+  }
 
   // 24fps (부드러운 재생)
   const fps = 24;

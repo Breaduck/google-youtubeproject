@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom';
 import { GoogleGenAI } from "@google/genai";
 import { GeminiService } from './services/geminiService';
-import { generateSceneVideo, generateBatchVideos, VideoEngine, mergeVideos, generateSimpleZoomVideo, addAudioToVideo } from './services/videoService';
+import { generateSceneVideo, generateBatchVideos, VideoEngine, mergeVideos, generateSimpleZoomVideo, addAudioToVideo, getAudioDuration } from './services/videoService';
 import { StoryProject, CharacterProfile, Scene, AppStep, VisualStyle, ElevenLabsSettings, SavedStyle, SavedCharacter, SceneEffect, SubtitleSettings } from './types';
 import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
@@ -2246,6 +2246,18 @@ const App: React.FC = () => {
         } else {
           // 범위 밖 or API 키 없음 → 맥락 기반 줌인/줌아웃
           const zoomSettings = determineZoomSettings(scene.scriptSegment, i);
+
+          // 오디오 길이를 먼저 구해서 영상 길이 결정
+          let audioDur: number | undefined;
+          if (scene.audioUrl) {
+            try {
+              audioDur = await getAudioDuration(scene.audioUrl);
+              console.log(`[DEBUG] Scene ${i + 1} audio duration: ${audioDur}s`);
+            } catch (e) {
+              console.warn(`[DEBUG] Failed to get audio duration:`, e);
+            }
+          }
+
           videoBlob = await generateSimpleZoomVideo(
             scene.imageUrl!,
             scene.scriptSegment, // 자막
@@ -2258,7 +2270,8 @@ const App: React.FC = () => {
               setBgTask({ type: 'video', message: `${message} (${i + 1}/${project.scenes.length})` });
             },
             zoomSettings.pan,
-            zoomSettings.intensity
+            zoomSettings.intensity,
+            audioDur // 오디오 길이 전달
           );
         }
 
@@ -3113,7 +3126,17 @@ const App: React.FC = () => {
                         <p className="text-[10px] text-slate-400 font-medium mb-1.5 uppercase tracking-wide">Scene 대사</p>
                         <textarea
                           value={scene.scriptSegment}
-                          onChange={(e) => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, scriptSegment: e.target.value } : s) })}
+                          onChange={(e) => {
+                            // 대본 수정 시 오디오/영상 URL 초기화 (싱크 문제 방지)
+                            if (scene.audioUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.audioUrl);
+                            if (scene.videoUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.videoUrl);
+                            updateCurrentProject({
+                              scenes: project.scenes.map(s => s.id === scene.id
+                                ? { ...s, scriptSegment: e.target.value, audioUrl: null, videoUrl: null, videoStatus: 'idle' }
+                                : s
+                              )
+                            });
+                          }}
                           className="w-full text-base font-semibold text-slate-800 dark:text-slate-200 leading-relaxed bg-transparent border-none resize-none focus:outline-none overflow-y-auto placeholder:text-slate-300 dark:placeholder:text-slate-600 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent"
                           placeholder="장면 대사..."
                           style={{ lineHeight: '1.625rem', minHeight: '4.875rem' }}
