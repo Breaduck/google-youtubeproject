@@ -804,12 +804,12 @@ const App: React.FC = () => {
         audio.onended = () => URL.revokeObjectURL(url);
         audio.play();
       } else if (audioProvider === 'google-neural2') {
-        // Neural2 테스트
-        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", neural2Voice, chirpSpeed, chirpApiKey);
+        // Neural2 테스트 (Gemini API 키 사용)
+        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", neural2Voice, chirpSpeed, geminiApiKey);
         new Audio(audioUrl).play();
       } else {
-        // Chirp3 테스트
-        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", chirpVoice, chirpSpeed, chirpApiKey);
+        // Chirp3 테스트 (Gemini API 키 사용)
+        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", chirpVoice, chirpSpeed, geminiApiKey);
         new Audio(audioUrl).play();
       }
     } catch (e) {
@@ -1712,10 +1712,10 @@ const App: React.FC = () => {
         const blob = await response.blob();
         audioUrl = URL.createObjectURL(blob);
       } else if (audioProvider === 'google-neural2') {
-        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, neural2Voice, chirpSpeed, chirpApiKey);
+        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, neural2Voice, chirpSpeed, geminiApiKey);
       } else {
         // Google Chirp3 (기본)
-        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, chirpVoice, chirpSpeed, chirpApiKey);
+        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, chirpVoice, chirpSpeed, geminiApiKey);
       }
 
       updateCurrentProject({
