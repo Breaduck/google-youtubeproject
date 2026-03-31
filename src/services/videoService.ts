@@ -421,7 +421,7 @@ export async function addSubtitleOverlay(
   return resultBlob;
 }
 
-// 비디오에 오디오 추가
+// 비디오에 오디오 추가 (오디오가 더 길면 마지막 프레임 연장)
 export async function addAudioToVideo(
   videoBlob: Blob,
   audioUrl: string,
@@ -440,18 +440,45 @@ export async function addAudioToVideo(
   const audioExt = audioUrl.includes('.mp3') ? 'mp3' : 'wav';
   await ffmpeg.writeFile(`audio.${audioExt}`, await fetchFile(audioBlob));
 
+  // 오디오 길이 측정
+  const audioDur = await getAudioDuration(audioUrl);
+  console.log(`[VIDEO] Audio duration: ${audioDur}s`);
+
   if (onProgress) onProgress(30, '오디오 합성 중...');
 
-  // 비디오와 오디오 합치기 (비디오 길이 유지, 오디오 짧으면 자동으로 silence 패딩)
-  await ffmpeg.exec([
-    '-i', 'video.mp4',
-    '-i', `audio.${audioExt}`,
-    '-c:v', 'copy', // 비디오는 재인코딩 안 함 (속도 향상)
-    '-c:a', 'aac',
-    '-b:a', '192k',
-    // -shortest 제거: 긴 스트림(비디오)에 맞춤, 오디오가 짧으면 자동 silence 패딩
-    'output.mp4'
-  ]);
+  // 오디오가 영상보다 길면 마지막 프레임을 연장 (tpad 필터)
+  // 오디오가 짧으면 그냥 합침
+  const extraTime = Math.max(0, audioDur - 10 + 0.5); // 10초 영상 기준, 여유 0.5초
+
+  if (extraTime > 0) {
+    console.log(`[VIDEO] Extending video by ${extraTime}s to match audio`);
+    // 마지막 프레임을 복제하여 연장
+    await ffmpeg.exec([
+      '-i', 'video.mp4',
+      '-i', `audio.${audioExt}`,
+      '-filter_complex', `[0:v]tpad=stop_mode=clone:stop_duration=${extraTime}[v]`,
+      '-map', '[v]',
+      '-map', '1:a',
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '23',
+      '-c:a', 'aac',
+      '-b:a', '192k',
+      '-shortest',
+      'output.mp4'
+    ]);
+  } else {
+    // 오디오가 짧거나 같음 - 단순 합치기
+    await ffmpeg.exec([
+      '-i', 'video.mp4',
+      '-i', `audio.${audioExt}`,
+      '-c:v', 'copy',
+      '-c:a', 'aac',
+      '-b:a', '192k',
+      '-shortest',
+      'output.mp4'
+    ]);
+  }
 
   if (onProgress) onProgress(80, '파일 생성 중...');
 
