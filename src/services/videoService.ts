@@ -144,48 +144,19 @@ export async function generateSimpleZoomVideo(
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
-      // 줄바꿈 처리 (20자 기준)
-      const lines: string[] = [];
-      let currentLine = '';
-      const chars = subtitle.split('');
-
-      for (let i = 0; i < chars.length; i++) {
-        const char = chars[i];
-        const testLine = currentLine + char;
-
-        if (testLine.length >= 20) {
-          // 공백이면 바로 줄바꿈
-          if (char === ' ') {
-            lines.push(currentLine);
-            currentLine = '';
-          }
-          // 다음 글자가 공백이면 현재까지 줄바꿈
-          else if (chars[i + 1] === ' ') {
-            lines.push(testLine);
-            currentLine = '';
-            i++; // 공백 스킵
-          }
-          // 현재가 공백이 아니고 이전에 공백이 있었으면 그 전까지 줄바꿈
-          else {
-            const lastSpace = currentLine.lastIndexOf(' ');
-            if (lastSpace > 0) {
-              lines.push(currentLine.slice(0, lastSpace));
-              currentLine = currentLine.slice(lastSpace + 1) + char;
-            } else {
-              currentLine = testLine;
-            }
-          }
-        } else {
-          currentLine = testLine;
-        }
+      // 1줄로 제한 (maxLineChars 글자까지만)
+      const maxChars = subtitleSettings.maxLineChars || 15;
+      let displayText = subtitle.trim();
+      if (displayText.length > maxChars) {
+        displayText = displayText.slice(0, maxChars);
       }
-      if (currentLine.trim()) lines.push(currentLine.trim());
+      const lines: string[] = [displayText];
 
       const lineHeight = scaledFontSize * (subtitleSettings.lineHeight || 1.2);
       const totalHeight = lines.length * lineHeight;
       let textY = scaledYPosition;
 
-      // 배경 렌더링 (여러 줄)
+      // 배경 렌더링
       if (subtitleSettings.backgroundColor) {
         let maxLineWidth = 0;
         lines.forEach(line => {
@@ -193,25 +164,69 @@ export async function generateSimpleZoomVideo(
           if (metrics.width > maxLineWidth) maxLineWidth = metrics.width;
         });
 
-        const bgPadding = Math.round((subtitleSettings.bgPadding || 8) * scaleFactor);
-        const bgHeight = totalHeight + bgPadding * 2;
+        const bgPaddingX = Math.round((subtitleSettings.bgPaddingX ?? subtitleSettings.bgPadding ?? 12) * scaleFactor);
+        const bgPaddingY = Math.round((subtitleSettings.bgPaddingY ?? subtitleSettings.bgPadding ?? 12) * scaleFactor);
+        const bgRadius = Math.round((subtitleSettings.bgRadius || 8) * scaleFactor);
+        const bgHeight = totalHeight + bgPaddingY * 2;
 
         ctx.fillStyle = subtitleSettings.backgroundColor;
         ctx.globalAlpha = subtitleSettings.bgOpacity || 0.8;
-        ctx.fillRect(
-          canvas.width / 2 - maxLineWidth / 2 - bgPadding,
-          textY - totalHeight - bgPadding,
-          maxLineWidth + bgPadding * 2,
-          bgHeight
-        );
+
+        const x = canvas.width / 2 - maxLineWidth / 2 - bgPaddingX;
+        const y = textY - totalHeight - bgPaddingY;
+        const w = maxLineWidth + bgPaddingX * 2;
+        const h = bgHeight;
+
+        // 라운드 사각형
+        if (bgRadius > 0) {
+          ctx.beginPath();
+          ctx.moveTo(x + bgRadius, y);
+          ctx.lineTo(x + w - bgRadius, y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + bgRadius);
+          ctx.lineTo(x + w, y + h - bgRadius);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - bgRadius, y + h);
+          ctx.lineTo(x + bgRadius, y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - bgRadius);
+          ctx.lineTo(x, y + bgRadius);
+          ctx.quadraticCurveTo(x, y, x + bgRadius, y);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          ctx.fillRect(x, y, w, h);
+        }
         ctx.globalAlpha = 1.0;
       }
 
       ctx.globalAlpha = subtitleSettings.opacity;
 
-      // 텍스트 렌더링 (여러 줄)
+      // 네온 효과 (형광색 텍스트)
+      const textColor = subtitleSettings.textColor;
+      const isNeon = textColor === '#00FF88' || textColor === '#FF00FF' || textColor === '#00D4FF';
+      const isGold = textColor === '#FFD700' || textColor === '#D4AF37';
+      const isSilver = textColor === '#C0C0C0';
+
+      // 텍스트 렌더링
       lines.forEach((line, i) => {
         const y = textY - totalHeight + (i + 1) * lineHeight;
+
+        // 네온/골드/실버 그림자 효과
+        if (isNeon) {
+          ctx.shadowColor = textColor;
+          ctx.shadowBlur = 20 * scaleFactor;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+        } else if (isGold || isSilver) {
+          ctx.shadowColor = 'rgba(0,0,0,0.6)';
+          ctx.shadowBlur = 6 * scaleFactor;
+          ctx.shadowOffsetX = 3 * scaleFactor;
+          ctx.shadowOffsetY = 3 * scaleFactor;
+        } else if (!subtitleSettings.backgroundColor) {
+          // 배경 없으면 그림자로 가독성 확보
+          ctx.shadowColor = 'rgba(0,0,0,0.9)';
+          ctx.shadowBlur = 6 * scaleFactor;
+          ctx.shadowOffsetX = 3 * scaleFactor;
+          ctx.shadowOffsetY = 3 * scaleFactor;
+        }
 
         if (subtitleSettings.strokeWidth > 0 && subtitleSettings.strokeColor !== 'transparent') {
           ctx.strokeStyle = subtitleSettings.strokeColor;
@@ -221,8 +236,20 @@ export async function generateSimpleZoomVideo(
           ctx.strokeText(line, canvas.width / 2, y);
         }
 
-        ctx.fillStyle = subtitleSettings.textColor;
+        ctx.fillStyle = textColor;
         ctx.fillText(line, canvas.width / 2, y);
+
+        // 네온 효과 시 추가 레이어
+        if (isNeon) {
+          ctx.shadowBlur = 40 * scaleFactor;
+          ctx.fillText(line, canvas.width / 2, y);
+        }
+
+        // 그림자 리셋
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
       });
 
       ctx.restore();

@@ -32,37 +32,13 @@ export async function renderSubtitleToCanvas(
   const textY = settings.yPosition * scaleFactor;
   const textX = width / 2;
 
-  // 줄바꿈 처리 (20자 기준)
-  const lines: string[] = [];
-  let currentLine = '';
-  const chars = text.split('');
-
-  for (let i = 0; i < chars.length; i++) {
-    const char = chars[i];
-    const testLine = currentLine + char;
-
-    if (testLine.length >= 20) {
-      if (char === ' ') {
-        lines.push(currentLine);
-        currentLine = '';
-      } else if (chars[i + 1] === ' ') {
-        lines.push(testLine);
-        currentLine = '';
-        i++;
-      } else {
-        const lastSpace = currentLine.lastIndexOf(' ');
-        if (lastSpace > 0) {
-          lines.push(currentLine.slice(0, lastSpace));
-          currentLine = currentLine.slice(lastSpace + 1) + char;
-        } else {
-          currentLine = testLine;
-        }
-      }
-    } else {
-      currentLine = testLine;
-    }
+  // 1줄로 제한 (maxLineChars 글자까지만)
+  const maxChars = settings.maxLineChars || 15;
+  let displayText = text.trim();
+  if (displayText.length > maxChars) {
+    displayText = displayText.slice(0, maxChars);
   }
-  if (currentLine.trim()) lines.push(currentLine.trim());
+  const lines: string[] = [displayText];
 
   const lineHeight = settings.fontSize * (settings.lineHeight || 1.2);
   const totalHeight = lines.length * lineHeight;
@@ -103,9 +79,34 @@ export async function renderSubtitleToCanvas(
 
   ctx.globalAlpha = settings.opacity;
 
-  // 텍스트 렌더링 (여러 줄)
+  // 네온 효과 (형광색 텍스트)
+  const textColor = settings.textColor;
+  const isNeon = textColor === '#00FF88' || textColor === '#FF00FF' || textColor === '#00D4FF';
+  const isGold = textColor === '#FFD700' || textColor === '#D4AF37';
+  const isSilver = textColor === '#C0C0C0';
+
+  // 텍스트 렌더링
   lines.forEach((line, i) => {
     const y = textY - totalHeight + (i + 1) * lineHeight;
+
+    // 네온/골드/실버 그림자 효과
+    if (isNeon) {
+      ctx.shadowColor = textColor;
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+    } else if (isGold || isSilver) {
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 3;
+    } else if (!settings.backgroundColor) {
+      // 배경 없으면 그림자로 가독성 확보
+      ctx.shadowColor = 'rgba(0,0,0,0.9)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 3;
+    }
 
     // 외곽선
     if (settings.strokeWidth > 0 && settings.strokeColor !== 'transparent') {
@@ -116,8 +117,20 @@ export async function renderSubtitleToCanvas(
     }
 
     // 텍스트
-    ctx.fillStyle = settings.textColor;
+    ctx.fillStyle = textColor;
     ctx.fillText(line, textX, y);
+
+    // 네온 효과 시 추가 레이어
+    if (isNeon) {
+      ctx.shadowBlur = 40;
+      ctx.fillText(line, textX, y);
+    }
+
+    // 그림자 리셋
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
   });
 
   ctx.globalAlpha = 1.0;

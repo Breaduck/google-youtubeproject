@@ -579,14 +579,18 @@ function SubtitleSettingsPanel({
                 top: `${(settings.yPosition / 720) * 100}%`,
                 transform: 'translate(-50%, -50%)',
                 fontFamily: `"${settings.fontFamily}", sans-serif`,
-                fontSize: `${settings.fontSize * 0.4}px`,
+                fontSize: `${settings.fontSize * 0.3125}px`,
                 fontWeight: settings.fontWeight || 700,
                 color: settings.textColor,
                 backgroundColor: settings.backgroundColor || undefined,
-                padding: settings.backgroundColor ? `${settings.bgPadding * 0.4}px ${settings.bgPadding * 0.6}px` : undefined,
-                borderRadius: settings.backgroundColor ? `${settings.bgRadius || 4}px` : undefined,
+                padding: settings.backgroundColor
+                  ? `${(settings.bgPaddingY ?? settings.bgPadding ?? 12) * 0.3125}px ${(settings.bgPaddingX ?? settings.bgPadding ?? 12) * 0.3125}px`
+                  : undefined,
+                borderRadius: settings.backgroundColor ? `${(settings.bgRadius || 8) * 0.3125}px` : undefined,
                 opacity: settings.backgroundColor ? (settings.bgOpacity || 0.8) : 1,
-                textShadow: !settings.backgroundColor ? '2px 2px 4px rgba(0,0,0,0.9)' : undefined,
+                textShadow: settings.textColor === '#00FF88' || settings.textColor === '#FF00FF' || settings.textColor === '#00D4FF'
+                  ? `0 0 8px ${settings.textColor}, 0 0 16px ${settings.textColor}`
+                  : !settings.backgroundColor ? '2px 2px 4px rgba(0,0,0,0.9)' : undefined,
                 zIndex: 10,
               }}
             >
@@ -642,7 +646,6 @@ function SubtitleSettingsPanel({
                 className="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
               >
                 <optgroup label="📐 고딕 (Sans-Serif)">
-                  <option value="Pretendard">Pretendard</option>
                   <option value="Noto Sans KR">Noto Sans KR</option>
                   <option value="Nanum Gothic">나눔고딕</option>
                   <option value="Gothic A1">Gothic A1</option>
@@ -699,11 +702,38 @@ function SubtitleSettingsPanel({
                 배경 사용
               </label>
               {settings.backgroundColor && (
-                <div className="flex items-center gap-3">
-                  <input type="color" value={settings.backgroundColor} onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })} className="w-8 h-8 rounded cursor-pointer border border-slate-300" />
-                  <input type="text" value={settings.backgroundColor} onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })} className="flex-1 px-2 py-1 text-xs bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input type="color" value={settings.backgroundColor} onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })} className="w-8 h-8 rounded cursor-pointer border border-slate-300" />
+                    <input type="text" value={settings.backgroundColor} onChange={(e) => onChange({ ...settings, backgroundColor: e.target.value })} className="flex-1 px-2 py-1 text-xs bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">투명도: {Math.round((settings.bgOpacity || 0.8) * 100)}%</label>
+                    <input type="range" min="0.3" max="1" step="0.05" value={settings.bgOpacity || 0.8} onChange={(e) => onChange({ ...settings, bgOpacity: Number(e.target.value) })} className="w-full accent-indigo-600" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">가로 넓이: {settings.bgPaddingX ?? settings.bgPadding ?? 12}px</label>
+                      <input type="range" min="4" max="60" value={settings.bgPaddingX ?? settings.bgPadding ?? 12} onChange={(e) => onChange({ ...settings, bgPaddingX: Number(e.target.value) })} className="w-full accent-indigo-600" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">세로 넓이: {settings.bgPaddingY ?? settings.bgPadding ?? 12}px</label>
+                      <input type="range" min="2" max="40" value={settings.bgPaddingY ?? settings.bgPadding ?? 12} onChange={(e) => onChange({ ...settings, bgPaddingY: Number(e.target.value) })} className="w-full accent-indigo-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">모서리 둥글기: {settings.bgRadius ?? 8}px</label>
+                    <input type="range" min="0" max="30" value={settings.bgRadius ?? 8} onChange={(e) => onChange({ ...settings, bgRadius: Number(e.target.value) })} className="w-full accent-indigo-600" />
+                  </div>
                 </div>
               )}
+            </div>
+
+            {/* 한 줄 글자수 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">한 줄 글자수: {settings.maxLineChars ?? 15}자</label>
+              <input type="range" min="8" max="30" value={settings.maxLineChars ?? 15} onChange={(e) => onChange({ ...settings, maxLineChars: Number(e.target.value) })} className="w-full accent-indigo-600" />
+              <p className="text-[10px] text-slate-400 mt-1">자막이 1줄로 표시됩니다</p>
             </div>
 
             {/* Y축 위치 */}

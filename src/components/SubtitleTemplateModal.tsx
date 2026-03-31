@@ -382,14 +382,14 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                 <span
                   style={{
                     fontFamily: `"${selected.fontFamily}", sans-serif`,
-                    fontSize: `${selected.fontSize * 0.36}px`,
+                    fontSize: `${selected.fontSize * 0.265}px`,
                     fontWeight: selected.fontWeight || 700,
                     color: selected.textColor,
                     backgroundColor: selected.backgroundColor || undefined,
                     padding: selected.backgroundColor
-                      ? `${(selected.bgPaddingY ?? selected.bgPadding ?? 12) * 0.36}px ${(selected.bgPaddingX ?? selected.bgPadding ?? 12) * 0.5}px`
+                      ? `${(selected.bgPaddingY ?? selected.bgPadding ?? 12) * 0.265}px ${(selected.bgPaddingX ?? selected.bgPadding ?? 12) * 0.265}px`
                       : undefined,
-                    borderRadius: selected.backgroundColor ? `${(selected.bgRadius ?? 8) * 0.36}px` : undefined,
+                    borderRadius: selected.backgroundColor ? `${(selected.bgRadius ?? 8) * 0.265}px` : undefined,
                     opacity: selected.backgroundColor ? (selected.bgOpacity || 0.8) : 1,
                     textShadow: getTextShadow(selected.textColor, !!selected.backgroundColor),
                   }}
@@ -490,7 +490,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">가로 패딩: {selected.bgPaddingX ?? selected.bgPadding ?? 12}px</label>
+                      <label className="text-xs text-gray-500 mb-1 block">가로 넓이: {selected.bgPaddingX ?? selected.bgPadding ?? 12}px</label>
                       <input
                         type="range" min="4" max="60" value={selected.bgPaddingX ?? selected.bgPadding ?? 12}
                         onChange={(e) => setSelected({ ...selected, bgPaddingX: Number(e.target.value) })}
@@ -498,7 +498,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">세로 패딩: {selected.bgPaddingY ?? selected.bgPadding ?? 12}px</label>
+                      <label className="text-xs text-gray-500 mb-1 block">세로 넓이: {selected.bgPaddingY ?? selected.bgPadding ?? 12}px</label>
                       <input
                         type="range" min="2" max="40" value={selected.bgPaddingY ?? selected.bgPadding ?? 12}
                         onChange={(e) => setSelected({ ...selected, bgPaddingY: Number(e.target.value) })}
@@ -516,6 +516,17 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                   </div>
                 </>
               )}
+
+              {/* 한 줄 글자수 설정 */}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">한 줄 글자수: {selected.maxLineChars ?? 15}자</label>
+                <input
+                  type="range" min="8" max="30" value={selected.maxLineChars ?? 15}
+                  onChange={(e) => setSelected({ ...selected, maxLineChars: Number(e.target.value) })}
+                  className="w-full accent-blue-500"
+                />
+                <p className="text-[10px] text-gray-600 mt-1">자막이 무조건 1줄로 표시됩니다</p>
+              </div>
             </div>
 
             <button

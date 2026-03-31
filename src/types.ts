@@ -106,4 +106,6 @@ export interface SubtitleSettings {
 
   lockPosition: boolean;
   lockFont: boolean;
+
+  maxLineChars?: number; // 한 줄 최대 글자수 (기본 15)
 }
