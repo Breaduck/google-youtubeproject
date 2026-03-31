@@ -29,28 +29,6 @@ const TAG_MAP: Record<string, string> = {
   'bright': '밝은', 'dark': '어두운', 'clear': '선명한', 'raspy': '허스키한'
 };
 
-const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
-  fontSize: 32,
-  fontFamily: 'Pretendard',
-  fontWeight: 800,
-  fontStyle: 'normal',
-  letterSpacing: 0,
-  lineHeight: 1.2,
-  opacity: 1.0,
-  template: 'default-white',
-  textColor: '#FFFFFF',
-  strokeColor: 'transparent',
-  strokeWidth: 0,
-  backgroundColor: '#000000',
-  bgPadding: 12,
-  bgOpacity: 0.8,
-  bgRadius: 8,
-  position: 'bottom',
-  yPosition: 650,
-  lockPosition: true,
-  lockFont: true,
-};
-
 const EXP_TEST_PROJECT_ID = 'exp-official-sdk-test-pid';
 const EXP_TEST_PROJECT: StoryProject = {
   id: EXP_TEST_PROJECT_ID,
@@ -348,8 +326,6 @@ const App: React.FC = () => {
   const [expandedSceneIndex, setExpandedSceneIndex] = useState<number | null>(null);
   const [videoRegenerateSceneId, setVideoRegenerateSceneId] = useState<string | null>(null);
   const [videoRegeneratePrompt, setVideoRegeneratePrompt] = useState('');
-  const [previewSubtitleEnabled, setPreviewSubtitleEnabled] = useState(false);
-  const [selectedSubtitleTemplate, setSelectedSubtitleTemplate] = useState<string>('default');
   const [showExportPopup, setShowExportPopup] = useState(false);
   const [videoGenerationModePopup, setVideoGenerationModePopup] = useState<string | null>(null); // 개별 영상 생성 모드 선택
   const [showApiKeyPopup, setShowApiKeyPopup] = useState(false); // API키 입력 팝업
@@ -401,6 +377,21 @@ const App: React.FC = () => {
       setIsGeminiValid(false);
     }
   }, [geminiApiKey]);
+
+  // 자막 설정 기본값 보장 (새 프로젝트에서 검정 배경 + 흰색 글씨)
+  useEffect(() => {
+    // backgroundColor가 없으면 기본 자막 스타일 적용
+    if (!subtitleSettings.backgroundColor) {
+      setSubtitleSettings({
+        ...subtitleSettings,
+        backgroundColor: '#000000',
+        textColor: subtitleSettings.textColor || '#FFFFFF',
+        bgOpacity: subtitleSettings.bgOpacity || 0.85,
+        bgPadding: subtitleSettings.bgPadding || 14,
+        bgRadius: subtitleSettings.bgRadius || 8,
+      });
+    }
+  }, []); // 마운트 시 한 번만 실행
 
   // 자막 미리보기 렌더링
   useEffect(() => {
