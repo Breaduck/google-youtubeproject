@@ -50,6 +50,39 @@ export async function getAudioDuration(audioUrl: string): Promise<number> {
   });
 }
 
+// 대본을 호흡 단위로 분할 (자막용)
+function splitIntoSubtitleChunks(text: string, maxChars: number = 15): string[] {
+  if (!text || text.trim().length === 0) return [];
+
+  const chunks: string[] = [];
+  const trimmed = text.trim();
+
+  // 1차 분할: 문장 종결(.?!) 또는 쉼표 기준
+  const segments = trimmed.split(/(?<=[.?!,])\s*/);
+
+  for (const segment of segments) {
+    if (!segment.trim()) continue;
+
+    if (segment.length <= maxChars) {
+      chunks.push(segment.trim());
+    } else {
+      // 2차 분할: 조사/어미 끝 또는 공백 기준
+      let remaining = segment;
+      while (remaining.length > maxChars) {
+        // 적절한 끊김 위치 찾기 (공백 우선)
+        let splitIdx = remaining.lastIndexOf(' ', maxChars);
+        if (splitIdx <= 0) splitIdx = maxChars;
+
+        chunks.push(remaining.slice(0, splitIdx).trim());
+        remaining = remaining.slice(splitIdx).trim();
+      }
+      if (remaining.trim()) chunks.push(remaining.trim());
+    }
+  }
+
+  return chunks.filter(c => c.length > 0);
+}
+
 // 간단한 줌인-줌아웃 비디오 생성 (API 키 없을 때) - FFmpeg 직접 사용 (초고속)
 export async function generateSimpleZoomVideo(
   imageUrl: string,
@@ -113,7 +146,13 @@ export async function generateSimpleZoomVideo(
   const fps = 24;
   const totalFrames = Math.floor(duration * fps);
 
+  // 자막 분할 (시간에 따라 다른 자막 표시)
+  const maxChars = subtitleSettings?.maxLineChars || 15;
+  const subtitleChunks = subtitle ? splitIntoSubtitleChunks(subtitle, maxChars) : [];
+  const chunkDuration = subtitleChunks.length > 0 ? duration / subtitleChunks.length : duration;
+
   console.log(`[VIDEO] Duration: ${duration}s, Frames: ${totalFrames}, FPS: ${fps}`);
+  console.log(`[VIDEO] Subtitle chunks: ${subtitleChunks.length}`, subtitleChunks);
 
   if (onProgress) onProgress(10, '프레임 렌더링 중...');
 
@@ -155,8 +194,8 @@ export async function generateSimpleZoomVideo(
     const y = (canvas.height - scaledHeight) / 2 + offsetY;
     ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
 
-    // 자막 렌더링
-    if (subtitle && subtitleSettings) {
+    // 자막 렌더링 (시간에 따라 다른 자막 chunk 표시)
+    if (subtitleChunks.length > 0 && subtitleSettings) {
       ctx.save();
       const scaleFactor = 1.5;
       const scaledFontSize = Math.round(subtitleSettings.fontSize * scaleFactor);
@@ -167,12 +206,13 @@ export async function generateSimpleZoomVideo(
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
-      // 1줄로 제한 (maxLineChars 글자까지만)
-      const maxChars = subtitleSettings.maxLineChars || 15;
-      let displayText = subtitle.trim();
-      if (displayText.length > maxChars) {
-        displayText = displayText.slice(0, maxChars);
-      }
+      // 현재 프레임 시간에 해당하는 자막 chunk 선택
+      const currentTime = frame / fps;
+      const chunkIndex = Math.min(
+        Math.floor(currentTime / chunkDuration),
+        subtitleChunks.length - 1
+      );
+      const displayText = subtitleChunks[chunkIndex] || '';
       const lines: string[] = [displayText];
 
       const lineHeight = scaledFontSize * (subtitleSettings.lineHeight || 1.2);
