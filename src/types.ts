@@ -96,6 +96,8 @@ export interface SubtitleSettings {
   strokeWidth: number;
   backgroundColor?: string;
   bgPadding: number;
+  bgPaddingX?: number;
+  bgPaddingY?: number;
   bgOpacity: number;
   bgRadius: number;
 

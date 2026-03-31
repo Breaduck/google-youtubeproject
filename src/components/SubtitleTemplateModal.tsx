@@ -212,7 +212,6 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   const [showFontModal, setShowFontModal] = useState(false);
   const [googleFontUrl, setGoogleFontUrl] = useState('');
   const [tempPreviewImage, setTempPreviewImage] = useState<string | null>(null);
-  const [subtitleEnabled, setSubtitleEnabled] = useState(true);
 
   useEffect(() => {
     loadFonts().then((fonts) => {
@@ -227,7 +226,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
       letterSpacing: 0, lineHeight: 1.2,
       opacity: 1, template: 'custom', textColor: '#FFFFFF',
       strokeColor: 'transparent', strokeWidth: 0,
-      backgroundColor: undefined, bgPadding: 12, bgOpacity: 0.8, bgRadius: 8,
+      backgroundColor: undefined, bgPadding: 12, bgPaddingX: undefined, bgPaddingY: undefined, bgOpacity: 0.8, bgRadius: 8,
       position: 'bottom', yPosition: 680, lockPosition: false, lockFont: false,
     };
     setSelected({ ...baseSettings, ...template.settings, strokeWidth: 0, strokeColor: 'transparent' });
@@ -326,16 +325,6 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
           <h2 className="text-xl font-bold text-white">자막 스타일</h2>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setSubtitleEnabled(!subtitleEnabled)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                subtitleEnabled
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-700 text-gray-400'
-              }`}
-            >
-              자막 {subtitleEnabled ? 'ON' : 'OFF'}
-            </button>
-            <button
               onClick={() => setShowFontModal(true)}
               className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm"
             >
@@ -386,7 +375,10 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                 />
               </label>
 
-              <div className="absolute inset-0 flex items-end justify-center pb-4">
+              <div
+                className="absolute left-0 right-0 flex justify-center"
+                style={{ top: `${((selected.yPosition || 680) / 720) * 100}%`, transform: 'translateY(-50%)' }}
+              >
                 <span
                   style={{
                     fontFamily: `"${selected.fontFamily}", sans-serif`,
@@ -394,8 +386,10 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                     fontWeight: selected.fontWeight || 700,
                     color: selected.textColor,
                     backgroundColor: selected.backgroundColor || undefined,
-                    padding: selected.backgroundColor ? `${selected.bgPadding * 0.36}px ${selected.bgPadding * 0.5}px` : undefined,
-                    borderRadius: selected.backgroundColor ? '5px' : undefined,
+                    padding: selected.backgroundColor
+                      ? `${(selected.bgPaddingY ?? selected.bgPadding ?? 12) * 0.36}px ${(selected.bgPaddingX ?? selected.bgPadding ?? 12) * 0.5}px`
+                      : undefined,
+                    borderRadius: selected.backgroundColor ? `${(selected.bgRadius ?? 8) * 0.36}px` : undefined,
                     opacity: selected.backgroundColor ? (selected.bgOpacity || 0.8) : 1,
                     textShadow: getTextShadow(selected.textColor, !!selected.backgroundColor),
                   }}
@@ -485,14 +479,42 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               </div>
 
               {selected.backgroundColor && (
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">배경 투명도: {Math.round((selected.bgOpacity || 0.8) * 100)}%</label>
-                  <input
-                    type="range" min="0.3" max="1" step="0.05" value={selected.bgOpacity || 0.8}
-                    onChange={(e) => setSelected({ ...selected, bgOpacity: Number(e.target.value) })}
-                    className="w-full accent-blue-500"
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">배경 투명도: {Math.round((selected.bgOpacity || 0.8) * 100)}%</label>
+                    <input
+                      type="range" min="0.3" max="1" step="0.05" value={selected.bgOpacity || 0.8}
+                      onChange={(e) => setSelected({ ...selected, bgOpacity: Number(e.target.value) })}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">가로 패딩: {selected.bgPaddingX ?? selected.bgPadding ?? 12}px</label>
+                      <input
+                        type="range" min="4" max="60" value={selected.bgPaddingX ?? selected.bgPadding ?? 12}
+                        onChange={(e) => setSelected({ ...selected, bgPaddingX: Number(e.target.value) })}
+                        className="w-full accent-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">세로 패딩: {selected.bgPaddingY ?? selected.bgPadding ?? 12}px</label>
+                      <input
+                        type="range" min="2" max="40" value={selected.bgPaddingY ?? selected.bgPadding ?? 12}
+                        onChange={(e) => setSelected({ ...selected, bgPaddingY: Number(e.target.value) })}
+                        className="w-full accent-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">모서리 둥글기: {selected.bgRadius ?? 8}px</label>
+                    <input
+                      type="range" min="0" max="30" value={selected.bgRadius ?? 8}
+                      onChange={(e) => setSelected({ ...selected, bgRadius: Number(e.target.value) })}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+                </>
               )}
             </div>
 

@@ -75,8 +75,9 @@ export async function renderSubtitleToCanvas(
       if (metrics.width > maxLineWidth) maxLineWidth = metrics.width;
     });
 
-    const bgPadding = settings.bgPadding;
-    const bgHeight = totalHeight + bgPadding * 2;
+    const bgPaddingX = settings.bgPaddingX ?? settings.bgPadding;
+    const bgPaddingY = settings.bgPaddingY ?? settings.bgPadding;
+    const bgHeight = totalHeight + bgPaddingY * 2;
 
     const hex = settings.backgroundColor;
     const r = parseInt(hex.slice(1, 3), 16);
@@ -86,9 +87,9 @@ export async function renderSubtitleToCanvas(
 
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
     const bgRadius = settings.bgRadius || 0;
-    const x = textX - maxLineWidth / 2 - bgPadding;
-    const y = textY - totalHeight - bgPadding;
-    const w = maxLineWidth + bgPadding * 2;
+    const x = textX - maxLineWidth / 2 - bgPaddingX;
+    const y = textY - totalHeight - bgPaddingY;
+    const w = maxLineWidth + bgPaddingX * 2;
     const h = bgHeight;
 
     if (bgRadius > 0 && ctx.roundRect) {
