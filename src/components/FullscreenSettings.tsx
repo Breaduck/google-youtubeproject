@@ -350,7 +350,7 @@ function GeminiSettings({
 
           {!apiKey && (
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              💡 google.ai studio에서 발급가능합니다
+              💡 Google Cloud Console에서 API 키 발급 (Gemini + TTS 통합)
             </p>
           )}
 
@@ -381,12 +381,12 @@ function GeminiSettings({
 
           {!apiKey && (
             <a
-              href="https://aistudio.google.com/apikey"
+              href="https://console.cloud.google.com/apis/credentials"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm mt-2"
             >
-              API 키 발급받기 →
+              Cloud Console에서 API 키 발급 →
             </a>
           )}
         </div>

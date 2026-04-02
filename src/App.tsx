@@ -4410,7 +4410,7 @@ const App: React.FC = () => {
                       {!geminiApiKey && (
                         <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg">
                           <p className="text-xs text-slate-600 dark:text-slate-400">
-                            💡 google.ai studio에서 발급가능합니다
+                            💡 Google Cloud Console에서 API 키 발급 (Gemini + TTS 통합)
                           </p>
                         </div>
                       )}
