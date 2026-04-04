@@ -3,7 +3,7 @@ import { SubtitleSettings, SubtitlePosition, ElevenLabsSettings, SavedStyle, Sav
 import SubtitleTemplateModal, { TEMPLATES } from './SubtitleTemplateModal';
 import { useSettingsStore } from '../stores/settingsStore';
 
-// ElevenLabs 기본 목소리 한글 설명
+// ElevenLabs 목소리 완전 한글화
 const ELEVENLABS_VOICE_KO: Record<string, string> = {
   'Rachel': '레이첼 - 차분한 여성, 내레이션',
   'Drew': '드류 - 중후한 남성, 뉴스',
@@ -40,14 +40,32 @@ const ELEVENLABS_VOICE_KO: Record<string, string> = {
   'Aria': '아리아 - 여성, 표현력',
 };
 
+const NAME_TO_KOREAN: Record<string, string> = {
+  'Adam': '아담', 'Alice': '앨리스', 'Antoni': '안토니', 'Aria': '아리아',
+  'Arnold': '아놀드', 'Bill': '빌', 'Brian': '브라이언', 'Callum': '칼럼',
+  'Charlie': '찰리', 'Charlotte': '샬롯', 'Chris': '크리스', 'Clyde': '클라이드',
+  'Daniel': '다니엘', 'Dave': '데이브', 'Domi': '도미', 'Dorothy': '도로시',
+  'Drew': '드류', 'Elli': '엘리', 'Emily': '에밀리', 'Eric': '에릭',
+  'Fin': '핀', 'George': '조지', 'Giovanni': '지오바니', 'Glinda': '글린다',
+  'Grace': '그레이스', 'Harry': '해리', 'James': '제임스', 'Jessie': '제시',
+  'Jessica': '제시카', 'Joseph': '조셉', 'Josh': '조쉬', 'Laura': '로라',
+  'Liam': '리암', 'Lily': '릴리', 'Matilda': '마틸다', 'Matthew': '매튜',
+  'Mimi': '미미', 'Nicole': '니콜', 'Patrick': '패트릭', 'Paul': '폴',
+  'Rachel': '레이첼', 'River': '리버', 'Roger': '로저', 'Ryan': '라이언',
+  'Sam': '샘', 'Sarah': '사라', 'Serena': '세레나', 'Thomas': '토마스',
+  'Will': '윌', 'Bella': '벨라', 'Ethan': '이든', 'Michael': '마이클',
+  'Emma': '엠마', 'Olivia': '올리비아', 'Noah': '노아', 'Sophia': '소피아',
+  'Freya': '프레야', 'Gigi': '지지', 'Natasha': '나타샤', 'Marcus': '마커스',
+};
+
 const getElevenLabsVoiceLabel = (voice: any): string => {
   if (typeof voice === 'string') return voice;
   const name = voice.name || '';
   if (ELEVENLABS_VOICE_KO[name]) return ELEVENLABS_VOICE_KO[name];
   const labels = voice.labels || {};
-  const genderKo: Record<string, string> = { 'male': '남성', 'female': '여성' };
-  const gender = genderKo[labels.gender] || '';
-  return gender ? `${name} - ${gender}, 커스텀` : `${name} - 커스텀 목소리`;
+  const nameKo = NAME_TO_KOREAN[name] || name;
+  const gender = labels.gender === 'female' ? '여성' : labels.gender === 'male' ? '남성' : '';
+  return gender ? `${nameKo} - ${gender} 목소리` : `${nameKo} - 목소리`;
 };
 
 type SettingTab = 'account' | 'gemini' | 'video-api' | 'subtitle' | 'narration' | 'saved-styles' | 'saved-characters';

@@ -29,7 +29,7 @@ const TAG_MAP: Record<string, string> = {
   'bright': '밝은', 'dark': '어두운', 'clear': '선명한', 'raspy': '허스키한'
 };
 
-// ElevenLabs 기본 목소리 한글 설명 (Chirp3 스타일)
+// ElevenLabs 목소리 완전 한글화
 const ELEVENLABS_VOICE_KO: Record<string, string> = {
   'Rachel': '레이첼 - 차분한 여성, 내레이션',
   'Drew': '드류 - 중후한 남성, 뉴스',
@@ -82,22 +82,45 @@ const ELEVENLABS_VOICE_KO: Record<string, string> = {
   'River': '리버 - 남성, 젊은',
 };
 
-// ElevenLabs 목소리 한글 라벨 반환
+// 영어 이름 → 한글 음역 변환
+const NAME_TO_KOREAN: Record<string, string> = {
+  'Adam': '아담', 'Alice': '앨리스', 'Antoni': '안토니', 'Aria': '아리아',
+  'Arnold': '아놀드', 'Bill': '빌', 'Brian': '브라이언', 'Callum': '칼럼',
+  'Charlie': '찰리', 'Charlotte': '샬롯', 'Chris': '크리스', 'Clyde': '클라이드',
+  'Daniel': '다니엘', 'Dave': '데이브', 'Domi': '도미', 'Dorothy': '도로시',
+  'Drew': '드류', 'Elli': '엘리', 'Emily': '에밀리', 'Eric': '에릭',
+  'Fin': '핀', 'George': '조지', 'Giovanni': '지오바니', 'Glinda': '글린다',
+  'Grace': '그레이스', 'Harry': '해리', 'James': '제임스', 'Jessie': '제시',
+  'Jessica': '제시카', 'Joseph': '조셉', 'Josh': '조쉬', 'Laura': '로라',
+  'Liam': '리암', 'Lily': '릴리', 'Matilda': '마틸다', 'Matthew': '매튜',
+  'Mimi': '미미', 'Nicole': '니콜', 'Patrick': '패트릭', 'Paul': '폴',
+  'Rachel': '레이첼', 'River': '리버', 'Roger': '로저', 'Ryan': '라이언',
+  'Sam': '샘', 'Sarah': '사라', 'Serena': '세레나', 'Thomas': '토마스',
+  'Will': '윌', 'Bella': '벨라', 'Ethan': '이든', 'Michael': '마이클',
+  'Emma': '엠마', 'Olivia': '올리비아', 'Noah': '노아', 'Sophia': '소피아',
+  'Isabella': '이사벨라', 'Mia': '미아', 'Lucas': '루카스', 'Oliver': '올리버',
+  'Freya': '프레야', 'Gigi': '지지', 'Natasha': '나타샤', 'Marcus': '마커스',
+};
+
+// ElevenLabs 목소리 완전 한글 라벨 반환
 const getElevenLabsVoiceLabel = (voice: any): string => {
   if (typeof voice === 'string') return voice;
   const name = voice.name || '';
-  // 미리 정의된 한글 설명이 있으면 사용
+
+  // 1. 미리 정의된 완전한 한글 설명이 있으면 사용
   if (ELEVENLABS_VOICE_KO[name]) {
     return ELEVENLABS_VOICE_KO[name];
   }
-  // 없으면 labels에서 자동 생성 (한글만)
+
+  // 2. 없으면 이름을 한글로 변환 + 성별 추가
   const labels = voice.labels || {};
-  const genderKo: Record<string, string> = { 'male': '남성', 'female': '여성' };
-  const gender = genderKo[labels.gender] || '';
+  const nameKo = NAME_TO_KOREAN[name] || name; // 매핑 없으면 원래 이름
+  const gender = labels.gender === 'female' ? '여성' : labels.gender === 'male' ? '남성' : '';
+
   if (gender) {
-    return `${name} - ${gender}, 커스텀`;
+    return `${nameKo} - ${gender} 목소리`;
   }
-  return `${name} - 커스텀 목소리`;
+  return `${nameKo} - 목소리`;
 };
 
 const EXP_TEST_PROJECT_ID = 'exp-official-sdk-test-pid';
