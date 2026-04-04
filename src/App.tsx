@@ -4910,6 +4910,24 @@ const App: React.FC = () => {
                         <button onClick={() => setAudioProvider('elevenlabs')} className={`py-3 rounded-xl text-sm font-medium transition-all ${audioProvider === 'elevenlabs' ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>ElevenLabs</button>
                       </div>
                     </div>
+                    {/* Google TTS API 키 (Chirp3, Neural2 공통) */}
+                    {(audioProvider === 'google-chirp3' || audioProvider === 'google-neural2') && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Google Cloud TTS API 키</label>
+                        <input
+                          type="password"
+                          value={chirpApiKey}
+                          onChange={e => setChirpApiKey(e.target.value)}
+                          placeholder="Cloud Console에서 발급받은 API 키"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
+                        />
+                        {chirpApiKey && chirpApiKey.length > 10 ? (
+                          <p className="text-xs text-green-600 dark:text-green-400">API 키 설정됨</p>
+                        ) : (
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Cloud Console → Text-to-Speech API 활성화 필요</p>
+                        )}
+                      </div>
+                    )}
                     {audioProvider === 'google-chirp3' && (
                       <>
                         <div className="space-y-2">
