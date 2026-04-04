@@ -29,59 +29,75 @@ const TAG_MAP: Record<string, string> = {
   'bright': '밝은', 'dark': '어두운', 'clear': '선명한', 'raspy': '허스키한'
 };
 
-// ElevenLabs labels 한글 변환
-const ELEVENLABS_LABEL_KO: Record<string, string> = {
-  // gender
-  'male': '남성', 'female': '여성',
-  // age
-  'young': '젊은', 'middle aged': '중년', 'middle-aged': '중년', 'old': '나이든',
-  // accent
-  'american': '미국', 'british': '영국', 'australian': '호주', 'irish': '아일랜드',
-  'indian': '인도', 'african': '아프리카', 'korean': '한국',
-  // description / use_case
-  'calm': '차분한', 'deep': '깊은', 'warm': '따뜻한', 'soft': '부드러운',
-  'strong': '강한', 'gentle': '다정한', 'authoritative': '권위있는',
-  'friendly': '친근한', 'professional': '전문적인', 'casual': '캐주얼',
-  'narration': '내레이션', 'news': '뉴스', 'meditation': '명상',
-  'characters': '캐릭터', 'animation': '애니메이션', 'audiobook': '오디오북',
-  'conversational': '대화체', 'storytelling': '스토리텔링',
-  'ground reporter': '현장 리포터', 'video games': '게임',
+// ElevenLabs 기본 목소리 한글 설명 (Chirp3 스타일)
+const ELEVENLABS_VOICE_KO: Record<string, string> = {
+  'Rachel': '레이첼 - 차분한 여성, 내레이션',
+  'Drew': '드류 - 중후한 남성, 뉴스',
+  'Clyde': '클라이드 - 강렬한 남성, 캐릭터',
+  'Paul': '폴 - 권위있는 남성, 뉴스앵커',
+  'Domi': '도미 - 강한 여성, 자신감',
+  'Dave': '데이브 - 친근한 남성, 대화체',
+  'Fin': '핀 - 부드러운 남성, 아일랜드',
+  'Sarah': '사라 - 부드러운 여성, 뉴스',
+  'Antoni': '안토니 - 매력적인 남성, 젊은',
+  'Thomas': '토마스 - 차분한 남성, 내레이션',
+  'Charlie': '찰리 - 캐주얼 남성, 호주',
+  'George': '조지 - 따뜻한 남성, 영국',
+  'Emily': '에밀리 - 차분한 여성, 명상',
+  'Elli': '엘리 - 감정적인 여성, 젊은',
+  'Callum': '칼럼 - 남성, 캐릭터',
+  'Patrick': '패트릭 - 남성, 애니메이션',
+  'Harry': '해리 - 긴장감 남성, 젊은',
+  'Liam': '리암 - 남성, 스토리텔링',
+  'Dorothy': '도로시 - 어린 여성, 영국',
+  'Josh': '조쉬 - 깊은 남성, 내레이션',
+  'Arnold': '아놀드 - 단호한 남성, 강렬한',
+  'Charlotte': '샬롯 - 여성, 스웨덴',
+  'Matilda': '마틸다 - 따뜻한 여성, 영국',
+  'Matthew': '매튜 - 나이든 남성, 내레이션',
+  'James': '제임스 - 남성, 호주',
+  'Joseph': '조셉 - 남성, 영국',
+  'Serena': '세레나 - 부드러운 여성, 차분한',
+  'Adam': '아담 - 깊은 남성, 내레이션',
+  'Nicole': '니콜 - 부드러운 여성, 위스퍼',
+  'Jessie': '제시 - 빠른 여성, 활발한',
+  'Ryan': '라이언 - 남성, 미국',
+  'Sam': '샘 - 허스키 남성, 내레이션',
+  'Glinda': '글린다 - 여성, 캐릭터',
+  'Giovanni': '지오바니 - 남성, 이탈리아',
+  'Mimi': '미미 - 여성, 애니메이션',
+  'Grace': '그레이스 - 여성, 부드러운',
+  'Daniel': '다니엘 - 남성, 영국',
+  'Lily': '릴리 - 여성, 영국',
+  'Bill': '빌 - 남성, 내레이션',
+  'Brian': '브라이언 - 남성, 내레이션',
+  'Chris': '크리스 - 남성, 대화체',
+  'Eric': '에릭 - 남성, 내레이션',
+  'Jessica': '제시카 - 여성, 대화체',
+  'Laura': '로라 - 여성, 차분한',
+  'Will': '윌 - 남성, 친근한',
+  'Alice': '앨리스 - 여성, 뉴스',
+  'Aria': '아리아 - 여성, 표현력',
+  'Roger': '로저 - 남성, 중후한',
+  'River': '리버 - 남성, 젊은',
 };
 
-// ElevenLabs 목소리 객체에서 한글 라벨 생성
+// ElevenLabs 목소리 한글 라벨 반환
 const getElevenLabsVoiceLabel = (voice: any): string => {
-  if (typeof voice === 'string') return voice; // 이름만 있는 경우
-
-  const name = voice.name || 'Unknown';
+  if (typeof voice === 'string') return voice;
+  const name = voice.name || '';
+  // 미리 정의된 한글 설명이 있으면 사용
+  if (ELEVENLABS_VOICE_KO[name]) {
+    return ELEVENLABS_VOICE_KO[name];
+  }
+  // 없으면 labels에서 자동 생성 (한글만)
   const labels = voice.labels || {};
-
-  const parts: string[] = [];
-
-  // gender
-  if (labels.gender) {
-    parts.push(ELEVENLABS_LABEL_KO[labels.gender] || labels.gender);
+  const genderKo: Record<string, string> = { 'male': '남성', 'female': '여성' };
+  const gender = genderKo[labels.gender] || '';
+  if (gender) {
+    return `${name} - ${gender}, 커스텀`;
   }
-
-  // age
-  if (labels.age) {
-    parts.push(ELEVENLABS_LABEL_KO[labels.age] || labels.age);
-  }
-
-  // accent
-  if (labels.accent && labels.accent !== 'american') {
-    parts.push(ELEVENLABS_LABEL_KO[labels.accent] || labels.accent);
-  }
-
-  // description or use_case
-  const desc = labels.description || labels.use_case;
-  if (desc) {
-    parts.push(ELEVENLABS_LABEL_KO[desc] || desc);
-  }
-
-  if (parts.length > 0) {
-    return `${name} (${parts.join(', ')})`;
-  }
-  return name;
+  return `${name} - 커스텀 목소리`;
 };
 
 const EXP_TEST_PROJECT_ID = 'exp-official-sdk-test-pid';
