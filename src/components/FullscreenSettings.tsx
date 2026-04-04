@@ -57,15 +57,13 @@ const getElevenLabsVoiceLabel = (voice: any): string => {
   if (typeof voice === 'string') return voice;
   const name = voice.name || '';
 
-  // 디버그: 실제 name 값 확인
-  console.log('[Voice Debug]', {
-    name,
-    hasKo: !!ELEVENLABS_VOICE_KO[name],
-    voiceKeys: Object.keys(voice),
-    fullVoice: JSON.stringify(voice).substring(0, 200)
-  });
-
+  // 정확한 이름 매칭
   if (ELEVENLABS_VOICE_KO[name]) return ELEVENLABS_VOICE_KO[name];
+  // API가 "Bill - Wise, Mature, Balanced" 형태로 올 경우
+  // 하이픈 앞의 첫 단어로 매칭
+  const firstName = name.split(' - ')[0].trim();
+  if (ELEVENLABS_VOICE_KO[firstName]) return ELEVENLABS_VOICE_KO[firstName];
+
   const labels = voice.labels || {};
   const gender = labels.gender === 'female' ? '여성'
     : labels.gender === 'male' ? '남성' : '중성';
