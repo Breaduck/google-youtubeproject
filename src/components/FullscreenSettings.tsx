@@ -92,6 +92,8 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
     setVideoGenerationRange,
     audioProvider,
     setAudioProvider,
+    chirpApiKey,
+    setChirpApiKey,
     chirpVoice,
     setChirpVoice,
     chirpSpeed,
@@ -116,6 +118,7 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingTab>('gemini');
   const [showAzureKey, setShowAzureKey] = useState(false);
   const [showElKey, setShowElKey] = useState(false);
+  const [showGoogleTtsKey, setShowGoogleTtsKey] = useState(false);
   const [showTemplatePopup, setShowTemplatePopup] = useState(false);
   const [previewBgImage, setPreviewBgImage] = useState<string | null>(null);
   const [showPreviewFullscreen, setShowPreviewFullscreen] = useState(false);
@@ -218,6 +221,10 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
             <NarrationSettings
               audioProvider={audioProvider}
               setAudioProvider={setAudioProvider}
+              googleTtsApiKey={chirpApiKey}
+              setGoogleTtsApiKey={setChirpApiKey}
+              showGoogleTtsKey={showGoogleTtsKey}
+              onShowGoogleTtsKeyToggle={() => setShowGoogleTtsKey(!showGoogleTtsKey)}
               chirpVoice={chirpVoice}
               setChirpVoice={setChirpVoice}
               chirpSpeed={chirpSpeed}
@@ -1724,6 +1731,10 @@ function SavedStylesPanel({
 function NarrationSettings({
   audioProvider,
   setAudioProvider,
+  googleTtsApiKey,
+  setGoogleTtsApiKey,
+  showGoogleTtsKey,
+  onShowGoogleTtsKeyToggle,
   chirpVoice,
   setChirpVoice,
   chirpSpeed,
@@ -1756,6 +1767,10 @@ function NarrationSettings({
 }: {
   audioProvider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs';
   setAudioProvider: (provider: 'google-chirp3' | 'google-neural2' | 'microsoft' | 'elevenlabs') => void;
+  googleTtsApiKey: string;
+  setGoogleTtsApiKey: (key: string) => void;
+  showGoogleTtsKey: boolean;
+  onShowGoogleTtsKeyToggle: () => void;
   chirpVoice: string;
   setChirpVoice: (voice: string) => void;
   chirpSpeed: number;
@@ -1839,6 +1854,37 @@ function NarrationSettings({
           </button>
         </div>
       </div>
+
+      {/* Google TTS API 키 (Chirp3, Neural2 공통) */}
+      {(audioProvider === 'google-chirp3' || audioProvider === 'google-neural2') && (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Google Cloud TTS API 키</label>
+          <div className="relative">
+            <input
+              type={showGoogleTtsKey ? 'text' : 'password'}
+              value={googleTtsApiKey}
+              onChange={(e) => setGoogleTtsApiKey(e.target.value)}
+              placeholder="Google Cloud Console에서 발급받은 API 키"
+              className="w-full px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <button
+              type="button"
+              onClick={onShowGoogleTtsKeyToggle}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            >
+              {showGoogleTtsKey ? '숨김' : '보기'}
+            </button>
+          </div>
+          {googleTtsApiKey && googleTtsApiKey.length > 10 ? (
+            <p className="text-xs text-green-600 dark:text-green-400">API 키가 설정되었습니다.</p>
+          ) : (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Google Cloud Console → API 및 서비스 → 사용자 인증 정보에서 API 키 발급<br/>
+              Text-to-Speech API를 활성화해야 합니다.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Google Chirp3 설정 */}
       {audioProvider === 'google-chirp3' && (

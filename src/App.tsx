@@ -804,12 +804,14 @@ const App: React.FC = () => {
         audio.onended = () => URL.revokeObjectURL(url);
         audio.play();
       } else if (audioProvider === 'google-neural2') {
-        // Neural2 테스트 (Gemini API 키 사용)
-        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", neural2Voice, chirpSpeed, geminiApiKey);
+        // Neural2 테스트 (Google TTS API 키 우선, 없으면 Gemini API 키)
+        const ttsKey = chirpApiKey || geminiApiKey;
+        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", neural2Voice, chirpSpeed, ttsKey);
         new Audio(audioUrl).play();
       } else {
-        // Chirp3 테스트 (Gemini API 키 사용)
-        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", chirpVoice, chirpSpeed, geminiApiKey);
+        // Chirp3 테스트 (Google TTS API 키 우선, 없으면 Gemini API 키)
+        const ttsKey = chirpApiKey || geminiApiKey;
+        const audioUrl = await gemini.generateGoogleTTS("안녕하세요, 테스트 목소리입니다.", chirpVoice, chirpSpeed, ttsKey);
         new Audio(audioUrl).play();
       }
     } catch (e) {
@@ -1712,10 +1714,12 @@ const App: React.FC = () => {
         const blob = await response.blob();
         audioUrl = URL.createObjectURL(blob);
       } else if (audioProvider === 'google-neural2') {
-        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, neural2Voice, chirpSpeed, geminiApiKey);
+        const ttsKey = chirpApiKey || geminiApiKey;
+        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, neural2Voice, chirpSpeed, ttsKey);
       } else {
         // Google Chirp3 (기본)
-        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, chirpVoice, chirpSpeed, geminiApiKey);
+        const ttsKey = chirpApiKey || geminiApiKey;
+        audioUrl = await gemini.generateGoogleTTS(scene.scriptSegment, chirpVoice, chirpSpeed, ttsKey);
       }
 
       updateCurrentProject({
@@ -1787,10 +1791,13 @@ const App: React.FC = () => {
     if (!checkAndOpenAudioSettings()) return;
     if (!project) return;
 
-    // API 키 체크
-    if (!chirpApiKey || chirpApiKey.length < 10) {
-      alert('CHIRP API키를 입력해주시기 바랍니다.');
-      return;
+    // API 키 체크 (Google TTS 사용 시)
+    if (audioProvider === 'google-chirp3' || audioProvider === 'google-neural2') {
+      const ttsKey = chirpApiKey || geminiApiKey;
+      if (!ttsKey || ttsKey.length < 10) {
+        alert('Google Cloud TTS API 키를 나레이션 설정에서 입력하거나, Gemini API 키(Cloud Console 발급)를 설정해주세요.');
+        return;
+      }
     }
 
     const scenesToGenerate = project.scenes.filter(s => !s.audioUrl);
