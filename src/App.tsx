@@ -29,6 +29,50 @@ const TAG_MAP: Record<string, string> = {
   'bright': '밝은', 'dark': '어두운', 'clear': '선명한', 'raspy': '허스키한'
 };
 
+// ElevenLabs 기본 목소리 한글 설명 매핑
+const ELEVENLABS_VOICE_MAP: Record<string, string> = {
+  'Rachel': 'Rachel (차분한 여성, 내레이션)',
+  'Drew': 'Drew (중후한 남성, 뉴스)',
+  'Clyde': 'Clyde (강렬한 남성, 캐릭터)',
+  'Paul': 'Paul (권위있는 남성, 뉴스앵커)',
+  'Domi': 'Domi (강한 여성, 자신감)',
+  'Dave': 'Dave (친근한 남성, 대화체)',
+  'Fin': 'Fin (부드러운 남성, 아일랜드)',
+  'Sarah': 'Sarah (부드러운 여성, 뉴스)',
+  'Antoni': 'Antoni (매력적인 남성, 젊은)',
+  'Thomas': 'Thomas (차분한 남성, 내레이션)',
+  'Charlie': 'Charlie (캐주얼 남성, 호주)',
+  'George': 'George (따뜻한 남성, 영국)',
+  'Emily': 'Emily (차분한 여성, 명상)',
+  'Elli': 'Elli (감정적인 여성, 젊은)',
+  'Callum': 'Callum (남성, 캐릭터)',
+  'Patrick': 'Patrick (남성, 애니메이션)',
+  'Harry': 'Harry (긴장감 남성, 젊은)',
+  'Liam': 'Liam (남성, 스토리텔링)',
+  'Dorothy': 'Dorothy (어린 여성, 영국)',
+  'Josh': 'Josh (깊은 남성, 내레이션)',
+  'Arnold': 'Arnold (단호한 남성, 강렬한)',
+  'Charlotte': 'Charlotte (여성, 스웨덴)',
+  'Matilda': 'Matilda (따뜻한 여성, 영국)',
+  'Matthew': 'Matthew (나이든 남성, 내레이션)',
+  'James': 'James (남성, 호주)',
+  'Joseph': 'Joseph (남성, 영국)',
+  'Serena': 'Serena (부드러운 여성, 차분한)',
+  'Adam': 'Adam (깊은 남성, 내레이션)',
+  'Nicole': 'Nicole (부드러운 여성, 위스퍼)',
+  'Jessie': 'Jessie (빠른 여성, 활발한)',
+  'Ryan': 'Ryan (남성, 미국 군인)',
+  'Sam': 'Sam (허스키 남성, 내레이션)',
+  'Glinda': 'Glinda (마녀 여성, 캐릭터)',
+  'Giovanni': 'Giovanni (남성, 이탈리아)',
+  'Mimi': 'Mimi (여성, 스웨덴 애니메이션)',
+};
+
+// ElevenLabs 목소리 이름을 한글 설명과 함께 반환
+const getElevenLabsVoiceLabel = (name: string): string => {
+  return ELEVENLABS_VOICE_MAP[name] || name;
+};
+
 const EXP_TEST_PROJECT_ID = 'exp-official-sdk-test-pid';
 const EXP_TEST_PROJECT: StoryProject = {
   id: EXP_TEST_PROJECT_ID,
@@ -5072,7 +5116,7 @@ const App: React.FC = () => {
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택</label>
                             <select value={elSettings.voiceId} onChange={e => setElSettings({...elSettings, voiceId: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
-                              {voices.map(v => <option key={v.voice_id} value={v.voice_id}>{v.name}</option>)}
+                              {voices.map(v => <option key={v.voice_id} value={v.voice_id}>{getElevenLabsVoiceLabel(v.name)}</option>)}
                             </select>
                           </div>
                         )}
