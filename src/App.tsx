@@ -29,48 +29,59 @@ const TAG_MAP: Record<string, string> = {
   'bright': '밝은', 'dark': '어두운', 'clear': '선명한', 'raspy': '허스키한'
 };
 
-// ElevenLabs 기본 목소리 한글 설명 매핑
-const ELEVENLABS_VOICE_MAP: Record<string, string> = {
-  'Rachel': 'Rachel (차분한 여성, 내레이션)',
-  'Drew': 'Drew (중후한 남성, 뉴스)',
-  'Clyde': 'Clyde (강렬한 남성, 캐릭터)',
-  'Paul': 'Paul (권위있는 남성, 뉴스앵커)',
-  'Domi': 'Domi (강한 여성, 자신감)',
-  'Dave': 'Dave (친근한 남성, 대화체)',
-  'Fin': 'Fin (부드러운 남성, 아일랜드)',
-  'Sarah': 'Sarah (부드러운 여성, 뉴스)',
-  'Antoni': 'Antoni (매력적인 남성, 젊은)',
-  'Thomas': 'Thomas (차분한 남성, 내레이션)',
-  'Charlie': 'Charlie (캐주얼 남성, 호주)',
-  'George': 'George (따뜻한 남성, 영국)',
-  'Emily': 'Emily (차분한 여성, 명상)',
-  'Elli': 'Elli (감정적인 여성, 젊은)',
-  'Callum': 'Callum (남성, 캐릭터)',
-  'Patrick': 'Patrick (남성, 애니메이션)',
-  'Harry': 'Harry (긴장감 남성, 젊은)',
-  'Liam': 'Liam (남성, 스토리텔링)',
-  'Dorothy': 'Dorothy (어린 여성, 영국)',
-  'Josh': 'Josh (깊은 남성, 내레이션)',
-  'Arnold': 'Arnold (단호한 남성, 강렬한)',
-  'Charlotte': 'Charlotte (여성, 스웨덴)',
-  'Matilda': 'Matilda (따뜻한 여성, 영국)',
-  'Matthew': 'Matthew (나이든 남성, 내레이션)',
-  'James': 'James (남성, 호주)',
-  'Joseph': 'Joseph (남성, 영국)',
-  'Serena': 'Serena (부드러운 여성, 차분한)',
-  'Adam': 'Adam (깊은 남성, 내레이션)',
-  'Nicole': 'Nicole (부드러운 여성, 위스퍼)',
-  'Jessie': 'Jessie (빠른 여성, 활발한)',
-  'Ryan': 'Ryan (남성, 미국 군인)',
-  'Sam': 'Sam (허스키 남성, 내레이션)',
-  'Glinda': 'Glinda (마녀 여성, 캐릭터)',
-  'Giovanni': 'Giovanni (남성, 이탈리아)',
-  'Mimi': 'Mimi (여성, 스웨덴 애니메이션)',
+// ElevenLabs labels 한글 변환
+const ELEVENLABS_LABEL_KO: Record<string, string> = {
+  // gender
+  'male': '남성', 'female': '여성',
+  // age
+  'young': '젊은', 'middle aged': '중년', 'middle-aged': '중년', 'old': '나이든',
+  // accent
+  'american': '미국', 'british': '영국', 'australian': '호주', 'irish': '아일랜드',
+  'indian': '인도', 'african': '아프리카', 'korean': '한국',
+  // description / use_case
+  'calm': '차분한', 'deep': '깊은', 'warm': '따뜻한', 'soft': '부드러운',
+  'strong': '강한', 'gentle': '다정한', 'authoritative': '권위있는',
+  'friendly': '친근한', 'professional': '전문적인', 'casual': '캐주얼',
+  'narration': '내레이션', 'news': '뉴스', 'meditation': '명상',
+  'characters': '캐릭터', 'animation': '애니메이션', 'audiobook': '오디오북',
+  'conversational': '대화체', 'storytelling': '스토리텔링',
+  'ground reporter': '현장 리포터', 'video games': '게임',
 };
 
-// ElevenLabs 목소리 이름을 한글 설명과 함께 반환
-const getElevenLabsVoiceLabel = (name: string): string => {
-  return ELEVENLABS_VOICE_MAP[name] || name;
+// ElevenLabs 목소리 객체에서 한글 라벨 생성
+const getElevenLabsVoiceLabel = (voice: any): string => {
+  if (typeof voice === 'string') return voice; // 이름만 있는 경우
+
+  const name = voice.name || 'Unknown';
+  const labels = voice.labels || {};
+
+  const parts: string[] = [];
+
+  // gender
+  if (labels.gender) {
+    parts.push(ELEVENLABS_LABEL_KO[labels.gender] || labels.gender);
+  }
+
+  // age
+  if (labels.age) {
+    parts.push(ELEVENLABS_LABEL_KO[labels.age] || labels.age);
+  }
+
+  // accent
+  if (labels.accent && labels.accent !== 'american') {
+    parts.push(ELEVENLABS_LABEL_KO[labels.accent] || labels.accent);
+  }
+
+  // description or use_case
+  const desc = labels.description || labels.use_case;
+  if (desc) {
+    parts.push(ELEVENLABS_LABEL_KO[desc] || desc);
+  }
+
+  if (parts.length > 0) {
+    return `${name} (${parts.join(', ')})`;
+  }
+  return name;
 };
 
 const EXP_TEST_PROJECT_ID = 'exp-official-sdk-test-pid';
@@ -5189,7 +5200,7 @@ const App: React.FC = () => {
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택</label>
                             <select value={elSettings.voiceId} onChange={e => setElSettings({...elSettings, voiceId: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100">
-                              {voices.map(v => <option key={v.voice_id} value={v.voice_id}>{getElevenLabsVoiceLabel(v.name)}</option>)}
+                              {voices.map(v => <option key={v.voice_id} value={v.voice_id}>{getElevenLabsVoiceLabel(v)}</option>)}
                             </select>
                           </div>
                         )}
