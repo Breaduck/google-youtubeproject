@@ -29,98 +29,76 @@ const TAG_MAP: Record<string, string> = {
   'bright': '밝은', 'dark': '어두운', 'clear': '선명한', 'raspy': '허스키한'
 };
 
-// ElevenLabs 목소리 완전 한글화
+// ElevenLabs 목소리 완전 한글화 (공식 목소리 목록)
 const ELEVENLABS_VOICE_KO: Record<string, string> = {
-  'Rachel': '레이첼 - 차분한 여성, 내레이션',
-  'Drew': '드류 - 중후한 남성, 뉴스',
-  'Clyde': '클라이드 - 강렬한 남성, 캐릭터',
-  'Paul': '폴 - 권위있는 남성, 뉴스앵커',
-  'Domi': '도미 - 강한 여성, 자신감',
-  'Dave': '데이브 - 친근한 남성, 대화체',
-  'Fin': '핀 - 부드러운 남성, 아일랜드',
-  'Sarah': '사라 - 부드러운 여성, 뉴스',
-  'Antoni': '안토니 - 매력적인 남성, 젊은',
-  'Thomas': '토마스 - 차분한 남성, 내레이션',
-  'Charlie': '찰리 - 캐주얼 남성, 호주',
-  'George': '조지 - 따뜻한 남성, 영국',
-  'Emily': '에밀리 - 차분한 여성, 명상',
-  'Elli': '엘리 - 감정적인 여성, 젊은',
-  'Callum': '칼럼 - 남성, 캐릭터',
-  'Patrick': '패트릭 - 남성, 애니메이션',
-  'Harry': '해리 - 긴장감 남성, 젊은',
-  'Liam': '리암 - 남성, 스토리텔링',
-  'Dorothy': '도로시 - 어린 여성, 영국',
-  'Josh': '조쉬 - 깊은 남성, 내레이션',
-  'Arnold': '아놀드 - 단호한 남성, 강렬한',
-  'Charlotte': '샬롯 - 여성, 스웨덴',
-  'Matilda': '마틸다 - 따뜻한 여성, 영국',
-  'Matthew': '매튜 - 나이든 남성, 내레이션',
-  'James': '제임스 - 남성, 호주',
-  'Joseph': '조셉 - 남성, 영국',
-  'Serena': '세레나 - 부드러운 여성, 차분한',
-  'Adam': '아담 - 깊은 남성, 내레이션',
-  'Nicole': '니콜 - 부드러운 여성, 위스퍼',
-  'Jessie': '제시 - 빠른 여성, 활발한',
-  'Ryan': '라이언 - 남성, 미국',
-  'Sam': '샘 - 허스키 남성, 내레이션',
-  'Glinda': '글린다 - 여성, 캐릭터',
-  'Giovanni': '지오바니 - 남성, 이탈리아',
-  'Mimi': '미미 - 여성, 애니메이션',
-  'Grace': '그레이스 - 여성, 부드러운',
-  'Daniel': '다니엘 - 남성, 영국',
-  'Lily': '릴리 - 여성, 영국',
-  'Bill': '빌 - 남성, 내레이션',
-  'Brian': '브라이언 - 남성, 내레이션',
-  'Chris': '크리스 - 남성, 대화체',
-  'Eric': '에릭 - 남성, 내레이션',
-  'Jessica': '제시카 - 여성, 대화체',
-  'Laura': '로라 - 여성, 차분한',
-  'Will': '윌 - 남성, 친근한',
-  'Alice': '앨리스 - 여성, 뉴스',
-  'Aria': '아리아 - 여성, 표현력',
-  'Roger': '로저 - 남성, 중후한',
-  'River': '리버 - 남성, 젊은',
+  // 사용자 제공 목록
+  'Roger': '로저 - 편안하고 캐주얼한, 깊은 울림 - 남성',
+  'Sarah': '사라 - 성숙하고 안정감 있는, 자신감 - 여성',
+  'Laura': '로라 - 열정적이고 개성 있는 - 여성',
+  'Charlie': '찰리 - 깊고 자신감 있는, 에너지 넘치는 - 남성',
+  'George': '조지 - 따뜻한 스토리텔러 - 남성',
+  'Callum': '칼럼 - 허스키한 장난꾸러기 - 남성',
+  'River': '리버 - 차분하고 중립적인, 정보 전달형 - 중성',
+  'Harry': '해리 - 강렬한 전사 - 남성',
+  'Liam': '리암 - 에너지 넘치는 크리에이터 - 남성',
+  'Alice': '앨리스 - 명확하고 몰입감 있는 교육자 - 여성',
+  'Matilda': '마틸다 - 전문적이고 지적인 - 여성',
+  'Will': '윌 - 여유로운 낙천주의자 - 남성',
+  'Jessica': '제시카 - 밝고 따뜻한, 활발한 - 여성',
+  'Eric': '에릭 - 부드럽고 신뢰감 있는 - 남성',
+  'Bella': '벨라 - 전문적이고 밝은, 따뜻한 - 여성',
+  'Chris': '크리스 - 매력적이고 친근한 - 남성',
+  'Brian': '브라이언 - 깊고 울림 있는, 편안한 - 남성',
+  'Daniel': '다니엘 - 안정적인 방송인 - 남성',
+  'Lily': '릴리 - 벨벳 같은 배우 목소리 - 여성',
+  // 추가 목소리
+  'Rachel': '레이첼 - 차분한 내레이션 - 여성',
+  'Drew': '드류 - 중후한 뉴스 앵커 - 남성',
+  'Clyde': '클라이드 - 강렬한 캐릭터 - 남성',
+  'Paul': '폴 - 권위있는 뉴스앵커 - 남성',
+  'Domi': '도미 - 강하고 자신감 있는 - 여성',
+  'Dave': '데이브 - 친근한 대화체 - 남성',
+  'Fin': '핀 - 부드러운 아일랜드 억양 - 남성',
+  'Antoni': '안토니 - 매력적이고 젊은 - 남성',
+  'Thomas': '토마스 - 차분한 내레이션 - 남성',
+  'Emily': '에밀리 - 차분한 명상 - 여성',
+  'Elli': '엘리 - 감정적이고 젊은 - 여성',
+  'Patrick': '패트릭 - 애니메이션 캐릭터 - 남성',
+  'Dorothy': '도로시 - 어린 영국 소녀 - 여성',
+  'Josh': '조쉬 - 깊은 내레이션 - 남성',
+  'Arnold': '아놀드 - 단호하고 강렬한 - 남성',
+  'Charlotte': '샬롯 - 스웨덴 억양 - 여성',
+  'Matthew': '매튜 - 나이든 내레이터 - 남성',
+  'James': '제임스 - 호주 억양 - 남성',
+  'Joseph': '조셉 - 영국 신사 - 남성',
+  'Serena': '세레나 - 부드럽고 차분한 - 여성',
+  'Adam': '아담 - 깊은 내레이션 - 남성',
+  'Nicole': '니콜 - 부드러운 위스퍼 - 여성',
+  'Jessie': '제시 - 빠르고 활발한 - 여성',
+  'Ryan': '라이언 - 미국 남성 - 남성',
+  'Sam': '샘 - 허스키한 내레이션 - 남성',
+  'Glinda': '글린다 - 캐릭터 연기 - 여성',
+  'Giovanni': '지오바니 - 이탈리아 억양 - 남성',
+  'Mimi': '미미 - 애니메이션 캐릭터 - 여성',
+  'Grace': '그레이스 - 부드러운 - 여성',
+  'Bill': '빌 - 내레이션 - 남성',
+  'Aria': '아리아 - 표현력 풍부한 - 여성',
 };
 
-// 영어 이름 → 한글 음역 변환
-const NAME_TO_KOREAN: Record<string, string> = {
-  'Adam': '아담', 'Alice': '앨리스', 'Antoni': '안토니', 'Aria': '아리아',
-  'Arnold': '아놀드', 'Bill': '빌', 'Brian': '브라이언', 'Callum': '칼럼',
-  'Charlie': '찰리', 'Charlotte': '샬롯', 'Chris': '크리스', 'Clyde': '클라이드',
-  'Daniel': '다니엘', 'Dave': '데이브', 'Domi': '도미', 'Dorothy': '도로시',
-  'Drew': '드류', 'Elli': '엘리', 'Emily': '에밀리', 'Eric': '에릭',
-  'Fin': '핀', 'George': '조지', 'Giovanni': '지오바니', 'Glinda': '글린다',
-  'Grace': '그레이스', 'Harry': '해리', 'James': '제임스', 'Jessie': '제시',
-  'Jessica': '제시카', 'Joseph': '조셉', 'Josh': '조쉬', 'Laura': '로라',
-  'Liam': '리암', 'Lily': '릴리', 'Matilda': '마틸다', 'Matthew': '매튜',
-  'Mimi': '미미', 'Nicole': '니콜', 'Patrick': '패트릭', 'Paul': '폴',
-  'Rachel': '레이첼', 'River': '리버', 'Roger': '로저', 'Ryan': '라이언',
-  'Sam': '샘', 'Sarah': '사라', 'Serena': '세레나', 'Thomas': '토마스',
-  'Will': '윌', 'Bella': '벨라', 'Ethan': '이든', 'Michael': '마이클',
-  'Emma': '엠마', 'Olivia': '올리비아', 'Noah': '노아', 'Sophia': '소피아',
-  'Isabella': '이사벨라', 'Mia': '미아', 'Lucas': '루카스', 'Oliver': '올리버',
-  'Freya': '프레야', 'Gigi': '지지', 'Natasha': '나타샤', 'Marcus': '마커스',
-};
-
-// ElevenLabs 목소리 완전 한글 라벨 반환
+// ElevenLabs 목소리 한글 라벨 반환
 const getElevenLabsVoiceLabel = (voice: any): string => {
   if (typeof voice === 'string') return voice;
   const name = voice.name || '';
 
-  // 1. 미리 정의된 완전한 한글 설명이 있으면 사용
+  // 미리 정의된 한글 설명이 있으면 사용
   if (ELEVENLABS_VOICE_KO[name]) {
     return ELEVENLABS_VOICE_KO[name];
   }
 
-  // 2. 없으면 이름을 한글로 변환 + 성별 추가
+  // 없으면 labels에서 생성 (완전 한글)
   const labels = voice.labels || {};
-  const nameKo = NAME_TO_KOREAN[name] || name; // 매핑 없으면 원래 이름
-  const gender = labels.gender === 'female' ? '여성' : labels.gender === 'male' ? '남성' : '';
-
-  if (gender) {
-    return `${nameKo} - ${gender} 목소리`;
-  }
-  return `${nameKo} - 목소리`;
+  const gender = labels.gender === 'female' ? '여성' : labels.gender === 'male' ? '남성' : '중성';
+  return `${name} - ${gender} 목소리`;
 };
 
 const EXP_TEST_PROJECT_ID = 'exp-official-sdk-test-pid';
