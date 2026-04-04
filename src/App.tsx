@@ -326,6 +326,12 @@ const App: React.FC = () => {
   const azureRegion = 'koreacentral'; // 한국 고정
   const [showAzureKey, setShowAzureKey] = useState(false);
 
+  // 목소리 클로닝 상태
+  const [voiceCloneFile, setVoiceCloneFile] = useState<File | null>(null);
+  const [isCloning, setIsCloning] = useState(false);
+  const [cloneVoiceName, setCloneVoiceName] = useState('');
+  const voiceCloneInputRef = useRef<HTMLInputElement>(null);
+
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
   const [isCharLoadModalOpen, setIsCharLoadModalOpen] = useState(false);
   const [charLoadModalMode, setCharLoadModalMode] = useState<'list' | 'add'>('list');
@@ -923,6 +929,73 @@ const App: React.FC = () => {
     reader.readAsDataURL(file);
 
     if (e.target) e.target.value = '';
+  };
+
+  // ElevenLabs 목소리 클로닝
+  const handleVoiceCloneFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVoiceCloneFile(file);
+    }
+    if (e.target) e.target.value = '';
+  };
+
+  const handleVoiceClone = async () => {
+    if (!voiceCloneFile || !cloneVoiceName.trim()) {
+      alert('음성 파일과 목소리 이름을 입력해주세요.');
+      return;
+    }
+    if (!elSettings.apiKey) {
+      alert('ElevenLabs API 키를 먼저 입력해주세요.');
+      return;
+    }
+
+    setIsCloning(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', cloneVoiceName.trim());
+      formData.append('files', voiceCloneFile);
+      formData.append('description', `Custom voice created from ${voiceCloneFile.name}`);
+      formData.append('remove_background_noise', 'true');
+
+      const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
+        method: 'POST',
+        headers: {
+          'xi-api-key': elSettings.apiKey,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail?.message || `클로닝 실패: ${response.status}`);
+      }
+
+      const result = await response.json();
+      alert(`목소리 "${cloneVoiceName}"이(가) 성공적으로 등록되었습니다!\n\n새로고침하면 목소리 목록에 표시됩니다.`);
+
+      // 상태 초기화
+      setVoiceCloneFile(null);
+      setCloneVoiceName('');
+
+      // 목소리 목록 새로고침
+      const voicesResp = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': elSettings.apiKey }
+      });
+      if (voicesResp.ok) {
+        const data = await voicesResp.json();
+        setVoices(data.voices || []);
+        // 새로 생성된 목소리 자동 선택
+        if (result.voice_id) {
+          setElSettings({ ...elSettings, voiceId: result.voice_id });
+        }
+      }
+    } catch (error: any) {
+      console.error('Voice cloning error:', error);
+      alert(`목소리 클로닝 실패: ${error.message}`);
+    } finally {
+      setIsCloning(false);
+    }
   };
 
   const handleCharPortraitUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -5123,6 +5196,32 @@ const App: React.FC = () => {
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700 dark:text-slate-300">음성 속도: {elSettings.speed.toFixed(1)}x</label>
                           <input type="range" min="0.5" max="2.0" step="0.1" value={elSettings.speed} onChange={e => setElSettings({...elSettings, speed: parseFloat(e.target.value)})} className="w-full accent-indigo-600" />
+                        </div>
+                        {/* 내 목소리 등록 (ElevenLabs 클로닝) */}
+                        <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">내 목소리 등록</label>
+                          <input
+                            type="text"
+                            value={cloneVoiceName}
+                            onChange={e => setCloneVoiceName(e.target.value)}
+                            placeholder="목소리 이름 (예: 내 목소리)"
+                            className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
+                          />
+                          <input type="file" ref={voiceCloneInputRef} accept=".wav,.mp3,.m4a" className="hidden" onChange={handleVoiceCloneFileSelect} />
+                          <button
+                            onClick={() => voiceCloneInputRef.current?.click()}
+                            className="w-full py-2 rounded-xl text-sm font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                          >
+                            {voiceCloneFile ? `✓ ${voiceCloneFile.name}` : '음성 파일 선택 (30초 이상)'}
+                          </button>
+                          <button
+                            onClick={handleVoiceClone}
+                            disabled={isCloning || !voiceCloneFile || !cloneVoiceName.trim()}
+                            className="w-full py-3 rounded-xl text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isCloning ? '등록 중...' : '목소리 등록하기'}
+                          </button>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">30초 이상의 음성 파일로 내 목소리를 복제합니다.</p>
                         </div>
                       </>
                     )}

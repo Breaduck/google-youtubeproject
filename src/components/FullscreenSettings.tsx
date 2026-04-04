@@ -1844,6 +1844,76 @@ function NarrationSettings({
   onWavUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   uploadedWavFile: { file: File; url: string } | null;
 }) {
+  // 목소리 클로닝 상태
+  const [voiceCloneFile, setVoiceCloneFile] = useState<File | null>(null);
+  const [isCloning, setIsCloning] = useState(false);
+  const [cloneVoiceName, setCloneVoiceName] = useState('');
+  const [localVoices, setLocalVoices] = useState<any[]>(voices);
+  const voiceCloneInputRef = useRef<HTMLInputElement>(null);
+
+  // voices prop이 변경되면 localVoices 업데이트
+  useEffect(() => {
+    setLocalVoices(voices);
+  }, [voices]);
+
+  const handleVoiceCloneFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setVoiceCloneFile(file);
+    if (e.target) e.target.value = '';
+  };
+
+  const handleVoiceClone = async () => {
+    if (!voiceCloneFile || !cloneVoiceName.trim()) {
+      alert('음성 파일과 목소리 이름을 입력해주세요.');
+      return;
+    }
+    if (!elSettings.apiKey) {
+      alert('ElevenLabs API 키를 먼저 입력해주세요.');
+      return;
+    }
+
+    setIsCloning(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', cloneVoiceName.trim());
+      formData.append('files', voiceCloneFile);
+      formData.append('description', `Custom voice: ${voiceCloneFile.name}`);
+      formData.append('remove_background_noise', 'true');
+
+      const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
+        method: 'POST',
+        headers: { 'xi-api-key': elSettings.apiKey },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail?.message || `클로닝 실패: ${response.status}`);
+      }
+
+      const result = await response.json();
+      alert(`목소리 "${cloneVoiceName}"이(가) 등록되었습니다!`);
+      setVoiceCloneFile(null);
+      setCloneVoiceName('');
+
+      // 목소리 목록 새로고침
+      const voicesResp = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': elSettings.apiKey }
+      });
+      if (voicesResp.ok) {
+        const data = await voicesResp.json();
+        setLocalVoices(data.voices || []);
+        if (result.voice_id) {
+          setElSettings({ ...elSettings, voiceId: result.voice_id });
+        }
+      }
+    } catch (error: any) {
+      alert(`목소리 클로닝 실패: ${error.message}`);
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -2116,15 +2186,15 @@ function NarrationSettings({
               </p>
             )}
           </div>
-          {voices.length > 0 && (
+          {localVoices.length > 0 && (
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택 ({voices.length}개 사용 가능)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 선택 ({localVoices.length}개 사용 가능)</label>
               <select
                 value={elSettings.voiceId}
                 onChange={(e) => setElSettings({ ...elSettings, voiceId: e.target.value })}
                 className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
-                {voices.map((v) => (
+                {localVoices.map((v) => (
                   <option key={v.voice_id} value={v.voice_id}>
                     {getElevenLabsVoiceLabel(v.name)}
                   </option>
@@ -2132,7 +2202,7 @@ function NarrationSettings({
               </select>
             </div>
           )}
-          {voices.length === 0 && elSettings.apiKey.length < 10 && (
+          {localVoices.length === 0 && elSettings.apiKey.length < 10 && (
             <p className="text-xs text-slate-500 dark:text-slate-400">
               API 키를 입력하면 사용 가능한 음성 목록이 자동으로 표시됩니다.
             </p>
@@ -2148,6 +2218,34 @@ function NarrationSettings({
               onChange={(e) => setElSettings({ ...elSettings, speed: parseFloat(e.target.value) })}
               className="w-full accent-indigo-600"
             />
+          </div>
+          {/* 내 목소리 등록 */}
+          <div className="space-y-3 pt-4 border-t border-slate-300 dark:border-slate-600">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">내 목소리 등록</label>
+            <input
+              type="text"
+              value={cloneVoiceName}
+              onChange={(e) => setCloneVoiceName(e.target.value)}
+              placeholder="목소리 이름 (예: 내 목소리)"
+              className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <input type="file" ref={voiceCloneInputRef} accept=".wav,.mp3,.m4a" className="hidden" onChange={handleVoiceCloneFileSelect} />
+            <button
+              onClick={() => voiceCloneInputRef.current?.click()}
+              className="w-full py-3 rounded-xl text-sm font-medium bg-slate-100 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-500 transition-all"
+            >
+              {voiceCloneFile ? `✓ ${voiceCloneFile.name}` : '음성 파일 선택 (30초 이상)'}
+            </button>
+            <button
+              onClick={handleVoiceClone}
+              disabled={isCloning || !voiceCloneFile || !cloneVoiceName.trim()}
+              className="w-full py-3 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCloning ? '등록 중...' : '목소리 등록하기'}
+            </button>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              30초 이상의 음성 파일로 내 목소리를 복제합니다.
+            </p>
           </div>
         </div>
       )}
