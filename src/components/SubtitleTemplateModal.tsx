@@ -14,7 +14,7 @@ interface CustomFont {
   data?: string;
 }
 
-const DEFAULT_FONTS = [
+export const DEFAULT_FONTS = [
   'Pretendard', 'Noto Sans KR', 'Noto Serif KR', 'IBM Plex Sans KR',
   'Black Han Sans', 'Jua', 'Do Hyeon', 'Gothic A1',
   'Nanum Gothic', 'Nanum Myeongjo', 'Gowun Dodum', 'Gowun Batang',
@@ -76,7 +76,7 @@ export const TEMPLATES: { id: string; name: string; category: string; settings: 
   // ===== 예능 =====
   { id: 'news-red', name: '뉴스 속보', category: '예능', settings: {
     textColor: '#FFFFFF', backgroundColor: '#B91C1C', bgOpacity: 0.98, bgPadding: 16,
-    fontSize: 48, fontFamily: 'Black Han Sans'
+    fontSize: 42, fontFamily: 'Noto Sans KR', letterSpacing: 1
   }},
   { id: 'news-blue', name: '뉴스 파랑', category: '예능', settings: {
     textColor: '#FFFFFF', backgroundColor: '#1E3A5F', bgOpacity: 0.95, bgPadding: 14,
@@ -303,7 +303,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               color: s.textColor,
               // 배경 박스가 있으면 span에 적용
               backgroundColor: hasBg ? s.backgroundColor : undefined,
-              padding: hasBg ? '5px 14px' : undefined,
+              padding: hasBg ? '8px 14px' : undefined,
               borderRadius: hasBg ? '4px' : undefined,
               opacity: hasBg ? (s.bgOpacity || 0.85) : 1,
               // 그림자

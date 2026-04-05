@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { SubtitleSettings, SubtitlePosition, ElevenLabsSettings, SavedStyle, SavedCharacter } from '../types';
-import SubtitleTemplateModal, { TEMPLATES } from './SubtitleTemplateModal';
+import SubtitleTemplateModal, { TEMPLATES, DEFAULT_FONTS } from './SubtitleTemplateModal';
 import { useSettingsStore } from '../stores/settingsStore';
 
 // ElevenLabs 목소리 완전 한글화
@@ -718,30 +718,11 @@ function SubtitleSettingsPanel({
                 value={settings.fontFamily}
                 onChange={(e) => onChange({ ...settings, fontFamily: e.target.value })}
                 className="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
+                style={{ fontFamily: settings.fontFamily }}
               >
-                <optgroup label="📐 고딕 (Sans-Serif)">
-                  <option value="Noto Sans KR">Noto Sans KR</option>
-                  <option value="Nanum Gothic">나눔고딕</option>
-                  <option value="Gothic A1">Gothic A1</option>
-                  <option value="IBM Plex Sans KR">IBM Plex Sans KR</option>
-                </optgroup>
-                <optgroup label="📚 명조 (Serif)">
-                  <option value="Noto Serif KR">Noto Serif KR</option>
-                  <option value="Nanum Myeongjo">나눔명조</option>
-                  <option value="Gowun Batang">고운 바탕</option>
-                </optgroup>
-                <optgroup label="✍️ 손글씨">
-                  <option value="Nanum Pen Script">나눔손글씨 펜</option>
-                  <option value="Gaegu">개그체</option>
-                  <option value="Poor Story">가난한 이야기</option>
-                </optgroup>
-                <optgroup label="🎨 디자인">
-                  <option value="Black Han Sans">검은고딕</option>
-                  <option value="Do Hyeon">도현</option>
-                  <option value="Jua">주아</option>
-                  <option value="Sunflower">해바라기</option>
-                  <option value="Hi Melody">하이멜로디</option>
-                </optgroup>
+                {DEFAULT_FONTS.map((f) => (
+                  <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+                ))}
               </select>
               <select
                 value={settings.fontWeight || 700}
@@ -857,7 +838,7 @@ function SubtitleSettingsPanel({
                         fontWeight: 'bold',
                         color: s.textColor,
                         backgroundColor: hasBg ? s.backgroundColor : undefined,
-                        padding: hasBg ? '4px 10px' : undefined,
+                        padding: hasBg ? '6px 10px' : undefined,
                         borderRadius: hasBg ? '3px' : undefined,
                         opacity: hasBg ? (s.bgOpacity || 0.85) : 1,
                         textShadow: textShadow,
