@@ -241,8 +241,8 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
       alert('템플릿 이름을 입력해주세요.');
       return;
     }
-    if (savedSubtitleTemplates.length >= 10) {
-      alert('나만의 템플릿은 최대 10개까지 저장 가능합니다.');
+    if (savedSubtitleTemplates.length >= 50) {
+      alert('나만의 템플릿은 최대 50개까지 저장 가능합니다.');
       return;
     }
     const newTemplate: SavedSubtitleTemplate = {
@@ -376,6 +376,9 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               fontFamily: `"${s.fontFamily || 'Noto Sans KR'}", sans-serif`,
               fontSize: '15px',
               fontWeight: 'bold',
+              lineHeight: 1,
+              display: 'inline-flex',
+              alignItems: 'center',
               color: s.textColor,
               backgroundColor: hasBg ? s.backgroundColor : undefined,
               padding: hasBg ? '8px 14px' : undefined,
@@ -812,7 +815,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">나만의 템플릿 저장</h3>
-            <p className="text-sm text-slate-500 dark:text-gray-400">현재 자막 설정을 템플릿으로 저장합니다. ({savedSubtitleTemplates.length}/10)</p>
+            <p className="text-sm text-slate-500 dark:text-gray-400">현재 자막 설정을 템플릿으로 저장합니다. ({savedSubtitleTemplates.length}/50)</p>
             <input
               type="text"
               placeholder="템플릿 이름"
