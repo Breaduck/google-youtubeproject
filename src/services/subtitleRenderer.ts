@@ -11,8 +11,8 @@ export async function renderSubtitleToCanvas(
   canvas.height = height;
   const ctx = canvas.getContext('2d')!;
 
-  // 폰트 로딩 대기 - fontWeight 800 고정 (일관성)
-  const fontWeight = 800;
+  // 폰트 로딩 대기
+  const fontWeight = settings.fontWeight || 700;
   const fontStyle = settings.fontStyle || 'normal';
   try {
     await document.fonts.load(`${fontStyle} ${fontWeight} ${settings.fontSize}px "${settings.fontFamily}"`);
@@ -24,6 +24,11 @@ export async function renderSubtitleToCanvas(
   ctx.clearRect(0, 0, width, height);
 
   ctx.font = `${fontStyle} ${fontWeight} ${settings.fontSize}px "${settings.fontFamily}", sans-serif`;
+
+  // letterSpacing 적용 (Canvas 2D API 지원)
+  if (settings.letterSpacing && 'letterSpacing' in ctx) {
+    (ctx as any).letterSpacing = `${settings.letterSpacing}px`;
+  }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
 
