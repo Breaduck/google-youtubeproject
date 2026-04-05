@@ -30,6 +30,12 @@ const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   yPosition: 650,
   lockPosition: true,
   lockFont: true,
+  shadowEnabled: false,
+  shadowX: 2,
+  shadowY: 2,
+  shadowBlur: 4,
+  shadowSpread: 0,
+  shadowColor: '#000000',
 };
 
 interface SettingsStore {

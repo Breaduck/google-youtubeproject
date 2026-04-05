@@ -696,17 +696,15 @@ function SubtitleSettingsPanel({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
               </button>
-              {previewBgImage && (
-                <button
-                  onClick={() => setShowPreviewFullscreen(true)}
-                  className="p-2 bg-white/90 dark:bg-slate-800/90 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-all"
-                  title="전체화면"
-                >
-                  <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                  </svg>
-                </button>
-              )}
+              <button
+                onClick={() => setShowPreviewFullscreen(true)}
+                className="p-2 bg-white/90 dark:bg-slate-800/90 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-all"
+                title="전체화면"
+              >
+                <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -856,7 +854,7 @@ function SubtitleSettingsPanel({
       </div>
 
       {/* 전체화면 모달 */}
-      {showPreviewFullscreen && previewBgImage && (
+      {showPreviewFullscreen && (
         <div
           className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
           onClick={() => setShowPreviewFullscreen(false)}
@@ -870,15 +868,10 @@ function SubtitleSettingsPanel({
             </svg>
           </button>
           <div
-            className="relative max-w-[90vw] max-h-[90vh]"
-            style={{ aspectRatio: '16/9' }}
+            className="relative w-[80vw] max-w-[1280px]"
+            style={{ aspectRatio: '16/9', background: previewBgImage ? `url(${previewBgImage}) center/cover` : 'linear-gradient(135deg, #374151 0%, #1f2937 50%, #111827 100%)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={previewBgImage}
-              className="w-full h-full object-contain rounded-lg"
-              alt="미리보기"
-            />
             {/* 자막 오버레이 */}
             <div
               className="absolute left-0 right-0 flex justify-center pointer-events-none"
