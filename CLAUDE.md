@@ -44,14 +44,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - 분석은 별도로 하되, 원본 텍스트는 반드시 보존
 - **중도 포기 금지:** 작업 중 임의로 마무리하거나 생략하지 말 것. 끝까지 완수.
 
-## ⚙️ Current Configuration (Aggressive Quality Mode)
-- **Model:** LTX-2 Distilled + LoRA Rank 175 FP8 (1.79 GB)
-- **Steps:** 20 (2배 증가, 품질 우선)
-- **Guidance Scale:** 3.0 (프롬프트 강화)
-- **Image Conditioning:** 0.85 (움직임 자유도)
-- **Prompt:** "Cinematic motion, natural character movement, high dynamic range, subtle motion"
-- **Cost:** ~₩54 per 8초 video (84초 생성 시간)
-
 ## 📦 Repository & Backup
 - **Main Repo:** `https://github.com/Breaduck/google-youtubeproject`
 - **Modal API (브랜치2):** `https://hiyoonsh1--byteplus-proxy-web.modal.run`
@@ -99,10 +91,9 @@ def my_function():
 모든 코드 수정 후 배포(Push) 전, 다음 항목을 스스로 시뮬레이션한다.
 
 1. **보안 체크**: API 키/Secret이 하드코딩되지 않았는가?
-2. **VRAM 체크**: LTX-2 + LoRA(Rank 175) 조합이 A10G(24GB)에서 OOM을 일으키지 않는가?
-3. **인코딩 검증**: 윈도우 환경의 CP949 충돌 가능성이 있는가? (UTF-8 강제 적용 여부)
-4. **의존성 체크**: Modal 환경 구축에 필요한 라이브러리가 누락되지 않았는가?
-5. **브랜치 체크**: 올바른 서버 파일을 수정했는가? (브랜치별로 다름)
+2. **인코딩 검증**: 윈도우 환경의 CP949 충돌 가능성이 있는가? (UTF-8 강제 적용 여부)
+3. **의존성 체크**: Modal 환경 구축에 필요한 라이브러리가 누락되지 않았는가?
+4. **브랜치 체크**: 올바른 서버 파일을 수정했는가? (브랜치별로 다름)
 
 **Auto-Fix Execution:**
 검토 과정에서 오류 가능성이 발견되면, 사용자에게 보고하기 전 선제적으로 코드를 수정하여 '정상 작동' 상태를 만든 뒤 배포한다.

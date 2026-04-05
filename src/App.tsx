@@ -123,6 +123,8 @@ const EXP_TEST_PROJECT: StoryProject = {
       imageUrl: null,
       audioUrl: null,
       videoUrl: null,
+      uploadedVideoUrl: null,
+      activeMedia: 'image',
       status: 'idle',
       audioStatus: 'idle',
       videoStatus: 'idle',
@@ -802,6 +804,8 @@ const App: React.FC = () => {
         imageUrl,
         audioUrl: null,
         videoUrl: null,
+        uploadedVideoUrl: null,
+        activeMedia: 'image',
         status: 'done',
         audioStatus: 'idle',
         videoStatus: 'idle',
@@ -2591,6 +2595,8 @@ const App: React.FC = () => {
       imageUrl: null,
       audioUrl: null,
       videoUrl: null,
+      uploadedVideoUrl: null,
+      activeMedia: 'image',
       status: 'idle',
       audioStatus: 'idle',
       videoStatus: 'idle'
@@ -2647,9 +2653,11 @@ const App: React.FC = () => {
       id: crypto.randomUUID(),
       scriptSegment: combinedScript,
       imagePrompt: selectedImageScene.imagePrompt,
-      imageUrl: selectedImageScene.imageUrl, // 선택한 씬의 이미지 유지
+      imageUrl: selectedImageScene.imageUrl,
       audioUrl: null,
       videoUrl: null,
+      uploadedVideoUrl: selectedImageScene.uploadedVideoUrl,
+      activeMedia: selectedImageScene.activeMedia || 'image',
       status: selectedImageScene.imageUrl ? 'done' : 'idle',
       audioStatus: 'idle',
       videoStatus: 'idle',
@@ -3226,17 +3234,42 @@ const App: React.FC = () => {
                       {/* 상단 우측 버튼들 (선택 모드 시 숨김) */}
                       {!isSelectionMode && (
                       <div className="absolute top-3 right-3 z-30 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-all">
-                        <label className="w-7 h-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer shadow-sm">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        {/* 미디어 선택 버튼 (영상이 있을 때만) */}
+                        {scene.uploadedVideoUrl && (
+                          <div className="relative group/media">
+                            <button className={`w-7 h-7 backdrop-blur-sm rounded-lg flex items-center justify-center transition-all shadow-sm ${scene.activeMedia === 'video' ? 'bg-purple-500 text-white' : 'bg-white/90 dark:bg-slate-800/90 text-slate-500 dark:text-slate-400'}`}>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                            </button>
+                            <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl py-1 min-w-[100px] opacity-0 invisible group-hover/media:opacity-100 group-hover/media:visible transition-all z-50">
+                              <button onClick={() => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, activeMedia: 'image' } : s) })} className={`w-full px-3 py-2 text-left text-xs transition-all flex items-center gap-2 ${scene.activeMedia === 'image' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                이미지
+                              </button>
+                              <button onClick={() => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, activeMedia: 'video' } : s) })} className={`w-full px-3 py-2 text-left text-xs transition-all flex items-center gap-2 ${scene.activeMedia === 'video' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                영상
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {/* 이미지 업로드 */}
+                        <label className="w-7 h-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer shadow-sm" title="이미지 업로드">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                           <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imageUrl: ev.target?.result as string, status: 'done' } : s) }); }; reader.readAsDataURL(file); } }} />
                         </label>
-                        {scene.imageUrl ? (
+                        {/* 동영상 업로드 */}
+                        <label className="w-7 h-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all cursor-pointer shadow-sm" title="영상 업로드">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                          <input type="file" className="hidden" accept="video/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { if(scene.uploadedVideoUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.uploadedVideoUrl); const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, uploadedVideoUrl: url, activeMedia: 'video' } : s) }); } if(e.target) e.target.value = ''; }} />
+                        </label>
+                        {scene.imageUrl || scene.uploadedVideoUrl ? (
                           <div className="relative group/delete">
                             <button className="w-7 h-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-red-500 transition-all shadow-sm">
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                             <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl py-1 min-w-[140px] opacity-0 invisible group-hover/delete:opacity-100 group-hover/delete:visible transition-all z-50">
-                              <button onClick={() => deleteSceneImage(scene.id)} className="w-full px-3 py-2 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">이미지만 삭제</button>
+                              {scene.imageUrl && <button onClick={() => deleteSceneImage(scene.id)} className="w-full px-3 py-2 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">이미지만 삭제</button>}
+                              {scene.uploadedVideoUrl && <button onClick={() => { if(scene.uploadedVideoUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.uploadedVideoUrl); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, uploadedVideoUrl: null, activeMedia: 'image' } : s) }); }} className="w-full px-3 py-2 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">영상만 삭제</button>}
                               <button onClick={() => deleteScene(scene.id)} className="w-full px-3 py-2 text-left text-xs text-red-500 hover:bg-red-50 transition-all">씬 삭제</button>
                             </div>
                           </div>
@@ -3549,8 +3582,8 @@ const App: React.FC = () => {
 
       {/* 전체 미리보기 모달 */}
       {showPreviewModal && project && (() => {
-        const aiVideoCount = project.scenes.filter(s => s.videoUrl).length;
-        const zoomVideoCount = project.scenes.filter(s => s.imageUrl && !s.videoUrl).length;
+        const uploadedVideoCount = project.scenes.filter(s => s.activeMedia === 'video' && s.uploadedVideoUrl).length;
+        const zoomVideoCount = project.scenes.filter(s => s.activeMedia === 'image' && s.imageUrl).length;
         const successScenes = project.scenes.filter(s => s.videoUrl);
 
         return (
@@ -3558,7 +3591,7 @@ const App: React.FC = () => {
             <div className={`flex-shrink-0 p-4 border-b ${isDarkMode ? 'bg-gray-950 border-gray-800' : 'bg-white border-gray-200'}`} onClick={e => e.stopPropagation()}>
               <div className="max-w-7xl mx-auto flex items-center justify-between">
                 <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  영상 미리보기 <span className="text-indigo-400">(AI생성 영상 {aiVideoCount}개, 줌인 줌아웃 {zoomVideoCount}개)</span>
+                  영상 미리보기 <span className="text-indigo-400">(업로드 영상 {uploadedVideoCount}개, 줌인 줌아웃 {zoomVideoCount}개)</span>
                 </h2>
                 <div className="flex items-center gap-3">
                   <button
@@ -3600,7 +3633,7 @@ const App: React.FC = () => {
                       <div
                         key={scene.id}
                         className={`group relative aspect-video rounded-xl overflow-hidden transition-all ${
-                          scene.videoUrl || scene.imageUrl
+                          scene.uploadedVideoUrl || scene.imageUrl
                             ? isDarkMode
                               ? 'bg-gray-800 border border-gray-700 hover:border-indigo-500'
                               : 'bg-gray-100 border border-gray-200 hover:border-indigo-500'
@@ -3609,10 +3642,11 @@ const App: React.FC = () => {
                               : 'bg-gray-50 border-2 border-dashed border-gray-300'
                         }`}
                       >
-                        {scene.videoUrl ? (
+                        {scene.activeMedia === 'video' && scene.uploadedVideoUrl ? (
+                          /* 업로드된 영상 */
                           <>
                             <video
-                              src={scene.videoUrl}
+                              src={scene.uploadedVideoUrl}
                               className="w-full h-full object-cover"
                             />
                           {/* 호버 시 중앙 버튼 */}
@@ -3620,7 +3654,7 @@ const App: React.FC = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setFullscreenVideoUrl(scene.videoUrl!);
+                                setFullscreenVideoUrl(scene.uploadedVideoUrl!);
                               }}
                               className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
                               title="전체화면 재생"
@@ -3633,7 +3667,7 @@ const App: React.FC = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const a = document.createElement('a');
-                                a.href = scene.videoUrl!;
+                                a.href = scene.uploadedVideoUrl!;
                                 a.download = `scene-${idx + 1}.mp4`;
                                 a.click();
                               }}
@@ -3644,102 +3678,84 @@ const App: React.FC = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setVideoRegenerateSceneId(scene.id);
-                                setVideoRegeneratePrompt('');
-                              }}
-                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
-                              title="재생성"
-                            >
-                              <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                            </button>
-                          </div>
-                          {/* 우측 상단 업로드 버튼 */}
-                          <label
-                            className="absolute top-2 right-2 w-8 h-8 bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                            title="영상 업로드"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                            </svg>
-                            <input
-                              type="file"
-                              className="hidden"
-                              accept="video/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  if (scene.videoUrl?.startsWith('blob:')) {
-                                    URL.revokeObjectURL(scene.videoUrl);
-                                  }
-                                  const url = URL.createObjectURL(file);
+                            {/* 이미지로 전환 버튼 (이미지가 있을 때만) */}
+                            {scene.imageUrl && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   updateCurrentProject({
                                     scenes: project.scenes.map(s =>
-                                      s.id === scene.id
-                                        ? { ...s, videoUrl: url, videoType: 'manual' }
-                                        : s
+                                      s.id === scene.id ? { ...s, activeMedia: 'image' } : s
                                     )
                                   });
-                                }
-                                if (e.target) e.target.value = '';
-                              }}
-                            />
-                          </label>
+                                }}
+                                className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                                title="이미지로 전환"
+                              >
+                                <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
                           {/* 씬 번호 */}
                           <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
                             #{idx + 1}
                           </div>
+                          {/* 우측 상단 "업로드 영상" 라벨 */}
+                          <div className="absolute top-2 right-2 px-2 py-1 bg-purple-500/80 backdrop-blur-sm rounded text-white text-[10px] font-medium">
+                            업로드 영상
+                          </div>
                           </>
                         ) : scene.imageUrl ? (
-                          /* 이미지만 있는 경우 */
+                          /* 이미지 (줌인-줌아웃) */
                           <>
                             <img
                               src={scene.imageUrl}
                               className="w-full h-full object-cover"
                               alt={`씬 ${idx + 1}`}
                             />
-                            {/* 호버 시 업로드 버튼 */}
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <label className="cursor-pointer p-4 bg-white/90 hover:bg-white rounded-full transition-colors" title="영상 업로드">
-                                <svg className="w-8 h-8 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            {/* 호버 시 버튼들 */}
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedImage(scene.imageUrl);
+                                }}
+                                className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                                title="이미지 크게보기"
+                              >
+                                <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
                                 </svg>
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  accept="video/*"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      if (scene.videoUrl?.startsWith('blob:')) {
-                                        URL.revokeObjectURL(scene.videoUrl);
-                                      }
-                                      const url = URL.createObjectURL(file);
-                                      updateCurrentProject({
-                                        scenes: project.scenes.map(s =>
-                                          s.id === scene.id
-                                            ? { ...s, videoUrl: url, videoType: 'manual' }
-                                            : s
-                                        )
-                                      });
-                                    }
-                                    if (e.target) e.target.value = '';
+                              </button>
+                              {/* 영상으로 전환 버튼 (영상이 있을 때만) */}
+                              {scene.uploadedVideoUrl && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateCurrentProject({
+                                      scenes: project.scenes.map(s =>
+                                        s.id === scene.id ? { ...s, activeMedia: 'video' } : s
+                                      )
+                                    });
                                   }}
-                                />
-                              </label>
+                                  className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                                  title="영상으로 전환"
+                                >
+                                  <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
+                              )}
                             </div>
                             {/* 씬 번호 */}
                             <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
                               #{idx + 1}
                             </div>
-                            {/* 우측 상단 "줌인-줌아웃" 라벨 */}
+                            {/* 우측 상단 라벨 */}
                             <div className="absolute top-2 right-2 px-2 py-1 bg-white/20 backdrop-blur-sm rounded text-white text-[10px] font-medium">
-                              줌인-줌아웃
+                              {scene.uploadedVideoUrl ? '이미지 선택됨' : '줌인-줌아웃'}
                             </div>
                           </>
                         ) : (
@@ -3748,36 +3764,7 @@ const App: React.FC = () => {
                             <div className="w-full h-full flex items-center justify-center">
                               <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>미생성</p>
                             </div>
-                            {/* 호버 시 업로드 버튼 */}
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <label className="cursor-pointer p-4 bg-white/90 hover:bg-white rounded-full transition-colors" title="영상 업로드">
-                                <svg className="w-8 h-8 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                </svg>
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  accept="video/*"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      if (scene.videoUrl?.startsWith('blob:')) {
-                                        URL.revokeObjectURL(scene.videoUrl);
-                                      }
-                                      const url = URL.createObjectURL(file);
-                                      updateCurrentProject({
-                                        scenes: project.scenes.map(s =>
-                                          s.id === scene.id
-                                            ? { ...s, videoUrl: url, videoType: 'manual' }
-                                            : s
-                                        )
-                                      });
-                                    }
-                                    if (e.target) e.target.value = '';
-                                  }}
-                                />
-                              </label>
-                            </div>
+                            {/* 씬 번호 */}
                             <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
                               #{idx + 1}
                             </div>

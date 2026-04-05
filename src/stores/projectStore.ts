@@ -17,6 +17,8 @@ const EXP_TEST_PROJECT: StoryProject = {
       imageUrl: null,
       audioUrl: null,
       videoUrl: null,
+      uploadedVideoUrl: null,
+      activeMedia: 'image',
       status: 'idle',
       audioStatus: 'idle',
       videoStatus: 'idle',

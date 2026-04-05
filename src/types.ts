@@ -27,12 +27,14 @@ export interface Scene {
   imagePrompt: string;
   imageUrl: string | null;
   audioUrl: string | null;
-  videoUrl: string | null;  // LTX Video generated video
+  videoUrl: string | null;
+  uploadedVideoUrl: string | null;  // 사용자 업로드 영상
+  activeMedia: 'image' | 'video';   // 최종 영상에 사용할 미디어 타입
   status: 'idle' | 'loading' | 'done' | 'error';
   audioStatus: 'idle' | 'loading' | 'done' | 'error';
-  videoStatus: 'idle' | 'loading' | 'done' | 'error';  // Video generation status
+  videoStatus: 'idle' | 'loading' | 'done' | 'error';
   effect?: SceneEffect;
-  videoType?: 'ai' | 'zoom' | 'manual';  // 비디오 생성 방식
+  videoType?: 'ai' | 'zoom' | 'manual';
 }
 
 export interface StoryProject {

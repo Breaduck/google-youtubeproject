@@ -609,11 +609,13 @@ Return ONLY valid JSON array, no markdown.`;
 
       return {
         id: crypto.randomUUID(),
-        scriptSegment: scriptScenes[index].scriptSegment, // 클라이언트에서 분할한 원본 사용
+        scriptSegment: scriptScenes[index].scriptSegment,
         imagePrompt: stripCameraTerms(aiScene.imagePrompt || 'Scene depicting the script'),
         imageUrl: null,
         audioUrl: null,
         videoUrl: null,
+        uploadedVideoUrl: null,
+        activeMedia: 'image' as const,
         status: 'idle' as const,
         audioStatus: 'idle' as const,
         videoStatus: 'idle' as const,
@@ -766,6 +768,8 @@ Return ONLY valid JSON array, no markdown.`;
               imageUrl: null,
               audioUrl: null,
               videoUrl: null,
+              uploadedVideoUrl: null,
+              activeMedia: 'image' as const,
               status: 'idle' as const,
               audioStatus: 'idle' as const,
               videoStatus: 'idle' as const,
