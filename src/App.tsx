@@ -4905,146 +4905,16 @@ const App: React.FC = () => {
                 </div>
                 {expandedSetting === 'subtitle' && (
                   <div className="px-4 pt-4 pb-4 space-y-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
-                    {/* 템플릿 선택 - 상단 */}
-                    <div className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-                      <button
-                        onClick={() => setShowSubtitleEditor(true)}
-                        className="w-full px-4 py-2.5 text-sm font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all"
-                      >
-                        템플릿 선택하기
-                      </button>
-                    </div>
-
-                    {/* 위치 설정 - 컴팩트 */}
-                    <div className="space-y-2 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">위치</label>
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => setSubtitleSettings({...subtitleSettings, position: 'top', yPosition: 80})}
-                          className={`flex-1 px-2 py-1.5 text-xs rounded-md border transition-all ${subtitleSettings.position === 'top' ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
-                        >
-                          상단
-                        </button>
-                        <button
-                          onClick={() => setSubtitleSettings({...subtitleSettings, position: 'center', yPosition: 400})}
-                          className={`flex-1 px-2 py-1.5 text-xs rounded-md border transition-all ${subtitleSettings.position === 'center' ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
-                        >
-                          중앙
-                        </button>
-                        <button
-                          onClick={() => setSubtitleSettings({...subtitleSettings, position: 'bottom', yPosition: 650})}
-                          className={`flex-1 px-2 py-1.5 text-xs rounded-md border transition-all ${subtitleSettings.position === 'bottom' ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
-                        >
-                          하단
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between gap-3 mt-2">
-                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Y축 미세 조정</label>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            min="40"
-                            max="720"
-                            value={subtitleSettings.yPosition}
-                            onChange={(e) => setSubtitleSettings({...subtitleSettings, yPosition: Math.max(40, Math.min(720, parseInt(e.target.value) || 650))})}
-                            className="w-24 px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded text-center dark:bg-slate-700 dark:text-slate-100"
-                          />
-                          <div className="flex flex-col gap-0.5">
-                            <button
-                              onClick={() => setSubtitleSettings({...subtitleSettings, yPosition: Math.max(40, subtitleSettings.yPosition - 1)})}
-                              className="w-5 h-3 flex items-center justify-center bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-700 rounded-sm text-slate-600 dark:text-slate-400 text-xs"
-                            >
-                              ▲
-                            </button>
-                            <button
-                              onClick={() => setSubtitleSettings({...subtitleSettings, yPosition: Math.min(720, subtitleSettings.yPosition + 1)})}
-                              className="w-5 h-3 flex items-center justify-center bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-700 rounded-sm text-slate-600 dark:text-slate-400 text-xs"
-                            >
-                              ▼
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 색상 설정 - 애플 스타일 */}
-                    <div className="space-y-3 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-                      <h3 className="text-xs font-medium text-slate-600 dark:text-slate-400">색상</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-3">
-                          <label className="text-sm text-slate-700 dark:text-slate-300 min-w-[80px]">자막</label>
-                          <div className="flex items-center gap-2 flex-1">
-                            <input
-                              type="color"
-                              value={subtitleSettings.textColor}
-                              onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
-                              className="w-10 h-8 rounded border-2 border-slate-300 dark:border-slate-600 cursor-pointer appearance-none p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded"
-                              style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-                            />
-                            <input
-                              type="text"
-                              value={subtitleSettings.textColor}
-                              onChange={(e) => setSubtitleSettings({...subtitleSettings, textColor: e.target.value})}
-                              className="flex-1 px-2 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded text-center font-mono bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <label className="text-sm text-slate-700 dark:text-slate-300 min-w-[80px]">배경</label>
-                          <div className="flex items-center gap-2 flex-1">
-                            <input
-                              type="color"
-                              value={subtitleSettings.backgroundColor || '#000000'}
-                              onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
-                              className="w-10 h-8 rounded border-2 border-slate-300 dark:border-slate-600 cursor-pointer appearance-none p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded"
-                              style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-                            />
-                            <input
-                              type="text"
-                              value={subtitleSettings.backgroundColor || '#000000'}
-                              onChange={(e) => setSubtitleSettings({...subtitleSettings, backgroundColor: e.target.value})}
-                              className="flex-1 px-2 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded text-center font-mono bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 미리보기 Canvas */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">미리보기</label>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">클릭하여 Y축 위치 조정</span>
-                      </div>
-                      <div className="relative border-2 border-slate-300 rounded-lg overflow-hidden bg-slate-900 group">
-                        <canvas
-                          id="subtitle-preview-canvas"
-                          width="1280"
-                          height="720"
-                          className="w-full cursor-crosshair"
-                          onClick={(e) => {
-                            const canvas = e.currentTarget;
-                            const rect = canvas.getBoundingClientRect();
-                            const scaleY = 720 / rect.height;
-                            const clickY = (e.clientY - rect.top) * scaleY;
-                            setSubtitleSettings({...subtitleSettings, yPosition: Math.round(clickY)});
-                          }}
-                        />
-                        {/* 전체화면 버튼 */}
-                        <button
-                          onClick={() => {
-                            const canvas = document.getElementById('subtitle-preview-canvas') as HTMLCanvasElement;
-                            if (canvas.requestFullscreen) canvas.requestFullscreen();
-                          }}
-                          className="absolute top-2 right-2 p-2 bg-slate-900/80 hover:bg-slate-800 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="전체화면"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
+                    {/* 템플릿 선택 버튼 */}
+                    <button
+                      onClick={() => setShowSubtitleEditor(true)}
+                      className="w-full px-4 py-3 text-sm font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z" />
+                      </svg>
+                      자막 스타일 설정
+                    </button>
                   </div>
                 )}
               </div>

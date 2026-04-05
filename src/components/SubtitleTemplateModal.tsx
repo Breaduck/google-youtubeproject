@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { SubtitleSettings } from '../types';
+import { useSettingsStore, SavedSubtitleTemplate } from '../stores/settingsStore';
 
 interface SubtitleTemplateModalProps {
   current: SubtitleSettings;
@@ -215,6 +216,17 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   const [googleFontUrl, setGoogleFontUrl] = useState('');
   const [tempPreviewImage, setTempPreviewImage] = useState<string | null>(null);
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+
+  // Store 연결
+  const {
+    savedSubtitleTemplates,
+    addSubtitleTemplate,
+    deleteSubtitleTemplate,
+    favoriteTemplateIds,
+    toggleFavoriteTemplate,
+  } = useSettingsStore();
 
   useEffect(() => {
     loadFonts().then((fonts) => {
@@ -222,6 +234,40 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
       fonts.forEach(registerFont);
     });
   }, []);
+
+  // 현재 설정 저장
+  const handleSaveTemplate = () => {
+    if (!newTemplateName.trim()) {
+      alert('템플릿 이름을 입력해주세요.');
+      return;
+    }
+    if (savedSubtitleTemplates.length >= 10) {
+      alert('나만의 템플릿은 최대 10개까지 저장 가능합니다.');
+      return;
+    }
+    const newTemplate: SavedSubtitleTemplate = {
+      id: `custom-${Date.now()}`,
+      name: newTemplateName.trim(),
+      settings: {
+        fontSize: selected.fontSize,
+        fontFamily: selected.fontFamily,
+        fontWeight: selected.fontWeight,
+        textColor: selected.textColor,
+        backgroundColor: selected.backgroundColor,
+        bgOpacity: selected.bgOpacity,
+        bgPadding: selected.bgPadding,
+        bgPaddingX: selected.bgPaddingX,
+        bgPaddingY: selected.bgPaddingY,
+        bgRadius: selected.bgRadius,
+        yPosition: selected.yPosition,
+        maxLineChars: selected.maxLineChars,
+      },
+      createdAt: Date.now(),
+    };
+    addSubtitleTemplate(newTemplate);
+    setNewTemplateName('');
+    setShowSaveModal(false);
+  };
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
     const baseSettings: SubtitleSettings = {
@@ -279,21 +325,50 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   };
 
   const allFonts = [...DEFAULT_FONTS, ...customFonts.map(f => f.name)];
-  const categories = ['전체', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
-  const filteredTemplates = category === '전체' ? TEMPLATES : TEMPLATES.filter(t => t.category === category);
+
+  // 즐겨찾기 템플릿 (기본 + 나만의)
+  const favoriteTemplates = [
+    ...TEMPLATES.filter(t => favoriteTemplateIds.includes(t.id)),
+    ...savedSubtitleTemplates.filter(t => favoriteTemplateIds.includes(t.id)).map(t => ({
+      id: t.id,
+      name: t.name,
+      category: '나만의',
+      settings: t.settings
+    }))
+  ];
+
+  // 나만의 템플릿을 TEMPLATES 형식으로 변환
+  const myTemplates = savedSubtitleTemplates.map(t => ({
+    id: t.id,
+    name: t.name,
+    category: '나만의',
+    settings: t.settings
+  }));
+
+  const categories = ['전체', '즐겨찾기', '나만의', ...Array.from(new Set(TEMPLATES.map(t => t.category)))];
+
+  const getFilteredTemplates = () => {
+    if (category === '전체') return [...myTemplates, ...TEMPLATES];
+    if (category === '즐겨찾기') return favoriteTemplates;
+    if (category === '나만의') return myTemplates;
+    return TEMPLATES.filter(t => t.category === category);
+  };
+  const filteredTemplates = getFilteredTemplates();
 
   // ========== 템플릿 카드 렌더링 ==========
   const renderTemplateCard = (tmpl: typeof TEMPLATES[0]) => {
     const s = tmpl.settings;
     const hasBg = !!s.backgroundColor;
     const textShadow = getTextShadow(s.textColor || '#FFFFFF', hasBg);
+    const isFavorite = favoriteTemplateIds.includes(tmpl.id);
+    const isCustom = tmpl.id.startsWith('custom-');
 
     return (
-      <div key={tmpl.id} className="flex flex-col gap-1">
+      <div key={tmpl.id} className="flex flex-col gap-1 relative group/card">
         {/* 카드: 가로로 긴 직사각형 (자막 모양) */}
         <button
           onClick={() => applyTemplate(tmpl)}
-          className="w-full h-14 rounded-lg bg-gray-950 flex items-center justify-center hover:ring-2 hover:ring-blue-500 transition-all"
+          className="w-full h-14 rounded-lg bg-gray-950 flex items-center justify-center hover:ring-2 hover:ring-blue-500 transition-all relative"
         >
           {/* 샘플 텍스트에 실제 스타일 적용 */}
           <span
@@ -302,20 +377,41 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               fontSize: '15px',
               fontWeight: 'bold',
               color: s.textColor,
-              // 배경 박스가 있으면 span에 적용
               backgroundColor: hasBg ? s.backgroundColor : undefined,
               padding: hasBg ? '8px 14px' : undefined,
               borderRadius: hasBg ? '4px' : undefined,
               opacity: hasBg ? (s.bgOpacity || 0.85) : 1,
-              // 그림자
               textShadow: textShadow,
             }}
           >
-            가나다라 ABC 123
+            가나다라 ABC
           </span>
+          {/* 즐겨찾기/삭제 버튼 */}
+          <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity">
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleFavoriteTemplate(tmpl.id); }}
+              className={`p-1 rounded ${isFavorite ? 'text-yellow-400' : 'text-gray-400 hover:text-yellow-400'}`}
+              title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+            >
+              <svg className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+            </button>
+            {isCustom && (
+              <button
+                onClick={(e) => { e.stopPropagation(); if (confirm(`"${tmpl.name}" 삭제?`)) deleteSubtitleTemplate(tmpl.id); }}
+                className="p-1 rounded text-gray-400 hover:text-red-400"
+                title="삭제"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
+          </div>
         </button>
         {/* 템플릿 이름 */}
-        <p className="text-xs text-gray-500 text-center">{tmpl.name}</p>
+        <p className="text-xs text-slate-500 dark:text-gray-500 text-center">{tmpl.name}</p>
       </div>
     );
   };
@@ -327,6 +423,12 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-gray-800">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">자막 스타일</h2>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowSaveModal(true)}
+              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium"
+            >
+              현재 설정 저장
+            </button>
             <button
               onClick={() => setShowFontModal(true)}
               className="px-3 py-1.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 rounded-lg text-sm"
@@ -542,7 +644,6 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                   onChange={(e) => setSelected({ ...selected, maxLineChars: Number(e.target.value) })}
                   className="w-full accent-blue-500"
                 />
-                <p className="text-[10px] text-slate-400 dark:text-gray-600 mt-1">자막이 무조건 1줄로 표시됩니다</p>
               </div>
             </div>
 
@@ -575,9 +676,31 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
 
             {/* 템플릿 그리드: 2열 */}
             <div className="flex-1 overflow-y-auto p-4 pt-2">
-              <div className="grid grid-cols-2 gap-3">
-                {filteredTemplates.map(renderTemplateCard)}
-              </div>
+              {filteredTemplates.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                  {category === '즐겨찾기' ? (
+                    <>
+                      <svg className="w-12 h-12 text-slate-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                      <p className="text-slate-500 dark:text-gray-400 text-sm">즐겨찾기한 템플릿이 없습니다.</p>
+                      <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">템플릿 카드의 별 아이콘을 클릭하세요.</p>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-12 h-12 text-slate-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z" />
+                      </svg>
+                      <p className="text-slate-500 dark:text-gray-400 text-sm">저장된 템플릿이 없습니다.</p>
+                      <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">"현재 설정 저장" 버튼을 눌러 추가하세요.</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {filteredTemplates.map(renderTemplateCard)}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -680,6 +803,39 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
             )}
 
             <button onClick={() => setShowFontModal(false)} className="w-full py-2 bg-slate-200 dark:bg-gray-800 rounded-lg text-slate-700 dark:text-gray-300">닫기</button>
+          </div>
+        </div>
+      )}
+
+      {/* 저장 모달 */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">나만의 템플릿 저장</h3>
+            <p className="text-sm text-slate-500 dark:text-gray-400">현재 자막 설정을 템플릿으로 저장합니다. ({savedSubtitleTemplates.length}/10)</p>
+            <input
+              type="text"
+              placeholder="템플릿 이름"
+              value={newTemplateName}
+              onChange={(e) => setNewTemplateName(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-100 dark:bg-gray-800 rounded-lg text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowSaveModal(false); setNewTemplateName(''); }}
+                className="flex-1 py-2.5 bg-slate-200 dark:bg-gray-800 rounded-lg text-slate-700 dark:text-gray-300"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                disabled={!newTemplateName.trim() || savedSubtitleTemplates.length >= 10}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium"
+              >
+                저장
+              </button>
+            </div>
           </div>
         </div>
       )}

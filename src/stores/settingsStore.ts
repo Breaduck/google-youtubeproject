@@ -2,6 +2,14 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { SubtitleSettings, ElevenLabsSettings } from '../types';
 
+// 저장된 자막 템플릿 타입
+export interface SavedSubtitleTemplate {
+  id: string;
+  name: string;
+  settings: Partial<SubtitleSettings>;
+  createdAt: number;
+}
+
 const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   fontSize: 44,
   fontFamily: 'Pretendard',
@@ -130,6 +138,13 @@ interface SettingsStore {
   // Subtitle Settings
   subtitleSettings: SubtitleSettings;
   setSubtitleSettings: (settings: SubtitleSettings) => void;
+
+  // Saved Subtitle Templates
+  savedSubtitleTemplates: SavedSubtitleTemplate[];
+  addSubtitleTemplate: (template: SavedSubtitleTemplate) => void;
+  deleteSubtitleTemplate: (id: string) => void;
+  favoriteTemplateIds: string[];
+  toggleFavoriteTemplate: (id: string) => void;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -244,6 +259,22 @@ export const useSettingsStore = create<SettingsStore>()(
       // Subtitle Settings
       subtitleSettings: DEFAULT_SUBTITLE_SETTINGS,
       setSubtitleSettings: (settings) => set({ subtitleSettings: settings }),
+
+      // Saved Subtitle Templates
+      savedSubtitleTemplates: [],
+      addSubtitleTemplate: (template) => set((state) => ({
+        savedSubtitleTemplates: [...state.savedSubtitleTemplates, template]
+      })),
+      deleteSubtitleTemplate: (id) => set((state) => ({
+        savedSubtitleTemplates: state.savedSubtitleTemplates.filter(t => t.id !== id),
+        favoriteTemplateIds: state.favoriteTemplateIds.filter(fid => fid !== id)
+      })),
+      favoriteTemplateIds: [],
+      toggleFavoriteTemplate: (id) => set((state) => ({
+        favoriteTemplateIds: state.favoriteTemplateIds.includes(id)
+          ? state.favoriteTemplateIds.filter(fid => fid !== id)
+          : [...state.favoriteTemplateIds, id]
+      })),
     }),
     {
       name: 'app-settings-storage',
@@ -277,6 +308,8 @@ export const useSettingsStore = create<SettingsStore>()(
         azureVoice: state.azureVoice,
         elSettings: state.elSettings,
         subtitleSettings: state.subtitleSettings,
+        savedSubtitleTemplates: state.savedSubtitleTemplates,
+        favoriteTemplateIds: state.favoriteTemplateIds,
       }),
     }
   )
