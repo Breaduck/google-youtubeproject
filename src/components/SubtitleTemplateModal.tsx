@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { SubtitleSettings } from '../types';
 import { useSettingsStore, SavedSubtitleTemplate } from '../stores/settingsStore';
 
@@ -219,7 +219,21 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
   const settingsPanelRef = useRef<HTMLDivElement>(null);
+  const scrollTopRef = useRef(0);
   const [sectionOpen, setSectionOpen] = useState({ font: true, bg: true, border: false, line: true, position: true });
+
+  // 스크롤 위치 복원
+  useLayoutEffect(() => {
+    if (settingsPanelRef.current && scrollTopRef.current > 0) {
+      settingsPanelRef.current.scrollTop = scrollTopRef.current;
+    }
+  });
+
+  // 스크롤 위치 저장하는 setSelected 래퍼
+  const updateSelected = (newSettings: SubtitleSettings) => {
+    scrollTopRef.current = settingsPanelRef.current?.scrollTop || 0;
+    setSelected(newSettings);
+  };
 
   // Store 연결
   const {
@@ -534,7 +548,9 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                 );
                 const ColorInput = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
                   <div className="flex items-center gap-2 h-8">
-                    <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="w-6 h-6 rounded-full cursor-pointer border border-gray-300 dark:border-gray-600" style={{ padding: 0 }} />
+                    <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 overflow-hidden flex-shrink-0 relative" style={{ backgroundColor: value }}>
+                      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 w-full h-full cursor-pointer opacity-0" />
+                    </div>
                     <input type="text" value={value.toUpperCase()} onChange={(e) => onChange(e.target.value)} className="flex-1 h-full px-2 text-xs text-center font-mono border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
                   </div>
                 );
@@ -567,24 +583,24 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">폰트</label>
-                          <select value={selected.fontFamily} onChange={(e) => setSelected({ ...selected, fontFamily: e.target.value })} className="w-full h-8 px-2 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-indigo-500" style={{ fontFamily: selected.fontFamily }}>
+                          <select value={selected.fontFamily} onChange={(e) => updateSelected({ ...selected, fontFamily: e.target.value })} className="w-full h-8 px-2 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-indigo-500" style={{ fontFamily: selected.fontFamily }}>
                             {allFonts.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
                           </select>
                         </div>
                         <div className="w-[110px]">
                           <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">굵기</label>
-                          <select value={selected.fontWeight || 700} onChange={(e) => setSelected({ ...selected, fontWeight: Number(e.target.value) })} className="w-full h-8 px-2 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-indigo-500">
+                          <select value={selected.fontWeight || 700} onChange={(e) => updateSelected({ ...selected, fontWeight: Number(e.target.value) })} className="w-full h-8 px-2 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-indigo-500">
                             {FONT_WEIGHTS.map((fw) => <option key={fw.value} value={fw.value}>{fw.label} {selected.fontWeight === fw.value ? '✓' : ''}</option>)}
                           </select>
                         </div>
                       </div>
                       <div>
                         <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">크기 (px)</label>
-                        <NumberInput value={selected.fontSize} onChange={(v) => setSelected({ ...selected, fontSize: v })} min={16} max={120} />
+                        <NumberInput value={selected.fontSize} onChange={(v) => updateSelected({ ...selected, fontSize: v })} min={16} max={120} />
                       </div>
                       <div>
                         <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">글자 색상</label>
-                        <ColorInput value={selected.textColor} onChange={(v) => setSelected({ ...selected, textColor: v })} />
+                        <ColorInput value={selected.textColor} onChange={(v) => updateSelected({ ...selected, textColor: v })} />
                       </div>
                     </Section>
 
@@ -592,7 +608,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                     <Section sectionKey="bg" title="자막 배경">
                       <div className="flex items-center justify-between">
                         <label className="text-sm text-gray-500 dark:text-gray-400">배경 사용</label>
-                        <button onClick={() => setSelected({ ...selected, backgroundColor: selected.backgroundColor ? undefined : '#000000' })} className={`w-8 h-4 rounded-full transition-colors ${selected.backgroundColor ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                        <button onClick={() => updateSelected({ ...selected, backgroundColor: selected.backgroundColor ? undefined : '#000000' })} className={`w-8 h-4 rounded-full transition-colors ${selected.backgroundColor ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
                           <div className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${selected.backgroundColor ? 'translate-x-4' : 'translate-x-0.5'}`} />
                         </button>
                       </div>
@@ -600,20 +616,20 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                         <>
                           <div>
                             <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">배경 색상</label>
-                            <ColorInput value={selected.backgroundColor} onChange={(v) => setSelected({ ...selected, backgroundColor: v })} />
+                            <ColorInput value={selected.backgroundColor} onChange={(v) => updateSelected({ ...selected, backgroundColor: v })} />
                           </div>
                           <div>
                             <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">투명도 (%)</label>
-                            <NumberInput value={Math.round((selected.bgOpacity || 0.8) * 100)} onChange={(v) => setSelected({ ...selected, bgOpacity: v / 100 })} min={30} max={100} />
+                            <NumberInput value={Math.round((selected.bgOpacity || 0.8) * 100)} onChange={(v) => updateSelected({ ...selected, bgOpacity: v / 100 })} min={30} max={100} />
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
                               <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">가로 패딩 (px)</label>
-                              <NumberInput value={selected.bgPaddingX ?? selected.bgPadding ?? 12} onChange={(v) => setSelected({ ...selected, bgPaddingX: v })} min={0} max={60} />
+                              <NumberInput value={selected.bgPaddingX ?? selected.bgPadding ?? 12} onChange={(v) => updateSelected({ ...selected, bgPaddingX: v })} min={0} max={60} />
                             </div>
                             <div>
                               <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">세로 패딩 (px)</label>
-                              <NumberInput value={selected.bgPaddingY ?? selected.bgPadding ?? 12} onChange={(v) => setSelected({ ...selected, bgPaddingY: v })} min={0} max={40} />
+                              <NumberInput value={selected.bgPaddingY ?? selected.bgPadding ?? 12} onChange={(v) => updateSelected({ ...selected, bgPaddingY: v })} min={0} max={40} />
                             </div>
                           </div>
                         </>
@@ -624,16 +640,16 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                     <Section sectionKey="border" title="모서리">
                       <div>
                         <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">둥글기 (px)</label>
-                        <NumberInput value={selected.bgRadius ?? 8} onChange={(v) => setSelected({ ...selected, bgRadius: v })} min={0} max={50} />
+                        <NumberInput value={selected.bgRadius ?? 8} onChange={(v) => updateSelected({ ...selected, bgRadius: v })} min={0} max={50} />
                       </div>
                       <div>
                         <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">외곽선 두께 (px)</label>
-                        <NumberInput value={selected.strokeWidth || 0} onChange={(v) => setSelected({ ...selected, strokeWidth: v })} min={0} max={10} />
+                        <NumberInput value={selected.strokeWidth || 0} onChange={(v) => updateSelected({ ...selected, strokeWidth: v })} min={0} max={10} />
                       </div>
                       {(selected.strokeWidth || 0) > 0 && (
                         <div>
                           <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">외곽선 색상</label>
-                          <ColorInput value={selected.strokeColor || '#000000'} onChange={(v) => setSelected({ ...selected, strokeColor: v })} />
+                          <ColorInput value={selected.strokeColor || '#000000'} onChange={(v) => updateSelected({ ...selected, strokeColor: v })} />
                         </div>
                       )}
                     </Section>
@@ -642,7 +658,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                     <Section sectionKey="line" title="자막 줄 설정">
                       <div>
                         <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">한 줄 글자수</label>
-                        <NumberInput value={selected.maxLineChars ?? 15} onChange={(v) => setSelected({ ...selected, maxLineChars: v })} min={5} max={30} />
+                        <NumberInput value={selected.maxLineChars ?? 15} onChange={(v) => updateSelected({ ...selected, maxLineChars: v })} min={5} max={30} />
                       </div>
                     </Section>
 
@@ -650,7 +666,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                     <Section sectionKey="position" title="위치">
                       <div>
                         <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">Y 위치 (px)</label>
-                        <NumberInput value={selected.yPosition || 650} onChange={(v) => setSelected({ ...selected, yPosition: v })} min={50} max={700} />
+                        <NumberInput value={selected.yPosition || 650} onChange={(v) => updateSelected({ ...selected, yPosition: v })} min={50} max={700} />
                       </div>
                     </Section>
                   </>
