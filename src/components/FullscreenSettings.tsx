@@ -725,13 +725,17 @@ function SubtitleSettingsPanel({
               <select
                 value={settings.fontWeight || 700}
                 onChange={(e) => onChange({ ...settings, fontWeight: parseInt(e.target.value) })}
-                className="w-24 px-2 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
+                className="w-[110px] px-2 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm"
               >
+                <option value="100">Thin</option>
+                <option value="200">ExtraLight</option>
+                <option value="300">Light</option>
                 <option value="400">Regular</option>
                 <option value="500">Medium</option>
-                <option value="600">Semi Bold</option>
+                <option value="600">SemiBold</option>
                 <option value="700">Bold</option>
-                <option value="800">Extra Bold</option>
+                <option value="800">ExtraBold</option>
+                <option value="900">Black</option>
               </select>
             </div>
 

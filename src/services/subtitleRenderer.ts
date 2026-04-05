@@ -94,15 +94,8 @@ export async function renderSubtitleToCanvas(
   lines.forEach((line, i) => {
     const y = textY - totalHeight + (i + 1) * lineHeight;
 
-    // 사용자 정의 그림자
-    if (settings.shadowEnabled) {
-      ctx.shadowColor = settings.shadowColor || '#000000';
-      ctx.shadowBlur = settings.shadowBlur ?? 4;
-      ctx.shadowOffsetX = settings.shadowX ?? 2;
-      ctx.shadowOffsetY = settings.shadowY ?? 2;
-    }
     // 네온/골드/실버 그림자 효과
-    else if (isNeon) {
+    if (isNeon) {
       ctx.shadowColor = textColor;
       ctx.shadowBlur = 20;
       ctx.shadowOffsetX = 0;

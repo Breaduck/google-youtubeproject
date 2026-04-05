@@ -109,11 +109,4 @@ export interface SubtitleSettings {
 
   maxLineChars?: number; // 한 줄 최대 글자수 (기본 15)
 
-  // Shadow
-  shadowEnabled?: boolean;
-  shadowX?: number;
-  shadowY?: number;
-  shadowBlur?: number;
-  shadowSpread?: number;
-  shadowColor?: string;
 }
