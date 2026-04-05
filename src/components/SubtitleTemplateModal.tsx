@@ -219,6 +219,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
   const settingsPanelRef = useRef<HTMLDivElement>(null);
+  const [sectionOpen, setSectionOpen] = useState({ font: true, bg: true, border: false, line: true, position: true });
 
   // Store 연결
   const {
@@ -524,35 +525,30 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
             <div ref={settingsPanelRef} className="mt-3 flex-1 overflow-y-auto bg-white dark:bg-gray-900">
               {/* 숫자 입력 컴포넌트 */}
               {(() => {
-                const NumberInput = ({ value, onChange, min = 0, max = 100, step = 1, unit = '' }: { value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; unit?: string }) => (
+                const NumberInput = ({ value, onChange, min = 0, max = 100, step = 1 }: { value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number }) => (
                   <div className="flex items-center h-8 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
-                    <button onClick={() => onChange(Math.max(min, value - step))} className="w-7 h-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium">−</button>
-                    <span className="flex-1 text-center text-xs text-gray-700 dark:text-gray-300 min-w-[40px]">{value}{unit}</span>
-                    <button onClick={() => onChange(Math.min(max, value + step))} className="w-7 h-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium">+</button>
+                    <button type="button" onClick={() => onChange(Math.max(min, value - step))} className="w-7 h-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium">−</button>
+                    <input type="number" value={value} onChange={(e) => { const v = Number(e.target.value); if (!isNaN(v)) onChange(Math.min(max, Math.max(min, v))); }} className="flex-1 text-center text-xs text-gray-700 dark:text-gray-300 min-w-[40px] bg-transparent border-none focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                    <button type="button" onClick={() => onChange(Math.min(max, value + step))} className="w-7 h-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium">+</button>
                   </div>
                 );
                 const ColorInput = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
                   <div className="flex items-center gap-2 h-8">
-                    <div className="w-5 h-5 rounded-full border border-gray-300 dark:border-gray-600 overflow-hidden flex-shrink-0" style={{ backgroundColor: value }}>
-                      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="w-8 h-8 -ml-1.5 -mt-1.5 cursor-pointer opacity-0" />
-                    </div>
+                    <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="w-6 h-6 rounded-full cursor-pointer border border-gray-300 dark:border-gray-600" style={{ padding: 0 }} />
                     <input type="text" value={value.toUpperCase()} onChange={(e) => onChange(e.target.value)} className="flex-1 h-full px-2 text-xs text-center font-mono border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
                   </div>
                 );
-                const Section = ({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) => {
-                  const [open, setOpen] = useState(defaultOpen);
-                  return (
-                    <div className="border-b border-gray-100 dark:border-gray-800">
-                      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</span>
-                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                      </button>
-                      <div className={`overflow-hidden transition-all duration-200 ${open ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                        <div className="px-4 pb-3 space-y-3">{children}</div>
-                      </div>
+                const Section = ({ sectionKey, title, children }: { sectionKey: keyof typeof sectionOpen; title: string; children: React.ReactNode }) => (
+                  <div className="border-b border-gray-100 dark:border-gray-800">
+                    <button type="button" onClick={() => setSectionOpen(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }))} className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</span>
+                      <svg className={`w-4 h-4 text-gray-400 transition-transform ${sectionOpen[sectionKey] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-200 ${sectionOpen[sectionKey] ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <div className="px-4 pb-3 space-y-3">{children}</div>
                     </div>
-                  );
-                };
+                  </div>
+                );
                 const FONT_WEIGHTS = [
                   { label: 'Thin', value: 100 },
                   { label: 'ExtraLight', value: 200 },
@@ -567,7 +563,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                 return (
                   <>
                     {/* 1. 글씨체 */}
-                    <Section title="글씨체" defaultOpen={true}>
+                    <Section sectionKey="font" title="글씨체">
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">폰트</label>
@@ -593,7 +589,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                     </Section>
 
                     {/* 2. 자막 배경 */}
-                    <Section title="자막 배경" defaultOpen={true}>
+                    <Section sectionKey="bg" title="자막 배경">
                       <div className="flex items-center justify-between">
                         <label className="text-sm text-gray-500 dark:text-gray-400">배경 사용</label>
                         <button onClick={() => setSelected({ ...selected, backgroundColor: selected.backgroundColor ? undefined : '#000000' })} className={`w-8 h-4 rounded-full transition-colors ${selected.backgroundColor ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
@@ -625,7 +621,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                     </Section>
 
                     {/* 3. 모서리 */}
-                    <Section title="모서리" defaultOpen={false}>
+                    <Section sectionKey="border" title="모서리">
                       <div>
                         <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">둥글기 (px)</label>
                         <NumberInput value={selected.bgRadius ?? 8} onChange={(v) => setSelected({ ...selected, bgRadius: v })} min={0} max={50} />
@@ -643,16 +639,15 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                     </Section>
 
                     {/* 4. 자막 줄 설정 */}
-                    <Section title="자막 줄 설정" defaultOpen={true}>
+                    <Section sectionKey="line" title="자막 줄 설정">
                       <div>
                         <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">한 줄 글자수</label>
                         <NumberInput value={selected.maxLineChars ?? 15} onChange={(v) => setSelected({ ...selected, maxLineChars: v })} min={5} max={30} />
                       </div>
-                      <p className="text-sm text-indigo-500 dark:text-indigo-400">자막이 무조건 1줄로 표시됩니다</p>
                     </Section>
 
                     {/* 5. 위치 */}
-                    <Section title="위치" defaultOpen={true}>
+                    <Section sectionKey="position" title="위치">
                       <div>
                         <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">Y 위치 (px)</label>
                         <NumberInput value={selected.yPosition || 650} onChange={(v) => setSelected({ ...selected, yPosition: v })} min={50} max={700} />
