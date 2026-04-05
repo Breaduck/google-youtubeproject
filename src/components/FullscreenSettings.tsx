@@ -257,7 +257,7 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
 
       {/* 우측 콘텐츠 */}
       <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
-        <div className="max-w-6xl mx-auto p-6">
+        <div className="max-w-4xl mx-auto p-6">
           {activeTab === 'gemini' && (
             <GeminiSettings
               apiKey={geminiApiKey}

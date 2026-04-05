@@ -15,9 +15,11 @@ interface CustomFont {
 }
 
 const DEFAULT_FONTS = [
-  'Noto Sans KR', 'Noto Serif KR', 'Black Han Sans', 'Jua', 'Do Hyeon',
-  'Gothic A1', 'Nanum Gothic', 'Nanum Myeongjo', 'Sunflower', 'Gaegu',
-  'Hi Melody', 'Poor Story', 'Single Day', 'Stylish', 'Gamja Flower',
+  'Pretendard', 'Noto Sans KR', 'Noto Serif KR', 'IBM Plex Sans KR',
+  'Black Han Sans', 'Jua', 'Do Hyeon', 'Gothic A1',
+  'Nanum Gothic', 'Nanum Myeongjo', 'Gowun Dodum', 'Gowun Batang',
+  'Sunflower', 'Gaegu', 'Hi Melody', 'Poor Story', 'Single Day',
+  'Stylish', 'Gamja Flower', 'Hahmlet', 'Orbit', 'Dongle',
 ];
 
 // 템플릿 정의
