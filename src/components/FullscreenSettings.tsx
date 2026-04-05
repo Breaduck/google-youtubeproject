@@ -858,23 +858,51 @@ function SubtitleSettingsPanel({
       {/* 전체화면 모달 */}
       {showPreviewFullscreen && previewBgImage && (
         <div
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
           onClick={() => setShowPreviewFullscreen(false)}
         >
           <button
             onClick={() => setShowPreviewFullscreen(false)}
-            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-10"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <img
-            src={previewBgImage}
-            className="max-w-full max-h-full object-contain"
+          <div
+            className="relative max-w-[90vw] max-h-[90vh]"
+            style={{ aspectRatio: '16/9' }}
             onClick={(e) => e.stopPropagation()}
-            alt="미리보기"
-          />
+          >
+            <img
+              src={previewBgImage}
+              className="w-full h-full object-contain rounded-lg"
+              alt="미리보기"
+            />
+            {/* 자막 오버레이 */}
+            <div
+              className="absolute left-0 right-0 flex justify-center pointer-events-none"
+              style={{ top: `${((settings.yPosition || 650) / 720) * 100}%`, transform: 'translateY(-50%)' }}
+            >
+              <span
+                style={{
+                  fontFamily: `"${settings.fontFamily}", sans-serif`,
+                  fontSize: `${settings.fontSize}px`,
+                  fontWeight: settings.fontWeight || 700,
+                  color: settings.textColor,
+                  backgroundColor: settings.backgroundColor || undefined,
+                  padding: settings.backgroundColor
+                    ? `${settings.bgPaddingY ?? settings.bgPadding ?? 12}px ${settings.bgPaddingX ?? settings.bgPadding ?? 12}px`
+                    : undefined,
+                  borderRadius: settings.backgroundColor ? `${settings.bgRadius ?? 8}px` : undefined,
+                  opacity: settings.backgroundColor ? (settings.bgOpacity || 0.8) : 1,
+                  textShadow: getTextShadow(settings.textColor, !!settings.backgroundColor),
+                }}
+              >
+                자막 미리보기
+              </span>
+            </div>
+          </div>
         </div>
       )}
     </div>

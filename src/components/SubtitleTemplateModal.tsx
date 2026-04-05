@@ -214,6 +214,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   const [showFontModal, setShowFontModal] = useState(false);
   const [googleFontUrl, setGoogleFontUrl] = useState('');
   const [tempPreviewImage, setTempPreviewImage] = useState<string | null>(null);
+  const [showFullscreen, setShowFullscreen] = useState(false);
 
   useEffect(() => {
     loadFonts().then((fonts) => {
@@ -320,19 +321,19 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
   };
 
   return (
-    <div className="fixed inset-0 z-[350] bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-[350] bg-black/60 dark:bg-black/80 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <h2 className="text-xl font-bold text-white">자막 스타일</h2>
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-gray-800">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">자막 스타일</h2>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFontModal(true)}
-              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm"
+              className="px-3 py-1.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 rounded-lg text-sm"
             >
               + 폰트
             </button>
-            <button onClick={onClose} className="text-gray-500 hover:text-white">
+            <button onClick={onClose} className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-white">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -343,7 +344,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
         {/* Main */}
         <div className="flex-1 flex overflow-hidden">
           {/* 좌측: 미리보기 + 설정 */}
-          <div className="w-[340px] flex-shrink-0 p-4 border-r border-gray-800 flex flex-col">
+          <div className="w-[340px] flex-shrink-0 p-4 border-r border-slate-200 dark:border-gray-800 flex flex-col bg-slate-50 dark:bg-transparent">
             {/* 큰 미리보기 */}
             <div
               className="relative rounded-xl overflow-hidden flex-shrink-0 group/preview"
@@ -354,6 +355,20 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                   : 'linear-gradient(135deg, #374151 0%, #1f2937 50%, #111827 100%)',
               }}
             >
+              {/* 우측 상단 버튼들 */}
+              <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover/preview:opacity-100 transition-opacity z-30">
+                {(tempPreviewImage || previewImage) && (
+                  <button
+                    onClick={() => setShowFullscreen(true)}
+                    className="p-2 bg-white/90 dark:bg-slate-800/90 rounded-lg hover:bg-white dark:hover:bg-slate-700 transition-all"
+                    title="전체화면"
+                  >
+                    <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
+                  </button>
+                )}
+              </div>
               {/* 호버 시 업로드 버튼 */}
               <label className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-all flex items-center justify-center cursor-pointer z-20">
                 <div className="px-4 py-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
@@ -406,22 +421,22 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               {/* 폰트 + 굵기 */}
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">폰트</label>
+                  <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">폰트</label>
                   <select
                     value={selected.fontFamily}
                     onChange={(e) => setSelected({ ...selected, fontFamily: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg text-sm text-slate-900 dark:text-white"
                     style={{ fontFamily: selected.fontFamily }}
                   >
                     {allFonts.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
                   </select>
                 </div>
                 <div className="w-28">
-                  <label className="text-xs text-gray-500 mb-1 block">굵기</label>
+                  <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">굵기</label>
                   <select
                     value={selected.fontWeight || 700}
                     onChange={(e) => setSelected({ ...selected, fontWeight: parseInt(e.target.value) })}
-                    className="w-full px-2 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white"
+                    className="w-full px-2 py-2 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg text-sm text-slate-900 dark:text-white"
                   >
                     <option value="400">Regular</option>
                     <option value="500">Medium</option>
@@ -434,7 +449,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">크기: {selected.fontSize}px</label>
+                <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">크기: {selected.fontSize}px</label>
                 <input
                   type="range" min="24" max="72" value={selected.fontSize}
                   onChange={(e) => setSelected({ ...selected, fontSize: Number(e.target.value) })}
@@ -443,7 +458,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Y축 위치: {selected.yPosition || 650}px</label>
+                <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">Y축 위치: {selected.yPosition || 650}px</label>
                 <input
                   type="range" min="100" max="1000" value={selected.yPosition || 650}
                   onChange={(e) => setSelected({ ...selected, yPosition: Number(e.target.value) })}
@@ -453,15 +468,15 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-gray-500 mb-1 block">텍스트 색상</label>
+                  <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">텍스트 색상</label>
                   <input
                     type="color" value={selected.textColor}
                     onChange={(e) => setSelected({ ...selected, textColor: e.target.value })}
-                    className="w-full h-9 rounded-lg cursor-pointer bg-transparent border border-gray-700"
+                    className="w-full h-9 rounded-lg cursor-pointer bg-transparent border border-slate-300 dark:border-gray-700"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 mb-1 block">배경 {selected.backgroundColor ? '' : '(없음)'}</label>
+                  <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">배경 {selected.backgroundColor ? '' : '(없음)'}</label>
                   <div className="flex items-center gap-2 h-9">
                     <input
                       type="checkbox"
@@ -473,7 +488,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                       <input
                         type="color" value={selected.backgroundColor}
                         onChange={(e) => setSelected({ ...selected, backgroundColor: e.target.value })}
-                        className="flex-1 h-full rounded-lg cursor-pointer bg-transparent border border-gray-700"
+                        className="flex-1 h-full rounded-lg cursor-pointer bg-transparent border border-slate-300 dark:border-gray-700"
                       />
                     )}
                   </div>
@@ -483,7 +498,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
               {selected.backgroundColor && (
                 <>
                   <div>
-                    <label className="text-xs text-gray-500 mb-1 block">배경 투명도: {Math.round((selected.bgOpacity || 0.8) * 100)}%</label>
+                    <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">배경 투명도: {Math.round((selected.bgOpacity || 0.8) * 100)}%</label>
                     <input
                       type="range" min="0.3" max="1" step="0.05" value={selected.bgOpacity || 0.8}
                       onChange={(e) => setSelected({ ...selected, bgOpacity: Number(e.target.value) })}
@@ -492,7 +507,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">가로 넓이: {selected.bgPaddingX ?? selected.bgPadding ?? 12}px</label>
+                      <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">가로 넓이: {selected.bgPaddingX ?? selected.bgPadding ?? 12}px</label>
                       <input
                         type="range" min="4" max="60" value={selected.bgPaddingX ?? selected.bgPadding ?? 12}
                         onChange={(e) => setSelected({ ...selected, bgPaddingX: Number(e.target.value) })}
@@ -500,7 +515,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">세로 넓이: {selected.bgPaddingY ?? selected.bgPadding ?? 12}px</label>
+                      <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">세로 넓이: {selected.bgPaddingY ?? selected.bgPadding ?? 12}px</label>
                       <input
                         type="range" min="2" max="40" value={selected.bgPaddingY ?? selected.bgPadding ?? 12}
                         onChange={(e) => setSelected({ ...selected, bgPaddingY: Number(e.target.value) })}
@@ -509,7 +524,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 mb-1 block">모서리 둥글기: {selected.bgRadius ?? 8}px</label>
+                    <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">모서리 둥글기: {selected.bgRadius ?? 8}px</label>
                     <input
                       type="range" min="0" max="30" value={selected.bgRadius ?? 8}
                       onChange={(e) => setSelected({ ...selected, bgRadius: Number(e.target.value) })}
@@ -521,13 +536,13 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
 
               {/* 한 줄 글자수 설정 */}
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">한 줄 글자수: {selected.maxLineChars ?? 15}자</label>
+                <label className="text-xs text-slate-500 dark:text-gray-500 mb-1 block">한 줄 글자수: {selected.maxLineChars ?? 15}자</label>
                 <input
                   type="range" min="8" max="30" value={selected.maxLineChars ?? 15}
                   onChange={(e) => setSelected({ ...selected, maxLineChars: Number(e.target.value) })}
                   className="w-full accent-blue-500"
                 />
-                <p className="text-[10px] text-gray-600 mt-1">자막이 무조건 1줄로 표시됩니다</p>
+                <p className="text-[10px] text-slate-400 dark:text-gray-600 mt-1">자막이 무조건 1줄로 표시됩니다</p>
               </div>
             </div>
 
@@ -540,7 +555,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
           </div>
 
           {/* 우측: 템플릿 그리드 */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden bg-slate-100 dark:bg-transparent">
             {/* 카테고리 */}
             <div className="flex gap-2 p-4 pb-2 overflow-x-auto flex-shrink-0">
               {categories.map((cat) => (
@@ -550,7 +565,7 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
                   className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${
                     category === cat
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-gray-700 border border-slate-200 dark:border-transparent'
                   }`}
                 >
                   {cat}
@@ -568,32 +583,83 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
         </div>
       </div>
 
+      {/* 전체화면 모달 */}
+      {showFullscreen && (tempPreviewImage || previewImage) && (
+        <div
+          className="fixed inset-0 bg-black/95 z-[400] flex items-center justify-center p-4"
+          onClick={() => setShowFullscreen(false)}
+        >
+          <button
+            onClick={() => setShowFullscreen(false)}
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-10"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div
+            className="relative max-w-[90vw] max-h-[90vh]"
+            style={{ aspectRatio: '16/9' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={tempPreviewImage || previewImage}
+              className="w-full h-full object-contain rounded-lg"
+              alt="미리보기"
+            />
+            {/* 자막 오버레이 */}
+            <div
+              className="absolute left-0 right-0 flex justify-center pointer-events-none"
+              style={{ top: `${((selected.yPosition || 650) / 720) * 100}%`, transform: 'translateY(-50%)' }}
+            >
+              <span
+                style={{
+                  fontFamily: `"${selected.fontFamily}", sans-serif`,
+                  fontSize: `${selected.fontSize}px`,
+                  fontWeight: selected.fontWeight || 700,
+                  color: selected.textColor,
+                  backgroundColor: selected.backgroundColor || undefined,
+                  padding: selected.backgroundColor
+                    ? `${selected.bgPaddingY ?? selected.bgPadding ?? 12}px ${selected.bgPaddingX ?? selected.bgPadding ?? 12}px`
+                    : undefined,
+                  borderRadius: selected.backgroundColor ? `${selected.bgRadius ?? 8}px` : undefined,
+                  opacity: selected.backgroundColor ? (selected.bgOpacity || 0.8) : 1,
+                  textShadow: getTextShadow(selected.textColor, !!selected.backgroundColor),
+                }}
+              >
+                자막 미리보기
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 폰트 모달 */}
       {showFontModal && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-xl max-w-md w-full p-5 space-y-4">
-            <h3 className="text-lg font-bold text-white">폰트 추가</h3>
+          <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">폰트 추가</h3>
 
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">파일 업로드</label>
-              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <label className="text-xs text-slate-500 dark:text-gray-400 mb-1 block">파일 업로드</label>
+              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-gray-700">
+                <svg className="w-5 h-5 text-slate-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <span className="text-sm text-gray-300">ttf, otf, woff, woff2</span>
+                <span className="text-sm text-slate-600 dark:text-gray-300">ttf, otf, woff, woff2</span>
                 <input type="file" accept=".ttf,.otf,.woff,.woff2" className="hidden" onChange={handleFontUpload} />
               </label>
             </div>
 
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Google Fonts URL</label>
+              <label className="text-xs text-slate-500 dark:text-gray-400 mb-1 block">Google Fonts URL</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="https://fonts.googleapis.com/css2?family=..."
                   value={googleFontUrl}
                   onChange={(e) => setGoogleFontUrl(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-gray-800 rounded-lg text-sm text-white border-0"
+                  className="flex-1 px-3 py-2 bg-slate-100 dark:bg-gray-800 rounded-lg text-sm text-slate-900 dark:text-white border-0"
                 />
                 <button onClick={handleGoogleFontAdd} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">추가</button>
               </div>
@@ -601,19 +667,19 @@ export default function SubtitleTemplateModal({ current, onApply, onClose, previ
 
             {customFonts.length > 0 && (
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">추가된 폰트</label>
+                <label className="text-xs text-slate-500 dark:text-gray-400 mb-1 block">추가된 폰트</label>
                 <div className="space-y-1 max-h-32 overflow-y-auto">
                   {customFonts.map((f) => (
-                    <div key={f.name} className="flex items-center justify-between px-3 py-2 bg-gray-800 rounded-lg">
-                      <span className="text-sm text-white" style={{ fontFamily: f.name }}>{f.name}</span>
-                      <button onClick={() => handleDeleteFont(f.name)} className="text-red-400 text-xs">삭제</button>
+                    <div key={f.name} className="flex items-center justify-between px-3 py-2 bg-slate-100 dark:bg-gray-800 rounded-lg">
+                      <span className="text-sm text-slate-900 dark:text-white" style={{ fontFamily: f.name }}>{f.name}</span>
+                      <button onClick={() => handleDeleteFont(f.name)} className="text-red-500 dark:text-red-400 text-xs">삭제</button>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            <button onClick={() => setShowFontModal(false)} className="w-full py-2 bg-gray-800 rounded-lg text-gray-300">닫기</button>
+            <button onClick={() => setShowFontModal(false)} className="w-full py-2 bg-slate-200 dark:bg-gray-800 rounded-lg text-slate-700 dark:text-gray-300">닫기</button>
           </div>
         </div>
       )}
