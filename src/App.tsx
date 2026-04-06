@@ -3090,7 +3090,33 @@ const App: React.FC = () => {
                       <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
                       <button onClick={openVideoGenerationPopup} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">AI 영상 전체 생성</button>
                       <span id="preview-section" className="absolute -top-20"></span>
-                      <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); setHasViewedPreview(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50">최종 영상 검토</button>
+                      <div className="relative group/preview">
+                        <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); setHasViewedPreview(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed">최종 영상 검토</button>
+                        {project.scenes.every(s => !s.imageUrl || !s.audioUrl) && (() => {
+                          const missingScenes = project.scenes.map((s, i) => ({ idx: i + 1, noImage: !s.imageUrl, noAudio: !s.audioUrl })).filter(s => s.noImage || s.noAudio);
+                          const totalMissing = missingScenes.length;
+                          let message = '';
+                          if (totalMissing > 3) {
+                            const imageCount = missingScenes.filter(s => s.noImage).length;
+                            const audioCount = missingScenes.filter(s => s.noAudio).length;
+                            if (imageCount > 0 && audioCount > 0) message = '모든 씬의 이미지와 오디오를 생성해주세요';
+                            else if (imageCount > 0) message = '모든 씬의 이미지를 생성해주세요';
+                            else message = '모든 씬의 오디오를 생성해주세요';
+                          } else {
+                            message = missingScenes.map(s => {
+                              if (s.noImage && s.noAudio) return `${s.idx}번 씬의 이미지와 오디오가 없습니다`;
+                              if (s.noImage) return `${s.idx}번 씬의 이미지가 없습니다`;
+                              return `${s.idx}번 씬의 오디오가 없습니다`;
+                            }).join(', ');
+                          }
+                          return (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 invisible group-hover/preview:opacity-100 group-hover/preview:visible transition-all whitespace-nowrap shadow-xl z-50">
+                              {message}
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+                            </div>
+                          );
+                        })()}
+                      </div>
                       <span id="merge-section" className="absolute -top-20"></span>
                     </div>
                   </div>
@@ -3257,15 +3283,15 @@ const App: React.FC = () => {
                           <button className="w-7 h-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                           </button>
-                          <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl py-1 min-w-[120px] opacity-0 invisible group-hover/upload:opacity-100 group-hover/upload:visible transition-all z-50">
-                            <label className="w-full px-3 py-2 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 cursor-pointer">
+                          <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl p-1.5 opacity-0 invisible group-hover/upload:opacity-100 group-hover/upload:visible transition-all z-50 flex gap-1">
+                            <label className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                              이미지 업로드
+                              이미지
                               <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imageUrl: ev.target?.result as string, status: 'done' } : s) }); }; reader.readAsDataURL(file); } }} />
                             </label>
-                            <label className="w-full px-3 py-2 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 cursor-pointer">
+                            <label className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                              비디오 업로드
+                              비디오
                               <input type="file" className="hidden" accept="video/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { if(scene.uploadedVideoUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.uploadedVideoUrl); const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, uploadedVideoUrl: url, activeMedia: 'video' } : s) }); } if(e.target) e.target.value = ''; }} />
                             </label>
                           </div>
@@ -3306,6 +3332,9 @@ const App: React.FC = () => {
                           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10 pointer-events-none">
                             <button onClick={(e) => { e.stopPropagation(); if(scene.uploadedVideoUrl) { const a = document.createElement('a'); a.href = scene.uploadedVideoUrl; a.download = `scene-${idx+1}.mp4`; a.click(); }}} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="다운로드">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); const video = document.createElement('video'); video.src = scene.uploadedVideoUrl!; video.controls = true; video.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#000;'; const div = document.createElement('div'); div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-center;cursor:pointer;'; div.appendChild(video); div.onclick = (ev) => { if(ev.target === div) div.remove(); }; document.body.appendChild(div); video.play(); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="전체화면">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
                             </button>
                           </div>
                           )}
