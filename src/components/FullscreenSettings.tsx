@@ -393,6 +393,7 @@ function GeminiSettings({
   const [showApiKey, setShowApiKey] = useState(false);
   const [showCostDetails, setShowCostDetails] = useState(false);
   const [costPeriod, setCostPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [showGuide, setShowGuide] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -423,10 +424,20 @@ function GeminiSettings({
           </div>
 
           {!apiKey && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              💡 Google Cloud Console에서 API 키 발급 (Gemini + TTS 통합)
-            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                💡 Google Cloud Console에서 API 키 발급 (Gemini + TTS 통합)
+              </p>
+              <button
+                onClick={() => setShowGuide(true)}
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline"
+              >
+                발급 방법 보기
+              </button>
+            </div>
           )}
+
+          {showGuide && <ApiGuideModal type="gemini" onClose={() => setShowGuide(false)} />}
 
           {apiKey.length > 20 && (
             <div className="flex items-center gap-2 text-sm mt-2">
@@ -1324,6 +1335,7 @@ function VideoApiSettings({
   const [showBytedanceKey, setShowBytedanceKey] = useState(false);
   const [showEvolinkKey, setShowEvolinkKey] = useState(false);
   const [showRunwareKey, setShowRunwareKey] = useState(false);
+  const [showGuide, setShowGuide] = useState<'byteplus' | 'evolink' | 'runware' | null>(null);
 
   return (
     <div className="space-y-6">
@@ -1331,6 +1343,8 @@ function VideoApiSettings({
         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">영상화 API 설정</h2>
         <p className="text-slate-600 dark:text-slate-400">이미지를 영상으로 변환하는 API를 설정합니다.</p>
       </div>
+
+      {showGuide && <ApiGuideModal type={showGuide} onClose={() => setShowGuide(null)} />}
 
       {/* 제공업체 선택 */}
       <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 space-y-4">
@@ -1431,7 +1445,10 @@ function VideoApiSettings({
                   )}
                 </div>
               )}
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">BytePlus ModelArk에서 API 키를 발급받으세요</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400">BytePlus ModelArk에서 API 키를 발급받으세요</p>
+                <button onClick={() => setShowGuide('byteplus')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">발급 방법 보기</button>
+              </div>
             </div>
 
             <div>
@@ -1496,6 +1513,10 @@ function VideoApiSettings({
                   )}
                 </div>
               )}
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Evolink에서 API 키를 발급받으세요</p>
+                <button onClick={() => setShowGuide('evolink')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">발급 방법 보기</button>
+              </div>
             </div>
 
             <div>
@@ -1560,6 +1581,10 @@ function VideoApiSettings({
                   )}
                 </div>
               )}
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Runware에서 API 키를 발급받으세요</p>
+                <button onClick={() => setShowGuide('runware')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">발급 방법 보기</button>
+              </div>
             </div>
 
             <div>
@@ -1880,6 +1905,7 @@ function NarrationSettings({
   const [cloneVoiceName, setCloneVoiceName] = useState('');
   const [localVoices, setLocalVoices] = useState<any[]>(voices);
   const voiceCloneInputRef = useRef<HTMLInputElement>(null);
+  const [showGuide, setShowGuide] = useState<'google-tts' | 'elevenlabs' | null>(null);
 
   // voices prop이 변경되면 localVoices 업데이트
   useEffect(() => {
@@ -2021,13 +2047,17 @@ function NarrationSettings({
           {googleTtsApiKey && googleTtsApiKey.length > 10 ? (
             <p className="text-xs text-green-600 dark:text-green-400">API 키가 설정되었습니다.</p>
           ) : (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Google Cloud Console → API 및 서비스 → 사용자 인증 정보에서 API 키 발급<br/>
-              Text-to-Speech API를 활성화해야 합니다.
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Google Cloud Console에서 API 키를 발급받으세요
+              </p>
+              <button onClick={() => setShowGuide('google-tts')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">발급 방법 보기</button>
+            </div>
           )}
         </div>
       )}
+
+      {showGuide && <ApiGuideModal type={showGuide} onClose={() => setShowGuide(null)} />}
 
       {/* Google Chirp3 설정 */}
       {audioProvider === 'google-chirp3' && (
@@ -2233,9 +2263,12 @@ function NarrationSettings({
             </div>
           )}
           {localVoices.length === 0 && elSettings.apiKey.length < 10 && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              API 키를 입력하면 사용 가능한 음성 목록이 자동으로 표시됩니다.
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                API 키를 입력하면 사용 가능한 음성 목록이 자동으로 표시됩니다.
+              </p>
+              <button onClick={() => setShowGuide('elevenlabs')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline whitespace-nowrap">발급 방법 보기</button>
+            </div>
           )}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">음성 속도: {elSettings.speed.toFixed(1)}x</label>
@@ -2575,6 +2608,132 @@ function AdminPanel() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// API 발급 가이드 모달
+function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' | 'evolink' | 'runware' | 'google-tts' | 'elevenlabs'; onClose: () => void }) {
+  const guides: Record<string, { title: string; steps: string[]; link: string; linkText: string }> = {
+    gemini: {
+      title: 'Gemini API 키 발급 방법',
+      steps: [
+        '1. Google Cloud Console에 접속합니다',
+        '2. 프로젝트를 선택하거나 새로 생성합니다',
+        '3. 좌측 메뉴에서 "API 및 서비스" → "사용자 인증 정보"를 클릭합니다',
+        '4. "+ 사용자 인증 정보 만들기" → "API 키"를 클릭합니다',
+        '5. 생성된 API 키를 복사합니다',
+        '6. (선택) "API 및 서비스" → "라이브러리"에서 "Generative Language API"를 검색하여 활성화합니다',
+        '💡 팁: 이 API 키는 Gemini와 Google TTS 모두에 사용할 수 있습니다'
+      ],
+      link: 'https://console.cloud.google.com/apis/credentials',
+      linkText: 'Google Cloud Console 열기'
+    },
+    'google-tts': {
+      title: 'Google TTS API 설정 방법',
+      steps: [
+        '1. Google Cloud Console에 접속합니다',
+        '2. "API 및 서비스" → "라이브러리"를 클릭합니다',
+        '3. "Cloud Text-to-Speech API"를 검색합니다',
+        '4. "사용" 버튼을 클릭하여 API를 활성화합니다',
+        '5. Gemini API 키와 동일한 키를 사용하거나, 별도 API 키를 생성합니다',
+        '💡 팁: Gemini API 키를 그대로 사용해도 됩니다. Google TTS API키 칸을 비워두면 Gemini API 키가 자동으로 사용됩니다.'
+      ],
+      link: 'https://console.cloud.google.com/apis/library/texttospeech.googleapis.com',
+      linkText: 'Google TTS API 활성화'
+    },
+    byteplus: {
+      title: 'BytePlus API 키 발급 방법',
+      steps: [
+        '1. BytePlus 콘솔(console.byteplus.com)에 접속합니다',
+        '2. 회원가입 또는 로그인합니다',
+        '3. "CV(Computer Vision)" 제품을 선택합니다',
+        '4. "SeeDANCE" 서비스를 활성화합니다',
+        '5. "Access Key Management"에서 Access Key와 Secret Key를 발급받습니다',
+        '6. Access Key ID와 Secret Access Key를 ":" 없이 입력합니다',
+        '💡 형식: AccessKeyId:SecretAccessKey (예: AK123:SK456)'
+      ],
+      link: 'https://console.byteplus.com/',
+      linkText: 'BytePlus 콘솔 열기'
+    },
+    evolink: {
+      title: 'Evolink API 키 발급 방법',
+      steps: [
+        '1. Evolink 공식 웹사이트에 접속합니다',
+        '2. 회원가입 후 로그인합니다',
+        '3. 대시보드에서 "API Keys" 메뉴를 클릭합니다',
+        '4. "Create New API Key" 버튼을 클릭합니다',
+        '5. 생성된 API 키를 복사하여 입력합니다',
+        '💡 팁: 무료 크레딧이 제공되는지 확인하세요'
+      ],
+      link: 'https://www.evolink.ai/',
+      linkText: 'Evolink 웹사이트 열기'
+    },
+    runware: {
+      title: 'Runware API 키 발급 방법',
+      steps: [
+        '1. Runware 공식 웹사이트(runware.ai)에 접속합니다',
+        '2. 회원가입 후 로그인합니다',
+        '3. 대시보드에서 "API" 또는 "Settings" 메뉴를 클릭합니다',
+        '4. "API Keys" 섹션에서 새 API 키를 생성합니다',
+        '5. 생성된 API 키를 복사하여 입력합니다',
+        '💡 팁: 이미지 생성에 특화된 서비스입니다'
+      ],
+      link: 'https://runware.ai/',
+      linkText: 'Runware 웹사이트 열기'
+    },
+    elevenlabs: {
+      title: 'ElevenLabs API 키 발급 방법',
+      steps: [
+        '1. ElevenLabs 웹사이트(elevenlabs.io)에 접속합니다',
+        '2. 회원가입 후 로그인합니다',
+        '3. 우측 상단 프로필 아이콘 → "Profile + API key"를 클릭합니다',
+        '4. "API Key" 섹션에서 키를 확인하거나 새로 생성합니다',
+        '5. API 키를 복사하여 입력합니다',
+        '💡 팁: 무료 플랜에서도 매월 10,000자의 음성 생성이 가능합니다'
+      ],
+      link: 'https://elevenlabs.io/app/settings/api-keys',
+      linkText: 'ElevenLabs API 설정 열기'
+    }
+  };
+
+  const guide = guides[type];
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100]" onClick={onClose}>
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">{guide.title}</h3>
+          <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+            <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-6 py-4 space-y-3 max-h-[60vh] overflow-y-auto">
+          {guide.steps.map((step, i) => (
+            <p key={i} className={`text-sm ${step.startsWith('💡') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 rounded-lg' : 'text-slate-700 dark:text-slate-300'}`}>
+              {step}
+            </p>
+          ))}
+        </div>
+        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+          <a
+            href={guide.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center gap-2"
+          >
+            {guide.linkText}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+          <button onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-sm">
+            닫기
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
