@@ -3091,17 +3091,17 @@ const App: React.FC = () => {
                       <button onClick={openVideoGenerationPopup} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">AI 영상 전체 생성</button>
                       <span id="preview-section" className="absolute -top-20"></span>
                       <div className="relative group/preview">
-                        <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); setHasViewedPreview(true); }} disabled={project.scenes.every(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed">최종 영상 검토</button>
-                        {project.scenes.every(s => !s.imageUrl || !s.audioUrl) && (() => {
+                        <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); setHasViewedPreview(true); }} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed">최종 영상 검토</button>
+                        {project.scenes.some(s => !s.imageUrl || !s.audioUrl) && (() => {
                           const missingScenes = project.scenes.map((s, i) => ({ idx: i + 1, noImage: !s.imageUrl, noAudio: !s.audioUrl })).filter(s => s.noImage || s.noAudio);
                           const totalMissing = missingScenes.length;
                           let message = '';
-                          if (totalMissing > 3) {
+                          if (totalMissing >= 2) {
                             const imageCount = missingScenes.filter(s => s.noImage).length;
                             const audioCount = missingScenes.filter(s => s.noAudio).length;
-                            if (imageCount > 0 && audioCount > 0) message = '모든 씬의 이미지와 오디오를 생성해주세요';
-                            else if (imageCount > 0) message = '모든 씬의 이미지를 생성해주세요';
-                            else message = '모든 씬의 오디오를 생성해주세요';
+                            if (imageCount > 0 && audioCount > 0) message = '일부 씬의 이미지와 오디오가 없습니다';
+                            else if (imageCount > 0) message = '일부 씬의 이미지가 없습니다';
+                            else message = '일부 씬의 오디오가 없습니다';
                           } else {
                             message = missingScenes.map(s => {
                               if (s.noImage && s.noAudio) return `${s.idx}번 씬의 이미지와 오디오가 없습니다`;
@@ -3217,7 +3217,7 @@ const App: React.FC = () => {
               {/* 씬 그리드 - 깔끔한 카드 스타일 */}
               <div id="narration-section" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {project.scenes.map((scene, idx) => (
-                  <div key={scene.id} onClick={() => { if (isSelectionMode) { if (selectedSceneIds.includes(scene.id)) { setSelectedSceneIds(selectedSceneIds.filter(id => id !== scene.id)); } else { setSelectedSceneIds([...selectedSceneIds, scene.id]); } } }} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode ? 'cursor-pointer' : ''} ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-700' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}>
+                  <div key={scene.id} onClick={() => { if (isSelectionMode) { if (selectedSceneIds.includes(scene.id)) { setSelectedSceneIds(selectedSceneIds.filter(id => id !== scene.id)); } else { setSelectedSceneIds([...selectedSceneIds, scene.id]); } } }} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode ? 'cursor-pointer' : ''} ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-700' : (!scene.imageUrl || !scene.audioUrl) ? 'border-orange-400 ring-2 ring-orange-200 dark:ring-orange-700/50' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}>
                     {/* 이미지 영역 */}
                     <div className={`aspect-video bg-slate-50 dark:bg-slate-700 relative group/img`}>
                       {/* 씬 번호 & 선택 체크박스 */}
@@ -3267,11 +3267,11 @@ const App: React.FC = () => {
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                             </button>
                             <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl py-1 min-w-[100px] opacity-0 invisible group-hover/media:opacity-100 group-hover/media:visible transition-all z-50">
-                              <button onClick={() => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, activeMedia: 'image' } : s) })} className={`w-full px-3 py-2 text-left text-xs transition-all flex items-center gap-2 ${scene.activeMedia === 'image' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                              <button onClick={(e) => { e.stopPropagation(); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, activeMedia: 'image' } : s) }); }} className={`w-full px-3 py-2 text-left text-xs transition-all flex items-center gap-2 ${scene.activeMedia === 'image' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                 이미지
                               </button>
-                              <button onClick={() => updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, activeMedia: 'video' } : s) })} className={`w-full px-3 py-2 text-left text-xs transition-all flex items-center gap-2 ${scene.activeMedia === 'video' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                              <button onClick={(e) => { e.stopPropagation(); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, activeMedia: 'video' } : s) }); }} className={`w-full px-3 py-2 text-left text-xs transition-all flex items-center gap-2 ${scene.activeMedia === 'video' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                 영상
                               </button>
@@ -3330,10 +3330,15 @@ const App: React.FC = () => {
                           />
                           {!isSelectionMode && (
                           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10 pointer-events-none">
+                            {scene.imageUrl && (
+                            <button onClick={(e) => { e.stopPropagation(); generateVideo(scene.id); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="AI 영상 재생성">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            </button>
+                            )}
                             <button onClick={(e) => { e.stopPropagation(); if(scene.uploadedVideoUrl) { const a = document.createElement('a'); a.href = scene.uploadedVideoUrl; a.download = `scene-${idx+1}.mp4`; a.click(); }}} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="다운로드">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); const video = document.createElement('video'); video.src = scene.uploadedVideoUrl!; video.controls = true; video.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#000;'; const div = document.createElement('div'); div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-center;cursor:pointer;'; div.appendChild(video); div.onclick = (ev) => { if(ev.target === div) div.remove(); }; document.body.appendChild(div); video.play(); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="전체화면">
+                            <button onClick={(e) => { e.stopPropagation(); const video = document.createElement('video'); video.src = scene.uploadedVideoUrl!; video.controls = true; video.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#000;'; const wrapper = document.createElement('div'); wrapper.style.cssText = 'width:90%;max-width:1200px;aspect-ratio:16/9;'; wrapper.appendChild(video); const div = document.createElement('div'); div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;cursor:pointer;'; div.appendChild(wrapper); div.addEventListener('click', (ev) => { if(ev.target === div) { video.pause(); div.remove(); } }); document.body.appendChild(div); video.play(); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="전체화면">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
                             </button>
                           </div>
