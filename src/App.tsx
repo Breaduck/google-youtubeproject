@@ -8,7 +8,7 @@ import { StyleTemplate } from './types/template';
 import StyleTemplateModal from './components/StyleTemplateModal';
 import StyleTemplateSelector from './components/StyleTemplateSelector';
 import SubtitleTemplateModal, { TEMPLATES } from './components/SubtitleTemplateModal';
-import FullscreenSettings from './components/FullscreenSettings';
+import FullscreenSettings, { ApiGuideModal } from './components/FullscreenSettings';
 import ProgressSteps from './components/ProgressSteps';
 import { styleTemplates } from './data/styleTemplates';
 import JSZip from 'jszip';
@@ -322,6 +322,7 @@ const App: React.FC = () => {
 
   const [expandedSetting, setExpandedSetting] = useState<string | null>(null);
   const [showSubtitleEditor, setShowSubtitleEditor] = useState(false);
+  const [showApiGuide, setShowApiGuide] = useState<'gemini' | 'byteplus' | 'evolink' | 'runware' | 'google-tts' | 'elevenlabs' | null>(null);
 
   const [showRunwareKey, setShowRunwareKey] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
@@ -4797,10 +4798,11 @@ const App: React.FC = () => {
                         </button>
                       </div>
                       {!geminiApiKey && (
-                        <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
                           <p className="text-xs text-slate-600 dark:text-slate-400">
-                            💡 Google Cloud Console에서 API 키 발급 (Gemini + TTS 통합)
+                            💡 Google Cloud Console에서 API 키 발급
                           </p>
+                          <button onClick={() => setShowApiGuide('gemini')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline whitespace-nowrap ml-2">발급 방법</button>
                         </div>
                       )}
                       {geminiApiKey.length > 20 && (
@@ -5549,6 +5551,9 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* API 발급 가이드 모달 */}
+      {showApiGuide && <ApiGuideModal type={showApiGuide} onClose={() => setShowApiGuide(null)} />}
 
       {/* 캐릭터 추가 모달 */}
       {isCharModalOpen && (

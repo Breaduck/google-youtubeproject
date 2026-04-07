@@ -70,7 +70,7 @@ const getElevenLabsVoiceLabel = (voice: any): string => {
   return `${name} - ${gender} 목소리`;
 };
 
-type SettingTab = 'account' | 'gemini' | 'video-api' | 'subtitle' | 'narration' | 'saved-styles' | 'saved-characters';
+type SettingTab = 'account' | 'gemini' | 'video-api' | 'subtitle' | 'narration' | 'saved-styles' | 'saved-characters' | 'faq';
 
 interface FullscreenSettingsProps {
   onClose: () => void;
@@ -217,6 +217,7 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
     { id: 'narration' as SettingTab, icon: '🎙️', label: '나레이션', badge: 'Chirp3 HD' },
     { id: 'saved-styles' as SettingTab, icon: '🎨', label: '저장된 그림체', badge: `${savedStyles.length}/10` },
     { id: 'saved-characters' as SettingTab, icon: '👥', label: '저장된 인물', badge: `${savedCharacters.length}/10` },
+    { id: 'faq' as SettingTab, icon: '❓', label: '자주 묻는 질문', badge: '' },
   ];
 
   return (
@@ -361,6 +362,7 @@ export default function FullscreenSettings(props: FullscreenSettingsProps) {
           )}
           {activeTab === 'saved-styles' && <SavedStylesPanel savedStyles={savedStyles} onAddStyle={onAddStyleWithAnalysis} onDeleteStyle={onDeleteStyle} />}
           {activeTab === 'saved-characters' && <SavedCharactersPanel savedCharacters={savedCharacters} onAddCharacter={onAddCharacterWithAnalysis} onDeleteCharacter={onDeleteCharacter} />}
+          {activeTab === 'faq' && <FAQPanel />}
         </div>
       </div>
     </div>
@@ -2612,127 +2614,246 @@ function AdminPanel() {
   );
 }
 
-// API 발급 가이드 모달
-function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' | 'evolink' | 'runware' | 'google-tts' | 'elevenlabs'; onClose: () => void }) {
-  const guides: Record<string, { title: string; steps: string[]; link: string; linkText: string }> = {
+// API 발급 가이드 모달 - 개선된 UI
+export function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' | 'evolink' | 'runware' | 'google-tts' | 'elevenlabs'; onClose: () => void }) {
+  const guides: Record<string, { title: string; icon: string; color: string; steps: { title: string; desc: string }[]; tip: string; link: string; linkText: string }> = {
     gemini: {
-      title: 'Gemini API 키 발급 방법',
+      title: 'Gemini API 발급',
+      icon: '🤖',
+      color: 'from-blue-500 to-cyan-500',
       steps: [
-        '1. Google Cloud Console에 접속합니다',
-        '2. 프로젝트를 선택하거나 새로 생성합니다',
-        '3. 좌측 메뉴에서 "API 및 서비스" → "사용자 인증 정보"를 클릭합니다',
-        '4. "+ 사용자 인증 정보 만들기" → "API 키"를 클릭합니다',
-        '5. 생성된 API 키를 복사합니다',
-        '6. (선택) "API 및 서비스" → "라이브러리"에서 "Generative Language API"를 검색하여 활성화합니다',
-        '💡 팁: 이 API 키는 Gemini와 Google TTS 모두에 사용할 수 있습니다'
+        { title: 'Google Cloud 접속', desc: 'console.cloud.google.com 접속 후 로그인' },
+        { title: '프로젝트 선택', desc: '기존 프로젝트 선택 또는 새로 만들기' },
+        { title: 'API 키 생성', desc: '"API 및 서비스" → "사용자 인증 정보" → "API 키 만들기"' },
+        { title: '키 복사', desc: '생성된 API 키를 복사하여 여기에 붙여넣기' },
       ],
+      tip: '이 키 하나로 Gemini + Google TTS 모두 사용 가능!',
       link: 'https://console.cloud.google.com/apis/credentials',
-      linkText: 'Google Cloud Console 열기'
+      linkText: 'Google Cloud 바로가기'
     },
     'google-tts': {
-      title: 'Google TTS API 설정 방법',
+      title: 'Google TTS 설정',
+      icon: '🔊',
+      color: 'from-green-500 to-emerald-500',
       steps: [
-        '1. Google Cloud Console에 접속합니다',
-        '2. "API 및 서비스" → "라이브러리"를 클릭합니다',
-        '3. "Cloud Text-to-Speech API"를 검색합니다',
-        '4. "사용" 버튼을 클릭하여 API를 활성화합니다',
-        '5. Gemini API 키와 동일한 키를 사용하거나, 별도 API 키를 생성합니다',
-        '💡 팁: Gemini API 키를 그대로 사용해도 됩니다. Google TTS API키 칸을 비워두면 Gemini API 키가 자동으로 사용됩니다.'
+        { title: 'Google Cloud 접속', desc: 'console.cloud.google.com 접속' },
+        { title: 'API 라이브러리 이동', desc: '"API 및 서비스" → "라이브러리"' },
+        { title: 'TTS API 검색', desc: '"Cloud Text-to-Speech API" 검색' },
+        { title: 'API 활성화', desc: '"사용" 버튼 클릭하여 활성화' },
       ],
+      tip: 'Gemini API 키를 이미 입력했다면, TTS 칸은 비워두세요!',
       link: 'https://console.cloud.google.com/apis/library/texttospeech.googleapis.com',
-      linkText: 'Google TTS API 활성화'
+      linkText: 'TTS API 활성화'
     },
     byteplus: {
-      title: 'BytePlus API 키 발급 방법',
+      title: 'BytePlus API 발급',
+      icon: '🎬',
+      color: 'from-purple-500 to-pink-500',
       steps: [
-        '1. BytePlus 콘솔(console.byteplus.com)에 접속합니다',
-        '2. 회원가입 또는 로그인합니다',
-        '3. "CV(Computer Vision)" 제품을 선택합니다',
-        '4. "SeeDANCE" 서비스를 활성화합니다',
-        '5. "Access Key Management"에서 Access Key와 Secret Key를 발급받습니다',
-        '6. Access Key ID와 Secret Access Key를 ":" 없이 입력합니다',
-        '💡 형식: AccessKeyId:SecretAccessKey (예: AK123:SK456)'
+        { title: 'BytePlus 콘솔 접속', desc: 'console.byteplus.com 접속 후 회원가입' },
+        { title: 'CV 제품 선택', desc: '"Computer Vision" → "SeeDANCE" 활성화' },
+        { title: 'Access Key 발급', desc: '"Access Key Management"에서 키 생성' },
+        { title: '키 입력 형식', desc: 'AccessKeyId:SecretAccessKey 형태로 입력' },
       ],
+      tip: '예시: AK12345678:SK87654321 (콜론으로 연결)',
       link: 'https://console.byteplus.com/',
       linkText: 'BytePlus 콘솔 열기'
     },
     evolink: {
-      title: 'Evolink API 키 발급 방법',
+      title: 'Evolink API 발급',
+      icon: '✨',
+      color: 'from-orange-500 to-amber-500',
       steps: [
-        '1. Evolink 공식 웹사이트에 접속합니다',
-        '2. 회원가입 후 로그인합니다',
-        '3. 대시보드에서 "API Keys" 메뉴를 클릭합니다',
-        '4. "Create New API Key" 버튼을 클릭합니다',
-        '5. 생성된 API 키를 복사하여 입력합니다',
-        '💡 팁: 무료 크레딧이 제공되는지 확인하세요'
+        { title: '웹사이트 접속', desc: 'evolink.ai 접속 후 회원가입' },
+        { title: '대시보드 이동', desc: '로그인 후 대시보드로 이동' },
+        { title: 'API Keys 메뉴', desc: '"API Keys" 메뉴 클릭' },
+        { title: '새 키 생성', desc: '"Create New API Key" 클릭 후 복사' },
       ],
+      tip: '신규 가입 시 무료 크레딧이 제공될 수 있습니다!',
       link: 'https://www.evolink.ai/',
-      linkText: 'Evolink 웹사이트 열기'
+      linkText: 'Evolink 바로가기'
     },
     runware: {
-      title: 'Runware API 키 발급 방법',
+      title: 'Runware API 발급',
+      icon: '����️',
+      color: 'from-rose-500 to-red-500',
       steps: [
-        '1. Runware 공식 웹사이트(runware.ai)에 접속합니다',
-        '2. 회원가입 후 로그인합니다',
-        '3. 대시보드에서 "API" 또는 "Settings" 메뉴를 클릭합니다',
-        '4. "API Keys" 섹션에서 새 API 키를 생성합니다',
-        '5. 생성된 API 키를 복사하여 입력합니다',
-        '💡 팁: 이미지 생성에 특화된 서비스입니다'
+        { title: '웹사이트 접속', desc: 'runware.ai 접속 후 회원가입' },
+        { title: '설정 메뉴 이동', desc: '대시보드에서 "Settings" 클릭' },
+        { title: 'API Keys 섹션', desc: '"API Keys" 섹션 찾기' },
+        { title: '키 생성', desc: '새 API 키 생성 후 복사' },
       ],
+      tip: '이미지 생성에 특화된 빠른 API 서비스입니다.',
       link: 'https://runware.ai/',
-      linkText: 'Runware 웹사이트 열기'
+      linkText: 'Runware 바로가기'
     },
     elevenlabs: {
-      title: 'ElevenLabs API 키 발급 방법',
+      title: 'ElevenLabs API 발급',
+      icon: '🎤',
+      color: 'from-indigo-500 to-violet-500',
       steps: [
-        '1. ElevenLabs 웹사이트(elevenlabs.io)에 접속합니다',
-        '2. 회원가입 후 로그인합니다',
-        '3. 우측 상단 프로필 아이콘 → "Profile + API key"를 클릭합니다',
-        '4. "API Key" 섹션에서 키를 확인하거나 새로 생성합니다',
-        '5. API 키를 복사하여 입력합니다',
-        '💡 팁: 무료 플랜에서도 매월 10,000자의 음성 생성이 가능합니다'
+        { title: '웹사이트 접속', desc: 'elevenlabs.io 접속 후 회원가입' },
+        { title: '프로필 메뉴', desc: '우측 상단 프로필 아이콘 클릭' },
+        { title: 'API 설정', desc: '"Profile + API key" 선택' },
+        { title: '키 복사', desc: 'API Key를 복사하여 입력' },
       ],
+      tip: '무료 플랜으로도 매월 10,000자 음성 생성 가능!',
       link: 'https://elevenlabs.io/app/settings/api-keys',
-      linkText: 'ElevenLabs API 설정 열기'
+      linkText: 'ElevenLabs 설정 열기'
     }
   };
 
   const guide = guides[type];
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100]" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">{guide.title}</h3>
-          <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-            <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        {/* 헤더 - 그라데이션 배경 */}
+        <div className={`bg-gradient-to-r ${guide.color} px-6 py-5`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{guide.icon}</span>
+              <h3 className="text-xl font-bold text-white">{guide.title}</h3>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <div className="px-6 py-4 space-y-3 max-h-[60vh] overflow-y-auto">
+
+        {/* 단계별 가이드 */}
+        <div className="px-6 py-5 space-y-4">
           {guide.steps.map((step, i) => (
-            <p key={i} className={`text-sm ${step.startsWith('💡') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 rounded-lg' : 'text-slate-700 dark:text-slate-300'}`}>
-              {step}
-            </p>
+            <div key={i} className="flex gap-4">
+              <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${guide.color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                {i + 1}
+              </div>
+              <div className="flex-1 pt-0.5">
+                <p className="font-semibold text-slate-900 dark:text-slate-100">{step.title}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{step.desc}</p>
+              </div>
+            </div>
           ))}
         </div>
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+
+        {/* 팁 */}
+        <div className="mx-6 mb-5 px-4 py-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl">
+          <p className="text-sm text-amber-800 dark:text-amber-200 flex items-start gap-2">
+            <span className="text-lg">💡</span>
+            <span>{guide.tip}</span>
+          </p>
+        </div>
+
+        {/* 버튼 */}
+        <div className="px-6 pb-6 flex gap-3">
           <a
             href={guide.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center gap-2"
+            className={`flex-1 py-3 bg-gradient-to-r ${guide.color} text-white rounded-xl font-semibold text-center hover:opacity-90 transition-opacity flex items-center justify-center gap-2`}
           >
             {guide.linkText}
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
           </a>
-          <button onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-sm">
+          <button onClick={onClose} className="px-5 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
             닫기
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// FAQ 패널
+function FAQPanel() {
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  const faqs = [
+    {
+      question: '등장인물을 왜 미리 설정해야 하나요?',
+      answer: '등장인물의 외형을 미리 정의해두면, AI가 모든 씬에서 일관된 캐릭터 모습을 생성합니다. 설정하지 않으면 씬마다 캐릭터 외형이 달라져 영상 전체의 일관성이 떨어집니다.',
+      icon: '👤'
+    },
+    {
+      question: 'API 키는 어디서 발급받나요?',
+      answer: 'Gemini API는 Google Cloud Console에서, BytePlus는 BytePlus Console에서 발급받습니다. 각 설정 항목의 "발급 방법 보기" 버튼을 클릭하면 상세 가이드를 확인할 수 있습니다.',
+      icon: '🔑'
+    },
+    {
+      question: '비용은 얼마나 드나요?',
+      answer: '이미지 생성은 장당 약 29원(Imagen4), AI 영상 변환은 8초 기준 약 307원(BytePlus)입니다. 줌인-줌아웃 효과는 무료이며, 나레이션도 Google TTS 100만자까지 무료입니다.',
+      icon: '💰'
+    },
+    {
+      question: '영상 생성에 시간이 얼마나 걸리나요?',
+      answer: 'AI 영상(BytePlus)은 씬당 1~2분, 줌인-줌아웃은 수 초 내에 생성됩니다. 전체 영상 추출은 씬 개수에 따라 달라지며, 10개 씬 기준 약 5~10분 정도 소요됩니다.',
+      icon: '⏱️'
+    },
+    {
+      question: '그림체 저장소는 어떻게 활용하나요?',
+      answer: '자주 사용하는 그림체의 참조 이미지를 저장해두면, 새 프로젝트에서 바로 불러와 사용할 수 있습니다. AI가 저장된 이미지를 분석해 일관된 스타일을 유지합니다.',
+      icon: '🎨'
+    },
+    {
+      question: '대본은 어떻게 입력하나요?',
+      answer: '텍스트를 직접 입력하거나 붙여넣으면 됩니다. "AI 분할" 버튼을 누르면 Gemini가 자동으로 씬을 나누고, 각 씬에 맞는 이미지 프롬프트도 생성합니다.',
+      icon: '📝'
+    },
+    {
+      question: '생성된 이미지가 마음에 안 들면 어떻게 하나요?',
+      answer: '각 ��의 이미지 위에 마우스를 올리면 "재생성" 버튼이 나타납니다. 프롬프트를 수정하거나, 변경하고 싶은 부분을 입력하여 새로 생성할 수 있습니다.',
+      icon: '🔄'
+    },
+    {
+      question: '자막 스타일을 바꾸고 싶어요',
+      answer: '설정 > 자막설정에서 폰트, 크기, 색상, 배경 등을 자유롭게 변경할 수 있습니다. 미리보기에서 실시간으로 확인하며 조정하세요.',
+      icon: '💬'
+    }
+  ];
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">자주 묻는 질문</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">처음 사용하시는 분들이 궁금해하는 내용을 모았습니다.</p>
+
+      <div className="space-y-3">
+        {faqs.map((faq, index) => (
+          <div
+            key={index}
+            className={`bg-white dark:bg-slate-800 rounded-2xl border transition-all ${
+              expandedFaq === index
+                ? 'border-indigo-300 dark:border-indigo-600 shadow-lg'
+                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+            }`}
+          >
+            <button
+              onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
+              className="w-full px-5 py-4 flex items-center gap-4 text-left"
+            >
+              <span className="text-2xl">{faq.icon}</span>
+              <span className="flex-1 font-medium text-slate-900 dark:text-slate-100">{faq.question}</span>
+              <svg
+                className={`w-5 h-5 text-slate-400 transition-transform ${expandedFaq === index ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {expandedFaq === index && (
+              <div className="px-5 pb-4 pt-0">
+                <div className="pl-10 text-slate-600 dark:text-slate-400 leading-relaxed">
+                  {faq.answer}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
