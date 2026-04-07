@@ -1103,4 +1103,14 @@ Provide a concise technical description for image generation (English, 100-150 w
       return { inputTokens: 0, outputTokens: 0, images: 0, estimatedCost: '$0.00' };
     }
   }
+
+  // 간단한 텍스트 번역
+  async translateText(text: string, targetLang: string): Promise<string> {
+    const ai = this.getClient();
+    const response = await ai.models.generateContent({
+      model: this.getModel(),
+      contents: `Translate the following text to ${targetLang}. Only output the translation, nothing else:\n\n${text}`
+    });
+    return response.text || text;
+  }
 }

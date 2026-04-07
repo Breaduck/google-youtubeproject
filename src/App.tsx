@@ -2008,7 +2008,7 @@ const App: React.FC = () => {
   };
 
   // Video generation functions
-  const generateVideo = async (sceneId: string) => {
+  const generateVideo = async (sceneId: string, withSubtitle: boolean = true) => {
     if (!project) return;
 
     const scene = project.scenes.find(s => s.id === sceneId);
@@ -2074,7 +2074,7 @@ const App: React.FC = () => {
         project.characters.length > 1,
         undefined,
         videoEngine,
-        includeSubtitles ? subtitleSettings : undefined,
+        (includeSubtitles && withSubtitle) ? subtitleSettings : undefined,
         (progress, message) => {
           setTargetProgress(progress);
           setLoadingText(message);
@@ -3330,14 +3330,20 @@ const App: React.FC = () => {
                           {!isSelectionMode && (
                           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10 pointer-events-none">
                             {scene.imageUrl && (
-                            <button onClick={(e) => { e.stopPropagation(); generateVideo(scene.id); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="AI 영상 재생성">
+                            <button onClick={(e) => { e.stopPropagation(); generateVideo(scene.id, false); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="AI 영상 재생성 (자막 없음)">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                             </button>
                             )}
-                            <button onClick={(e) => { e.stopPropagation(); if(scene.uploadedVideoUrl) { const a = document.createElement('a'); a.href = scene.uploadedVideoUrl; a.download = `scene-${idx+1}.mp4`; a.click(); }}} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="다운로드">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); const video = document.createElement('video'); video.src = scene.uploadedVideoUrl!; video.controls = true; video.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#000;'; const wrapper = document.createElement('div'); wrapper.style.cssText = 'width:90%;max-width:1200px;aspect-ratio:16/9;'; wrapper.appendChild(video); const div = document.createElement('div'); div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;cursor:pointer;'; div.appendChild(wrapper); div.addEventListener('click', (ev) => { if(ev.target === div) { video.pause(); div.remove(); } }); document.body.appendChild(div); video.play(); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="전체화면">
+                            <div className="relative group/dl pointer-events-auto">
+                              <button className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="다운로드">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                              </button>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl py-1 min-w-[140px] opacity-0 invisible group-hover/dl:opacity-100 group-hover/dl:visible transition-all z-50">
+                                <button onClick={(e) => { e.stopPropagation(); if(scene.uploadedVideoUrl) { const a = document.createElement('a'); a.href = scene.uploadedVideoUrl; a.download = `scene-${idx+1}.mp4`; a.click(); }}} className="w-full px-3 py-2 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700">영상만 다운로드</button>
+                                <button onClick={async (e) => { e.stopPropagation(); if(scene.uploadedVideoUrl && scene.scriptSegment) { setLoadingText('자막 합성 중...'); try { const res = await fetch(scene.uploadedVideoUrl); const blob = await res.blob(); const { addTextSubtitleToVideo } = await import('./services/videoService'); const withSub = await addTextSubtitleToVideo(blob, scene.scriptSegment, subtitleSettings); const url = URL.createObjectURL(withSub); const a = document.createElement('a'); a.href = url; a.download = `scene-${idx+1}_sub.mp4`; a.click(); URL.revokeObjectURL(url); } catch(err) { alert('자막 합성 실패'); } setLoadingText(''); }}} className="w-full px-3 py-2 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700">자막과 함께 다운로드</button>
+                              </div>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); setFullscreenVideoUrl(scene.uploadedVideoUrl!); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="전체화면">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
                             </button>
                           </div>
@@ -3351,9 +3357,15 @@ const App: React.FC = () => {
                             <button onClick={(e) => { e.stopPropagation(); openRegenerateModal('scene', scene.id); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="재생성">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); if(scene.imageUrl) { const a = document.createElement('a'); a.href = scene.imageUrl; a.download = `scene-${idx+1}.png`; a.click(); }}} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="다운로드">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                            </button>
+                            <div className="relative group/dl">
+                              <button className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="다운로드">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                              </button>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl py-1 min-w-[160px] opacity-0 invisible group-hover/dl:opacity-100 group-hover/dl:visible transition-all z-50">
+                                <button onClick={(e) => { e.stopPropagation(); if(scene.imageUrl) { const a = document.createElement('a'); a.href = scene.imageUrl; a.download = `scene-${idx+1}.png`; a.click(); }}} className="w-full px-3 py-2 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700">이미지만 다운로드</button>
+                                <button onClick={async (e) => { e.stopPropagation(); if(scene.imageUrl && scene.scriptSegment) { setLoadingText('줌인-줌아웃 영상 생성 중...'); try { const { generateSimpleZoomVideo } = await import('./services/videoService'); const zoomSettings = determineZoomSettings(scene.scriptSegment, idx); const videoBlob = await generateSimpleZoomVideo(scene.imageUrl, scene.scriptSegment, zoomSettings.direction, subtitleSettings, undefined, zoomSettings.pan, zoomSettings.intensity); const url = URL.createObjectURL(videoBlob); const a = document.createElement('a'); a.href = url; a.download = `scene-${idx+1}_zoom.mp4`; a.click(); URL.revokeObjectURL(url); } catch(err) { alert('영상 생성 실패'); } setLoadingText(''); }}} className="w-full px-3 py-2 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700">자막과 함께 영상 다운로드</button>
+                              </div>
+                            </div>
                           </div>
                           )}
                         </>
@@ -4504,10 +4516,7 @@ const App: React.FC = () => {
                         const translations = await Promise.all(
                           project.scenes.map(async (scene) => {
                             if (!scene.scriptSegment) return '';
-                            const res = await gemini.generateContent(
-                              `Translate the following text to ${lang.name}. Only output the translation, nothing else:\n\n${scene.scriptSegment}`
-                            );
-                            return res.text || scene.scriptSegment;
+                            return await gemini.translateText(scene.scriptSegment, lang.name);
                           })
                         );
                         const newProject = {
@@ -4521,7 +4530,7 @@ const App: React.FC = () => {
                             audioUrl: null,
                           })),
                         };
-                        addProject(newProject);
+                        updateProjects(prev => [newProject as StoryProject, ...prev]);
                         setCurrentProjectId(newProject.id);
                         setLoadingText('');
                         setAudioButtonBlink(true);

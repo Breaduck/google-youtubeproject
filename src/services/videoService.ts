@@ -421,6 +421,50 @@ export async function addSubtitleOverlay(
   return resultBlob;
 }
 
+// 비디오에 텍스트 자막 추가 (FFmpeg drawtext)
+export async function addTextSubtitleToVideo(
+  videoBlob: Blob,
+  subtitleText: string,
+  settings?: SubtitleSettings
+): Promise<Blob> {
+  const ffmpeg = await getFFmpeg();
+  await ffmpeg.writeFile('input.mp4', await fetchFile(videoBlob));
+
+  const fontSize = settings?.fontSize || 48;
+  const fontColor = settings?.textColor?.replace('#', '') || 'FFFFFF';
+  const strokeColor = settings?.strokeColor?.replace('#', '') || '000000';
+  const strokeWidth = settings?.strokeWidth || 2;
+  const yPos = settings?.position === 'top' ? 50 : settings?.position === 'center' ? '(h-text_h)/2' : 'h-th-80';
+
+  // 긴 텍스트 줄바꿈 처리
+  const maxChars = 20;
+  const words = subtitleText.split(' ');
+  let lines: string[] = [];
+  let currentLine = '';
+  for (const word of words) {
+    if ((currentLine + ' ' + word).trim().length <= maxChars) {
+      currentLine = (currentLine + ' ' + word).trim();
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  const text = lines.join('\\n').replace(/'/g, "\\'");
+
+  await ffmpeg.exec([
+    '-i', 'input.mp4',
+    '-vf', `drawtext=text='${text}':fontsize=${fontSize}:fontcolor=${fontColor}:borderw=${strokeWidth}:bordercolor=${strokeColor}:x=(w-text_w)/2:y=${yPos}`,
+    '-c:a', 'copy',
+    'output.mp4'
+  ]);
+
+  const data = await ffmpeg.readFile('output.mp4');
+  await ffmpeg.deleteFile('input.mp4').catch(() => {});
+  await ffmpeg.deleteFile('output.mp4').catch(() => {});
+  return new Blob([data as BlobPart], { type: 'video/mp4' });
+}
+
 // 비디오에 오디오 추가 (오디오가 더 길면 마지막 프레임 연장)
 export async function addAudioToVideo(
   videoBlob: Blob,
