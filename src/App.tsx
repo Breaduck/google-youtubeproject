@@ -303,6 +303,8 @@ const App: React.FC = () => {
   const [previewExportMode, setPreviewExportMode] = useState<'full' | 'sample'>('full');
   const [sampleSceneRange, setSampleSceneRange] = useState('');
   const [sampleDuration, setSampleDuration] = useState<30 | 60>(30);
+  const [showGlobalExportModal, setShowGlobalExportModal] = useState(false);
+  const [audioButtonBlink, setAudioButtonBlink] = useState(false);
   const [hasVisitedSetup, setHasVisitedSetup] = useState(false);
 
   const [newStyleName, setNewStyleName] = useState('');
@@ -2385,12 +2387,17 @@ const App: React.FC = () => {
         setBgTask({ type: 'video', message: `${exportLabel ? exportLabel + ' ' : ''}${engineName} 비디오 생성 중 (${i + 1}/${totalScenes})...` });
         setBgProgress(Math.round((i / totalScenes) * 50));
 
-        // 영상 생성 범위 체크 (예시 모드에서는 API 사용 안함, 줌인-줌아웃만)
+        // 영상 생성: 이미 생성된 videoUrl이 있으면 사용, 없으면 생성
         const sceneStartTime = i * 10;
-        const useApiGeneration = !isSampleMode && hasApiKey && sceneStartTime < videoGenerationRange;
+        const hasExistingVideo = !!scene.videoUrl;
+        const useApiGeneration = !isSampleMode && !hasExistingVideo && hasApiKey && sceneStartTime < videoGenerationRange;
 
         let videoBlob: Blob;
-        if (useApiGeneration) {
+        if (hasExistingVideo && scene.videoUrl) {
+          // 이미 생성된 AI 영상 사용
+          const res = await fetch(scene.videoUrl);
+          videoBlob = await res.blob();
+        } else if (useApiGeneration) {
           // 범위 내 → API로 비디오 생성
           videoBlob = await generateSceneVideo(
             scene.imageUrl!,
@@ -3077,7 +3084,7 @@ const App: React.FC = () => {
                     <div className="flex flex-wrap gap-2 items-center">
                       <span id="video-section" className="absolute -top-20"></span>
                       <button onClick={() => { setBatchRange({ mode: project.scenes.some(s => s.imageUrl) ? 'missing' : 'all', start: 1, end: project.scenes.length, customText: '' }); setBatchModal({ type: 'image', open: true }); }} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
-                      <button onClick={() => { setBatchRange({ mode: project.scenes.some(s => s.audioUrl) ? 'missing' : 'all', start: 1, end: project.scenes.length, customText: '' }); setBatchModal({ type: 'audio', open: true }); }} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <button onClick={() => { setAudioButtonBlink(false); setBatchRange({ mode: project.scenes.some(s => s.audioUrl) ? 'missing' : 'all', start: 1, end: project.scenes.length, customText: '' }); setBatchModal({ type: 'audio', open: true }); }} disabled={isBatchGenerating} className={`px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50 ${audioButtonBlink ? 'border-red-500 animate-pulse' : 'border-gray-200 dark:border-gray-700'}`}>오디오 전체 생성</button>
                       <button onClick={() => { setBatchRange({ mode: project.scenes.some(s => s.videoUrl) ? 'missing' : 'all', start: 1, end: project.scenes.length, customText: '' }); setBatchModal({ type: 'video', open: true }); }} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">AI 영상 전체 생성</button>
                       <span id="preview-section" className="absolute -top-20"></span>
                       <div className="relative group/preview" onMouseEnter={() => setIsPreviewHovered(true)} onMouseLeave={() => setIsPreviewHovered(false)}>
@@ -3200,6 +3207,8 @@ const App: React.FC = () => {
                         if (e.name !== 'AbortError') alert('다운로드 실패: ' + e.message);
                       }
                     }} className="w-full px-4 py-2.5 text-left text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">오디오 전체 다운로드</button>
+                    <div className="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+                    <button onClick={() => setShowGlobalExportModal(true)} className="w-full px-4 py-2.5 text-left text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all font-medium">🌍 글로벌 버전으로 내보내기</button>
                   </div>
                 </div>
               </div>
@@ -4464,6 +4473,75 @@ const App: React.FC = () => {
                   설정으로 이동
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 글로벌 버전 내보내기 모달 */}
+      {showGlobalExportModal && project && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4" onClick={() => setShowGlobalExportModal(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-5">
+              <h3 className="text-xl font-bold text-white flex items-center gap-3">🌍 글로벌 버전으로 내보내기</h3>
+              <p className="text-indigo-100 text-sm mt-1">이미지/영상은 유지, 대본/자막만 번역</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-600 dark:text-slate-400">번역할 언어를 선택하세요. 새 프로젝트가 생성되며, 오디오는 새로 생성해야 합니다.</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { code: 'en', label: '🇺🇸 영어', name: 'English' },
+                  { code: 'ja', label: '🇯🇵 일본어', name: 'Japanese' },
+                  { code: 'zh', label: '🇨🇳 중국어', name: 'Chinese' },
+                  { code: 'ru', label: '🇷🇺 러시아어', name: 'Russian' },
+                ].map(lang => (
+                  <button
+                    key={lang.code}
+                    onClick={async () => {
+                      setShowGlobalExportModal(false);
+                      setLoadingText(`${lang.label} 버전 생성 중...`);
+                      try {
+                        const translations = await Promise.all(
+                          project.scenes.map(async (scene) => {
+                            if (!scene.scriptSegment) return '';
+                            const res = await gemini.generateContent(
+                              `Translate the following text to ${lang.name}. Only output the translation, nothing else:\n\n${scene.scriptSegment}`
+                            );
+                            return res.text || scene.scriptSegment;
+                          })
+                        );
+                        const newProject = {
+                          ...project,
+                          id: crypto.randomUUID(),
+                          title: `${project.title} (${lang.label.split(' ')[0]})`,
+                          scenes: project.scenes.map((scene, idx) => ({
+                            ...scene,
+                            id: crypto.randomUUID(),
+                            scriptSegment: translations[idx] || scene.scriptSegment,
+                            audioUrl: null,
+                          })),
+                        };
+                        addProject(newProject);
+                        setCurrentProjectId(newProject.id);
+                        setLoadingText('');
+                        setAudioButtonBlink(true);
+                        setTimeout(() => setAudioButtonBlink(false), 5000);
+                        alert(`${lang.label} 버전이 생성되었습니다!\n오디오를 새로 생성해주세요.`);
+                      } catch (e: any) {
+                        setLoadingText('');
+                        alert('번역 실패: ' + e.message);
+                      }
+                    }}
+                    className="p-4 bg-slate-50 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 border border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 rounded-xl transition-all text-left"
+                  >
+                    <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{lang.label}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{lang.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="px-6 pb-6">
+              <button onClick={() => setShowGlobalExportModal(false)} className="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">취소</button>
             </div>
           </div>
         </div>
