@@ -297,6 +297,9 @@ const App: React.FC = () => {
 
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isPreviewHovered, setIsPreviewHovered] = useState(false);
+  const [batchModal, setBatchModal] = useState<{ type: 'image' | 'audio' | 'video'; open: boolean }>({ type: 'image', open: false });
+  const [batchRange, setBatchRange] = useState<{ mode: 'all' | 'missing' | 'custom'; start: number; end: number }>({ mode: 'all', start: 1, end: 1 });
   const [hasVisitedSetup, setHasVisitedSetup] = useState(false);
 
   const [newStyleName, setNewStyleName] = useState('');
@@ -1916,7 +1919,7 @@ const App: React.FC = () => {
     }
   };
 
-  const generateAllImages = async () => {
+  const generateAllImages = async (targetIndices: number[] | null = null) => {
     if (!project) return;
 
     // API 키 체크
@@ -1925,15 +1928,7 @@ const App: React.FC = () => {
       return;
     }
 
-    const scenesToGenerate = project.scenes.filter(s => !s.imageUrl);
-    const alreadyGenerated = project.scenes.filter(s => s.imageUrl).length;
-
-    // 재생성 확인
-    if (scenesToGenerate.length === 0 || alreadyGenerated > 0) {
-      if (!confirm('정말 전체 이미지를 전부 생성하시겠습니까?')) {
-        return;
-      }
-    }
+    const scenesToGenerate = targetIndices ? project.scenes.filter((_, i) => targetIndices.includes(i + 1)) : project.scenes;
 
     // 60장씩 배치 분할 (Rate Limit 회피)
     const batchSize = 60;
@@ -1950,12 +1945,12 @@ const App: React.FC = () => {
       } catch (err) {
         console.error(`[Batch ${batchNumber}/${totalBatches}] Failed:`, err);
         alert(`배치 ${batchNumber}/${totalBatches} 이미지 생성 중 오류가 발생했습니다.`);
-        break; // 에러 발생 시 중단
+        break;
       }
     }
   };
 
-  const generateBatchAudio = async () => {
+  const generateBatchAudio = async (targetIndices: number[] | null = null) => {
     if (!checkAndOpenAudioSettings()) return;
     if (!project) return;
 
@@ -1968,15 +1963,7 @@ const App: React.FC = () => {
       }
     }
 
-    const scenesToGenerate = project.scenes.filter(s => !s.audioUrl);
-    const alreadyGenerated = project.scenes.filter(s => s.audioUrl).length;
-
-    // 재생성 확인
-    if (scenesToGenerate.length === 0 || alreadyGenerated > 0) {
-      if (!confirm('정말 전체 오디오를 전부 생성하시겠습니까?')) {
-        return;
-      }
-    }
+    const scenesToGenerate = targetIndices ? project.scenes.filter((_, i) => targetIndices.includes(i + 1)) : project.scenes;
 
     setIsBatchGenerating(true);
     setLoadingText('오디오 일괄 생성 중...');
@@ -1984,9 +1971,7 @@ const App: React.FC = () => {
 
     try {
       // 병렬 실행을 위한 Promise 배열 생성
-      const audioPromises = project.scenes
-        .filter(s => !s.audioUrl)
-        .map(scene => generateAudio(scene.id));
+      const audioPromises = scenesToGenerate.map(scene => generateAudio(scene.id));
 
       // 진행률 업데이트를 위한 간격 설정
       let completed = 0;
@@ -2145,7 +2130,7 @@ const App: React.FC = () => {
     }
   };
 
-  const openVideoGenerationPopup = () => {
+  const openVideoGenerationPopup = (targetIndices: number[] | null = null) => {
     if (!project) return;
 
     // API 키 체크
@@ -2159,28 +2144,20 @@ const App: React.FC = () => {
     }
 
     if (!hasApiKey) {
-      const providerName = videoProvider === 'byteplus' ? 'BytePlus' :
-                           videoProvider === 'evolink' ? 'Evolink' :
-                           videoProvider === 'runware' ? 'Runware' : 'Video';
+      const providerName = videoProvider === 'byteplus' ? 'BytePlus' : videoProvider === 'evolink' ? 'Evolink' : 'Runware';
       alert(`${providerName} API 키를 입력해주세요.\n\n설정 페이지에서 API 키를 입력해주세요.`);
       setIsMyPageOpen(true);
       setExpandedSetting('bytedance');
       return;
     }
 
-    // videoGenerationRange 이내의 장면만 필터링
-    const scenesNeedingVideo = project.scenes.filter((s, index) => {
-      const sceneStartTime = index * 10;
-      return s.imageUrl && !s.videoUrl && sceneStartTime < videoGenerationRange;
-    });
+    // 대상 씬 필터링
+    const scenesNeedingVideo = targetIndices
+      ? project.scenes.filter((s, i) => targetIndices.includes(i + 1) && s.imageUrl)
+      : project.scenes.filter((s, index) => s.imageUrl && !s.videoUrl && index * 10 < videoGenerationRange);
 
     if (scenesNeedingVideo.length === 0) {
-      const totalScenes = project.scenes.filter(s => s.imageUrl && !s.videoUrl).length;
-      if (totalScenes > 0) {
-        alert(`영상 생성 범위(${videoGenerationRange}초) 이내에 생성할 비디오가 없습니다.\n범위를 늘려보세요.`);
-      } else {
-        alert('생성할 비디오가 없습니다!');
-      }
+      alert('생성할 비디오가 없습니다! (이미지가 있는 씬만 가능)');
       return;
     }
 
@@ -3086,19 +3063,11 @@ const App: React.FC = () => {
                     </div>
                     <div className="flex flex-wrap gap-2 items-center">
                       <span id="video-section" className="absolute -top-20"></span>
-                      <button onClick={generateAllImages} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
-                      <button onClick={generateBatchAudio} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
-                      <div className="relative group/video-gen">
-                        <button onClick={openVideoGenerationPopup} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl && !s.videoUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed">AI 영상 전체 생성</button>
-                        {!project.scenes.some(s => s.imageUrl && !s.videoUrl) && !isBatchGenerating && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 invisible group-hover/video-gen:opacity-100 group-hover/video-gen:visible transition-all whitespace-nowrap shadow-xl z-50">
-                            {!project.scenes.some(s => s.imageUrl) ? '씬의 이미지가 있어야 영상 생성이 가능합니다' : '모든 영상이 이미 생성되었습니다'}
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
-                          </div>
-                        )}
-                      </div>
+                      <button onClick={() => { setBatchRange({ mode: project.scenes.some(s => s.imageUrl) ? 'missing' : 'all', start: 1, end: project.scenes.length }); setBatchModal({ type: 'image', open: true }); }} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">이미지 전체 생성</button>
+                      <button onClick={() => { setBatchRange({ mode: project.scenes.some(s => s.audioUrl) ? 'missing' : 'all', start: 1, end: project.scenes.length }); setBatchModal({ type: 'audio', open: true }); }} disabled={isBatchGenerating} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">오디오 전체 생성</button>
+                      <button onClick={() => { setBatchRange({ mode: project.scenes.some(s => s.videoUrl) ? 'missing' : 'all', start: 1, end: project.scenes.length }); setBatchModal({ type: 'video', open: true }); }} disabled={isBatchGenerating || !project.scenes.some(s => s.imageUrl)} className="px-4 py-2 bg-transparent text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50">AI 영상 전체 생성</button>
                       <span id="preview-section" className="absolute -top-20"></span>
-                      <div className="relative group/preview">
+                      <div className="relative group/preview" onMouseEnter={() => setIsPreviewHovered(true)} onMouseLeave={() => setIsPreviewHovered(false)}>
                         <button onClick={() => { setIsMergedView(false); setExpandedSceneIndex(null); setShowPreviewModal(true); setHasViewedPreview(true); }} disabled={project.scenes.some(s => !s.imageUrl || !s.audioUrl)} className="px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed">최종 영상 검토</button>
                         {project.scenes.some(s => !s.imageUrl || !s.audioUrl) && (() => {
                           const missingScenes = project.scenes.map((s, i) => ({ idx: i + 1, noImage: !s.imageUrl, noAudio: !s.audioUrl })).filter(s => s.noImage || s.noAudio);
@@ -3225,7 +3194,7 @@ const App: React.FC = () => {
               {/* 씬 그리드 - 깔끔한 카드 스타일 */}
               <div id="narration-section" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {project.scenes.map((scene, idx) => (
-                  <div key={scene.id} onClick={() => { if (isSelectionMode) { if (selectedSceneIds.includes(scene.id)) { setSelectedSceneIds(selectedSceneIds.filter(id => id !== scene.id)); } else { setSelectedSceneIds([...selectedSceneIds, scene.id]); } } }} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode ? 'cursor-pointer' : ''} ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-700' : (!scene.imageUrl || !scene.audioUrl) ? 'border-orange-400 ring-2 ring-orange-200 dark:ring-orange-700/50' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}>
+                  <div key={scene.id} onClick={() => { if (isSelectionMode) { if (selectedSceneIds.includes(scene.id)) { setSelectedSceneIds(selectedSceneIds.filter(id => id !== scene.id)); } else { setSelectedSceneIds([...selectedSceneIds, scene.id]); } } }} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden hover:shadow-md transition-all group/card ${isSelectionMode ? 'cursor-pointer' : ''} ${isSelectionMode && selectedSceneIds.includes(scene.id) ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-700' : isPreviewHovered && (!scene.imageUrl || !scene.audioUrl) ? 'border-red-500 ring-2 ring-red-300 dark:ring-red-700 animate-pulse' : (!scene.imageUrl || !scene.audioUrl) ? 'border-orange-400 ring-2 ring-orange-200 dark:ring-orange-700/50' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}>
                     {/* 이미지 영역 */}
                     <div className={`aspect-video bg-slate-50 dark:bg-slate-700 relative group/img`}>
                       {/* 씬 번호 & 선택 체크박스 */}
@@ -3645,6 +3614,63 @@ const App: React.FC = () => {
       )}
 
       {selectedImage && <div className="fixed inset-0 bg-slate-900/95 z-[350] flex items-center justify-center p-2 sm:p-4 cursor-zoom-out animate-in fade-in" onClick={() => setSelectedImage(null)}><img src={selectedImage} className="max-w-full max-h-[90vh] object-contain rounded-2xl sm:rounded-[40px] shadow-2xl border-4 sm:border-8 border-white/10" /></div>}
+
+      {/* 배치 생성 모달 */}
+      {batchModal.open && project && (() => {
+        const type = batchModal.type;
+        const scenes = project.scenes;
+        const missingIdx = type === 'image' ? scenes.map((s, i) => !s.imageUrl ? i + 1 : 0).filter(Boolean) : type === 'audio' ? scenes.map((s, i) => !s.audioUrl ? i + 1 : 0).filter(Boolean) : scenes.map((s, i) => s.imageUrl && !s.videoUrl ? i + 1 : 0).filter(Boolean);
+        const targetScenes = batchRange.mode === 'all' ? scenes : batchRange.mode === 'missing' ? scenes.filter((_, i) => missingIdx.includes(i + 1)) : scenes.slice(batchRange.start - 1, batchRange.end);
+        const cost = type === 'image' ? targetScenes.length * 29 : type === 'audio' ? 0 : targetScenes.length * (videoProvider === 'byteplus' ? 307 : videoProvider === 'evolink' ? 190 : 195);
+        const title = type === 'image' ? '이미지 생성' : type === 'audio' ? '오디오 생성' : 'AI 영상 생성';
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center" onClick={() => setBatchModal({ ...batchModal, open: false })}>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+              </div>
+              <div className="px-6 py-4 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">생성 범위</label>
+                  <div className="space-y-2">
+                    {missingIdx.length > 0 && missingIdx.length < scenes.length && (
+                      <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                        <input type="radio" checked={batchRange.mode === 'missing'} onChange={() => setBatchRange({ ...batchRange, mode: 'missing' })} className="w-4 h-4 text-indigo-600" />
+                        <div><p className="text-sm font-medium text-slate-900 dark:text-slate-100">{type === 'image' ? '이미지' : type === 'audio' ? '오디오' : '영상'}가 없는 씬만 ({missingIdx.join(', ')}번)</p><p className="text-xs text-slate-500">{missingIdx.length}개 씬</p></div>
+                      </label>
+                    )}
+                    <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <input type="radio" checked={batchRange.mode === 'all'} onChange={() => setBatchRange({ ...batchRange, mode: 'all' })} className="w-4 h-4 text-indigo-600" />
+                      <div><p className="text-sm font-medium text-slate-900 dark:text-slate-100">전체 다시 생성</p><p className="text-xs text-slate-500">{scenes.length}개 씬</p></div>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <input type="radio" checked={batchRange.mode === 'custom'} onChange={() => setBatchRange({ ...batchRange, mode: 'custom' })} className="w-4 h-4 text-indigo-600" />
+                      <div className="flex-1"><p className="text-sm font-medium text-slate-900 dark:text-slate-100">범위 지정</p>
+                        {batchRange.mode === 'custom' && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <input type="number" min={1} max={scenes.length} value={batchRange.start} onChange={(e) => setBatchRange({ ...batchRange, start: Math.max(1, Math.min(scenes.length, parseInt(e.target.value) || 1)) })} className="w-16 px-2 py-1 border rounded text-sm dark:bg-slate-700 dark:border-slate-600" />
+                            <span className="text-sm text-slate-500">~</span>
+                            <input type="number" min={1} max={scenes.length} value={batchRange.end} onChange={(e) => setBatchRange({ ...batchRange, end: Math.max(1, Math.min(scenes.length, parseInt(e.target.value) || 1)) })} className="w-16 px-2 py-1 border rounded text-sm dark:bg-slate-700 dark:border-slate-600" />
+                            <span className="text-xs text-slate-500">번 씬</span>
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">예상 비용: <span className="font-bold text-indigo-600 dark:text-indigo-400">{type === 'audio' ? '무료 (100만자까지)' : `₩${cost.toLocaleString()}`}</span></p>
+                  <p className="text-xs text-slate-500 mt-1">{type === 'image' ? 'IMAGEN4 ₩29/장' : type === 'audio' ? 'Chirp3/Neural2 100만자 무료' : `${videoProvider === 'byteplus' ? 'BytePlus ₩307' : videoProvider === 'evolink' ? 'Evolink ₩190' : 'Runware ₩195'}/10초`} × {targetScenes.length}개</p>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+                <button onClick={() => setBatchModal({ ...batchModal, open: false })} className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">취소</button>
+                <button onClick={() => { setBatchModal({ ...batchModal, open: false }); if (type === 'image') generateAllImages(batchRange.mode === 'all' ? null : batchRange.mode === 'missing' ? missingIdx : Array.from({ length: batchRange.end - batchRange.start + 1 }, (_, i) => batchRange.start + i)); else if (type === 'audio') generateBatchAudio(batchRange.mode === 'all' ? null : batchRange.mode === 'missing' ? missingIdx : Array.from({ length: batchRange.end - batchRange.start + 1 }, (_, i) => batchRange.start + i)); else openVideoGenerationPopup(batchRange.mode === 'all' ? null : batchRange.mode === 'missing' ? missingIdx : Array.from({ length: batchRange.end - batchRange.start + 1 }, (_, i) => batchRange.start + i)); }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">생성 시작</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 전체 미리보기 모달 */}
       {showPreviewModal && project && (() => {
