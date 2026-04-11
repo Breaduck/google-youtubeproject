@@ -2619,7 +2619,7 @@ export function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' |
   const guides: Record<string, { title: string; icon: string; color: string; steps: { title: string; desc: string }[]; tip: string; link: string; linkText: string }> = {
     gemini: {
       title: 'Gemini API 발급',
-      icon: '🤖',
+      icon: '',
       color: 'from-blue-500 to-cyan-500',
       steps: [
         { title: 'Google Cloud 접속', desc: 'console.cloud.google.com 접속 후 로그인' },
@@ -2627,7 +2627,7 @@ export function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' |
         { title: 'API 키 생성', desc: '"API 및 서비스" → "사용자 인증 정보" → "API 키 만들기"' },
         { title: '키 복사', desc: '생성된 API 키를 복사하여 여기에 붙여넣기' },
       ],
-      tip: '이 키 하나로 Gemini + Google TTS 모두 사용 가능!',
+      tip: 'Gemini API와 TTS API는 별도로 활성화해야 합니다.',
       link: 'https://console.cloud.google.com/apis/credentials',
       linkText: 'Google Cloud 바로가기'
     },
