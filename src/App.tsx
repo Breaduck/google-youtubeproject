@@ -11,6 +11,8 @@ import SubtitleTemplateModal, { TEMPLATES } from './components/SubtitleTemplateM
 import FullscreenSettings, { ApiGuideModal } from './components/FullscreenSettings';
 import ProgressSteps from './components/ProgressSteps';
 import { BatchModal } from './components/modals/BatchModal';
+import { VideoGenerationPopup } from './components/modals/VideoGenerationPopup';
+import { ExportPopup } from './components/modals/ExportPopup';
 import { styleTemplates } from './data/styleTemplates';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -4095,101 +4097,14 @@ const App: React.FC = () => {
       )}
 
       {/* 비디오 전체 생성 팝업 */}
-      {showVideoGenerationPopup && project && (() => {
-        const maxCount = project.scenes.filter((s, index) => {
-          const sceneStartTime = index * 10;
-          return s.imageUrl && !s.videoUrl && sceneStartTime < videoGenerationRange;
-        }).length;
-
-        const costPerScene = videoProvider === 'byteplus' ? 307 :
-                            videoProvider === 'evolink' ? 190 :
-                            videoProvider === 'runware' ? 195 : 307;
-        const estimatedCost = videoGenerationCount * costPerScene;
-
-        const providerName = videoProvider === 'byteplus' ? 'BytePlus' :
-                            videoProvider === 'evolink' ? 'Evolink' :
-                            videoProvider === 'runware' ? 'Runware' : 'Video';
-
-        return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[310] flex items-center justify-center p-4" onClick={() => setShowVideoGenerationPopup(false)}>
-            <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">AI 영상 생성 설정</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  설정에서 <span className="font-bold text-indigo-600 dark:text-indigo-400">{Math.floor(videoGenerationRange / 10)}개</span>의 이미지를 비디오로 만든다고 설정되어있습니다
-                </p>
-              </div>
-              <div className="p-6 space-y-4">
-                {/* 영상 생성할 장면 수 */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-                    영상 생성할 장면 수 (최대 180장)
-                  </label>
-                  <div className="flex gap-3 items-center">
-                    <input
-                      type="range"
-                      min="0"
-                      max="180"
-                      value={Math.floor(videoGenerationRange / 10)}
-                      onChange={(e) => setVideoGenerationRange(parseInt(e.target.value) * 10)}
-                      className="flex-1 accent-indigo-600"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      max="180"
-                      value={Math.floor(videoGenerationRange / 10)}
-                      onChange={(e) => setVideoGenerationRange(Math.max(0, Math.min(180, parseInt(e.target.value) || 0)) * 10)}
-                      className="w-20 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-slate-100"
-                    />
-                    <span className="text-sm text-slate-600 dark:text-slate-400">장</span>
-                  </div>
-                </div>
-
-                {/* 비용 계산 */}
-                {(() => {
-                  const numScenes = Math.floor(videoGenerationRange / 10);
-                  const totalCost = numScenes * costPerScene;
-                  return (
-                    <div className="px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg space-y-2">
-                      <div className="flex items-baseline justify-between">
-                        <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-300">
-                          💰 {numScenes}장 영상화 예정
-                        </p>
-                        <p className="text-lg font-bold text-indigo-700 dark:text-indigo-400">
-                          ₩{totalCost.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-indigo-600 dark:text-indigo-400">
-                          1장당 ₩{costPerScene.toLocaleString()} (10초 기준)
-                        </span>
-                        <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400">
-                          총 시간: {Math.floor(videoGenerationRange / 60)}분 {videoGenerationRange % 60}초
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-              <div className="p-6 border-t border-slate-100 dark:border-slate-700 flex gap-3">
-                <button
-                  onClick={() => setShowVideoGenerationPopup(false)}
-                  className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={() => setShowVideoGenerationPopup(false)}
-                  className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all"
-                >
-                  저장하기
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {showVideoGenerationPopup && project && (
+        <VideoGenerationPopup
+          videoGenerationRange={videoGenerationRange}
+          setVideoGenerationRange={setVideoGenerationRange}
+          videoProvider={videoProvider}
+          onClose={() => setShowVideoGenerationPopup(false)}
+        />
+      )}
 
       {/* 씬 합치기 이미지 선택 팝업 */}
       {showMergeImageSelectPopup && mergingScenesData && (
@@ -4485,162 +4400,21 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {showExportPopup && project && (() => {
-        const videoCount = project.scenes.filter(s => s.videoUrl).length;
-        const imageCount = project.scenes.filter(s => s.imageUrl && !s.videoUrl).length;
-        const totalScenes = project.scenes.length;
-        const estimatedLength = project.scenes.reduce((acc, s) => {
-          const textLen = s.scriptSegment?.length || 0;
-          return acc + Math.max(5, Math.min(12, textLen / 3));
-        }, 0);
-        const estimatedTime = Math.ceil((videoCount * 3 + imageCount * 8 + totalScenes * 2) / 60);
-
-        // 예시 영상용 씬 범위 파싱
-        const parseSampleRange = (text: string): number[] => {
-          if (!text.trim()) return [];
-          const result: number[] = [];
-          const parts = text.split(',').map(p => p.trim()).filter(Boolean);
-          for (const part of parts) {
-            if (part.includes('~') || part.includes('-')) {
-              const [start, end] = part.split(/[~-]/).map(n => parseInt(n.trim()));
-              if (!isNaN(start) && !isNaN(end)) {
-                for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
-                  if (i >= 1 && i <= totalScenes && !result.includes(i)) result.push(i);
-                }
-              }
-            } else {
-              const num = parseInt(part);
-              if (!isNaN(num) && num >= 1 && num <= totalScenes && !result.includes(num)) result.push(num);
-            }
-          }
-          return result.sort((a, b) => a - b);
-        };
-        const sampleIndices = parseSampleRange(sampleSceneRange);
-        const isSampleValid = sampleIndices.length >= 3 && sampleIndices.length <= 6;
-
-        return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setShowExportPopup(false)}>
-            <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">최종 영상 추출</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">전체 영상 또는 예시 영상을 추출합니다</p>
-              </div>
-              <div className="p-6 space-y-4">
-                {/* 추출 모드 선택 */}
-                <div className="flex gap-2">
-                  <button onClick={() => setPreviewExportMode('full')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${previewExportMode === 'full' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
-                    전체 영상
-                  </button>
-                  <button onClick={() => setPreviewExportMode('sample')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${previewExportMode === 'sample' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
-                    예시 영상 추출
-                  </button>
-                </div>
-
-                {previewExportMode === 'full' ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-xl text-center">
-                        <div className="text-2xl font-bold text-purple-600">{videoCount}</div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">AI 비디오</div>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-xl text-center">
-                        <div className="text-2xl font-bold text-blue-600">{imageCount}</div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">이미지 (줌효과)</div>
-                      </div>
-                    </div>
-                    <div className="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-xl space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600 dark:text-slate-400">예상 영상 길이</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">{Math.floor(estimatedLength / 60)}분 {Math.round(estimatedLength % 60)}초</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600 dark:text-slate-400">예상 소요 시간</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">약 {estimatedTime}분</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600 dark:text-slate-400">총 씬 개수</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">{totalScenes}개</span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* 예시 영상 옵션 */}
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">영상 길이</label>
-                        <div className="flex gap-2">
-                          <button onClick={() => setSampleDuration(30)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${sampleDuration === 30 ? 'bg-purple-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
-                            30초
-                          </button>
-                          <button onClick={() => setSampleDuration(60)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${sampleDuration === 60 ? 'bg-purple-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
-                            1분
-                          </button>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">씬 번호 (3~6개)</label>
-                        <input
-                          type="text"
-                          value={sampleSceneRange}
-                          onChange={(e) => setSampleSceneRange(e.target.value)}
-                          placeholder="예: 1~3 또는 1, 5, 8"
-                          className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-700 outline-none"
-                        />
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                          {sampleIndices.length > 0
-                            ? `선택된 씬: ${sampleIndices.join(', ')}번 (${sampleIndices.length}개)${sampleIndices.length < 3 ? ' - 최소 3개 필요' : sampleIndices.length > 6 ? ' - 최대 6개까지' : ''}`
-                            : '쉼표(,)로 구분, 범위는 물결(~) 또는 하이픈(-) 사용'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-xl">
-                      <p className="text-sm text-slate-600 dark:text-slate-400">선택한 씬들로 {sampleDuration}초 예시 영상을 빠르게 추출해 미리 확인해보세요.</p>
-                    </div>
-                  </>
-                )}
-
-                {/* 자막 ON/OFF 스위치 */}
-                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">자막 표시</span>
-                  </div>
-                  <button
-                    onClick={() => setIncludeSubtitles(!includeSubtitles)}
-                    className={`relative w-12 h-6 rounded-full transition-all ${
-                      includeSubtitles ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                        includeSubtitles ? 'translate-x-6' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-                <p className="text-xs text-slate-400 text-center">자막과 오디오가 싱크에 맞춰 자동으로 합성됩니다</p>
-              </div>
-              <div className="p-6 pt-0 flex gap-3">
-                <button onClick={() => setShowExportPopup(false)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">취소</button>
-                <button
-                  onClick={() => {
-                    setShowExportPopup(false);
-                    if (previewExportMode === 'full') {
-                      exportVideo();
-                    } else {
-                      exportVideo(sampleIndices, sampleDuration);
-                    }
-                  }}
-                  disabled={previewExportMode === 'sample' && !isSampleValid}
-                  className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {previewExportMode === 'full' ? '추출 시작' : `${sampleDuration}초 예시 추출`}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {showExportPopup && project && (
+        <ExportPopup
+          scenes={project.scenes}
+          previewExportMode={previewExportMode}
+          setPreviewExportMode={setPreviewExportMode}
+          sampleDuration={sampleDuration}
+          setSampleDuration={setSampleDuration}
+          sampleSceneRange={sampleSceneRange}
+          setSampleSceneRange={setSampleSceneRange}
+          includeSubtitles={includeSubtitles}
+          setIncludeSubtitles={setIncludeSubtitles}
+          onExport={exportVideo}
+          onClose={() => setShowExportPopup(false)}
+        />
+      )}
 
       {isRegenerateModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setIsRegenerateModalOpen(false)}>
