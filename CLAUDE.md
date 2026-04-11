@@ -44,6 +44,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - 분석은 별도로 하되, 원본 텍스트는 반드시 보존
 - **중도 포기 금지:** 작업 중 임의로 마무리하거나 생략하지 말 것. 끝까지 완수.
 
+## 🧩 코드 모듈화 원칙 (Modularization)
+
+**App.tsx에 직접 추가 금지. 새 기능은 반드시 분리된 컴포넌트로 작성.**
+
+**새 모달/팝업 추가 시:**
+```
+위치: src/components/modals/
+패턴:
+- props로 상태와 콜백 전달
+- App.tsx에서는 조건부 렌더링만
+```
+
+**새 뷰/섹션 추가 시:**
+```
+위치: src/components/ 또는 src/views/
+패턴:
+- 독립적인 컴포넌트로 분리
+- 필요한 props만 전달
+```
+
+**기존 코드 수정 시:**
+- 50줄 이상 추가되면 → 컴포넌트 분리 검토
+- 인라인 JSX가 길어지면 → 별도 컴포넌트로 추출
+
+**현재 모달 구조:**
+```
+src/components/modals/
+├── BatchModal.tsx        (배치 생성)
+├── ExportPopup.tsx       (영상 추출)
+├── VideoGenerationPopup.tsx (영상 설정)
+├── RegenerateModal.tsx   (이미지 재생성)
+└── StyleDescModal.tsx    (스타일 설명)
+```
+
 ## 📦 Repository & Backup
 - **Main Repo:** `https://github.com/Breaduck/google-youtubeproject`
 - **Modal API (브랜치2):** `https://hiyoonsh1--byteplus-proxy-web.modal.run`
