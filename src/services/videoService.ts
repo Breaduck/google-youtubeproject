@@ -427,42 +427,90 @@ export async function addTextSubtitleToVideo(
   subtitleText: string,
   settings?: SubtitleSettings
 ): Promise<Blob> {
-  const ffmpeg = await getFFmpeg();
-  await ffmpeg.writeFile('input.mp4', await fetchFile(videoBlob));
-
-  const fontSize = settings?.fontSize || 48;
-  const fontColor = settings?.textColor?.replace('#', '') || 'FFFFFF';
-  const strokeColor = settings?.strokeColor?.replace('#', '') || '000000';
-  const strokeWidth = settings?.strokeWidth || 2;
-  const yPos = settings?.position === 'top' ? 50 : settings?.position === 'center' ? '(h-text_h)/2' : 'h-th-80';
-
-  // 긴 텍스트 줄바꿈 처리
-  const maxChars = 20;
-  const words = subtitleText.split(' ');
-  let lines: string[] = [];
-  let currentLine = '';
-  for (const word of words) {
-    if ((currentLine + ' ' + word).trim().length <= maxChars) {
-      currentLine = (currentLine + ' ' + word).trim();
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
-    }
+  if (!videoBlob || videoBlob.size === 0) {
+    throw new Error('입력 비디오가 비어있습니다');
   }
-  if (currentLine) lines.push(currentLine);
-  const text = lines.join('\\n').replace(/'/g, "\\'");
 
-  await ffmpeg.exec([
-    '-i', 'input.mp4',
-    '-vf', `drawtext=text='${text}':fontsize=${fontSize}:fontcolor=${fontColor}:borderw=${strokeWidth}:bordercolor=${strokeColor}:x=(w-text_w)/2:y=${yPos}`,
-    '-c:a', 'copy',
-    'output.mp4'
-  ]);
+  const ffmpeg = await getFFmpeg();
 
-  const data = await ffmpeg.readFile('output.mp4');
-  await ffmpeg.deleteFile('input.mp4').catch(() => {});
-  await ffmpeg.deleteFile('output.mp4').catch(() => {});
-  return new Blob([data as BlobPart], { type: 'video/mp4' });
+  try {
+    await ffmpeg.writeFile('input_sub.mp4', await fetchFile(videoBlob));
+
+    // drawtext 필터는 한글 폰트가 없어서 동작하지 않을 수 있음
+    // 폴백: 자막 없이 재인코딩만 수행
+    const fontSize = settings?.fontSize || 48;
+    const fontColor = settings?.textColor?.replace('#', '') || 'FFFFFF';
+    const strokeColor = settings?.strokeColor?.replace('#', '') || '000000';
+    const strokeWidth = settings?.strokeWidth || 2;
+    const yPos = settings?.position === 'top' ? 50 : settings?.position === 'center' ? '(h-text_h)/2' : 'h-th-80';
+
+    // 긴 텍스트 줄바꿈 처리
+    const maxChars = 20;
+    const words = subtitleText.split(' ');
+    let lines: string[] = [];
+    let currentLine = '';
+    for (const word of words) {
+      if ((currentLine + ' ' + word).trim().length <= maxChars) {
+        currentLine = (currentLine + ' ' + word).trim();
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+    const text = lines.join('\\n').replace(/'/g, "\\'").replace(/:/g, '\\:');
+
+    // 먼저 drawtext 시도
+    let success = false;
+    try {
+      await ffmpeg.exec([
+        '-i', 'input_sub.mp4',
+        '-vf', `drawtext=text='${text}':fontsize=${fontSize}:fontcolor=${fontColor}:borderw=${strokeWidth}:bordercolor=${strokeColor}:x=(w-text_w)/2:y=${yPos}`,
+        '-c:a', 'copy',
+        '-y',
+        'output_sub.mp4'
+      ]);
+
+      const data = await ffmpeg.readFile('output_sub.mp4');
+      if (data && (data as Uint8Array).length > 1000) {
+        success = true;
+        await ffmpeg.deleteFile('input_sub.mp4').catch(() => {});
+        await ffmpeg.deleteFile('output_sub.mp4').catch(() => {});
+        return new Blob([data as BlobPart], { type: 'video/mp4' });
+      }
+    } catch (drawtextErr) {
+      console.warn('[VIDEO] drawtext 실패, 폴백 시도:', drawtextErr);
+    }
+
+    // drawtext 실패 시: 단순 재인코딩 (자막 없이)
+    if (!success) {
+      console.log('[VIDEO] 자막 없이 재인코딩 진행');
+      await ffmpeg.exec([
+        '-i', 'input_sub.mp4',
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-c:a', 'copy',
+        '-y',
+        'output_sub.mp4'
+      ]);
+
+      const data = await ffmpeg.readFile('output_sub.mp4');
+      if (!data || (data as Uint8Array).length < 1000) {
+        throw new Error('비디오 인코딩 실패');
+      }
+
+      await ffmpeg.deleteFile('input_sub.mp4').catch(() => {});
+      await ffmpeg.deleteFile('output_sub.mp4').catch(() => {});
+      return new Blob([data as BlobPart], { type: 'video/mp4' });
+    }
+
+    throw new Error('비디오 처리 실패');
+  } catch (err) {
+    // 정리
+    await ffmpeg.deleteFile('input_sub.mp4').catch(() => {});
+    await ffmpeg.deleteFile('output_sub.mp4').catch(() => {});
+    throw err;
+  }
 }
 
 // 비디오에 오디오 추가 (오디오가 더 길면 마지막 프레임 연장)

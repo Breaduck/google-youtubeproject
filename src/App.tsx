@@ -3325,29 +3325,29 @@ const App: React.FC = () => {
                         <>
                           <video
                             src={scene.uploadedVideoUrl}
-                            className="w-full h-full object-cover cursor-pointer"
-                            controls
-                            onClick={(e) => e.stopPropagation()}
+                            className="w-full h-full object-cover"
+                            muted
+                            loop
+                            playsInline
+                            onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                            onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
                           />
                           {!isSelectionMode && (
-                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10 pointer-events-none">
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10 cursor-pointer" onClick={() => setFullscreenVideoUrl(scene.uploadedVideoUrl!)}>
                             {scene.imageUrl && (
-                            <button onClick={(e) => { e.stopPropagation(); generateVideo(scene.id, false); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="AI 영상 재생성 (자막 없음)">
+                            <button onClick={(e) => { e.stopPropagation(); generateVideo(scene.id, false); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="AI 영상 재생성 (자막 없음)">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                             </button>
                             )}
-                            <div className="relative group/dl pointer-events-auto">
-                              <button className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="다운로드">
+                            <div className="relative group/dl">
+                              <button onClick={(e) => e.stopPropagation()} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="다운로드">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                               </button>
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl p-1.5 opacity-0 invisible group-hover/dl:opacity-100 group-hover/dl:visible transition-all z-50 flex gap-1">
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl p-1.5 opacity-0 invisible group-hover/dl:opacity-100 group-hover/dl:visible transition-all z-50 flex flex-col gap-1">
                                 <button onClick={(e) => { e.stopPropagation(); if(scene.uploadedVideoUrl) { const a = document.createElement('a'); a.href = scene.uploadedVideoUrl; a.download = `scene-${idx+1}.mp4`; a.click(); }}} className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all whitespace-nowrap">영상만</button>
-                                <button onClick={async (e) => { e.stopPropagation(); if(scene.uploadedVideoUrl && scene.scriptSegment) { setLoadingText('자막 합성 중...'); try { const res = await fetch(scene.uploadedVideoUrl); const blob = await res.blob(); const { addTextSubtitleToVideo } = await import('./services/videoService'); const withSub = await addTextSubtitleToVideo(blob, scene.scriptSegment, subtitleSettings); const url = URL.createObjectURL(withSub); const a = document.createElement('a'); a.href = url; a.download = `scene-${idx+1}_sub.mp4`; a.click(); URL.revokeObjectURL(url); } catch(err) { alert('자막 합성 실패'); } setLoadingText(''); }}} className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all whitespace-nowrap">자막 포함</button>
+                                <button onClick={async (e) => { e.stopPropagation(); if(scene.uploadedVideoUrl && scene.scriptSegment) { setLoadingText('자막 합성 중...'); try { const res = await fetch(scene.uploadedVideoUrl); const blob = await res.blob(); if (blob.size === 0) throw new Error('영상 로드 실패'); const { addTextSubtitleToVideo } = await import('./services/videoService'); const withSub = await addTextSubtitleToVideo(blob, scene.scriptSegment, subtitleSettings); if (withSub.size === 0) throw new Error('자막 합성 결과 없음'); const url = URL.createObjectURL(withSub); const a = document.createElement('a'); a.href = url; a.download = `scene-${idx+1}_sub.mp4`; a.click(); URL.revokeObjectURL(url); } catch(err) { console.error('자막 합성 에러:', err); alert('자막 합성 실패: ' + (err instanceof Error ? err.message : '알 수 없는 오류')); } setLoadingText(''); }}} className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all whitespace-nowrap">자막 포함</button>
                               </div>
                             </div>
-                            <button onClick={(e) => { e.stopPropagation(); setFullscreenVideoUrl(scene.uploadedVideoUrl!); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg pointer-events-auto" title="전체화면">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
-                            </button>
                           </div>
                           )}
                         </>
@@ -3816,6 +3816,11 @@ const App: React.FC = () => {
                             <video
                               src={scene.uploadedVideoUrl}
                               className="w-full h-full object-cover"
+                              muted
+                              loop
+                              playsInline
+                              onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                              onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
                             />
                           {/* 호버 시 중앙 버튼 - 검은 배경 클릭 시 전체화면 */}
                           <div
@@ -3863,7 +3868,7 @@ const App: React.FC = () => {
                           </div>
                           {/* 우측 상단 라벨 */}
                           <div className="absolute top-2 right-2 px-2 py-1 bg-white/20 backdrop-blur-sm rounded text-white text-[10px] font-medium">
-                            AI영상 재생
+                            AI영상
                           </div>
                           </>
                         ) : scene.imageUrl ? (
