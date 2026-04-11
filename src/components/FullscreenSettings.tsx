@@ -2624,16 +2624,16 @@ export function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' |
       steps: [
         { title: 'Google Cloud 접속', desc: 'console.cloud.google.com 접속 후 로그인' },
         { title: '프로젝트 선택', desc: '기존 프로젝트 선택 또는 새로 만들기' },
-        { title: 'API 키 생성', desc: '"API 및 서비스" → "사용자 인증 정보" → "API 키 만들기"' },
-        { title: '키 복사', desc: '생성된 API 키를 복사하여 여기에 붙여넣기' },
+        { title: 'API 활성화', desc: '"API 및 서비스" → "라이브러리"에서 "Generative Language API" 검색 후 활성화' },
+        { title: 'API 키 생성', desc: '"사용자 인증 정보" → "API 키 만들기" → 키 복사' },
       ],
-      tip: 'Gemini API와 TTS API는 별도로 활성화해야 합니다.',
-      link: 'https://console.cloud.google.com/apis/credentials',
-      linkText: 'Google Cloud 바로가기'
+      tip: 'Generative Language API를 먼저 활성화해야 합니다.',
+      link: 'https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com',
+      linkText: 'Generative Language API 활성화'
     },
     'google-tts': {
-      title: 'Google TTS 설정',
-      icon: '🔊',
+      title: 'Google TTS (나레이션) 설정',
+      icon: '',
       color: 'from-green-500 to-emerald-500',
       steps: [
         { title: 'Google Cloud 접속', desc: 'console.cloud.google.com 접속' },
@@ -2641,9 +2641,9 @@ export function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' |
         { title: 'TTS API 검색', desc: '"Cloud Text-to-Speech API" 검색' },
         { title: 'API 활성화', desc: '"사용" 버튼 클릭하여 활성화' },
       ],
-      tip: 'Gemini API 키를 이미 입력했다면, TTS 칸은 비워두세요!',
+      tip: 'Chirp3, Neural2 음성을 사용하려면 이 API를 활성화하세요.',
       link: 'https://console.cloud.google.com/apis/library/texttospeech.googleapis.com',
-      linkText: 'TTS API 활성화'
+      linkText: 'Text-to-Speech API 활성화'
     },
     byteplus: {
       title: 'BytePlus API 발급',

@@ -5272,7 +5272,12 @@ const App: React.FC = () => {
                         {chirpApiKey && chirpApiKey.length > 10 ? (
                           <p className="text-xs text-green-600 dark:text-green-400">API 키 설정됨</p>
                         ) : (
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Cloud Console → Text-to-Speech API 활성화 필요</p>
+                          <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              Text-to-Speech API 활성화 필요
+                            </p>
+                            <button onClick={() => setShowApiGuide('google-tts')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline whitespace-nowrap ml-2">발급 방법</button>
+                          </div>
                         )}
                       </div>
                     )}
