@@ -1,6 +1,67 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { SubtitleSettings, ElevenLabsSettings } from '../types';
+import { encryptApiKey, decryptApiKey } from '../utils/crypto';
+
+// API 키 필드 목록 (암호화 대상)
+const API_KEY_FIELDS = [
+  'geminiApiKey',
+  'runwareApiKey',
+  'bytedanceApiKey',
+  'evolinkApiKey',
+  'chirpApiKey',
+  'azureApiKey',
+] as const;
+
+// 암호화된 저장소 생성
+const encryptedStorage = {
+  getItem: (name: string): string | null => {
+    const value = localStorage.getItem(name);
+    if (!value) return null;
+
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed.state) {
+        // API 키 필드 복호화
+        API_KEY_FIELDS.forEach(field => {
+          if (parsed.state[field]) {
+            parsed.state[field] = decryptApiKey(parsed.state[field]);
+          }
+        });
+        // ElevenLabs API 키도 복호화
+        if (parsed.state.elSettings?.apiKey) {
+          parsed.state.elSettings.apiKey = decryptApiKey(parsed.state.elSettings.apiKey);
+        }
+      }
+      return JSON.stringify(parsed);
+    } catch {
+      return value;
+    }
+  },
+  setItem: (name: string, value: string): void => {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed.state) {
+        // API 키 필드 암호화
+        API_KEY_FIELDS.forEach(field => {
+          if (parsed.state[field]) {
+            parsed.state[field] = encryptApiKey(parsed.state[field]);
+          }
+        });
+        // ElevenLabs API 키도 암호화
+        if (parsed.state.elSettings?.apiKey) {
+          parsed.state.elSettings.apiKey = encryptApiKey(parsed.state.elSettings.apiKey);
+        }
+      }
+      localStorage.setItem(name, JSON.stringify(parsed));
+    } catch {
+      localStorage.setItem(name, value);
+    }
+  },
+  removeItem: (name: string): void => {
+    localStorage.removeItem(name);
+  },
+};
 
 // 저장된 자막 템플릿 타입
 export interface SavedSubtitleTemplate {
@@ -278,6 +339,7 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'app-settings-storage',
+      storage: createJSONStorage(() => encryptedStorage),
       partialize: (state) => ({
         isDarkMode: state.isDarkMode,
         geminiApiKey: state.geminiApiKey,
