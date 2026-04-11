@@ -1,4 +1,4 @@
-export type AppStep = 'dashboard' | 'input' | 'character_setup' | 'storyboard';
+export type AppStep = 'dashboard' | 'input' | 'style_selection' | 'character_setup' | 'storyboard';
 
 export type VisualStyle = '2d-animation' | 'realistic' | 'animation' | 'custom';
 
@@ -27,11 +27,14 @@ export interface Scene {
   imagePrompt: string;
   imageUrl: string | null;
   audioUrl: string | null;
-  videoUrl: string | null;  // LTX Video generated video
+  videoUrl: string | null;
+  uploadedVideoUrl: string | null;  // 사용자 업로드 영상
+  activeMedia: 'image' | 'video';   // 최종 영상에 사용할 미디어 타입
   status: 'idle' | 'loading' | 'done' | 'error';
   audioStatus: 'idle' | 'loading' | 'done' | 'error';
-  videoStatus: 'idle' | 'loading' | 'done' | 'error';  // Video generation status
+  videoStatus: 'idle' | 'loading' | 'done' | 'error';
   effect?: SceneEffect;
+  videoType?: 'ai' | 'zoom' | 'manual';
 }
 
 export interface StoryProject {
@@ -40,6 +43,7 @@ export interface StoryProject {
   script: string;
   style: string;
   customStyleDescription?: string;
+  characterAppearance?: string;  // 레퍼런스 이미지 속 캐릭터 외형 설명
   characters: CharacterProfile[];
   scenes: Scene[];
   updatedAt: number;
@@ -56,6 +60,7 @@ export interface SavedStyle {
   name: string;
   refImages: string[];
   description: string;
+  characterAppearance?: string;  // 그림체 이미지 속 캐릭터 외형 설명
 }
 
 export interface SavedCharacter {
@@ -64,4 +69,46 @@ export interface SavedCharacter {
   refImages: string[];
   description: string;
   portraitUrl: string | null;
+}
+
+export type SubtitleTemplate =
+  | 'default-white'
+  | 'black-bg'
+  | 'transparent-black'
+  | 'yellow'
+  | 'neon-green'
+  | 'youtube'
+  | 'youtube-shorts'
+  | 'custom';
+
+export type SubtitlePosition = 'top' | 'center' | 'bottom';
+
+export interface SubtitleSettings {
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: number;
+  fontStyle: 'normal' | 'italic';
+  letterSpacing: number;
+  lineHeight: number;
+  opacity: number;
+  template: SubtitleTemplate;
+
+  textColor: string;
+  strokeColor: string;
+  strokeWidth: number;
+  backgroundColor?: string;
+  bgPadding: number;
+  bgPaddingX?: number;
+  bgPaddingY?: number;
+  bgOpacity: number;
+  bgRadius: number;
+
+  position: SubtitlePosition;
+  yPosition: number;
+
+  lockPosition: boolean;
+  lockFont: boolean;
+
+  maxLineChars?: number; // 한 줄 최대 글자수 (기본 15)
+
 }

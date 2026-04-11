@@ -1,0 +1,8 @@
+1.0.0
+
+# Billing Gate 릴리즈
+- Runware 기본 비활성화 (VITE_RUNWARE_ENABLED=false)
+- BytePlus 공식 API 권장
+- docs/BILLING_GATE.md 추가 (외부 API 도입 체크리스트)
+- 재시도 로직 제거 (insufficient credits 시 즉시 실패)
+- 명시적 비용 안내 (최소 충전 $20, API 요구 $5)
