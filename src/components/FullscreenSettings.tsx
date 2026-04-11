@@ -2618,88 +2618,100 @@ function AdminPanel() {
 export function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' | 'evolink' | 'runware' | 'google-tts' | 'elevenlabs'; onClose: () => void }) {
   const guides: Record<string, { title: string; icon: string; color: string; steps: { title: string; desc: string }[]; tip: string; link: string; linkText: string }> = {
     gemini: {
-      title: 'Gemini API 발급',
+      title: 'Gemini API 키 발급',
       icon: '',
       color: 'from-blue-500 to-cyan-500',
       steps: [
-        { title: 'Google Cloud 접속', desc: 'console.cloud.google.com 접속 후 로그인' },
-        { title: '프로젝트 선택', desc: '기존 프로젝트 선택 또는 새로 만들기' },
-        { title: 'API 활성화', desc: '"API 및 서비스" → "라이브러리"에서 "Generative Language API" 검색 후 활성화' },
-        { title: 'API 키 생성', desc: '"사용자 인증 정보" → "API 키 만들기" → 키 복사' },
+        { title: '1. Google Cloud 접속', desc: '아래 버튼을 클릭하거나 console.cloud.google.com 접속 후 Google 계정으로 로그인하세요.' },
+        { title: '2. 새 프로젝트 만들기', desc: '상단의 "프로젝트 선택" 클릭 → "새 프로젝트" 클릭 → 프로젝트 이름 입력 (예: my-video-project) → "만들기" 클릭' },
+        { title: '3. 프로젝트 선택 확인', desc: '상단에 방금 만든 프로젝트 이름이 표시되는지 확인하세요. 아니라면 "프로젝트 선택"에서 선택해주세요.' },
+        { title: '4. Generative Language API 활성화', desc: '왼쪽 메뉴 "API 및 서비스" → "라이브러리" → 검색창에 "Generative Language API" 입력 → 클릭 → "사용" 버튼 클릭' },
+        { title: '5. API 키 생성', desc: '왼쪽 메뉴 "API 및 서비스" → "사용자 인증 정보" → 상단 "+ 사용자 인증 정보 만들기" → "API 키" 선택' },
+        { title: '6. 키 복사', desc: '생성된 API 키를 복사하여 여기에 붙여넣으세요. (키는 AIza... 로 시작합니다)' },
       ],
-      tip: 'Generative Language API를 먼저 활성화해야 합니다.',
-      link: 'https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com',
-      linkText: 'Generative Language API 활성화'
+      tip: '처음이시라면 결제 정보 등록이 필요할 수 있습니다. 무료 크레딧이 제공됩니다.',
+      link: 'https://console.cloud.google.com/projectcreate',
+      linkText: 'Google Cloud 새 프로젝트 만들기'
     },
     'google-tts': {
       title: 'Google TTS (나레이션) 설정',
       icon: '',
       color: 'from-green-500 to-emerald-500',
       steps: [
-        { title: 'Google Cloud 접속', desc: 'console.cloud.google.com 접속' },
-        { title: 'API 라이브러리 이동', desc: '"API 및 서비스" → "라이브러리"' },
-        { title: 'TTS API 검색', desc: '"Cloud Text-to-Speech API" 검색' },
-        { title: 'API 활성화', desc: '"사용" 버튼 클릭하여 활성화' },
+        { title: '1. Gemini API 키 확인', desc: '위에서 Gemini API 키를 이미 발급받으셨다면, 그 키를 나레이션에도 사용할 수 있습니다.' },
+        { title: '2. Google Cloud 접속', desc: 'console.cloud.google.com 접속 후 Gemini API를 만든 프로젝트가 선택되어 있는지 확인하세요.' },
+        { title: '3. API 라이브러리 이동', desc: '왼쪽 메뉴 "API 및 서비스" → "라이브러리" 클릭' },
+        { title: '4. TTS API 검색', desc: '검색창에 "Cloud Text-to-Speech API" 입력 후 클릭' },
+        { title: '5. API 활성화', desc: '"사용" 버튼을 클릭하여 활성화하세요.' },
+        { title: '6. API 키 입력', desc: 'Gemini API 키와 동일한 키를 나레이션 API 키 칸에 입력하면 됩니다.' },
       ],
-      tip: 'Chirp3, Neural2 음성을 사용하려면 이 API를 활성화하세요.',
+      tip: 'Gemini API 키를 발급받은 같은 프로젝트에서 TTS API만 추가로 활성화하면 됩니다.',
       link: 'https://console.cloud.google.com/apis/library/texttospeech.googleapis.com',
-      linkText: 'Text-to-Speech API 활성화'
+      linkText: 'Text-to-Speech API 활성화 페이지'
     },
     byteplus: {
-      title: 'BytePlus API 발급',
-      icon: '🎬',
+      title: 'BytePlus API 키 발급 (AI 영상)',
+      icon: '',
       color: 'from-purple-500 to-pink-500',
       steps: [
-        { title: 'BytePlus 콘솔 접속', desc: 'console.byteplus.com 접속 후 회원가입' },
-        { title: 'CV 제품 선택', desc: '"Computer Vision" → "SeeDANCE" 활성화' },
-        { title: 'Access Key 발급', desc: '"Access Key Management"에서 키 생성' },
-        { title: '키 입력 형식', desc: 'AccessKeyId:SecretAccessKey 형태로 입력' },
+        { title: '1. BytePlus 콘솔 접속', desc: '아래 버튼을 클릭하거나 console.byteplus.com 접속 후 회원가입을 진행하세요.' },
+        { title: '2. 이메일 인증', desc: '가입 시 입력한 이메일로 인증 메일이 발송됩니다. 인증을 완료해주세요.' },
+        { title: '3. CV 제품 활성화', desc: '로그인 후 좌측 메뉴에서 "Computer Vision" 클릭 → "SeeDANCE" 선택 → "Activate" 클릭' },
+        { title: '4. Access Key 발급', desc: '우측 상단 프로필 아이콘 클릭 → "Access Key Management" → "Create Access Key"' },
+        { title: '5. 키 형식 확인', desc: 'Access Key ID와 Secret Access Key 두 개가 생성됩니다. 둘 다 복사해두세요.' },
+        { title: '6. 입력 형식', desc: '여기에 입력할 때는 "AccessKeyId:SecretAccessKey" 형태로 콜론(:)으로 연결해서 입력하세요.' },
       ],
-      tip: '예시: AK12345678:SK87654321 (콜론으로 연결)',
-      link: 'https://console.byteplus.com/',
-      linkText: 'BytePlus 콘솔 열기'
+      tip: '예시: AKLT1234567890abc:SkLT0987654321xyz (실제 키는 더 깁니다)',
+      link: 'https://console.byteplus.com/auth/signup',
+      linkText: 'BytePlus 회원가입'
     },
     evolink: {
-      title: 'Evolink API 발급',
-      icon: '✨',
+      title: 'Evolink API 키 발급',
+      icon: '',
       color: 'from-orange-500 to-amber-500',
       steps: [
-        { title: '웹사이트 접속', desc: 'evolink.ai 접속 후 회원가입' },
-        { title: '대시보드 이동', desc: '로그인 후 대시보드로 이동' },
-        { title: 'API Keys 메뉴', desc: '"API Keys" 메뉴 클릭' },
-        { title: '새 키 생성', desc: '"Create New API Key" 클릭 후 복사' },
+        { title: '1. 웹사이트 접속', desc: '아래 버튼을 클릭하거나 evolink.ai 접속 후 "Sign Up" 버튼을 클릭하세요.' },
+        { title: '2. 회원가입', desc: '이메일과 비밀번호를 입력하여 회원가입을 완료하세요.' },
+        { title: '3. 로그인 후 대시보드', desc: '로그인하면 자동으로 대시보드로 이동합니다.' },
+        { title: '4. API Keys 메뉴', desc: '좌측 메뉴에서 "API Keys" 또는 "Settings" → "API Keys"를 클릭하세요.' },
+        { title: '5. 새 키 생성', desc: '"Create New API Key" 또는 "+" 버튼을 클릭하세요.' },
+        { title: '6. 키 복사', desc: '생성된 API 키를 복사하여 여기에 붙여넣으세요.' },
       ],
-      tip: '신규 가입 시 무료 크레딧이 제공될 수 있습니다!',
-      link: 'https://www.evolink.ai/',
-      linkText: 'Evolink 바로가기'
+      tip: '신규 가입 시 무료 크레딧이 제공될 수 있습니다.',
+      link: 'https://www.evolink.ai/signup',
+      linkText: 'Evolink 회원가입'
     },
     runware: {
-      title: 'Runware API 발급',
-      icon: '����️',
+      title: 'Runware API 키 발급',
+      icon: '',
       color: 'from-rose-500 to-red-500',
       steps: [
-        { title: '웹사이트 접속', desc: 'runware.ai 접속 후 회원가입' },
-        { title: '설정 메뉴 이동', desc: '대시보드에서 "Settings" 클릭' },
-        { title: 'API Keys 섹션', desc: '"API Keys" 섹션 찾기' },
-        { title: '키 생성', desc: '새 API 키 생성 후 복사' },
+        { title: '1. 웹사이트 접속', desc: '아래 버튼을 클릭하거나 runware.ai 접속 후 "Sign Up" 버튼을 클릭하세요.' },
+        { title: '2. 회원가입', desc: 'Google 계정 또는 이메일로 회원가입을 완료하세요.' },
+        { title: '3. 대시보드 이동', desc: '로그인 후 대시보드로 이동합니다.' },
+        { title: '4. Settings 메뉴', desc: '좌측 메뉴 또는 프로필에서 "Settings"를 클릭하세요.' },
+        { title: '5. API Keys 섹션', desc: '"API Keys" 탭을 클릭하세요.' },
+        { title: '6. 키 생성 및 복사', desc: '"Create API Key" 클릭 후 생성된 키를 복사하여 여기에 붙여넣으세요.' },
       ],
       tip: '이미지 생성에 특화된 빠른 API 서비스입니다.',
-      link: 'https://runware.ai/',
-      linkText: 'Runware 바로가기'
+      link: 'https://app.runware.ai/signup',
+      linkText: 'Runware 회원가입'
     },
     elevenlabs: {
-      title: 'ElevenLabs API 발급',
-      icon: '🎤',
+      title: 'ElevenLabs API 키 발급',
+      icon: '',
       color: 'from-indigo-500 to-violet-500',
       steps: [
-        { title: '웹사이트 접속', desc: 'elevenlabs.io 접속 후 회원가입' },
-        { title: '프로필 메뉴', desc: '우측 상단 프로필 아이콘 클릭' },
-        { title: 'API 설정', desc: '"Profile + API key" 선택' },
-        { title: '키 복사', desc: 'API Key를 복사하여 입력' },
+        { title: '1. 웹사이트 접속', desc: '아래 버튼을 클릭하거나 elevenlabs.io 접속 후 "Sign Up" 버튼을 클릭하세요.' },
+        { title: '2. 회원가입', desc: 'Google 계정 또는 이메일로 회원가입을 완료하세요.' },
+        { title: '3. 로그인 후 설정', desc: '로그인 후 우측 상단의 프로필 아이콘을 클릭하세요.' },
+        { title: '4. API 설정 이동', desc: '드롭다운 메뉴에서 "Profile + API key"를 선택하세요.' },
+        { title: '5. API 키 확인', desc: '화면에 API Key가 표시됩니다. 숨겨져 있다면 눈 아이콘을 클릭하세요.' },
+        { title: '6. 키 복사', desc: 'API Key를 복사하여 여기에 붙여넣으세요.' },
       ],
-      tip: '무료 플랜으로도 매월 10,000자 음성 생성 가능!',
-      link: 'https://elevenlabs.io/app/settings/api-keys',
-      linkText: 'ElevenLabs 설정 열기'
+      tip: '무료 플랜으로도 매월 10,000자 음성 생성이 가능합니다.',
+      link: 'https://elevenlabs.io/app/sign-up',
+      linkText: 'ElevenLabs 회원가입'
     }
   };
 
@@ -2707,14 +2719,11 @@ export function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' |
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[400] p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* 헤더 - 그라데이션 배경 */}
-        <div className={`bg-gradient-to-r ${guide.color} px-6 py-5`}>
+        <div className={`bg-gradient-to-r ${guide.color} px-6 py-5 flex-shrink-0`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{guide.icon}</span>
-              <h3 className="text-xl font-bold text-white">{guide.title}</h3>
-            </div>
+            <h3 className="text-xl font-bold text-white">{guide.title}</h3>
             <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -2723,16 +2732,16 @@ export function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' |
           </div>
         </div>
 
-        {/* 단계별 가이드 */}
-        <div className="px-6 py-5 space-y-4">
+        {/* 단계별 가이드 - 스크롤 가능 */}
+        <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
           {guide.steps.map((step, i) => (
-            <div key={i} className="flex gap-4">
-              <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${guide.color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+            <div key={i} className="flex gap-3">
+              <div className={`w-7 h-7 rounded-full bg-gradient-to-r ${guide.color} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}>
                 {i + 1}
               </div>
-              <div className="flex-1 pt-0.5">
-                <p className="font-semibold text-slate-900 dark:text-slate-100">{step.title}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{step.desc}</p>
+              <div className="flex-1">
+                <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{step.title}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{step.desc}</p>
               </div>
             </div>
           ))}
