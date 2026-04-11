@@ -3321,10 +3321,10 @@ const App: React.FC = () => {
                           <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                         </div>
                       )}
-                      {scene.activeMedia === 'video' && scene.uploadedVideoUrl ? (
+                      {((scene.activeMedia === 'video' && scene.uploadedVideoUrl) || scene.videoUrl) ? (
                         <>
                           <video
-                            src={scene.uploadedVideoUrl}
+                            src={(scene.videoUrl || scene.uploadedVideoUrl)!}
                             className="w-full h-full object-cover"
                             muted
                             loop
@@ -3333,7 +3333,7 @@ const App: React.FC = () => {
                             onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
                           />
                           {!isSelectionMode && (
-                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10 cursor-pointer" onClick={() => setFullscreenVideoUrl(scene.uploadedVideoUrl!)}>
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-3 z-10 cursor-pointer" onClick={() => setFullscreenVideoUrl(scene.videoUrl || scene.uploadedVideoUrl!)}>
                             {scene.imageUrl && (
                             <button onClick={(e) => { e.stopPropagation(); generateVideo(scene.id, false); }} className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-lg" title="AI 영상 재생성 (자막 없음)">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -3344,8 +3344,8 @@ const App: React.FC = () => {
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                               </button>
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl p-1.5 opacity-0 invisible group-hover/dl:opacity-100 group-hover/dl:visible transition-all z-50 flex flex-col gap-1">
-                                <button onClick={(e) => { e.stopPropagation(); if(scene.uploadedVideoUrl) { const a = document.createElement('a'); a.href = scene.uploadedVideoUrl; a.download = `scene-${idx+1}.mp4`; a.click(); }}} className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all whitespace-nowrap">영상만</button>
-                                <button onClick={async (e) => { e.stopPropagation(); if(scene.uploadedVideoUrl && scene.scriptSegment) { setLoadingText('자막 합성 중...'); try { const res = await fetch(scene.uploadedVideoUrl); const blob = await res.blob(); if (blob.size === 0) throw new Error('영상 로드 실패'); const { addTextSubtitleToVideo } = await import('./services/videoService'); const withSub = await addTextSubtitleToVideo(blob, scene.scriptSegment, subtitleSettings); if (withSub.size === 0) throw new Error('자막 합성 결과 없음'); const url = URL.createObjectURL(withSub); const a = document.createElement('a'); a.href = url; a.download = `scene-${idx+1}_sub.mp4`; a.click(); URL.revokeObjectURL(url); } catch(err) { console.error('자막 합성 에러:', err); alert('자막 합성 실패: ' + (err instanceof Error ? err.message : '알 수 없는 오류')); } setLoadingText(''); }}} className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all whitespace-nowrap">자막 포함</button>
+                                <button onClick={(e) => { e.stopPropagation(); const videoSrc = scene.videoUrl || scene.uploadedVideoUrl; if(videoSrc) { const a = document.createElement('a'); a.href = videoSrc; a.download = `scene-${idx+1}.mp4`; a.click(); }}} className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all whitespace-nowrap">영상만</button>
+                                <button onClick={async (e) => { e.stopPropagation(); if(scene.imageUrl && scene.scriptSegment) { setLoadingText('자막 포함 영상 생성 중...'); try { const { generateSimpleZoomVideo } = await import('./services/videoService'); const zoomSettings = determineZoomSettings(scene.scriptSegment, idx); const videoBlob = await generateSimpleZoomVideo(scene.imageUrl, scene.scriptSegment, zoomSettings.direction, subtitleSettings, undefined, zoomSettings.pan, zoomSettings.intensity); const url = URL.createObjectURL(videoBlob); const a = document.createElement('a'); a.href = url; a.download = `scene-${idx+1}_sub.mp4`; a.click(); URL.revokeObjectURL(url); } catch(err) { console.error('자막 영상 생성 에러:', err); alert('자막 영상 생성 실패: ' + (err instanceof Error ? err.message : '알 수 없는 오류')); } setLoadingText(''); }}} className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all whitespace-nowrap">자막 포함</button>
                               </div>
                             </div>
                           </div>
@@ -3810,11 +3810,11 @@ const App: React.FC = () => {
                               : 'bg-gray-50 border-2 border-dashed border-gray-300'
                         }`}
                       >
-                        {scene.activeMedia === 'video' && scene.uploadedVideoUrl ? (
-                          /* 업로드된 영상 */
+                        {((scene.activeMedia === 'video' && scene.uploadedVideoUrl) || scene.videoUrl) ? (
+                          /* AI 생성 영상 또는 업로드된 영상 */
                           <>
                             <video
-                              src={scene.uploadedVideoUrl}
+                              src={(scene.videoUrl || scene.uploadedVideoUrl)!}
                               className="w-full h-full object-cover"
                               muted
                               loop
@@ -3825,7 +3825,7 @@ const App: React.FC = () => {
                           {/* 호버 시 중앙 버튼 - 검은 배경 클릭 시 전체화면 */}
                           <div
                             className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 cursor-pointer"
-                            onClick={() => setFullscreenVideoUrl(scene.uploadedVideoUrl!)}
+                            onClick={() => setFullscreenVideoUrl(scene.videoUrl || scene.uploadedVideoUrl!)}
                           >
                             {/* 이미지로 전환 버튼 (이미지가 있을 때만) */}
                             {scene.imageUrl && (
@@ -3850,7 +3850,7 @@ const App: React.FC = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const a = document.createElement('a');
-                                a.href = scene.uploadedVideoUrl!;
+                                a.href = scene.videoUrl || scene.uploadedVideoUrl!;
                                 a.download = `scene-${idx + 1}.mp4`;
                                 a.click();
                               }}
@@ -3868,7 +3868,7 @@ const App: React.FC = () => {
                           </div>
                           {/* 우측 상단 라벨 */}
                           <div className="absolute top-2 right-2 px-2 py-1 bg-white/20 backdrop-blur-sm rounded text-white text-[10px] font-medium">
-                            AI영상
+                            {scene.videoUrl ? 'AI영상' : '업로드영상'}
                           </div>
                           </>
                         ) : scene.imageUrl ? (
@@ -3885,18 +3885,22 @@ const App: React.FC = () => {
                               onClick={() => setSelectedImage(scene.imageUrl)}
                             >
                               {/* 영상으로 전환 버튼 (영상이 있을 때만) */}
-                              {scene.uploadedVideoUrl && (
+                              {(scene.uploadedVideoUrl || scene.videoUrl) && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    updateCurrentProject({
-                                      scenes: project.scenes.map(s =>
-                                        s.id === scene.id ? { ...s, activeMedia: 'video' } : s
-                                      )
-                                    });
+                                    if (scene.videoUrl) {
+                                      setFullscreenVideoUrl(scene.videoUrl);
+                                    } else {
+                                      updateCurrentProject({
+                                        scenes: project.scenes.map(s =>
+                                          s.id === scene.id ? { ...s, activeMedia: 'video' } : s
+                                        )
+                                      });
+                                    }
                                   }}
                                   className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
-                                  title="영상으로 전환"
+                                  title="영상 보기"
                                 >
                                   <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -6037,11 +6041,14 @@ const App: React.FC = () => {
             </svg>
           </button>
           <video
+            key={fullscreenVideoUrl}
             src={fullscreenVideoUrl}
             controls
             autoPlay
+            playsInline
             className="max-w-full max-h-full"
             onClick={(e) => e.stopPropagation()}
+            onError={(e) => { console.error('비디오 로드 실패:', e); alert('비디오를 재생할 수 없습니다.'); setFullscreenVideoUrl(null); }}
           />
         </div>
       )}
