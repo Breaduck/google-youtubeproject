@@ -3282,14 +3282,14 @@ const App: React.FC = () => {
                           <button className="w-7 h-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                           </button>
-                          <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl p-1.5 opacity-0 invisible group-hover/upload:opacity-100 group-hover/upload:visible transition-all z-50 flex gap-1">
-                            <label className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl py-1 opacity-0 invisible group-hover/upload:opacity-100 group-hover/upload:visible transition-all z-50 min-w-[90px]">
+                            <label className="w-full px-3 py-2 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 cursor-pointer">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                               이미지
                               <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { const reader = new FileReader(); reader.onload = (ev) => { updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, imageUrl: ev.target?.result as string, status: 'done' } : s) }); }; reader.readAsDataURL(file); } }} />
                             </label>
-                            <label className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                            <label className="w-full px-3 py-2 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 cursor-pointer">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                               비디오
                               <input type="file" className="hidden" accept="video/*" onChange={(e) => { const file = e.target.files?.[0]; if(file) { if(scene.uploadedVideoUrl?.startsWith('blob:')) URL.revokeObjectURL(scene.uploadedVideoUrl); const url = URL.createObjectURL(file); updateCurrentProject({ scenes: project.scenes.map(s => s.id === scene.id ? { ...s, uploadedVideoUrl: url, activeMedia: 'video' } : s) }); } if(e.target) e.target.value = ''; }} />
                             </label>
@@ -3817,35 +3817,11 @@ const App: React.FC = () => {
                               src={scene.uploadedVideoUrl}
                               className="w-full h-full object-cover"
                             />
-                          {/* 호버 시 중앙 버튼 */}
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setFullscreenVideoUrl(scene.uploadedVideoUrl!);
-                              }}
-                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
-                              title="전체화면 재생"
-                            >
-                              <svg className="w-6 h-6 text-gray-900 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const a = document.createElement('a');
-                                a.href = scene.uploadedVideoUrl!;
-                                a.download = `scene-${idx + 1}.mp4`;
-                                a.click();
-                              }}
-                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
-                              title="다운로드"
-                            >
-                              <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
-                            </button>
+                          {/* 호버 시 중앙 버튼 - 검은 배경 클릭 시 전체화면 */}
+                          <div
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 cursor-pointer"
+                            onClick={() => setFullscreenVideoUrl(scene.uploadedVideoUrl!)}
+                          >
                             {/* 이미지로 전환 버튼 (이미지가 있을 때만) */}
                             {scene.imageUrl && (
                               <button
@@ -3865,6 +3841,21 @@ const App: React.FC = () => {
                                 </svg>
                               </button>
                             )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const a = document.createElement('a');
+                                a.href = scene.uploadedVideoUrl!;
+                                a.download = `scene-${idx + 1}.mp4`;
+                                a.click();
+                              }}
+                              className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                              title="다운로드"
+                            >
+                              <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </button>
                           </div>
                           {/* 씬 번호 */}
                           <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
@@ -3883,20 +3874,11 @@ const App: React.FC = () => {
                               className="w-full h-full object-cover"
                               alt={`씬 ${idx + 1}`}
                             />
-                            {/* 호버 시 버튼들 */}
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedImage(scene.imageUrl);
-                                }}
-                                className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
-                                title="이미지 크게보기"
-                              >
-                                <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                </svg>
-                              </button>
+                            {/* 호버 시 버튼들 - 검은 배경 클릭 시 확대 */}
+                            <div
+                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 cursor-pointer"
+                              onClick={() => setSelectedImage(scene.imageUrl)}
+                            >
                               {/* 영상으로 전환 버튼 (영상이 있을 때만) */}
                               {scene.uploadedVideoUrl && (
                                 <button
@@ -3916,6 +3898,21 @@ const App: React.FC = () => {
                                   </svg>
                                 </button>
                               )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const a = document.createElement('a');
+                                  a.href = scene.imageUrl!;
+                                  a.download = `scene-${idx + 1}.png`;
+                                  a.click();
+                                }}
+                                className="p-3 bg-white/90 hover:bg-white rounded-full transition-colors"
+                                title="다운로드"
+                              >
+                                <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                              </button>
                             </div>
                             {/* 씬 번호 */}
                             <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 rounded text-white text-xs font-medium">
@@ -5089,73 +5086,77 @@ const App: React.FC = () => {
                 </button>
                 {expandedSetting === 'bytedance' && (
                   <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900">
+                    {/* 비디오 프로바이더 선택 */}
                     <div className="space-y-2 pt-4">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">비디오 모델</label>
-                      <div className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
-                        <p className="text-sm font-medium text-indigo-900 dark:text-indigo-300">SeeDance 1.0 Pro Fast</p>
-                        <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">BytePlus ModelArk (10초 영상, 720p)</p>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">영상 생성 엔진</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button onClick={() => setVideoProvider('byteplus')} className={`py-2.5 rounded-xl text-xs font-medium transition-all ${videoProvider === 'byteplus' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                          BytePlus<br/><span className="text-[10px] opacity-70">₩307/10초</span>
+                        </button>
+                        <button onClick={() => setVideoProvider('evolink')} className={`py-2.5 rounded-xl text-xs font-medium transition-all ${videoProvider === 'evolink' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                          Evolink<br/><span className="text-[10px] opacity-70">₩190/10초</span>
+                        </button>
+                        <button onClick={() => setVideoProvider('runware')} className={`py-2.5 rounded-xl text-xs font-medium transition-all ${videoProvider === 'runware' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                          Runware<br/><span className="text-[10px] opacity-70">₩195/10초</span>
+                        </button>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 mb-2">
+                    {/* 선택된 프로바이더에 따른 API 키 입력 */}
+                    {videoProvider === 'byteplus' && (
+                      <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-700 dark:text-slate-300">BytePlus API 키</label>
-                        {isByteplusValid && (
-                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                      <div className="relative">
                         <input
-                          type={showBytedanceKey ? "text" : "password"}
+                          type="password"
                           value={bytedanceApiKey}
                           onChange={e => setBytedanceApiKey(e.target.value)}
-                          onBlur={() => bytedanceApiKey.length > 10 && checkByteplusKey(bytedanceApiKey)}
                           placeholder="ARK_API_KEY"
-                          className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
                         />
-                        <button onClick={() => setShowBytedanceKey(!showBytedanceKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                          {showBytedanceKey ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                          ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                          )}
-                        </button>
+                        {!bytedanceApiKey && (
+                          <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
+                            <p className="text-xs text-slate-600 dark:text-slate-400">BytePlus ModelArk에서 API 키 발급</p>
+                            <button onClick={() => setShowApiGuide('byteplus')} className="text-xs text-indigo-600 dark:text-indigo-400 underline whitespace-nowrap ml-2">발급 방법</button>
+                          </div>
+                        )}
                       </div>
-                      {bytedanceApiKey.length > 10 && (
-                        <div className="flex items-center gap-2 text-sm mt-2">
-                          {isValidatingByteplus ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                              <span className="text-slate-600 dark:text-slate-400">검증 중...</span>
-                            </>
-                          ) : isByteplusValid ? (
-                            <>
-                              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                              </svg>
-                              <span className="text-green-600 font-medium">유효함</span>
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                              <span className="text-red-600 font-medium">유효하지 않음</span>
-                            </>
-                          )}
-                        </div>
-                      )}
-                      {!bytedanceApiKey && (
-                        <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
-                          <p className="text-xs text-slate-600 dark:text-slate-400">
-                            💡 BytePlus ModelArk에서 API 키 발급
-                          </p>
-                          <button onClick={() => setShowApiGuide('byteplus')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline whitespace-nowrap ml-2">발급 방법</button>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                    {videoProvider === 'evolink' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Evolink API 키</label>
+                        <input
+                          type="password"
+                          value={evolinkApiKey}
+                          onChange={e => setEvolinkApiKey(e.target.value)}
+                          placeholder="Evolink API Key"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
+                        />
+                        {!evolinkApiKey && (
+                          <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
+                            <p className="text-xs text-slate-600 dark:text-slate-400">Evolink에서 API 키 발급</p>
+                            <button onClick={() => setShowApiGuide('evolink')} className="text-xs text-indigo-600 dark:text-indigo-400 underline whitespace-nowrap ml-2">발급 방법</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {videoProvider === 'runware' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Runware API 키</label>
+                        <input
+                          type="password"
+                          value={runwareApiKey}
+                          onChange={e => setRunwareApiKey(e.target.value)}
+                          placeholder="Runware API Key"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-400 outline-none text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
+                        />
+                        {!runwareApiKey && (
+                          <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
+                            <p className="text-xs text-slate-600 dark:text-slate-400">Runware에서 API 키 발급</p>
+                            <button onClick={() => setShowApiGuide('runware')} className="text-xs text-indigo-600 dark:text-indigo-400 underline whitespace-nowrap ml-2">발급 방법</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* 영상 생성할 장면 수 설정 (최대 180장) */}
                     <div className="space-y-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
