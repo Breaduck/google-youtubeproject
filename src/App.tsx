@@ -5145,7 +5145,14 @@ const App: React.FC = () => {
                           )}
                         </div>
                       )}
-                      <p className="text-xs text-slate-500 dark:text-slate-400">BytePlus ModelArk에서 API 키를 발급받으세요</p>
+                      {!bytedanceApiKey && (
+                        <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            💡 BytePlus ModelArk에서 API 키 발급
+                          </p>
+                          <button onClick={() => setShowApiGuide('byteplus')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline whitespace-nowrap ml-2">발급 방법</button>
+                        </div>
+                      )}
                     </div>
 
                     {/* 영상 생성할 장면 수 설정 (최대 180장) */}

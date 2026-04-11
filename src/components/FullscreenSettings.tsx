@@ -2706,7 +2706,7 @@ export function ApiGuideModal({ type, onClose }: { type: 'gemini' | 'byteplus' |
   const guide = guides[type];
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[400] p-4" onClick={onClose}>
       <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* 헤더 - 그라데이션 배경 */}
         <div className={`bg-gradient-to-r ${guide.color} px-6 py-5`}>
